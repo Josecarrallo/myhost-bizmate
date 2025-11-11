@@ -44,7 +44,7 @@ export default function App() {
           </div>
           <h1 className="text-9xl font-black mb-4 text-orange-500">MY HOST</h1>
           <p className="text-6xl font-bold mb-4 text-orange-500">BizMate</p>
-          <p className="text-2xl text-black font-semibold mb-12">Perfect for Villas, Boutique Hotels & Guest Houses</p>
+          <p className="text-xl text-black font-semibold mb-12">Smart management for modern hospitality.</p>
           <button
             onClick={() => setCurrentScreen('modules')}
             className="px-16 py-6 bg-orange-500 text-white rounded-3xl text-2xl font-bold hover:bg-orange-600 transition-all shadow-2xl hover:shadow-3xl transform hover:scale-105 active:scale-95"
@@ -157,7 +157,7 @@ export default function App() {
             <div className="w-14"></div>
           </div>
 
-          <div className="grid grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 sm:gap-4 justify-items-center">
             {/* Row 1 */}
             <ModuleGridCard icon={LayoutDashboard} title="Dashboard" gradient="from-purple-500 to-pink-600" onClick={() => setCurrentModule('dashboard')} />
             <ModuleGridCard icon={Calendar} title="PMS Calendar" gradient="from-blue-500 to-purple-600" onClick={() => setCurrentModule('pms-calendar')} />
