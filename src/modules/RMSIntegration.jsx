@@ -1,0 +1,140 @@
+import React, { useState } from 'react';
+import { LineChart, Line, BarChart as ReBarChart, Bar, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, PieChart as RePieChart, Pie, Cell } from 'recharts';
+import { Building2, LayoutDashboard, CreditCard, Calendar, MessageSquare, Sparkles, Home, DollarSign, TrendingUp, Users, MapPin, Star, Send, Bot, ChevronLeft, ChevronRight, Settings, Bell, Search, Plus, Filter, Download, Edit, Eye, ArrowRight, Megaphone, ThumbsUp, Share2, BarChart3, Instagram, Facebook, Twitter, Linkedin, X, Check, Workflow, Play, Pause, FileText, AlertCircle, CheckCircle, Clock, Zap, CalendarCheck, BellRing, Percent, BarChart, Map, Compass, Utensils, Car, Camera, Waves, Mountain, Leaf, Sun, Moon, Coffee, ChevronDown, ChevronUp, Award, Crown, ArrowUpRight, ArrowDownRight, PieChart, Activity, Repeat, RefreshCw, XCircle, TrendingDown, Smartphone, Globe, Phone, ClipboardList, User, ThumbsDown } from 'lucide-react';
+
+const RMSIntegration = ({ onBack }) => {
+  const [connectedChannels, setConnectedChannels] = useState([
+    { id: 1, name: "Airbnb", logo: "🏠", status: "connected", bookings: 45, revenue: 67500, sync: "2 mins ago" },
+    { id: 2, name: "Booking.com", logo: "🔵", status: "connected", bookings: 38, revenue: 57000, sync: "5 mins ago" },
+    { id: 3, name: "Agoda", logo: "🟣", status: "connected", bookings: 22, revenue: 33000, sync: "1 min ago" }
+  ]);
+
+  const availableChannels = [
+    { id: 4, name: "Expedia", logo: "✈️", status: "available" },
+    { id: 5, name: "VRBO", logo: "🏖️", status: "available" },
+    { id: 6, name: "TripAdvisor", logo: "🦉", status: "available" }
+  ];
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-blue-50 flex flex-col">
+      <div className="bg-white border-b-2 border-gray-200 p-4">
+        <div className="max-w-7xl mx-auto flex items-center justify-between">
+          <button onClick={onBack} className="flex items-center gap-2 text-black hover:text-indigo-500 transition-colors">
+            <ChevronLeft className="w-5 h-5" />
+            <span className="font-semibold">Back</span>
+          </button>
+          <h1 className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-blue-600">
+            🔗 RMS Integration
+          </h1>
+          <div className="w-20"></div>
+        </div>
+      </div>
+
+      <div className="flex-1 overflow-auto p-6">
+        <div className="max-w-7xl mx-auto space-y-6">
+          
+          {/* Connected Channels */}
+          <div>
+            <h2 className="text-3xl font-black text-gray-900 mb-6">✅ Connected Channels</h2>
+            <div className="grid md:grid-cols-3 gap-4">
+              {connectedChannels.map((channel) => (
+                <div key={channel.id} className="bg-white rounded-2xl p-6 border-2 border-green-200 shadow-lg">
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="flex items-center gap-3">
+                      <div className="text-4xl">{channel.logo}</div>
+                      <div>
+                        <h3 className="text-xl font-black text-gray-900">{channel.name}</h3>
+                        <span className="inline-block px-3 py-1 bg-green-100 text-green-700 rounded-lg text-xs font-bold">
+                          {channel.status}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-3 mb-4">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-gray-600">Bookings</span>
+                      <span className="text-xl font-black text-gray-900">{channel.bookings}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-gray-600">Revenue</span>
+                      <span className="text-xl font-black text-green-600">${channel.revenue.toLocaleString()}</span>
+                    </div>
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-gray-500">Last Sync</span>
+                      <span className="font-bold text-gray-700">{channel.sync}</span>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-2">
+                    <button className="flex-1 py-2 bg-indigo-500 text-white rounded-xl font-bold hover:bg-indigo-600 transition-all text-sm">
+                      Sync Now
+                    </button>
+                    <button className="px-4 py-2 bg-gray-200 text-gray-700 rounded-xl font-bold hover:bg-gray-300 transition-all">
+                      <Settings className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Available Channels */}
+          <div>
+            <h2 className="text-3xl font-black text-gray-900 mb-6">➕ Available Channels</h2>
+            <div className="grid md:grid-cols-3 gap-4">
+              {availableChannels.map((channel) => (
+                <div key={channel.id} className="bg-white rounded-2xl p-6 border-2 border-gray-200 hover:border-indigo-300 hover:shadow-xl transition-all">
+                  <div className="text-center">
+                    <div className="text-5xl mb-4">{channel.logo}</div>
+                    <h3 className="text-xl font-black text-gray-900 mb-4">{channel.name}</h3>
+                    <button className="w-full py-3 bg-gradient-to-r from-indigo-500 to-blue-500 text-white rounded-xl font-bold hover:shadow-lg transition-all">
+                      + Connect
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Sync Settings */}
+          <div className="bg-white rounded-2xl p-6 border-2 border-gray-200">
+            <h3 className="text-2xl font-black text-gray-900 mb-6">⚙️ Sync Settings</h3>
+            <div className="space-y-4">
+              <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
+                <div>
+                  <div className="font-bold text-gray-900">Auto-Sync</div>
+                  <div className="text-sm text-gray-600">Automatically sync bookings every 5 minutes</div>
+                </div>
+                <div className="w-14 h-8 bg-green-500 rounded-full flex items-center px-1">
+                  <div className="w-6 h-6 bg-white rounded-full ml-auto"></div>
+                </div>
+              </div>
+              <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
+                <div>
+                  <div className="font-bold text-gray-900">Price Sync</div>
+                  <div className="text-sm text-gray-600">Sync pricing changes across all channels</div>
+                </div>
+                <div className="w-14 h-8 bg-green-500 rounded-full flex items-center px-1">
+                  <div className="w-6 h-6 bg-white rounded-full ml-auto"></div>
+                </div>
+              </div>
+              <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
+                <div>
+                  <div className="font-bold text-gray-900">Availability Sync</div>
+                  <div className="text-sm text-gray-600">Update availability in real-time</div>
+                </div>
+                <div className="w-14 h-8 bg-green-500 rounded-full flex items-center px-1">
+                  <div className="w-6 h-6 bg-white rounded-full ml-auto"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default RMSIntegration;
