@@ -19,13 +19,13 @@ const ModuleCard = ({ icon: Icon, title, description, gradient, onClick }) => (
 const ModuleGridCard = ({ icon: Icon, title, gradient, onClick }) => (
   <button 
     onClick={onClick} 
-    className="group relative bg-white rounded-2xl p-6 flex flex-col items-center justify-center gap-3 hover:shadow-xl transition-all duration-300 hover:scale-105 active:scale-95 border-2 border-gray-100 hover:border-transparent overflow-hidden"
+    className="group relative w-full aspect-square max-w-[140px] bg-white rounded-2xl p-3 sm:p-4 md:p-6 flex flex-col items-center justify-center gap-2 sm:gap-3 hover:shadow-xl transition-all duration-300 hover:scale-105 active:scale-95 border-2 border-gray-100 hover:border-transparent overflow-hidden"
   >
     <div className={`absolute inset-0 bg-gradient-to-br ${gradient} opacity-0 group-hover:opacity-10 transition-opacity duration-300`}></div>
-    <div className={`relative p-4 rounded-2xl bg-gradient-to-br ${gradient} transform group-hover:scale-110 group-hover:rotate-3 transition-all duration-300`}>
-      <Icon className="w-8 h-8 text-white" strokeWidth={2.5} />
+    <div className={`relative p-2 sm:p-3 md:p-4 rounded-xl sm:rounded-2xl bg-gradient-to-br ${gradient} transform group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 shadow-lg`}>
+      <Icon className="w-6 h-6 sm:w-8 sm:h-8 md:w-10 md:h-10 text-white" strokeWidth={2.5} />
     </div>
-    <h3 className="relative text-sm font-bold text-gray-900 text-center leading-tight">{title}</h3>
+    <h3 className="relative text-xs sm:text-sm md:text-base font-bold text-gray-900 text-center leading-tight px-1">{title}</h3>
   </button>
 );
 
@@ -3666,9 +3666,9 @@ export default function App() {
           <div className="w-32 h-32 rounded-full mx-auto flex items-center justify-center mb-8 bg-orange-500 shadow-2xl">
             <Building2 className="w-16 h-16 text-white" strokeWidth={2.5} />
           </div>
-          <h1 className="text-9xl font-black mb-4 text-orange-500">MY HOST</h1>
-          <p className="text-6xl font-bold mb-4 text-orange-500">BizMate</p>
-          <p className="text-2xl text-black font-semibold mb-12">Perfect for Villas, Boutique Hotels & Guest Houses</p>
+          <h1 className="text-6xl font-black mb-2 text-orange-500">MY HOST</h1>
+          <p className="text-4xl font-bold mb-4 text-orange-500">BizMate</p>
+          <p className="text-xl text-black font-semibold mb-12">Smart management for modern hospitality.</p>
           <button onClick={() => setCurrentScreen('modules')} className="px-16 py-6 bg-orange-500 text-white rounded-3xl text-2xl font-bold hover:bg-orange-600 transition-all shadow-2xl hover:shadow-3xl transform hover:scale-105 active:scale-95">
             Enter Dashboard
           </button>
@@ -3763,17 +3763,17 @@ export default function App() {
 
   if (currentScreen === 'modules') {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-orange-50 via-pink-50 to-purple-50 p-6">
+      <div className="min-h-screen bg-gradient-to-br from-orange-50 via-pink-50 to-purple-50 p-3">
         <div className="max-w-5xl mx-auto">
-          <div className="flex items-center justify-between mb-8">
-            <button onClick={() => setCurrentScreen('home')} className="p-3 bg-white rounded-2xl hover:bg-gray-50 transition-colors shadow-lg border-2 border-gray-100">
-              <ChevronLeft className="w-6 h-6 text-gray-900" />
+          <div className="flex items-center justify-between mb-4">
+            <button onClick={() => setCurrentScreen('home')} className="p-2 bg-white rounded-xl hover:bg-gray-50 transition-colors shadow-lg border-2 border-gray-100">
+              <ChevronLeft className="w-5 h-5 text-gray-900" />
             </button>
-            <h2 className="text-3xl font-black text-gray-900">MY HOST BizMate</h2>
-            <div className="w-14"></div>
+            <h2 className="text-xl font-black text-gray-900">MY HOST BizMate</h2>
+            <div className="w-12"></div>
           </div>
 
-          <div className="grid grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-3 md:gap-4">
             {/* Row 1 */}
             <ModuleGridCard icon={LayoutDashboard} title="Dashboard" gradient="from-purple-500 to-pink-600" onClick={() => setCurrentModule('dashboard')} />
             <ModuleGridCard icon={Calendar} title="PMS Calendar" gradient="from-blue-500 to-purple-600" onClick={() => setCurrentModule('pms-calendar')} />
