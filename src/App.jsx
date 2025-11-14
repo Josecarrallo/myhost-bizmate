@@ -657,11 +657,14 @@ const Properties = ({ onBack }) => {
   const [showAddForm, setShowAddForm] = useState(false);
   const [newProperty, setNewProperty] = useState({
     name: '',
-    city: '',
-    country: '',
+    location: '',
     type: 'Villa',
-    bedrooms: 1,
-    price_per_night: 0
+    description: '',
+    beds: 1,
+    baths: 1,
+    max_guests: 2,
+    base_price: 0,
+    currency: 'USD'
   });
 
   const handleAddProperty = async (e) => {
@@ -681,7 +684,7 @@ const Properties = ({ onBack }) => {
       if (response.ok) {
         alert('✅ Propiedad añadida correctamente!');
         setShowAddForm(false);
-        setNewProperty({ name: '', city: '', country: '', type: 'Villa', bedrooms: 1, price_per_night: 0 });
+        setNewProperty({ name: '', location: '', type: 'Villa', description: '', beds: 1, baths: 1, max_guests: 2, base_price: 0, currency: 'USD' });
       } else {
         const error = await response.json();
         alert('❌ Error: ' + (error.message || 'No se pudo añadir'));
@@ -741,29 +744,16 @@ const Properties = ({ onBack }) => {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-1">City</label>
-                  <input
-                    type="text"
-                    required
-                    value={newProperty.city}
-                    onChange={(e) => setNewProperty({ ...newProperty, city: e.target.value })}
-                    className="w-full px-4 py-2 border-2 border-gray-200 rounded-xl focus:border-pink-500 focus:outline-none"
-                    placeholder="Bali"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-1">Country</label>
-                  <input
-                    type="text"
-                    required
-                    value={newProperty.country}
-                    onChange={(e) => setNewProperty({ ...newProperty, country: e.target.value })}
-                    className="w-full px-4 py-2 border-2 border-gray-200 rounded-xl focus:border-pink-500 focus:outline-none"
-                    placeholder="Indonesia"
-                  />
-                </div>
+              <div>
+                <label className="block text-sm font-bold text-gray-700 mb-1">Location</label>
+                <input
+                  type="text"
+                  required
+                  value={newProperty.location}
+                  onChange={(e) => setNewProperty({ ...newProperty, location: e.target.value })}
+                  className="w-full px-4 py-2 border-2 border-gray-200 rounded-xl focus:border-pink-500 focus:outline-none"
+                  placeholder="Bali, Indonesia"
+                />
               </div>
 
               <div>
@@ -780,26 +770,50 @@ const Properties = ({ onBack }) => {
                 </select>
               </div>
 
-              <div>
-                <label className="block text-sm font-bold text-gray-700 mb-1">Bedrooms</label>
-                <input
-                  type="number"
-                  min="1"
-                  required
-                  value={newProperty.bedrooms}
-                  onChange={(e) => setNewProperty({ ...newProperty, bedrooms: parseInt(e.target.value) })}
-                  className="w-full px-4 py-2 border-2 border-gray-200 rounded-xl focus:border-pink-500 focus:outline-none"
-                />
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-1">Beds</label>
+                  <input
+                    type="number"
+                    min="1"
+                    required
+                    value={newProperty.beds}
+                    onChange={(e) => setNewProperty({ ...newProperty, beds: parseInt(e.target.value) })}
+                    className="w-full px-4 py-2 border-2 border-gray-200 rounded-xl focus:border-pink-500 focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-1">Baths</label>
+                  <input
+                    type="number"
+                    min="1"
+                    required
+                    value={newProperty.baths}
+                    onChange={(e) => setNewProperty({ ...newProperty, baths: parseInt(e.target.value) })}
+                    className="w-full px-4 py-2 border-2 border-gray-200 rounded-xl focus:border-pink-500 focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-1">Guests</label>
+                  <input
+                    type="number"
+                    min="1"
+                    required
+                    value={newProperty.max_guests}
+                    onChange={(e) => setNewProperty({ ...newProperty, max_guests: parseInt(e.target.value) })}
+                    className="w-full px-4 py-2 border-2 border-gray-200 rounded-xl focus:border-pink-500 focus:outline-none"
+                  />
+                </div>
               </div>
 
               <div>
-                <label className="block text-sm font-bold text-gray-700 mb-1">Price per Night ($)</label>
+                <label className="block text-sm font-bold text-gray-700 mb-1">Base Price ($)</label>
                 <input
                   type="number"
                   min="0"
                   required
-                  value={newProperty.price_per_night}
-                  onChange={(e) => setNewProperty({ ...newProperty, price_per_night: parseFloat(e.target.value) })}
+                  value={newProperty.base_price}
+                  onChange={(e) => setNewProperty({ ...newProperty, base_price: parseFloat(e.target.value) })}
                   className="w-full px-4 py-2 border-2 border-gray-200 rounded-xl focus:border-pink-500 focus:outline-none"
                   placeholder="150"
                 />
