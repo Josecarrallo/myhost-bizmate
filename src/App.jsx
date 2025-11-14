@@ -658,7 +658,7 @@ const Properties = ({ onBack }) => {
   const [newProperty, setNewProperty] = useState({
     name: '',
     location: '',
-    type: 'Villa',
+    type: 'villa',
     description: '',
     beds: 1,
     baths: 1,
@@ -684,7 +684,7 @@ const Properties = ({ onBack }) => {
       if (response.ok) {
         alert('✅ Propiedad añadida correctamente!');
         setShowAddForm(false);
-        setNewProperty({ name: '', location: '', type: 'Villa', description: '', beds: 1, baths: 1, max_guests: 2, base_price: 0, currency: 'USD' });
+        setNewProperty({ name: '', location: '', type: 'villa', description: '', beds: 1, baths: 1, max_guests: 2, base_price: 0, currency: 'USD' });
       } else {
         const error = await response.json();
         alert('❌ Error: ' + (error.message || 'No se pudo añadir'));
@@ -763,10 +763,9 @@ const Properties = ({ onBack }) => {
                   onChange={(e) => setNewProperty({ ...newProperty, type: e.target.value })}
                   className="w-full px-4 py-2 border-2 border-gray-200 rounded-xl focus:border-pink-500 focus:outline-none"
                 >
-                  <option>Villa</option>
-                  <option>House</option>
-                  <option>Apartment</option>
-                  <option>Cabin</option>
+                  <option value="villa">Villa</option>
+                  <option value="house">House</option>
+                  <option value="apartment">Apartment</option>
                 </select>
               </div>
 
