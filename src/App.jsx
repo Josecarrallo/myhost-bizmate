@@ -661,7 +661,6 @@ const Properties = ({ onBack }) => {
     country: '',
     type: 'Villa',
     bedrooms: 1,
-    bathrooms: 1,
     price_per_night: 0
   });
 
@@ -682,7 +681,7 @@ const Properties = ({ onBack }) => {
       if (response.ok) {
         alert('✅ Propiedad añadida correctamente!');
         setShowAddForm(false);
-        setNewProperty({ name: '', city: '', country: '', type: 'Villa', bedrooms: 1, bathrooms: 1, price_per_night: 0 });
+        setNewProperty({ name: '', city: '', country: '', type: 'Villa', bedrooms: 1, price_per_night: 0 });
       } else {
         const error = await response.json();
         alert('❌ Error: ' + (error.message || 'No se pudo añadir'));
@@ -781,29 +780,16 @@ const Properties = ({ onBack }) => {
                 </select>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-1">Bedrooms</label>
-                  <input
-                    type="number"
-                    min="1"
-                    required
-                    value={newProperty.bedrooms}
-                    onChange={(e) => setNewProperty({ ...newProperty, bedrooms: parseInt(e.target.value) })}
-                    className="w-full px-4 py-2 border-2 border-gray-200 rounded-xl focus:border-pink-500 focus:outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-1">Bathrooms</label>
-                  <input
-                    type="number"
-                    min="1"
-                    required
-                    value={newProperty.bathrooms}
-                    onChange={(e) => setNewProperty({ ...newProperty, bathrooms: parseInt(e.target.value) })}
-                    className="w-full px-4 py-2 border-2 border-gray-200 rounded-xl focus:border-pink-500 focus:outline-none"
-                  />
-                </div>
+              <div>
+                <label className="block text-sm font-bold text-gray-700 mb-1">Bedrooms</label>
+                <input
+                  type="number"
+                  min="1"
+                  required
+                  value={newProperty.bedrooms}
+                  onChange={(e) => setNewProperty({ ...newProperty, bedrooms: parseInt(e.target.value) })}
+                  className="w-full px-4 py-2 border-2 border-gray-200 rounded-xl focus:border-pink-500 focus:outline-none"
+                />
               </div>
 
               <div>
