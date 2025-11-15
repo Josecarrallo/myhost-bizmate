@@ -1,0 +1,248 @@
+{
+  "name": "new_property_notification",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "new_property",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-node",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [250, 300],
+      "webhookId": "new-property-webhook"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{$json[\"body\"][\"property_name\"]}}",
+              "operation": "isNotEmpty"
+            },
+            {
+              "value1": "={{$json[\"body\"][\"location\"]}}",
+              "operation": "isNotEmpty"
+            }
+          ]
+        }
+      },
+      "id": "if-validation",
+      "name": "IF Validation",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "fromEmail": "noreply@mybizmate.com",
+        "toEmail": "josecarrallodelafuente@gmail.com",
+        "subject": "🏠 Nueva Propiedad Registrada - MY HOST BizMate",
+        "emailType": "html",
+        "message": "<!DOCTYPE html><html><body style=\"font-family: Arial, sans-serif; padding: 20px; background-color: #f5f5f5;\"><div style=\"max-width: 600px; margin: 0 auto; background-color: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);\"><h1 style=\"color: #ff6b6b; margin-bottom: 20px;\">🏠 Nueva Propiedad Registrada</h1><div style=\"background-color: #fff5f5; padding: 20px; border-radius: 8px; margin-bottom: 20px;\"><p style=\"margin: 10px 0;\"><strong>Nombre:</strong> {{$json[\"body\"][\"property_name\"]}}</p><p style=\"margin: 10px 0;\"><strong>Ubicación:</strong> {{$json[\"body\"][\"location\"]}}</p><p style=\"margin: 10px 0;\"><strong>ID:</strong> {{$json[\"body\"][\"property_id\"]}}</p><p style=\"margin: 10px 0;\"><strong>Precio:</strong> ${{$json[\"body\"][\"price\"]}}</p><p style=\"margin: 10px 0;\"><strong>Fecha:</strong> {{$json[\"body\"][\"created_at\"]}}</p></div><p style=\"color: #666; font-size: 14px;\">Esta notificación fue generada automáticamente por MY HOST BizMate.</p></div></body></html>",
+        "options": {}
+      },
+      "id": "email-node",
+      "name": "Send Email",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2,
+      "position": [650, 200],
+      "credentials": {
+        "smtp": {
+          "id": "1",
+          "name": "SMTP account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "https://graph.facebook.com/v21.0/PHONE_NUMBER_ID/messages",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer EAAaJCSZA8PxoBPwNln1dtg4vawasSEQd9aRyYNv1us3kLMM0ZBK19YHSmTmCFtz3bwMnmse3FZBEgErgxU0GiXbF5jJ2IGM0o16EVYunBEEmqM7bgaK6jXT7acX2MCCJkZBJ1IKQenVSEnGL6zqHjzLsYCNOcsnNnqIYiwYo7993LaLPal3Ug7g31DdtZCpNdZBgZBDTZCPCkC660tFAnlZCNqDLERTNWJGOZC0b0ZBiGjLBwZDZD"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "messaging_product",
+              "value": "whatsapp"
+            },
+            {
+              "name": "to",
+              "value": "34619794604"
+            },
+            {
+              "name": "type",
+              "value": "text"
+            },
+            {
+              "name": "text",
+              "value": "{\"body\":\"🏠 Nueva propiedad registrada: {{$json[\"body\"][\"property_name\"]}} ({{$json[\"body\"][\"location\"]}}) - ID: {{$json[\"body\"][\"property_id\"]}} - Precio: ${{$json[\"body\"][\"price\"]}}\"}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "whatsapp-node",
+      "name": "Send WhatsApp",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [650, 300]
+    },
+    {
+      "parameters": {
+        "url": "https://jjpscimtxrudtepzwhag.supabase.co/rest/v1/audit_logs",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpqcHNjaW10eHJ1ZHRlcHp3aGFnIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2Mjk0MzIzMiwiZXhwIjoyMDc4NTE5MjMyfQ.RBD16xjgQB__nj5DtLrK2w55uQ4WFJiaa0mfZT2BeJg"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpqcHNjaW10eHJ1ZHRlcHp3aGFnIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2Mjk0MzIzMiwiZXhwIjoyMDc4NTE5MjMyfQ.RBD16xjgQB__nj5DtLrK2w55uQ4WFJiaa0mfZT2BeJg"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=representation"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"event\": \"new_property_created\",\n  \"payload\": {{$json[\"body\"]}}\n}",
+        "options": {}
+      },
+      "id": "supabase-node",
+      "name": "Supabase Insert",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [650, 400]
+    },
+    {
+      "parameters": {
+        "mode": "mergeByPosition"
+      },
+      "id": "merge-node",
+      "name": "Merge",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 2.1,
+      "position": [850, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\"success\": true, \"message\": \"Notificaciones enviadas correctamente\", \"property_id\": \"{{$json[\"body\"][\"property_id\"]}}\"}",
+        "options": {}
+      },
+      "id": "response-node",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1050, 300]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "IF Validation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Validation": {
+      "main": [
+        [
+          {
+            "node": "Send Email",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Send WhatsApp",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Supabase Insert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Email": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send WhatsApp": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Supabase Insert": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 2
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {},
+  "versionId": "1"
+}
