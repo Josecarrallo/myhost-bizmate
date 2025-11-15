@@ -1,0 +1,23 @@
+{
+  "property_name": "Villa Sunset Paradise",
+  "property_type": "Villa",
+  "address": "123 Ocean Drive, Miami Beach",
+  "city": "Miami",
+  "state": "Florida",
+  "country": "USA",
+  "postal_code": "33139",
+  "bedrooms": 4,
+  "bathrooms": 3,
+  "max_guests": 8,
+  "price_per_night": 350,
+  "description": "Luxury beachfront villa with stunning ocean views",
+  "amenities": ["WiFi", "Pool", "Air Conditioning", "Kitchen", "Parking"],
+  "owner_email": "owner@example.com",
+  "owner_name": "John Doe",
+  "owner_phone": "+1-305-555-0123",
+  "status": "active",
+  "images": [
+    "https://example.com/images/villa1.jpg",
+    "https://example.com/images/villa2.jpg"
+  ]
+}
