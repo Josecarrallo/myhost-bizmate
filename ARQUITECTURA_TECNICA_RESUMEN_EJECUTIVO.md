@@ -484,6 +484,126 @@ MARGEN:                 96.9%
 
 ---
 
+## ANEXO: DIFERENCIA ENTRE CLAUDE CODE Y CLAUDE API
+
+### ⚠️ Aclaración Importante para Inversores
+
+Existen DOS productos Claude diferentes que se usan en este proyecto:
+
+---
+
+### 🛠️ CLAUDE CODE (Herramienta de Desarrollo)
+
+**QUÉ ES:**
+- Herramienta que el equipo de desarrollo usa para escribir código
+- Funciona como un "programador asistente" con IA
+- **NO es parte de la infraestructura de producción**
+
+**QUÉ HACE (solo durante desarrollo):**
+- ✅ Escribe código React
+- ✅ Crea componentes y funciones
+- ✅ Debuggea errores
+- ✅ Modifica archivos
+- ✅ Hace commits a Git
+- ✅ Genera documentación
+- ✅ Optimiza código existente
+
+**QUÉ NO HACE:**
+- ❌ NO atiende a clientes finales
+- ❌ NO está en producción
+- ❌ NO genera contenido para huéspedes
+- ❌ NO es un servidor backend
+- ❌ NO procesa datos de usuarios
+
+**COSTE:** $20/mes (suscripción del desarrollador)
+
+**IMPACTO EN PRODUCCIÓN:** Cero. Es solo una herramienta de desarrollo.
+
+**BENEFICIO:** Reduce tiempo de desarrollo 40-60%, menos bugs, mejor documentación.
+
+---
+
+### 🚀 CLAUDE API (Servicio de Producción)
+
+**QUÉ ES:**
+- API de inteligencia artificial de Anthropic
+- **SÍ es parte de la infraestructura de producción**
+- Atiende a los clientes finales (hosts y huéspedes)
+
+**QUÉ HACE (en producción, para tus clientes):**
+- ✅ Genera Welcome Books personalizados para huéspedes
+- ✅ Crea descripciones automáticas de propiedades
+- ✅ Responde mensajes WhatsApp de huéspedes
+- ✅ Genera contenido marketing
+- ✅ Análisis de sentimiento en reviews
+- ✅ Sugerencias de pricing basadas en contexto
+- ✅ Crea checklists de limpieza personalizados
+
+**COSTE:** $29-576/mes según escala (pay-per-use)
+
+**IMPACTO EN PRODUCCIÓN:** Alto. Es una característica clave del producto.
+
+**BENEFICIO:** Automatización completa de contenido y comunicación.
+
+---
+
+### 📊 Comparación Visual
+
+```
+┌────────────────────────────────────────────────────────────┐
+│                  CLAUDE CODE                               │
+│  (Herramienta de Desarrollo - NO en producción)           │
+├────────────────────────────────────────────────────────────┤
+│  José + Claude Code → Escriben código React                │
+│                     → App.jsx, componentes, etc.           │
+│                     → Durante desarrollo                   │
+│                     → $20/mes                              │
+└────────────────────────────────────────────────────────────┘
+
+                           ↓
+              (Código se despliega a Vercel)
+                           ↓
+
+┌────────────────────────────────────────────────────────────┐
+│               APLICACIÓN EN PRODUCCIÓN                     │
+├────────────────────────────────────────────────────────────┤
+│  Frontend (React/Vercel)                                   │
+│  Backend (Supabase)                                        │
+│  Automatización (n8n)                                      │
+│  IA (Claude API) ← Genera contenido para huéspedes        │
+│                    $29-576/mes según uso                   │
+└────────────────────────────────────────────────────────────┘
+```
+
+---
+
+### 🎯 Analogía Simple
+
+| Concepto | Claude Code | Claude API |
+|----------|-------------|------------|
+| **Rol** | El arquitecto que CONSTRUYE | El mayordomo que ATIENDE |
+| **Cuándo** | Durante desarrollo | 24/7 en producción |
+| **Para quién** | Para el equipo de desarrollo | Para hosts y huéspedes |
+| **Dónde** | Local (computadora José) | Cloud (servidores Anthropic) |
+| **Coste** | Fijo $20/mes | Variable $29-576/mes |
+| **Impacto si falla** | Desarrollo más lento | Funcionalidad IA no disponible |
+
+---
+
+### ✅ Resumen para Inversores
+
+1. **Claude Code = Coste de desarrollo** (una sola vez durante construcción)
+   - No aparece en costes operativos recurrentes
+   - Es como pagar al arquitecto para diseñar la casa
+
+2. **Claude API = Coste operativo recurrente** (incluido en proyecciones)
+   - SÍ aparece en tablas de costes ($29-576/mes)
+   - Es como pagar electricidad de la casa funcionando
+
+3. **Ambos son productos de Anthropic**, pero con propósitos completamente diferentes.
+
+---
+
 **Documento preparado para socios e inversores**
 **MY HOST BizMate - Noviembre 2025**
 **Contacto: jose@myhostbizmate.com**
