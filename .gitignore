@@ -13,6 +13,10 @@ extract-*.js
 supabase_schema_*.json
 n8n_Supabase/.env.automation.txt
 n8n_Supabase/-- triggers.sql.txt
+apply-*.js
 
 # Word/Office temporary files
 ~$*
+
+# Vercel
+.vercel
