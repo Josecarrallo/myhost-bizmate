@@ -1,0 +1,55 @@
+Hola Claude,
+
+Estoy trabajando en MY HOST BizMate, una aplicación SaaS de gestión de propiedades para villas en Bali/Southeast Asia.
+
+STACK TECNOLÓGICO:
+- Frontend: React (desplegado en Vercel)
+- Backend: Supabase (base de datos PostgreSQL)
+- Automatización: n8n (desplegado en Railway)
+- Email: SendGrid (API Key configurada y sender verificado)
+
+ESTADO ACTUAL DEL PROYECTO:
+
+1. BASE DE DATOS SUPABASE:
+   - Tabla: "properties"
+   - Campos principales: id, name, location, type, beds, baths, base_price, created_at
+   - Ya tengo registros de prueba insertados
+
+2. N8N WORKFLOW (FUNCIONANDO):
+   - URL: https://n8n-production-bb2d.up.railway.app
+   - Workflow actual: Manual Trigger → Supabase (Get many rows) → SendGrid (Send email)
+   - Configuración Supabase: Conectado correctamente
+   - Configuración SendGrid: 
+     * API Key: SG.YOUR_SENDGRID_API_KEY_HERE
+     * Sender verificado: josecarrallodelafuente@gmail.com
+     * Sender Name: MY HOST BizMate
+   - Estado: Emails se envían correctamente (llegan a spam pero funcionan)
+
+3. PROBLEMA DE RAILWAY:
+   - Railway FREE plan tiene SMTP bloqueado (puertos 587/465)
+   - Por eso usamos SendGrid API en lugar de SMTP
+   - Gmail OAuth2 requería setup complejo (20 min) así que descartamos esa opción
+
+LO QUE QUIERO HACER AHORA:
+
+Cambiar el workflow de Manual Trigger a automático usando Supabase Database Trigger:
+- Cuando se inserte un registro en tabla "properties"
+- Supabase debe llamar automáticamente a un webhook de n8n
+- n8n envía el email con SendGrid
+- TODO sin modificar el código React (son 3000 líneas y no quiero tocarlo)
+
+CONFIGURACIÓN NECESARIA:
+1. Cambiar "Manual Trigger" a "Webhook" en n8n
+2. Habilitar pg_net en Supabase
+3. Crear función SQL que llame al webhook de n8n
+4. Crear trigger AFTER INSERT en tabla properties
+
+MI EMAIL: josecarrallodelafuente@gmail.com
+MI UBICACIÓN: Singapur
+
+IMPORTANTE:
+- Prefiero soluciones que NO requieran modificar el código React
+- Quiero ver el flujo completo funcionando automáticamente
+- No quiero experimentar - necesito instrucciones paso a paso confirmadas
+
+¿Puedes ayudarme a configurar el trigger automático de Supabase + n8n webhook paso a paso?

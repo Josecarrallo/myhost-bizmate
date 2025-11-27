@@ -13,3 +13,6 @@ extract-*.js
 supabase_schema_*.json
 n8n_Supabase/.env.automation.txt
 n8n_Supabase/-- triggers.sql.txt
+
+# Word/Office temporary files
+~$*

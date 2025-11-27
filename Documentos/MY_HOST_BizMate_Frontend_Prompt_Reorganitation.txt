@@ -1,0 +1,94 @@
+PROMPT COMPLETO PARA CLOUDECODE – REORGANIZACIÓN FRONTEND MY HOST BIZMATE
+
+I am working on the MY HOST BizMate project (React + Tailwind, generated in Cloudecode/Lovable).
+
+The main modules screen is currently disorganized.
+I need you to reorganize the entire frontend layout of the modules screen according to the new structure we defined for clients.
+
+IMPORTANT:
+- Do NOT change the internal logic, routes, or module functionality.
+- Keep the existing tile/card component (colors, icons, size, hover).
+- Only modify the layout: grouping, ordering, spacing, and section subtitles.
+- Add one new module tile: Cultural Intelligence.
+
+----------------------------------------------------
+🎯 OBJECTIVE
+----------------------------------------------------
+Reorganize the modules screen into 5 clear groups, each with a subtitle, following this order:
+
+1) Operations & Guest Management
+2) Revenue & Pricing
+3) AI Intelligence Layer
+4) Marketing & Growth
+5) Workflows & Automations (final block)
+
+----------------------------------------------------
+📦 MODULES TO RENDER IN EACH GROUP
+----------------------------------------------------
+
+1️⃣ Operations & Guest Management
+Subtitle: Operations & Guest Management
+- Dashboard
+- Bookings
+- PMS Calendar
+- Properties
+- Operations Hub
+- Digital Check-in
+
+----------------------------------------------------
+
+2️⃣ Revenue & Pricing
+Subtitle: Revenue & Pricing
+- Booking Engine
+- Payments
+- Smart Pricing
+- RMS Integration
+- Reports
+
+----------------------------------------------------
+
+3️⃣ AI Intelligence Layer
+Subtitle: AI Intelligence Layer
+- AI Assistant
+- Voice AI Agent
+- Cultural Intelligence (NEW)
+
+New tile:
+Label: Cultural Intelligence
+Route: /cultural-intelligence
+Page placeholder: title + "Coming soon"
+
+----------------------------------------------------
+
+4️⃣ Marketing & Growth
+Subtitle: Marketing & Growth
+- Multichannel
+- Marketing
+- Social Publisher
+- Reviews
+
+----------------------------------------------------
+
+5️⃣ Workflows & Automations
+Subtitle: Workflows & Automations
+- Workflows
+
+----------------------------------------------------
+🛠 TECHNICAL REQUIREMENTS
+----------------------------------------------------
+- Use existing grid layout
+- Allow grouped arrays or a group field
+- Do not break imports
+- Add section subtitles
+- Preserve module behavior
+
+----------------------------------------------------
+📌 DELIVERABLES
+----------------------------------------------------
+- Updated JSX layout
+- Updated modules array(s)
+- New Cultural Intelligence page
+- Clean grouping and spacing
+
+----------------------------------------------------
+Start now and show me the updated code.

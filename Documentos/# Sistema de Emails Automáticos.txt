@@ -1,0 +1,54 @@
+# Sistema de Emails Automáticos
+
+## Arquitectura
+```
+Usuario → React → Supabase → Trigger → n8n → SendGrid → Email
+```
+
+## Componentes
+
+### Frontend (React)
+- **Ubicación**: Vercel
+- **Código**: NO modificado
+- **Acción**: Solo hace INSERT en Supabase
+
+### Backend (Supabase)
+- **Trigger**: on_property_insert
+- **Función**: notify_property_registered()
+- **Extensión**: pg_net v0.19.5
+
+### Automatización (n8n)
+- **URL**: https://n8n-production-bb2d.up.railway.app
+- **Webhook**: /webhook/2f390313-a7ef-44cf-8040-f3fecc4fd824
+- **Workflow**: property-email-notification.json
+
+### Email (SendGrid)
+- **API Key**: SG.QLZsCx1wTQW2QbPbORXP6g...
+- **From Email**: josecarrallodelafuente@gmail.com
+- **Sender Name**: MY HOST BizMate
+
+## Flujo Completo
+
+1. Usuario registra propiedad en app React
+2. React ejecuta: `supabase.from('properties').insert()`
+3. Supabase guarda el registro
+4. Trigger `on_property_insert` se activa automáticamente
+5. Función `notify_property_registered()` llama webhook n8n
+6. n8n recibe datos de la propiedad
+7. n8n envía email con SendGrid
+8. Usuario recibe email de confirmación
+
+## Ventajas
+
+- ✅ Frontend desacoplado
+- ✅ Sin modificar código React
+- ✅ Fácil de extender (añadir SMS, Slack, etc.)
+- ✅ Fácil de mantener
+- ✅ Escalable
+
+## Próximas Automaciones
+
+- [ ] WhatsApp notification
+- [ ] Slack notification para equipo
+- [ ] SMS via Twilio
+- [ ] Guardar en Google Sheets
