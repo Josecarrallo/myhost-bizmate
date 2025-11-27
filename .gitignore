@@ -5,3 +5,11 @@ dist/
 .env
 .env.local
 .vscode/
+
+# Supabase backups y credenciales
+supabase_backups/
+extract-*.js
+*_backup_*.sql
+supabase_schema_*.json
+n8n_Supabase/.env.automation.txt
+n8n_Supabase/-- triggers.sql.txt
