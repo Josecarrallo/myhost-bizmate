@@ -317,6 +317,29 @@ const WorkflowCard = ({ name, trigger, actions, status, lastRun, runsToday, icon
   </div>
 );
 
+const CulturalIntelligence = ({ onBack }) => (
+  <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 p-6">
+    <div className="max-w-4xl mx-auto">
+      <button
+        onClick={onBack}
+        className="mb-6 p-3 bg-white rounded-xl hover:bg-gray-50 transition-colors shadow-lg border-2 border-gray-100"
+      >
+        <ChevronLeft className="w-6 h-6 text-gray-900" />
+      </button>
+
+      <div className="bg-white rounded-3xl p-12 shadow-xl border-2 border-gray-100">
+        <div className="text-center">
+          <div className="inline-flex p-6 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-3xl mb-6">
+            <Globe className="w-20 h-20 text-white" strokeWidth={2} />
+          </div>
+          <h1 className="text-5xl font-black text-gray-900 mb-4">Cultural Intelligence</h1>
+          <p className="text-2xl text-gray-500 font-medium">Coming soon</p>
+        </div>
+      </div>
+    </div>
+  </div>
+);
+
 const Dashboard = ({ onBack }) => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-orange-50 p-4 pb-24">
@@ -3918,6 +3941,10 @@ export default function App() {
     return <DigitalCheckIn onBack={() => setCurrentModule(null)} />;
   }
 
+  if (currentModule === 'cultural-intelligence') {
+    return <CulturalIntelligence onBack={() => setCurrentModule(null)} />;
+  }
+
   if (currentScreen === 'modules') {
     return (
       <div className="min-h-screen bg-gradient-to-br from-orange-50 via-pink-50 to-purple-50 p-3">
@@ -3930,35 +3957,61 @@ export default function App() {
             <div className="w-12"></div>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-3 md:gap-4">
-            {/* Row 1 */}
-            <ModuleGridCard icon={LayoutDashboard} title="Dashboard" gradient="from-purple-500 to-pink-600" onClick={() => setCurrentModule('dashboard')} />
-            <ModuleGridCard icon={Calendar} title="PMS Calendar" gradient="from-blue-500 to-purple-600" onClick={() => setCurrentModule('pms-calendar')} />
-            <ModuleGridCard icon={Sparkles} title="Booking Engine" gradient="from-orange-500 to-pink-600" onClick={() => setCurrentModule('booking-engine')} />
-            <ModuleGridCard icon={Phone} title="Voice AI Agent" gradient="from-purple-600 to-pink-600" onClick={() => setCurrentModule('voice-ai')} />
-            
-            {/* Row 2 */}
-            <ModuleGridCard icon={ClipboardList} title="Operations Hub" gradient="from-blue-600 to-cyan-600" onClick={() => setCurrentModule('operations')} />
-            <ModuleGridCard icon={Star} title="Reviews" gradient="from-yellow-500 to-orange-600" onClick={() => setCurrentModule('reviews')} />
-            <ModuleGridCard icon={Repeat} title="RMS Integration" gradient="from-indigo-500 to-blue-600" onClick={() => setCurrentModule('rms')} />
-            <ModuleGridCard icon={Smartphone} title="Digital Check-in" gradient="from-green-500 to-emerald-600" onClick={() => setCurrentModule('digital-checkin')} />
-            
-            {/* Row 3 */}
-            <ModuleGridCard icon={CreditCard} title="Payments" gradient="from-green-500 to-emerald-600" onClick={() => setCurrentModule('payments')} />
-            <ModuleGridCard icon={Calendar} title="Bookings" gradient="from-blue-500 to-cyan-600" onClick={() => setCurrentModule('bookings')} />
-            <ModuleGridCard icon={MessageSquare} title="Messages" gradient="from-orange-500 to-red-600" onClick={() => setCurrentModule('messages')} />
-            <ModuleGridCard icon={Sparkles} title="AI Assistant" gradient="from-purple-500 to-orange-500" onClick={() => setCurrentModule('ai')} />
-            
-            {/* Row 4 */}
-            <ModuleGridCard icon={Repeat} title="Multichannel" gradient="from-indigo-500 to-blue-600" onClick={() => setCurrentModule('multichannel')} />
-            <ModuleGridCard icon={Home} title="Properties" gradient="from-pink-500 to-rose-600" onClick={() => setCurrentModule('properties')} />
-            <ModuleGridCard icon={DollarSign} title="Smart Pricing" gradient="from-blue-600 to-indigo-600" onClick={() => setCurrentModule('pricing')} />
-            <ModuleGridCard icon={Megaphone} title="Marketing" gradient="from-purple-600 to-pink-600" onClick={() => setCurrentModule('marketing')} />
-            
-            {/* Row 5 */}
-            <ModuleGridCard icon={Share2} title="Social Publisher" gradient="from-blue-600 to-cyan-600" onClick={() => setCurrentModule('social')} />
-            <ModuleGridCard icon={Workflow} title="Workflows" gradient="from-indigo-600 to-purple-600" onClick={() => setCurrentModule('workflows')} />
-            <ModuleGridCard icon={BarChart3} title="Reports" gradient="from-orange-600 to-pink-600" onClick={() => setCurrentModule('reports')} />
+          <div className="space-y-6">
+            {/* 1️⃣ Operations & Guest Management */}
+            <div>
+              <h3 className="text-lg font-bold text-gray-800 mb-3 px-1">Operations & Guest Management</h3>
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-3 md:gap-4">
+                <ModuleGridCard icon={LayoutDashboard} title="Dashboard" gradient="from-purple-500 to-pink-600" onClick={() => setCurrentModule('dashboard')} />
+                <ModuleGridCard icon={Calendar} title="Bookings" gradient="from-blue-500 to-cyan-600" onClick={() => setCurrentModule('bookings')} />
+                <ModuleGridCard icon={Calendar} title="PMS Calendar" gradient="from-blue-500 to-purple-600" onClick={() => setCurrentModule('pms-calendar')} />
+                <ModuleGridCard icon={Home} title="Properties" gradient="from-pink-500 to-rose-600" onClick={() => setCurrentModule('properties')} />
+                <ModuleGridCard icon={ClipboardList} title="Operations Hub" gradient="from-blue-600 to-cyan-600" onClick={() => setCurrentModule('operations')} />
+                <ModuleGridCard icon={Smartphone} title="Digital Check-in" gradient="from-green-500 to-emerald-600" onClick={() => setCurrentModule('digital-checkin')} />
+                <ModuleGridCard icon={MessageSquare} title="Messages" gradient="from-orange-500 to-red-600" onClick={() => setCurrentModule('messages')} />
+              </div>
+            </div>
+
+            {/* 2️⃣ Revenue & Pricing */}
+            <div>
+              <h3 className="text-lg font-bold text-gray-800 mb-3 px-1">Revenue & Pricing</h3>
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-3 md:gap-4">
+                <ModuleGridCard icon={Sparkles} title="Booking Engine" gradient="from-orange-500 to-pink-600" onClick={() => setCurrentModule('booking-engine')} />
+                <ModuleGridCard icon={CreditCard} title="Payments" gradient="from-green-500 to-emerald-600" onClick={() => setCurrentModule('payments')} />
+                <ModuleGridCard icon={DollarSign} title="Smart Pricing" gradient="from-blue-600 to-indigo-600" onClick={() => setCurrentModule('pricing')} />
+                <ModuleGridCard icon={Repeat} title="RMS Integration" gradient="from-indigo-500 to-blue-600" onClick={() => setCurrentModule('rms')} />
+                <ModuleGridCard icon={BarChart3} title="Reports" gradient="from-orange-600 to-pink-600" onClick={() => setCurrentModule('reports')} />
+              </div>
+            </div>
+
+            {/* 3️⃣ AI Intelligence Layer */}
+            <div>
+              <h3 className="text-lg font-bold text-gray-800 mb-3 px-1">AI Intelligence Layer</h3>
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-3 md:gap-4">
+                <ModuleGridCard icon={Sparkles} title="AI Assistant" gradient="from-purple-500 to-orange-500" onClick={() => setCurrentModule('ai')} />
+                <ModuleGridCard icon={Phone} title="Voice AI Agent" gradient="from-purple-600 to-pink-600" onClick={() => setCurrentModule('voice-ai')} />
+                <ModuleGridCard icon={Globe} title="Cultural Intelligence" gradient="from-indigo-500 to-purple-600" onClick={() => setCurrentModule('cultural-intelligence')} />
+              </div>
+            </div>
+
+            {/* 4️⃣ Marketing & Growth */}
+            <div>
+              <h3 className="text-lg font-bold text-gray-800 mb-3 px-1">Marketing & Growth</h3>
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-3 md:gap-4">
+                <ModuleGridCard icon={Repeat} title="Multichannel" gradient="from-indigo-500 to-blue-600" onClick={() => setCurrentModule('multichannel')} />
+                <ModuleGridCard icon={Megaphone} title="Marketing" gradient="from-purple-600 to-pink-600" onClick={() => setCurrentModule('marketing')} />
+                <ModuleGridCard icon={Share2} title="Social Publisher" gradient="from-blue-600 to-cyan-600" onClick={() => setCurrentModule('social')} />
+                <ModuleGridCard icon={Star} title="Reviews" gradient="from-yellow-500 to-orange-600" onClick={() => setCurrentModule('reviews')} />
+              </div>
+            </div>
+
+            {/* 5️⃣ Workflows & Automations */}
+            <div>
+              <h3 className="text-lg font-bold text-gray-800 mb-3 px-1">Workflows & Automations</h3>
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-3 md:gap-4">
+                <ModuleGridCard icon={Workflow} title="Workflows" gradient="from-indigo-600 to-purple-600" onClick={() => setCurrentModule('workflows')} />
+              </div>
+            </div>
           </div>
         </div>
       </div>
