@@ -1,0 +1,412 @@
+# PROMPT DE RECUPERACIÓN - MY HOST BizMate
+## Sesión 28 Noviembre 2025 - Implementación MCP n8n + Flujo B
+
+---
+
+## 📍 CONTEXTO DEL PROYECTO
+
+**Proyecto:** MY HOST BizMate
+**Ubicación:** C:\myhost-bizmate
+**Branch:** backup-antes-de-automatizacion
+**Repositorio:** https://github.com/Josecarrallo/myhost-bizmate
+
+**Stack:**
+- Frontend: React 18.2 + Vite + Tailwind CSS
+- Backend: Supabase (PostgreSQL)
+- Automation: n8n (Railway)
+- AI: Claude API (Anthropic)
+
+**Última actualización:** 28 Nov 2025
+
+---
+
+## ✅ LO QUE SE COMPLETÓ HOY (28 NOV 2025)
+
+### 1. MCP n8n LITE - COMPLETADO ✅
+
+**Ubicación:** `.claude/mcp/n8n/`
+
+**Archivos creados:**
+- `index.js` - Servidor MCP con 5 herramientas
+- `package.json` - Dependencias
+- `test.js` - Script de prueba
+- `start.bat` - Wrapper para Windows
+- `README.md` - Documentación completa
+- `INSTALL.md` - Guía de instalación
+- `QUICK_START.md` - Inicio rápido
+- `SETUP_COMPLETE.md` - Resumen
+
+**Herramientas MCP disponibles:**
+1. list_workflows
+2. create_workflow
+3. get_executions
+4. trigger_workflow
+5. update_workflow
+
+**Estado:** ✅ FUNCIONAL - Testeado y operativo
+
+**Configuración:**
+- Archivo: `C:\Users\Jose Carrallo\AppData\Roaming\Claude\claude_desktop_config.json`
+- Comando: `C:\myhost-bizmate\.claude\mcp\n8n\start.bat`
+- n8n URL: https://n8n-production-bb2d.up.railway.app
+- n8n API Key: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMmNkZWVjOC0xM2U0LTQzYTQtODAzYS0zOTU2NmIzYzRiNDAiLCJpc3MiOiJuOG4iLCJhdWQiOiJwdWJsaWMtYXBpIiwiaWF0IjoxNzY0MzAzMjc2LCJleHAiOjE3NjY4MTE2MDB9.0FoWHAhf1ISPaL8tWq0tI9RWmkP_5eRFPnaTQe5jVT4
+
+**Commit:** 52e5fef - "Add n8n MCP LITE server and CLAUDE.md documentation"
+
+---
+
+### 2. CLAUDE.md - COMPLETADO ✅
+
+**Ubicación:** `C:\myhost-bizmate\CLAUDE.md`
+
+**Contenido:**
+- Project overview
+- Development commands
+- Architecture (refactor 4019 → 214 lines)
+- Component structure
+- n8n MCP server documentation
+- Supabase integration
+- Git workflow
+
+**Propósito:** Guía para futuras sesiones de Claude Code
+
+**Commit:** Incluido en 52e5fef
+
+---
+
+### 3. Flujo B - Recomendaciones IA Diarias - 75% COMPLETO ⏸️
+
+**Ubicación:** `C:\myhost-bizmate\n8n_worlkflow_claude/`
+
+**Archivos creados:**
+- `Flujo_B_Recomendaciones_IA_Diarias.json` - Workflow completo
+- `FLUJO_B_INSTRUCCIONES.md` - Guía de instalación
+- `create_recommendation_logs_table.sql` - Schema SQL
+
+**Workflow estructura (10 nodos):**
+1. Schedule Trigger - Diario 9 AM
+2. Supabase: Get Active Guests
+3. IF: Has Active Guests?
+4. Loop: Each Guest
+5. Claude AI: Generate Recommendations
+6. Format: Email & WhatsApp
+7. SendGrid: Send Email (PENDIENTE CAMBIAR)
+8. WhatsApp: Send Message (PENDIENTE CONFIGURAR/DESACTIVAR)
+9. Supabase: Log Execution
+10. Error Handler
+
+**Commit:** da1a076 - "Add Flujo B - Recomendaciones IA Diarias workflow"
+
+---
+
+## 🔑 CREDENCIALES IMPORTANTES
+
+### Claude API (Anthropic)
+- **API Key:** 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
+- **Workspace:** Default
+- **Created:** 28 Nov 2025
+- **Name:** myhost-bizmate
+- **Console:** https://console.anthropic.com/
+
+### Supabase
+- **URL:** https://jjpscimtxrudtepzwhag.supabase.co
+- **Project ID:** jjpscimtxrudtepzwhag
+- **Anon Key:** eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpqcHNjaW10eHJ1ZHRlcHp3aGFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI5NDMyMzIsImV4cCI6MjA3ODUxOTIzMn0._U_HwdF5-yT8-prJLzkdO_rGbNuu7Z3gpUQW0Q8zxa0
+
+### n8n (Railway)
+- **URL:** https://n8n-production-bb2d.up.railway.app
+- **API Key:** eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMmNkZWVjOC0xM2U0LTQzYTQtODAzYS0zOTU2NmIzYzRiNDAiLCJpc3MiOiJuOG4iLCJhdWQiOiJwdWJsaWMtYXBpIiwiaWF0IjoxNzY0MzAzMjc2LCJleHAiOjE3NjY4MTE2MDB9.0FoWHAhf1ISPaL8tWq0tI9RWmkP_5eRFPnaTQe5jVT4
+- **Expira:** 26 Feb 2025
+- **Total Workflows:** 100 (99 inactivos, 1 activo)
+
+### SendGrid (TEMPORAL - A REEMPLAZAR)
+- **From Email:** josecarrallodelafuente@gmail.com
+- **Estado:** Configurado pero se quiere reemplazar con Brevo/Amazon SES
+
+---
+
+## ⏸️ ESTADO ACTUAL - FLUJO B
+
+### ✅ Completado (75%)
+
+1. ✅ Claude API key obtenida de Anthropic
+2. ✅ Tabla `recommendation_logs` creada en Supabase (via UI)
+3. ✅ Workflow importado en n8n
+4. ✅ Credencial "Anthropic API" configurada en n8n
+
+### ⏳ Pendiente (25%)
+
+1. ❌ Configurar credencial de Supabase en n8n
+2. ❌ Reemplazar SendGrid con Brevo/Amazon SES/otro
+3. ❌ Configurar o desactivar nodo de WhatsApp
+4. ❌ Probar ejecución del workflow
+5. ❌ Activar workflow en schedule
+
+---
+
+## 🎯 PRÓXIMOS PASOS EXACTOS
+
+### Cuando Reanudes la Sesión:
+
+**Paso 1:** Abrir n8n
+- URL: https://n8n-production-bb2d.up.railway.app
+- Workflow: "Flujo B - Recomendaciones IA Diarias"
+- Estado: Importado pero NO guardado
+
+**Paso 2:** Configurar Credenciales Restantes
+
+#### A) Supabase (2 nodos necesitan esto)
+- Nodo: "Supabase: Get Active Guests"
+- Nodo: "Supabase: Log Execution"
+- Crear credencial tipo: "Supabase"
+- Host: https://jjpscimtxrudtepzwhag.supabase.co
+- Service Role Key: [BUSCAR EN SUPABASE SETTINGS]
+
+#### B) Email Provider (DECISIÓN PENDIENTE)
+**Opciones:**
+1. **Brevo (ex-Sendinblue)** - Recomendado
+   - Free: 300 emails/día
+   - Setup: 10 min
+
+2. **Amazon SES**
+   - Más barato para volumen alto
+   - Setup: 15-20 min
+
+3. **Mailgun**
+   - Free: 100 emails/día
+   - Setup: 10 min
+
+**Acción:** Decidir proveedor y obtener API key
+
+#### C) WhatsApp (DECISIÓN PENDIENTE)
+**Opciones:**
+1. Desactivar nodo (más simple)
+2. Configurar WhatsApp Business API
+3. Reemplazar con Telegram/otro
+
+**Acción:** Decidir y configurar o desactivar
+
+**Paso 3:** Crear Datos de Prueba en Supabase
+
+Ejecutar SQL para crear huésped de prueba:
+```sql
+INSERT INTO bookings (name, email, phone, property_id, check_in_date, check_out_date, status, preferences)
+VALUES (
+  'Test Guest',
+  'tu_email@gmail.com',
+  '+1234567890',
+  'villa-1',
+  CURRENT_DATE,
+  CURRENT_DATE + INTERVAL '3 days',
+  'active',
+  'wellness, beaches, local cuisine'
+);
+```
+
+**Paso 4:** Probar Workflow
+- Click "Execute Workflow" en n8n
+- Verificar cada nodo
+- Revisar logs en Supabase tabla `recommendation_logs`
+
+**Paso 5:** Activar Schedule
+- Toggle "Active" en workflow
+- Verificará ejecución diaria a las 9 AM
+
+---
+
+## 💾 BACKUPS ACTUALES
+
+### Git/GitHub
+- **Branch:** backup-antes-de-automatizacion
+- **Último commit:** cf37500 - "Session pause - Flujo B partially configured"
+- **Push:** ✅ Sincronizado con GitHub
+- **URL:** https://github.com/Josecarrallo/myhost-bizmate
+
+### Local
+- **Ubicación:** C:\Backup_MyHost_BizMate_2025-11-28
+- **Contenido:** Copia completa del proyecto (incluye node_modules)
+- **Tamaño:** ~200MB
+- **Fecha:** 28 Nov 2025
+
+---
+
+## 📝 COMANDOS ÚTILES
+
+### Desarrollo
+```bash
+cd C:\myhost-bizmate
+npm run dev  # localhost:5173
+```
+
+### Git
+```bash
+git status
+git log --oneline -5
+git branch
+```
+
+### n8n MCP Test
+```bash
+cd C:\myhost-bizmate
+N8N_API_KEY="tu_key" node .claude\mcp\n8n\test.js
+```
+
+---
+
+## 🔍 TROUBLESHOOTING
+
+### MCP n8n no funciona
+1. Verificar archivo: `C:\Users\Jose Carrallo\AppData\Roaming\Claude\claude_desktop_config.json`
+2. Reiniciar Claude Code completamente
+3. Verificar n8n Railway está corriendo
+
+### Workflow falla en Supabase
+1. Verificar credencial Supabase configurada
+2. Verificar tabla `bookings` existe y tiene datos
+3. Verificar tabla `recommendation_logs` existe
+
+### Workflow falla en Claude AI
+1. Verificar API key válida (no expirada)
+2. Verificar créditos en cuenta Anthropic
+3. Revisar logs de ejecución en n8n
+
+---
+
+## 📊 ESTADÍSTICAS DEL PROYECTO
+
+### Código
+- **App.jsx:** 214 líneas (era 4,019)
+- **Reducción:** 94.7%
+- **Módulos extraídos:** 21
+- **Componentes comunes:** 10
+
+### n8n
+- **Workflows totales:** 100
+- **Activos:** 1 (Booking Confirmation)
+- **Inactivos:** 99
+- **Nuevos hoy:** 1 (Flujo B - pendiente activar)
+
+### MCP
+- **Servidores:** 1 (n8n)
+- **Herramientas:** 5
+- **Estado:** ✅ Operativo
+
+---
+
+## 🎯 PLAN COMPLETO DE AUTOMATIZACIONES (21 WORKFLOWS)
+
+### Categorías:
+1. **Gestión de Reservas:** 7 flujos
+2. **IA y Personalización:** 5 flujos (Flujo B = 1/5)
+3. **Operaciones:** 5 flujos
+4. **Marketing y Reviews:** 4 flujos
+
+**Documento:** `Documentos/MY-HOST-BizMate-Plan-Automatizaciones-n8n.md`
+
+---
+
+## 📞 PROMPT DE RECUPERACIÓN
+
+**Si pierdes la sesión, usa ESTE prompt en Claude Code:**
+
+```
+Hola Claude Code, necesito retomar el trabajo en MY HOST BizMate.
+
+**UBICACIÓN:** C:\myhost-bizmate
+**BRANCH:** backup-antes-de-automatizacion
+
+**CONTEXTO:**
+Estoy implementando el Flujo B - Recomendaciones IA Diarias en n8n.
+
+**COMPLETADO HOY (28 Nov):**
+✅ MCP n8n LITE instalado y funcionando
+✅ CLAUDE.md creado
+✅ Flujo B workflow creado e importado en n8n
+✅ Claude API key configurada
+✅ Tabla recommendation_logs creada en Supabase
+
+**PENDIENTE AHORA:**
+❌ Configurar credencial Supabase en n8n (2 nodos)
+❌ Reemplazar SendGrid con Brevo/Amazon SES
+❌ Configurar o desactivar nodo WhatsApp
+❌ Probar ejecución del workflow
+❌ Activar workflow
+
+**ESTADO n8n:**
+- Workflow "Flujo B - Recomendaciones IA Diarias" está abierto
+- URL: https://n8n-production-bb2d.up.railway.app
+- Nodo Claude AI ya configurado ✅
+- Faltan configurar: Supabase, Email, WhatsApp
+
+**CREDENCIALES:**
+Ver archivo: C:\myhost-bizmate\Documentos\PROMPT_RECUPERACION_SESION_28NOV2025.txt
+
+**NECESITO:**
+Continuar paso a paso configurando las credenciales restantes para completar el Flujo B.
+
+¿Empezamos?
+```
+
+---
+
+## 🚨 IMPORTANTE - NO OLVIDAR
+
+1. **n8n API Key expira:** 26 Feb 2025 - Regenerar antes
+2. **Workflow NO guardado en n8n:** Está importado pero sin guardar
+3. **SendGrid temporal:** Decidir proveedor definitivo
+4. **WhatsApp pendiente:** Configurar o desactivar nodo
+5. **Datos de prueba:** Crear huésped activo en Supabase antes de testear
+
+---
+
+## 📚 ARCHIVOS CLAVE PARA CONSULTAR
+
+### Documentación
+- `CLAUDE.md` - Guía principal del proyecto
+- `.claude/mcp/n8n/README.md` - Documentación MCP
+- `.claude/mcp/n8n/QUICK_START.md` - Inicio rápido MCP
+- `n8n_worlkflow_claude/FLUJO_B_INSTRUCCIONES.md` - Guía Flujo B
+
+### Código
+- `src/App.jsx` - App principal (214 líneas)
+- `src/services/supabase.js` - Servicio Supabase
+- `.claude/mcp/n8n/index.js` - Servidor MCP
+
+### Workflows
+- `n8n_worlkflow_claude/Flujo_B_Recomendaciones_IA_Diarias.json`
+- `n8n_worlkflow_claude/create_recommendation_logs_table.sql`
+
+---
+
+## ✅ CHECKLIST DE VERIFICACIÓN
+
+Antes de continuar, verificar que tienes:
+
+- [ ] Acceso a: https://n8n-production-bb2d.up.railway.app
+- [ ] Acceso a: https://supabase.com/dashboard
+- [ ] Acceso a: https://console.anthropic.com/
+- [ ] Claude Code con MCP n8n funcionando
+- [ ] Repositorio sincronizado en GitHub
+- [ ] Backup local en C:\Backup_MyHost_BizMate_2025-11-28
+
+---
+
+**Última actualización:** 28 Nov 2025, 13:30 PM
+**Sesión guardada por:** Claude Code
+**Próxima acción:** Configurar credenciales restantes en n8n Flujo B
+**Tiempo estimado restante:** 15-20 minutos
+
+---
+
+## 💡 TIPS
+
+- Trabaja paso a paso, no te saltes pasos
+- Guarda cada avance con commits
+- Prueba cada nodo individualmente antes de activar el workflow
+- Revisa logs en n8n Executions si algo falla
+- El MCP n8n te ayuda a debuggear: "¿Por qué falló el workflow X?"
+
+---
+
+**ARCHIVO GUARDADO EN:**
+`C:\myhost-bizmate\Documentos\PROMPT_RECUPERACION_SESION_28NOV2025.txt`
