@@ -1,0 +1,144 @@
+{
+  "name": "Booking Created - Email + SMS copy 2",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "5271c2bb-7a46-43bd-9385-d1e4621ce8c4",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "ddbde9fa-6e61-49ac-9476-4120081c1058",
+      "name": "Webhook",
+      "webhookId": "5271c2bb-7a46-43bd-9385-d1e4621ce8c4"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "tableId": "properties",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "keyValue": "={{ $node[\"Webhook\"].json[\"body\"][\"property_id\"] }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        208,
+        0
+      ],
+      "id": "9f4b724e-509c-4410-93d8-8ef0e7fbd62a",
+      "name": "Get a row",
+      "credentials": {
+        "supabaseApi": {
+          "id": "SJLQzwU9BVHEVAGc",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "mail",
+        "fromEmail": "josecarrallodelafuente@gmail.com",
+        "fromName": "MY HOST BizMate",
+        "toEmail": "={{ $node[\"Webhook\"].json[\"body\"][\"guest_email\"] }}",
+        "subject": "=✅ Reserva Confirmada - {{ $('Get a row').item.json.name }}",
+        "contentValue": "=¡Hola {{ $node[\"Webhook\"].json[\"body\"][\"guest_name\"] }}!\n\nTu reserva ha sido confirmada exitosamente.\n\nDETALLES DE TU RESERVA:\n━━━━━━━━━━━━━━━━━━━━━━━━━\n🏠 Propiedad: {{ $node[\"Get a row\"].json[\"name\"] }}\n📍 Ubicación: {{ $node[\"Get a row\"].json[\"location\"] }}\n📅 Check-in: {{ $node[\"Webhook\"].json[\"body\"][\"check_in\"] }}\n📅 Check-out: {{ $node[\"Webhook\"].json[\"body\"][\"check_out\"] }}\n👥 Huéspedes: {{ $node[\"Webhook\"].json[\"body\"][\"guests_count\"] }}\n💰 Total: ${{ $node[\"Webhook\"].json[\"body\"][\"total_amount\"] }}\n\nPronto recibirás más información sobre tu llegada.\n\n¡Esperamos verte pronto!\n\nEl equipo de MY HOST BizMate 🌺",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.sendGrid",
+      "typeVersion": 1,
+      "position": [
+        400,
+        0
+      ],
+      "id": "8857a1c1-67b2-47a3-bd50-d07e03aa4a36",
+      "name": "Send an email",
+      "credentials": {
+        "sendGridApi": {
+          "id": "Y35BYbcV5SYfjBwc",
+          "name": "SendGrid account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "from": "+14155238886",
+        "to": "+34619794604",
+        "toWhatsapp": true,
+        "message": "=🏠 *Nueva Reserva - MY HOST*  {{ $node[\"Webhook\"].json[\"body\"][\"guest_name\"] }} Villa: {{ $node[\"Get a row\"].json[\"name\"] }} 📅 {{ $node[\"Webhook\"].json[\"body\"][\"check_in\"] }} - {{ $node[\"Webhook\"].json[\"body\"][\"check_out\"] }} 💰 ${{ $node[\"Webhook\"].json[\"body\"][\"total_amount\"] }}  ✅ Email confirmación enviado",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [
+        608,
+        0
+      ],
+      "id": "41d7462b-d56f-4c69-b86c-bd0698a20910",
+      "name": "Send an SMS/MMS/WhatsApp message",
+      "credentials": {
+        "twilioApi": {
+          "id": "Fk1OTTpeYj0yxFaE",
+          "name": "Twilio account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Get a row",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get a row": {
+      "main": [
+        [
+          {
+            "node": "Send an email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send an email": {
+      "main": [
+        [
+          {
+            "node": "Send an SMS/MMS/WhatsApp message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "24cc4439-845f-482c-84a7-97b4572dded9",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "ca7bc7f182c365457ea4a94a4dc2efe81c23590ab8904858ce5cabfbdd56e40f"
+  },
+  "id": "yCvSjjp8bhjIjwdV",
+  "tags": []
+}

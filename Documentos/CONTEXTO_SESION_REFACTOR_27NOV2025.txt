@@ -1,0 +1,314 @@
+# CONTEXTO DEL PROYECTO - MY HOST BizMate
+
+## PROYECTO
+- **Nombre:** MY HOST BizMate
+- **Ubicación:** C:\myhost-bizmate
+- **Branch actual:** backup-antes-de-automatizacion
+- **Stack:** React 18.2 + Vite + Tailwind CSS + Supabase
+- **URL Vercel:** https://myhost-bizmate-mfxwn8itv-jose-carrallos-projects.vercel.app
+
+## REFACTOR COMPLETADO (27 Nov 2025)
+
+### LO QUE SE HIZO:
+✅ **Refactor estructural completo** del frontend
+✅ App.jsx reducido de **4,019 líneas → 214 líneas** (94.7% reducción)
+✅ **21 módulos** extraídos a componentes separados
+✅ **10 componentes comunes** reutilizables creados
+✅ Servicio Supabase centralizado
+✅ AppContext para estado global
+✅ **Commit creado:** e149395
+✅ **Push exitoso** a GitHub
+
+### ESTRUCTURA ACTUAL:
+```
+src/
+├── App.jsx (214 líneas) - REFACTORIZADO ✅
+├── App.jsx.backup (4,019 líneas) - BACKUP
+├── components/
+│   ├── common/ (10 componentes reutilizables)
+│   │   ├── ModuleCard.jsx
+│   │   ├── ModuleGridCard.jsx
+│   │   ├── StatCard.jsx
+│   │   ├── PaymentCard.jsx
+│   │   ├── BookingCard.jsx
+│   │   ├── MessageCard.jsx
+│   │   ├── PropertyCard.jsx
+│   │   ├── PricingCard.jsx
+│   │   ├── CampaignCard.jsx
+│   │   ├── WorkflowCard.jsx
+│   │   └── index.js
+│   ├── Dashboard/Dashboard.jsx
+│   ├── Payments/Payments.jsx
+│   ├── Bookings/Bookings.jsx
+│   ├── Messages/Messages.jsx
+│   ├── Properties/Properties.jsx
+│   ├── AIAssistant/AIAssistant.jsx
+│   ├── Multichannel/Multichannel.jsx
+│   ├── Marketing/Marketing.jsx
+│   ├── SocialPublisher/SocialPublisher.jsx
+│   ├── SmartPricing/SmartPricing.jsx
+│   ├── Reports/Reports.jsx
+│   ├── PMSCalendar/PMSCalendar.jsx
+│   ├── BookingEngine/BookingEngine.jsx
+│   ├── VoiceAI/VoiceAI.jsx
+│   ├── Operations/Operations.jsx
+│   ├── Reviews/Reviews.jsx
+│   ├── RMSIntegration/RMSIntegration.jsx
+│   ├── DigitalCheckIn/DigitalCheckIn.jsx
+│   ├── CulturalIntelligence/CulturalIntelligence.jsx
+│   └── Workflows/
+│       ├── Workflows.jsx
+│       ├── AITripPlanner.jsx
+│       └── BookingWorkflow.jsx
+├── services/
+│   └── supabase.js
+└── context/
+    └── AppContext.jsx
+```
+
+### ESTADO ACTUAL:
+- ✅ Compilación exitosa sin errores
+- ✅ Aplicación funcional probada en localhost:5176
+- ✅ Commit y push completados
+- ✅ Cero breaking changes
+- ✅ Funcionalidad 100% preservada
+
+### SUPABASE:
+- **URL:** https://jjpscimtxrudtepzwhag.supabase.co
+- **Key guardada en:** src/services/supabase.js
+- **Tablas principales:** properties, bookings, payments, etc.
+
+## COMANDOS ÚTILES:
+
+### Desarrollo:
+```bash
+cd C:\myhost-bizmate
+npm run dev  # Inicia en localhost (puerto 5173-5176)
+```
+
+### Git:
+```bash
+git status
+git log --oneline -5
+git branch
+git show e149395  # Ver commit del refactor
+```
+
+### Deploy Vercel:
+```bash
+vercel --prod --yes
+```
+
+## PRÓXIMA TAREA ACTIVA (28 Nov 2025):
+
+### 🎯 **n8n WORKFLOW: Flujo B - Recomendaciones IA Diarias**
+
+**ESTADO:** Listo para comenzar mañana con aprendizaje hands-on
+
+**QUÉ ES:** Workflow automatizado que usa Claude AI para generar recomendaciones personalizadas diarias para huéspedes activos (restaurantes, actividades, experiencias locales) y enviarlas por email/WhatsApp.
+
+**PASOS PENDIENTES PARA MAÑANA:**
+
+1. **Obtener Claude API Key:**
+   - Ir a: https://console.anthropic.com/
+   - Crear/iniciar sesión
+   - Generar nueva API key en sección "API Keys"
+   - Guardarla en `n8n_Supabase/.env.automation.txt`
+
+2. **Acceder a n8n:**
+   - URL: https://n8n-production-bb2d.up.railway.app
+   - Crear nuevo workflow llamado "Recomendaciones IA Diarias"
+
+3. **Crear workflow paso a paso (10 nodos):**
+   - Nodo 1: Schedule Trigger (cada día 9 AM)
+   - Nodo 2: Supabase - Get Active Guests
+   - Nodo 3: Filter Guests (con check-in activo)
+   - Nodo 4: Loop Over Guests
+   - Nodo 5: Claude AI - Generate Recommendations
+   - Nodo 6: Format Message
+   - Nodo 7: SendGrid - Send Email
+   - Nodo 8: WhatsApp Business API (opcional)
+   - Nodo 9: Log to Supabase
+   - Nodo 10: Error Handler
+
+**MÉTODO DE APRENDIZAJE:**
+- Tú creas el workflow con mi guía paso a paso
+- Aprenderás haciendo, no solo viendo
+- Te explico cada nodo y por qué lo usamos
+
+---
+
+## n8n AUTOMATION SETUP
+
+### **Credenciales Configuradas:**
+
+**n8n Instance:**
+- URL: https://n8n-production-bb2d.up.railway.app
+- Hosting: Railway
+- Webhook ejemplo: /webhook/2f390313-a7ef-44cf-8040-f3fecc4fd824
+
+**SendGrid (Email):**
+- API Key: ✅ Configurado en `.env.automation.txt`
+- From Email: josecarrallodelafuente@gmail.com
+- From Name: MY HOST BizMate
+
+**Supabase:**
+- Project ID: jjpscimtxrudtepzwhag
+- URL: https://jjpscimtxrudtepzwhag.supabase.co
+- Integrado en Properties module
+
+**Pendiente:**
+- ❌ Claude API Key (Anthropic) - **NECESARIO PARA FLUJO B**
+
+### **Plan de Automatizaciones (21 Workflows):**
+
+**Ubicación:** `Documentos/MY-HOST-BizMate-Plan-Automatizaciones-n8n.md`
+
+**Categorías:**
+1. **Gestión de Reservas (7 flujos):**
+   - Confirmación automática, pagos, cancelaciones, modificaciones
+
+2. **IA y Personalización (5 flujos):**
+   - ⭐ Flujo B: Recomendaciones IA Diarias (SIGUIENTE)
+   - Voice AI, Cultural Intelligence, Trip Planning
+
+3. **Operaciones (5 flujos):**
+   - Check-in digital, limpieza, mantenimiento, inventario
+
+4. **Marketing y Reviews (4 flujos):**
+   - Social media, email campaigns, review requests
+
+### **Archivos n8n:**
+- `n8n_Supabase/.env.automation.txt` - Credenciales
+- `n8n_Supabase/` - Directorio para workflows exportados
+- Plan completo en: `Documentos/MY-HOST-BizMate-Plan-Automatizaciones-n8n.md`
+
+---
+
+## PRÓXIMAS TAREAS DESPUÉS DE n8n:
+
+1. **Backend Integration:**
+   - Implementar CRUD completo con Supabase
+   - Conectar Properties con base de datos real
+   - Sistema de autenticación
+
+2. **Features Nuevas:**
+   - Completar módulos "Coming Soon" (Cultural Intelligence)
+   - Integración real con APIs externas
+   - Sistema de notificaciones
+
+3. **Testing:**
+   - Tests unitarios para componentes
+   - Tests de integración
+   - E2E testing
+
+4. **Optimización:**
+   - Code splitting
+   - Lazy loading de módulos
+   - Performance optimization
+
+5. **Deploy:**
+   - Configurar CI/CD
+   - Variables de entorno
+   - Production build
+
+## NOTAS IMPORTANTES:
+
+⚠️ **NO tocar:** App.jsx.backup (es el respaldo del código original)
+⚠️ **Branch protegido:** main (trabajar en backup-antes-de-automatizacion)
+✅ **Todos los módulos funcionan** - arquitectura lista para escalar
+✅ **Supabase integrado** en Properties module
+
+## ARCHIVOS CLAVE:
+
+- `src/App.jsx` - App principal refactorizada (214 líneas)
+- `src/App.jsx.backup` - Backup del original (4,019 líneas)
+- `src/services/supabase.js` - Servicio centralizado de Supabase
+- `src/context/AppContext.jsx` - Estado global de la app
+- `src/components/common/index.js` - Exports de componentes comunes
+
+## MÓDULOS PRINCIPALES:
+
+**Operations & Guest Management:**
+- Dashboard, Bookings, PMS Calendar, Properties
+- Operations Hub, Digital Check-in, Messages
+
+**Revenue & Pricing:**
+- Booking Engine, Payments, Smart Pricing
+- RMS Integration, Reports
+
+**AI Intelligence Layer:**
+- AI Assistant, Voice AI Agent, Cultural Intelligence
+
+**Marketing & Growth:**
+- Multichannel, Marketing, Social Publisher, Reviews
+
+**Workflows & Automations:**
+- Workflows, AI Trip Planner, Booking Workflow
+
+## SI NECESITAS CONTINUAR:
+
+1. Navega a: `cd C:\myhost-bizmate`
+2. Verifica branch: `git branch`
+3. Inicia dev: `npm run dev`
+4. Continúa desarrollo en la nueva arquitectura modular
+
+## HISTORIAL DE COMMITS RECIENTES:
+
+```
+e149395 - Refactor: Extract 21 modules from App.jsx monolith (4019 → 214 lines)
+7d32967 - Update gitignore for Vercel and backend scripts
+f663601 - Add project documentation and architecture files
+```
+
+---
+
+**Último commit:** e149395 - "Refactor: Extract 21 modules from App.jsx monolith (4019 → 214 lines)"
+**Fecha:** 27 Nov 2025, 21:22:04
+**Estado:** ✅ Todo funcionando, listo para continuar
+**Repositorio:** https://github.com/Josecarrallo/myhost-bizmate
+**Branch:** backup-antes-de-automatizacion
+
+---
+
+## PROMPT PARA NUEVA SESIÓN (28 NOV 2025):
+
+Hola Claude Code, necesito continuar trabajando en MY HOST BizMate.
+
+**PROYECTO:**
+- Ubicación: C:\myhost-bizmate
+- Branch: backup-antes-de-automatizacion
+
+**CONTEXTO - REFACTOR COMPLETADO (27 Nov):**
+- ✅ Refactor estructural completo terminado
+- ✅ App.jsx reducido de 4,019 → 214 líneas (94.7%)
+- ✅ 21 módulos extraídos a componentes separados
+- ✅ Commit e149395 pushed a GitHub
+- ✅ Aplicación 100% funcional sin errores
+
+**TAREA ACTUAL - n8n WORKFLOW:**
+Vamos a crear el "Flujo B: Recomendaciones IA Diarias"
+
+**QUÉ NECESITO:**
+Aprendizaje hands-on - YO haré el workflow con TU guía paso a paso.
+
+**PASOS PENDIENTES:**
+1. Obtener Claude API Key de https://console.anthropic.com/
+2. Crear workflow en n8n (https://n8n-production-bb2d.up.railway.app)
+3. Configurar 10 nodos desde Schedule Trigger hasta Error Handler
+4. Probar el workflow con datos reales de Supabase
+
+**ESTADO:**
+- SendGrid: ✅ Configurado
+- Supabase: ✅ Configurado
+- n8n Railway: ✅ Activo
+- Claude API: ❌ Pendiente obtener
+
+Por favor:
+1. Lee este documento de contexto completo
+2. Confirma que entiendes dónde estamos
+3. Guíame paso a paso para crear el Flujo B
+
+---
+
+**Alternativa:** Si quiero hacer otra tarea diferente, te lo indicaré al inicio de la sesión.
