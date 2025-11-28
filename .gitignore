@@ -20,3 +20,7 @@ apply-*.js
 
 # Vercel
 .vercel
+
+# MCP Server credentials
+.claude/mcp/n8n/.env
+claude_desktop_config.json

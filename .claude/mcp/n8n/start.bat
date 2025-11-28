@@ -1,0 +1,4 @@
+@echo off
+set N8N_API_URL=https://n8n-production-bb2d.up.railway.app/api/v1
+set N8N_API_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMmNkZWVjOC0xM2U0LTQzYTQtODAzYS0zOTU2NmIzYzRiNDAiLCJpc3MiOiJuOG4iLCJhdWQiOiJwdWJsaWMtYXBpIiwiaWF0IjoxNzY0MzAzMjc2LCJleHAiOjE3NjY4MTE2MDB9.0FoWHAhf1ISPaL8tWq0tI9RWmkP_5eRFPnaTQe5jVT4
+node "%~dp0index.js"
