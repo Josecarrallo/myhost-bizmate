@@ -1,5 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ChevronLeft, AlertCircle } from 'lucide-react';
+import { supabaseService } from '../../services/supabase';
+import PricingBreakdown from './PricingBreakdown';
 
 const BookingEngineWidget = ({ onBack }) => {
   const [step, setStep] = useState(1);
@@ -14,32 +16,82 @@ const BookingEngineWidget = ({ onBack }) => {
     specialRequests: ''
   });
 
-  const mockProperties = [
-    {
-      id: 1,
-      name: "Villa Sunset",
-      price: 150,
-      image: "🏖️",
-      description: "Beachfront villa with ocean views",
-      amenities: ["Pool", "WiFi", "Kitchen", "AC"]
-    },
-    {
-      id: 2,
-      name: "Beach House",
-      price: 200,
-      image: "🏡",
-      description: "Spacious house near the beach",
-      amenities: ["Pool", "WiFi", "Kitchen", "AC", "BBQ"]
-    },
-    {
-      id: 3,
-      name: "Villa Paradise",
-      price: 250,
-      image: "🌴",
-      description: "Luxury villa with private pool",
-      amenities: ["Private Pool", "WiFi", "Kitchen", "AC", "Garden"]
-    }
-  ];
+  const [properties, setProperties] = useState([]);
+  const [loadingProperties, setLoadingProperties] = useState(true);
+  const [pricing, setPricing] = useState(null);
+  const [loadingPricing, setLoadingPricing] = useState(false);
+  const [availabilityChecked, setAvailabilityChecked] = useState(false);
+  const [isAvailable, setIsAvailable] = useState(false);
+  const [error, setError] = useState(null);
+
+  // Load properties from Supabase
+  useEffect(() => {
+    const loadProperties = async () => {
+      try {
+        const data = await supabaseService.getProperties();
+        setProperties(data);
+      } catch (err) {
+        console.error('Error loading properties:', err);
+        setError('Failed to load properties');
+      } finally {
+        setLoadingProperties(false);
+      }
+    };
+    loadProperties();
+  }, []);
+
+  // Check availability when dates and property are selected
+  useEffect(() => {
+    const checkAvailability = async () => {
+      if (!bookingData.property || !bookingData.checkIn || !bookingData.checkOut) {
+        setAvailabilityChecked(false);
+        setIsAvailable(false);
+        return;
+      }
+
+      try {
+        const available = await supabaseService.checkAvailability(
+          bookingData.property,
+          bookingData.checkIn,
+          bookingData.checkOut
+        );
+        setIsAvailable(available);
+        setAvailabilityChecked(true);
+      } catch (err) {
+        console.error('Error checking availability:', err);
+        setError('Failed to check availability');
+        setIsAvailable(false);
+      }
+    };
+    checkAvailability();
+  }, [bookingData.property, bookingData.checkIn, bookingData.checkOut]);
+
+  // Calculate pricing when property, dates, or guests change
+  useEffect(() => {
+    const calculatePrice = async () => {
+      if (!bookingData.property || !bookingData.checkIn || !bookingData.checkOut || !isAvailable) {
+        setPricing(null);
+        return;
+      }
+
+      setLoadingPricing(true);
+      try {
+        const priceData = await supabaseService.calculateBookingPrice(
+          bookingData.property,
+          bookingData.checkIn,
+          bookingData.checkOut,
+          bookingData.guests
+        );
+        setPricing(priceData);
+      } catch (err) {
+        console.error('Error calculating price:', err);
+        setError('Failed to calculate price');
+      } finally {
+        setLoadingPricing(false);
+      }
+    };
+    calculatePrice();
+  }, [bookingData.property, bookingData.checkIn, bookingData.checkOut, bookingData.guests, isAvailable]);
 
   const calculateNights = () => {
     if (!bookingData.checkIn || !bookingData.checkOut) return 0;
@@ -47,12 +99,6 @@ const BookingEngineWidget = ({ onBack }) => {
     const end = new Date(bookingData.checkOut);
     const nights = Math.ceil((end - start) / (1000 * 60 * 60 * 24));
     return nights > 0 ? nights : 0;
-  };
-
-  const calculateTotal = () => {
-    const selectedProperty = mockProperties.find(p => p.id === parseInt(bookingData.property));
-    if (!selectedProperty) return 0;
-    return selectedProperty.price * calculateNights();
   };
 
   const getTodayDate = () => {
@@ -175,45 +221,69 @@ const BookingEngineWidget = ({ onBack }) => {
                 <p className="text-gray-600 mb-6">Select from our available properties</p>
               </div>
 
-              <div className="grid gap-4">
-                {mockProperties.map((property) => (
-                  <button
-                    key={property.id}
-                    onClick={() => setBookingData({...bookingData, property: property.id.toString()})}
-                    className={`bg-white rounded-2xl p-6 border-2 transition-all text-left ${
-                      bookingData.property === property.id.toString()
-                        ? 'border-orange-500 shadow-xl bg-orange-50'
-                        : 'border-gray-200 hover:border-orange-300 hover:shadow-lg'
-                    }`}
-                  >
-                    <div className="flex items-start gap-4">
-                      <div className="text-6xl">{property.image}</div>
-                      <div className="flex-1">
-                        <h3 className="text-2xl font-black text-gray-900 mb-2">{property.name}</h3>
-                        <p className="text-gray-600 mb-3">{property.description}</p>
-                        <div className="flex flex-wrap gap-2 mb-4">
-                          {property.amenities.map((amenity, idx) => (
-                            <span key={idx} className="px-3 py-1 bg-gray-100 rounded-lg text-xs font-semibold text-gray-700">
-                              {amenity}
-                            </span>
-                          ))}
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <span className="text-3xl font-black text-orange-500">${property.price}</span>
-                            <span className="text-gray-600 ml-2">/ night</span>
-                          </div>
-                          {bookingData.property === property.id.toString() && (
-                            <div className="px-4 py-2 bg-orange-500 text-white rounded-xl font-bold">
-                              Selected ✓
+              {loadingProperties ? (
+                <div className="bg-white rounded-2xl p-8 text-center">
+                  <div className="animate-pulse">Loading properties...</div>
+                </div>
+              ) : (
+                <div className="grid gap-4">
+                  {properties.map((property) => {
+                    const propertyIsSelected = bookingData.property === property.id;
+                    const showAvailability = propertyIsSelected && availabilityChecked;
+
+                    return (
+                      <button
+                        key={property.id}
+                        onClick={() => setBookingData({...bookingData, property: property.id})}
+                        className={`bg-white rounded-2xl p-6 border-2 transition-all text-left ${
+                          propertyIsSelected
+                            ? 'border-orange-500 shadow-xl bg-orange-50'
+                            : 'border-gray-200 hover:border-orange-300 hover:shadow-lg'
+                        }`}
+                      >
+                        <div className="flex items-start gap-4">
+                          <div className="text-6xl">🏖️</div>
+                          <div className="flex-1">
+                            <h3 className="text-2xl font-black text-gray-900 mb-2">{property.name}</h3>
+                            <p className="text-gray-600 mb-3">{property.description || 'Beautiful property in Bali'}</p>
+
+                            {showAvailability && (
+                              <div className={`mb-3 px-3 py-2 rounded-lg inline-block ${
+                                isAvailable
+                                  ? 'bg-green-100 text-green-800'
+                                  : 'bg-red-100 text-red-800'
+                              }`}>
+                                {isAvailable ? '✓ Available' : '✗ Not Available'}
+                              </div>
+                            )}
+
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <span className="text-3xl font-black text-orange-500">${property.base_price}</span>
+                                <span className="text-gray-600 ml-2">/ night</span>
+                              </div>
+                              {propertyIsSelected && (
+                                <div className="px-4 py-2 bg-orange-500 text-white rounded-xl font-bold">
+                                  Selected ✓
+                                </div>
+                              )}
                             </div>
-                          )}
+                          </div>
                         </div>
-                      </div>
-                    </div>
-                  </button>
-                ))}
-              </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+
+              {availabilityChecked && !isAvailable && bookingData.property && (
+                <div className="bg-red-50 border-2 border-red-200 rounded-2xl p-4">
+                  <p className="text-red-800 font-semibold flex items-center gap-2">
+                    <AlertCircle className="w-5 h-5" />
+                    This property is not available for the selected dates. Please choose different dates.
+                  </p>
+                </div>
+              )}
 
               <div className="flex gap-4 mt-6">
                 <button
@@ -224,7 +294,7 @@ const BookingEngineWidget = ({ onBack }) => {
                 </button>
                 <button
                   onClick={() => setStep(3)}
-                  disabled={!bookingData.property}
+                  disabled={!bookingData.property || !isAvailable}
                   className="flex-1 py-4 bg-gradient-to-r from-orange-500 to-pink-500 text-white rounded-2xl font-black hover:shadow-2xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Continue to Details →
@@ -315,16 +385,16 @@ const BookingEngineWidget = ({ onBack }) => {
           )}
 
           {step === 4 && (
-            <div className="bg-white rounded-3xl p-8 border-2 border-gray-200 shadow-xl">
-              <h2 className="text-3xl font-black mb-2 text-gray-900">Booking Summary</h2>
-              <p className="text-gray-600 mb-8">Review your booking details</p>
+            <div className="space-y-6">
+              <div className="bg-white rounded-3xl p-8 border-2 border-gray-200 shadow-xl">
+                <h2 className="text-3xl font-black mb-2 text-gray-900">Booking Summary</h2>
+                <p className="text-gray-600 mb-8">Review your booking details</p>
 
-              <div className="space-y-6">
                 <div className="bg-gradient-to-br from-orange-50 to-pink-50 rounded-2xl p-6">
                   <div className="flex items-center justify-between mb-4">
                     <span className="font-bold text-gray-700">Property</span>
                     <span className="font-black text-lg text-gray-900">
-                      {mockProperties.find(p => p.id === parseInt(bookingData.property))?.name}
+                      {properties.find(p => p.id === bookingData.property)?.name}
                     </span>
                   </div>
                   <div className="flex items-center justify-between mb-4">
@@ -348,18 +418,15 @@ const BookingEngineWidget = ({ onBack }) => {
                     <span className="font-black text-gray-900">{bookingData.guestName}</span>
                   </div>
                 </div>
+              </div>
 
-                <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-2xl p-8 border-2 border-green-200">
-                  <div className="flex items-center justify-between">
-                    <span className="text-2xl font-bold text-gray-700">Total Amount</span>
-                    <span className="text-5xl font-black text-green-600">${calculateTotal()}</span>
-                  </div>
-                </div>
+              <PricingBreakdown pricing={pricing} loading={loadingPricing} />
 
+              <div className="bg-white rounded-3xl p-8 border-2 border-gray-200 shadow-xl">
                 <div className="bg-blue-50 rounded-2xl p-4 border-2 border-blue-200">
                   <p className="text-sm text-blue-900 flex items-center gap-2">
                     <AlertCircle className="w-5 h-5" />
-                    <span>In production, this would process payment via Stripe</span>
+                    <span>Payment integration will be implemented in next phase</span>
                   </p>
                 </div>
               </div>

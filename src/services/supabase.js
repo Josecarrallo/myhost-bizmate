@@ -39,7 +39,68 @@ export const supabaseService = {
     return response.json();
   },
 
-  // Add more methods as needed for other tables
+  // Booking Availability - CRITICAL FUNCTION
+  async checkAvailability(propertyId, checkIn, checkOut) {
+    const response = await fetch(
+      `${SUPABASE_URL}/rest/v1/rpc/check_availability`,
+      {
+        method: 'POST',
+        headers: supabaseHeaders,
+        body: JSON.stringify({
+          p_property_id: propertyId,
+          p_check_in: checkIn,
+          p_check_out: checkOut
+        })
+      }
+    );
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || 'Failed to check availability');
+    }
+
+    return response.json();
+  },
+
+  // Calculate Booking Price - CRITICAL FUNCTION
+  async calculateBookingPrice(propertyId, checkIn, checkOut, guests) {
+    const response = await fetch(
+      `${SUPABASE_URL}/rest/v1/rpc/calculate_booking_price`,
+      {
+        method: 'POST',
+        headers: supabaseHeaders,
+        body: JSON.stringify({
+          p_property_id: propertyId,
+          p_check_in: checkIn,
+          p_check_out: checkOut,
+          p_guests: guests
+        })
+      }
+    );
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || 'Failed to calculate price');
+    }
+
+    return response.json();
+  },
+
+  // Create Booking
+  async createBooking(bookingData) {
+    const response = await fetch(`${SUPABASE_URL}/rest/v1/bookings`, {
+      method: 'POST',
+      headers: supabaseHeaders,
+      body: JSON.stringify(bookingData)
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || 'Failed to create booking');
+    }
+
+    return response.json();
+  }
 };
 
 export { SUPABASE_URL, SUPABASE_ANON_KEY };
