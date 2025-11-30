@@ -13,14 +13,14 @@ const MessageCard = ({ name, property, message, time, unread, avatar }) => (
       <div className="flex-1 min-w-0">
         <div className="flex items-start justify-between mb-2">
           <div className="flex-1">
-            <h4 className="font-bold text-gray-900 text-lg mb-0.5">{name}</h4>
+            <h4 className="font-bold text-orange-600 text-lg mb-0.5">{name}</h4>
             <p className="text-gray-500 text-xs flex items-center gap-1">
               <MapPin className="w-3 h-3" /> {property}
             </p>
           </div>
           <span className="text-xs text-gray-400 font-medium whitespace-nowrap ml-2">{time}</span>
         </div>
-        <p className={`text-sm ${unread ? 'text-gray-900 font-semibold' : 'text-gray-600'} line-clamp-2`}>{message}</p>
+        <p className={`text-sm ${unread ? 'text-orange-600 font-semibold' : 'text-gray-600'} line-clamp-2`}>{message}</p>
       </div>
     </div>
   </div>

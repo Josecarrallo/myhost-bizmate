@@ -2,10 +2,10 @@ import React from 'react';
 import { MapPin, Users, Edit } from 'lucide-react';
 
 const BookingCard = ({ guest, property, checkIn, checkOut, status, guests: guestCount, revenue }) => (
-  <div className="bg-white rounded-2xl p-5 border-2 border-gray-100 hover:border-purple-200 transition-all hover:shadow-lg">
+  <div className="bg-white rounded-2xl p-5 border-2 border-gray-100 hover:border-orange-200 transition-all hover:shadow-lg">
     <div className="flex items-start justify-between mb-4">
       <div className="flex-1">
-        <h4 className="font-bold text-gray-900 text-lg mb-1">{guest}</h4>
+        <h4 className="font-bold text-orange-600 text-lg mb-1">{guest}</h4>
         <p className="text-gray-500 text-sm flex items-center gap-1">
           <MapPin className="w-3.5 h-3.5" /> {property}
         </p>
@@ -17,11 +17,11 @@ const BookingCard = ({ guest, property, checkIn, checkOut, status, guests: guest
     <div className="grid grid-cols-2 gap-3 mb-4">
       <div className="bg-gray-50 rounded-xl p-3">
         <p className="text-xs text-gray-500 mb-1">Check-in</p>
-        <p className="font-bold text-gray-900">{checkIn}</p>
+        <p className="font-bold text-orange-600">{checkIn}</p>
       </div>
       <div className="bg-gray-50 rounded-xl p-3">
         <p className="text-xs text-gray-500 mb-1">Check-out</p>
-        <p className="font-bold text-gray-900">{checkOut}</p>
+        <p className="font-bold text-orange-600">{checkOut}</p>
       </div>
     </div>
     <div className="flex items-center justify-between pt-4 border-t-2 border-gray-100">
@@ -30,9 +30,9 @@ const BookingCard = ({ guest, property, checkIn, checkOut, status, guests: guest
           <Users className="w-4 h-4" />
           <span className="text-sm font-bold">{guestCount}</span>
         </div>
-        <div className="text-xl font-black text-purple-500">${revenue}</div>
+        <div className="text-xl font-black text-orange-600">${revenue}</div>
       </div>
-      <button className="p-2.5 bg-purple-50 text-purple-500 rounded-xl hover:bg-purple-100 transition-colors">
+      <button className="p-2.5 bg-orange-50 text-orange-600 rounded-xl hover:bg-orange-100 transition-colors">
         <Edit className="w-5 h-5" />
       </button>
     </div>

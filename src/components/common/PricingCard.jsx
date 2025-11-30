@@ -9,7 +9,7 @@ const PricingCard = ({ property, basePrice, currentPrice, occupancy, trend, next
     <div className="bg-white rounded-2xl p-6 border-2 border-gray-100 hover:border-blue-200 transition-all hover:shadow-lg">
       <div className="flex items-start justify-between mb-4">
         <div className="flex-1">
-          <h4 className="font-bold text-gray-900 text-xl mb-2">{property}</h4>
+          <h4 className="font-bold text-orange-600 text-xl mb-2">{property}</h4>
           <div className="flex items-center gap-4">
             <div>
               <p className="text-xs text-gray-500 mb-1">Base Price</p>
@@ -33,7 +33,7 @@ const PricingCard = ({ property, basePrice, currentPrice, occupancy, trend, next
             <div className="w-32 h-2 bg-gray-200 rounded-full overflow-hidden">
               <div className="h-full bg-gradient-to-r from-blue-500 to-purple-500 rounded-full" style={{ width: `${occupancy}%` }}></div>
             </div>
-            <span className="text-sm font-bold text-gray-900">{occupancy}%</span>
+            <span className="text-sm font-bold text-orange-600">{occupancy}%</span>
           </div>
         </div>
 

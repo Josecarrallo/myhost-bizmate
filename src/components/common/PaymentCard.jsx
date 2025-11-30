@@ -5,7 +5,7 @@ const PaymentCard = ({ guest, property, amount, status, date, method }) => (
   <div className="bg-white rounded-2xl p-5 border-2 border-gray-100 hover:border-orange-200 transition-all hover:shadow-lg">
     <div className="flex items-start justify-between mb-4">
       <div className="flex-1">
-        <h4 className="font-bold text-gray-900 text-lg mb-1">{guest}</h4>
+        <h4 className="font-bold text-orange-600 text-lg mb-1">{guest}</h4>
         <p className="text-gray-500 text-sm flex items-center gap-1">
           <MapPin className="w-3.5 h-3.5" /> {property}
         </p>
@@ -16,10 +16,10 @@ const PaymentCard = ({ guest, property, amount, status, date, method }) => (
     </div>
     <div className="flex items-center justify-between pt-4 border-t-2 border-gray-100">
       <div>
-        <p className="text-2xl font-black text-orange-500">${amount}</p>
+        <p className="text-2xl font-black text-orange-600">${amount}</p>
         <p className="text-xs text-gray-500 mt-1">{method} • {date}</p>
       </div>
-      <button className="p-2.5 bg-orange-50 text-orange-500 rounded-xl hover:bg-orange-100 transition-colors">
+      <button className="p-2.5 bg-orange-50 text-orange-600 rounded-xl hover:bg-orange-100 transition-colors">
         <Eye className="w-5 h-5" />
       </button>
     </div>

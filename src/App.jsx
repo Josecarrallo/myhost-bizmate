@@ -34,17 +34,53 @@ export default function App() {
   // Home Screen
   if (currentScreen === 'home') {
     return (
-      <div className="h-screen bg-white flex flex-col items-center justify-center p-8">
-        <div className="text-center">
-          <div className="w-32 h-32 rounded-full mx-auto flex items-center justify-center mb-8 bg-orange-500 shadow-2xl">
-            <Building2 className="w-16 h-16 text-white" strokeWidth={2.5} />
+      <div className="h-screen bg-gradient-to-br from-orange-400 via-orange-500 to-orange-600 flex flex-col items-center justify-center p-8 pt-32 relative overflow-hidden">
+        {/* Animated background elements */}
+        <div className="absolute inset-0 overflow-hidden">
+          <div className="absolute w-96 h-96 bg-orange-300/20 rounded-full blur-3xl top-40 -left-48 animate-pulse"></div>
+          <div className="absolute w-96 h-96 bg-orange-300/20 rounded-full blur-3xl -bottom-48 -right-48 animate-pulse" style={{ animationDelay: '1s' }}></div>
+          <div className="absolute w-72 h-72 bg-orange-200/30 rounded-full blur-2xl top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 animate-pulse" style={{ animationDelay: '0.5s' }}></div>
+        </div>
+
+        <div className="text-center relative z-10">
+          {/* Logo con efecto de glow */}
+          <div className="relative inline-block mb-8">
+            <div className="w-40 h-40 rounded-full mx-auto flex items-center justify-center bg-white shadow-2xl relative overflow-hidden group cursor-pointer transform transition-all duration-500 hover:scale-110 hover:rotate-6">
+              <div className="absolute inset-0 bg-gradient-to-br from-orange-400 via-orange-500 to-orange-600 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+              <Building2 className="w-20 h-20 text-orange-500 group-hover:text-white relative z-10 transition-all duration-500 group-hover:scale-110" strokeWidth={2.5} />
+            </div>
+            <div className="absolute inset-0 rounded-full bg-white/40 blur-2xl animate-pulse"></div>
           </div>
-          <h1 className="text-6xl font-black mb-2 text-orange-500">MY HOST</h1>
-          <p className="text-4xl font-bold mb-4 text-orange-500">BizMate</p>
-          <p className="text-xl text-black font-semibold mb-12">Smart management for modern hospitality.</p>
-          <button onClick={() => setCurrentScreen('modules')} className="px-16 py-6 bg-orange-500 text-white rounded-3xl text-2xl font-bold hover:bg-orange-600 transition-all shadow-2xl hover:shadow-3xl transform hover:scale-105 active:scale-95">
-            Enter Dashboard
-          </button>
+
+          <h1 className="text-7xl md:text-8xl font-black mb-3 text-white drop-shadow-2xl">
+            MY HOST
+          </h1>
+          <p className="text-5xl md:text-6xl font-bold mb-6 text-orange-100 drop-shadow-xl">
+            BizMate
+          </p>
+          <p className="text-2xl text-orange-50 font-medium mb-12 drop-shadow-lg max-w-2xl mx-auto">
+            Smart management for modern hospitality.
+          </p>
+
+          <div className="relative">
+            <button
+              onClick={() => setCurrentScreen('modules')}
+              className="group relative px-20 py-7 bg-white/95 backdrop-blur-sm text-orange-600 rounded-full text-2xl font-black shadow-2xl hover:shadow-white/30 transition-all duration-500 transform hover:scale-105 hover:-translate-y-1 active:scale-95 overflow-hidden border-2 border-white/50"
+            >
+              <div className="absolute inset-0 bg-gradient-to-r from-orange-400 to-orange-600 opacity-0 group-hover:opacity-10 transition-opacity duration-500 rounded-full"></div>
+              <span className="relative z-10 flex items-center gap-3 justify-center">
+                <span className="text-orange-600 font-black">
+                  Enter Dashboard
+                </span>
+                <span className="text-2xl text-orange-600 transform group-hover:translate-x-2 transition-transform duration-300">→</span>
+              </span>
+            </button>
+            <div className="absolute inset-0 bg-white/20 blur-xl rounded-full -z-10 group-hover:bg-white/40 transition-all duration-500"></div>
+          </div>
+
+          <p className="mt-16 text-orange-100 text-sm font-medium tracking-wider">
+            Powered by AI • Made for Hospitality Excellence
+          </p>
         </div>
       </div>
     );
@@ -142,20 +178,30 @@ export default function App() {
   // Modules Grid Screen
   if (currentScreen === 'modules') {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-orange-50 via-pink-50 to-purple-50 p-3">
-        <div className="max-w-5xl mx-auto">
-          <div className="flex items-center justify-between mb-4">
-            <button onClick={() => setCurrentScreen('home')} className="p-2 bg-white rounded-xl hover:bg-gray-50 transition-colors shadow-lg border-2 border-gray-100">
-              <ChevronLeft className="w-5 h-5 text-gray-900" />
+      <div className="min-h-screen bg-gradient-to-br from-orange-400 via-orange-500 to-orange-600 p-3 relative overflow-hidden">
+        {/* Animated background elements */}
+        <div className="absolute inset-0 overflow-hidden">
+          <div className="absolute w-96 h-96 bg-orange-300/20 rounded-full blur-3xl top-20 -left-48 animate-pulse"></div>
+          <div className="absolute w-96 h-96 bg-orange-300/20 rounded-full blur-3xl bottom-20 -right-48 animate-pulse" style={{ animationDelay: '1s' }}></div>
+          <div className="absolute w-72 h-72 bg-orange-200/30 rounded-full blur-2xl top-1/2 right-1/4 animate-pulse" style={{ animationDelay: '0.5s' }}></div>
+        </div>
+
+        <div className="max-w-5xl mx-auto relative z-10">
+          <div className="flex items-center justify-between mb-6">
+            <button onClick={() => setCurrentScreen('home')} className="p-3 bg-white/95 backdrop-blur-sm rounded-2xl hover:bg-white transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 border-2 border-white/50">
+              <ChevronLeft className="w-6 h-6 text-orange-600" />
             </button>
-            <h2 className="text-xl font-black text-gray-900">MY HOST BizMate</h2>
+            <div className="text-center">
+              <h2 className="text-3xl md:text-4xl font-black text-white drop-shadow-2xl">MY HOST</h2>
+              <p className="text-xl md:text-2xl font-bold text-orange-100 drop-shadow-xl">BizMate</p>
+            </div>
             <div className="w-12"></div>
           </div>
 
           <div className="space-y-6">
             {/* 1️⃣ Operations & Guest Management */}
             <div>
-              <h3 className="text-lg font-bold text-gray-800 mb-3 px-1">Operations & Guest Management</h3>
+              <h3 className="text-xl font-black text-white mb-4 px-1 drop-shadow-lg">Operations & Guest Management</h3>
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-3 md:gap-4">
                 <ModuleGridCard icon={LayoutDashboard} title="Dashboard" gradient="from-purple-500 to-pink-600" onClick={() => setCurrentModule('dashboard')} />
                 <ModuleGridCard icon={Calendar} title="Bookings" gradient="from-blue-500 to-cyan-600" onClick={() => setCurrentModule('bookings')} />
@@ -169,7 +215,7 @@ export default function App() {
 
             {/* 2️⃣ Revenue & Pricing */}
             <div>
-              <h3 className="text-lg font-bold text-gray-800 mb-3 px-1">Revenue & Pricing</h3>
+              <h3 className="text-xl font-black text-white mb-4 px-1 drop-shadow-lg">Revenue & Pricing</h3>
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-3 md:gap-4">
                 <ModuleGridCard icon={Sparkles} title="Booking Engine" gradient="from-orange-500 to-pink-600" onClick={() => setCurrentModule('booking-engine')} />
                 <ModuleGridCard icon={CreditCard} title="Payments" gradient="from-green-500 to-emerald-600" onClick={() => setCurrentModule('payments')} />
@@ -181,7 +227,7 @@ export default function App() {
 
             {/* 3️⃣ AI Intelligence Layer */}
             <div>
-              <h3 className="text-lg font-bold text-gray-800 mb-3 px-1">AI Intelligence Layer</h3>
+              <h3 className="text-xl font-black text-white mb-4 px-1 drop-shadow-lg">AI Intelligence Layer</h3>
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-3 md:gap-4">
                 <ModuleGridCard icon={Sparkles} title="AI Assistant" gradient="from-purple-500 to-orange-500" onClick={() => setCurrentModule('ai')} />
                 <ModuleGridCard icon={Phone} title="Voice AI Agent" gradient="from-purple-600 to-pink-600" onClick={() => setCurrentModule('voice-ai')} />
@@ -191,7 +237,7 @@ export default function App() {
 
             {/* 4️⃣ Marketing & Growth */}
             <div>
-              <h3 className="text-lg font-bold text-gray-800 mb-3 px-1">Marketing & Growth</h3>
+              <h3 className="text-xl font-black text-white mb-4 px-1 drop-shadow-lg">Marketing & Growth</h3>
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-3 md:gap-4">
                 <ModuleGridCard icon={Repeat} title="Multichannel" gradient="from-indigo-500 to-blue-600" onClick={() => setCurrentModule('multichannel')} />
                 <ModuleGridCard icon={Megaphone} title="Marketing" gradient="from-purple-600 to-pink-600" onClick={() => setCurrentModule('marketing')} />
@@ -202,7 +248,7 @@ export default function App() {
 
             {/* 5️⃣ Workflows & Automations */}
             <div>
-              <h3 className="text-lg font-bold text-gray-800 mb-3 px-1">Workflows & Automations</h3>
+              <h3 className="text-xl font-black text-white mb-4 px-1 drop-shadow-lg">Workflows & Automations</h3>
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-3 md:gap-4">
                 <ModuleGridCard icon={Workflow} title="Workflows" gradient="from-indigo-600 to-purple-600" onClick={() => setCurrentModule('workflows')} />
               </div>

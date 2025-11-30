@@ -32,7 +32,7 @@ const RMSIntegration = ({ onBack }) => {
       <div className="flex-1 overflow-auto p-6">
         <div className="max-w-7xl mx-auto space-y-6">
           <div>
-            <h2 className="text-3xl font-black text-gray-900 mb-6">Connected Channels</h2>
+            <h2 className="text-3xl font-black text-orange-600 mb-6">Connected Channels</h2>
             <div className="grid md:grid-cols-3 gap-4">
               {connectedChannels.map((channel) => (
                 <div key={channel.id} className="bg-white rounded-2xl p-6 border-2 border-green-200 shadow-lg">
@@ -40,7 +40,7 @@ const RMSIntegration = ({ onBack }) => {
                     <div className="flex items-center gap-3">
                       <div className="text-4xl">{channel.logo}</div>
                       <div>
-                        <h3 className="text-xl font-black text-gray-900">{channel.name}</h3>
+                        <h3 className="text-xl font-black text-orange-600">{channel.name}</h3>
                         <span className="inline-block px-3 py-1 bg-green-100 text-green-700 rounded-lg text-xs font-bold">
                           {channel.status}
                         </span>
@@ -51,7 +51,7 @@ const RMSIntegration = ({ onBack }) => {
                   <div className="space-y-3 mb-4">
                     <div className="flex items-center justify-between">
                       <span className="text-sm text-gray-600">Bookings</span>
-                      <span className="text-xl font-black text-gray-900">{channel.bookings}</span>
+                      <span className="text-xl font-black text-orange-600">{channel.bookings}</span>
                     </div>
                     <div className="flex items-center justify-between">
                       <span className="text-sm text-gray-600">Revenue</span>
@@ -77,13 +77,13 @@ const RMSIntegration = ({ onBack }) => {
           </div>
 
           <div>
-            <h2 className="text-3xl font-black text-gray-900 mb-6">Available Channels</h2>
+            <h2 className="text-3xl font-black text-orange-600 mb-6">Available Channels</h2>
             <div className="grid md:grid-cols-3 gap-4">
               {availableChannels.map((channel) => (
                 <div key={channel.id} className="bg-white rounded-2xl p-6 border-2 border-gray-200 hover:border-indigo-300 hover:shadow-xl transition-all">
                   <div className="text-center">
                     <div className="text-5xl mb-4">{channel.logo}</div>
-                    <h3 className="text-xl font-black text-gray-900 mb-4">{channel.name}</h3>
+                    <h3 className="text-xl font-black text-orange-600 mb-4">{channel.name}</h3>
                     <button className="w-full py-3 bg-gradient-to-r from-indigo-500 to-blue-500 text-white rounded-xl font-bold hover:shadow-lg transition-all">
                       + Connect
                     </button>
@@ -94,11 +94,11 @@ const RMSIntegration = ({ onBack }) => {
           </div>
 
           <div className="bg-white rounded-2xl p-6 border-2 border-gray-200">
-            <h3 className="text-2xl font-black text-gray-900 mb-6">Sync Settings</h3>
+            <h3 className="text-2xl font-black text-orange-600 mb-6">Sync Settings</h3>
             <div className="space-y-4">
               <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
                 <div>
-                  <div className="font-bold text-gray-900">Auto-Sync</div>
+                  <div className="font-bold text-orange-600">Auto-Sync</div>
                   <div className="text-sm text-gray-600">Automatically sync bookings every 5 minutes</div>
                 </div>
                 <div className="w-14 h-8 bg-green-500 rounded-full flex items-center px-1">
@@ -107,7 +107,7 @@ const RMSIntegration = ({ onBack }) => {
               </div>
               <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
                 <div>
-                  <div className="font-bold text-gray-900">Price Sync</div>
+                  <div className="font-bold text-orange-600">Price Sync</div>
                   <div className="text-sm text-gray-600">Sync pricing changes across all channels</div>
                 </div>
                 <div className="w-14 h-8 bg-green-500 rounded-full flex items-center px-1">
@@ -116,7 +116,7 @@ const RMSIntegration = ({ onBack }) => {
               </div>
               <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
                 <div>
-                  <div className="font-bold text-gray-900">Availability Sync</div>
+                  <div className="font-bold text-orange-600">Availability Sync</div>
                   <div className="text-sm text-gray-600">Update availability in real-time</div>
                 </div>
                 <div className="w-14 h-8 bg-green-500 rounded-full flex items-center px-1">

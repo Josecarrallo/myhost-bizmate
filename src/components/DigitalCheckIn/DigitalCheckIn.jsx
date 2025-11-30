@@ -11,31 +11,36 @@ const DigitalCheckIn = ({ onBack }) => {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 via-white to-emerald-50 flex flex-col">
-      <div className="bg-white border-b-2 border-gray-200 p-4">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <button onClick={onBack} className="flex items-center gap-2 text-black hover:text-green-500 transition-colors">
-            <ChevronLeft className="w-5 h-5" />
-            <span className="font-semibold">Back</span>
-          </button>
-          <h1 className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-green-600 to-emerald-600">
-            Digital Check-in
-          </h1>
-          <div className="w-20"></div>
-        </div>
+    <div className="min-h-screen bg-gradient-to-br from-orange-400 via-orange-500 to-orange-600 p-4 pb-24 relative overflow-hidden">
+      {/* Animated background elements */}
+      <div className="absolute inset-0 overflow-hidden">
+        <div className="absolute w-96 h-96 bg-orange-300/20 rounded-full blur-3xl top-20 -left-48 animate-pulse"></div>
+        <div className="absolute w-96 h-96 bg-orange-300/20 rounded-full blur-3xl bottom-20 -right-48 animate-pulse" style={{ animationDelay: '1s' }}></div>
+        <div className="absolute w-72 h-72 bg-orange-200/30 rounded-full blur-2xl top-1/2 right-1/4 animate-pulse" style={{ animationDelay: '0.5s' }}></div>
       </div>
 
-      <div className="flex-1 overflow-auto p-6">
-        <div className="max-w-7xl mx-auto space-y-6">
+      <div className="max-w-7xl mx-auto relative z-10">
+        <div className="flex items-center justify-between mb-8">
+          <button onClick={onBack} className="p-3 bg-white/95 backdrop-blur-sm rounded-2xl hover:bg-white transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 border-2 border-white/50">
+            <ChevronLeft className="w-6 h-6 text-orange-600" />
+          </button>
+          <div className="text-center">
+            <h2 className="text-4xl md:text-5xl font-black text-white drop-shadow-2xl mb-1">MY HOST</h2>
+            <p className="text-2xl md:text-3xl font-bold text-orange-100 drop-shadow-xl">BizMate</p>
+          </div>
+          <div className="w-12"></div>
+        </div>
+
+        <div className="space-y-6">
           <div className="grid lg:grid-cols-2 gap-6">
-            <div>
-              <h2 className="text-3xl font-black text-gray-900 mb-6">Upcoming Arrivals</h2>
+            <div className="bg-white/95 backdrop-blur-sm rounded-3xl p-6 shadow-2xl border-2 border-white/50">
+              <h3 className="text-2xl font-black text-orange-600 mb-6">Upcoming Arrivals</h3>
               <div className="space-y-4">
                 {upcomingArrivals.map((guest) => (
-                  <div key={guest.id} className="bg-white rounded-2xl p-6 border-2 border-gray-200 hover:shadow-xl transition-all">
+                  <div key={guest.id} className="bg-gray-50 rounded-2xl p-6 border-2 border-gray-200 hover:shadow-lg transition-all">
                     <div className="flex items-start justify-between mb-4">
                       <div className="flex-1">
-                        <h3 className="text-xl font-black text-gray-900 mb-1">{guest.name}</h3>
+                        <h3 className="text-xl font-black text-orange-600 mb-1">{guest.name}</h3>
                         <p className="text-sm text-gray-600 font-semibold">{guest.property}</p>
                       </div>
                       <span className={`px-4 py-2 rounded-xl font-bold text-sm ${
@@ -68,45 +73,45 @@ const DigitalCheckIn = ({ onBack }) => {
             </div>
 
             <div className="space-y-6">
-              <div className="bg-white rounded-2xl p-8 border-2 border-gray-200 text-center">
-                <h3 className="text-2xl font-black text-gray-900 mb-6">QR Check-in Code</h3>
-                <div className="w-64 h-64 mx-auto bg-gradient-to-br from-green-100 to-emerald-100 rounded-2xl flex items-center justify-center mb-6 border-4 border-green-500">
+              <div className="bg-white/95 backdrop-blur-sm rounded-3xl p-8 shadow-2xl border-2 border-white/50 text-center">
+                <h3 className="text-2xl font-black text-orange-600 mb-6">QR Check-in Code</h3>
+                <div className="w-64 h-64 mx-auto bg-gradient-to-br from-orange-100 to-orange-200 rounded-2xl flex items-center justify-center mb-6 border-4 border-orange-500">
                   <div className="text-8xl">📲</div>
                 </div>
                 <p className="text-sm text-gray-600 mb-4">Scan to start digital check-in process</p>
-                <button className="px-6 py-3 bg-green-500 text-white rounded-xl font-bold hover:bg-green-600 transition-all">
+                <button className="px-6 py-3 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-xl font-bold hover:shadow-lg transition-all">
                   Download QR Code
                 </button>
               </div>
 
-              <div className="bg-white rounded-2xl p-6 border-2 border-gray-200">
-                <h3 className="text-xl font-black text-gray-900 mb-4">Access Instructions</h3>
+              <div className="bg-white/95 backdrop-blur-sm rounded-3xl p-6 shadow-2xl border-2 border-white/50">
+                <h3 className="text-xl font-black text-orange-600 mb-4">Access Instructions</h3>
                 <div className="space-y-3">
-                  <div className="flex items-start gap-3 p-3 bg-green-50 rounded-xl">
-                    <div className="w-8 h-8 rounded-full bg-green-500 text-white flex items-center justify-center font-bold flex-shrink-0">1</div>
+                  <div className="flex items-start gap-3 p-3 bg-orange-50 rounded-xl">
+                    <div className="w-8 h-8 rounded-full bg-orange-500 text-white flex items-center justify-center font-bold flex-shrink-0">1</div>
                     <div className="flex-1">
-                      <div className="font-bold text-gray-900">Complete Digital Form</div>
+                      <div className="font-bold text-orange-600">Complete Digital Form</div>
                       <div className="text-sm text-gray-600">Fill personal details and sign</div>
                     </div>
                   </div>
-                  <div className="flex items-start gap-3 p-3 bg-green-50 rounded-xl">
-                    <div className="w-8 h-8 rounded-full bg-green-500 text-white flex items-center justify-center font-bold flex-shrink-0">2</div>
+                  <div className="flex items-start gap-3 p-3 bg-orange-50 rounded-xl">
+                    <div className="w-8 h-8 rounded-full bg-orange-500 text-white flex items-center justify-center font-bold flex-shrink-0">2</div>
                     <div className="flex-1">
-                      <div className="font-bold text-gray-900">Receive Door Code</div>
+                      <div className="font-bold text-orange-600">Receive Door Code</div>
                       <div className="text-sm text-gray-600">Code sent via SMS/Email</div>
                     </div>
                   </div>
-                  <div className="flex items-start gap-3 p-3 bg-green-50 rounded-xl">
-                    <div className="w-8 h-8 rounded-full bg-green-500 text-white flex items-center justify-center font-bold flex-shrink-0">3</div>
+                  <div className="flex items-start gap-3 p-3 bg-orange-50 rounded-xl">
+                    <div className="w-8 h-8 rounded-full bg-orange-500 text-white flex items-center justify-center font-bold flex-shrink-0">3</div>
                     <div className="flex-1">
-                      <div className="font-bold text-gray-900">Access Property</div>
+                      <div className="font-bold text-orange-600">Access Property</div>
                       <div className="text-sm text-gray-600">Enter code at smart lock</div>
                     </div>
                   </div>
                 </div>
               </div>
 
-              <div className="bg-gradient-to-br from-green-500 to-emerald-600 rounded-2xl p-6 text-white text-center">
+              <div className="bg-gradient-to-br from-orange-500 to-orange-600 rounded-3xl p-6 shadow-2xl text-white text-center border-2 border-white/30">
                 <div className="text-sm font-bold mb-2">Sample Access Code</div>
                 <div className="text-5xl font-black mb-2">5847</div>
                 <div className="text-xs opacity-90">Valid: Nov 8, 14:00 - Nov 13, 11:00</div>

@@ -18,13 +18,13 @@ const PricingBreakdown = ({ pricing, loading }) => {
 
   return (
     <div className="bg-gradient-to-br from-orange-50 to-pink-50 rounded-2xl p-6 border-2 border-orange-200">
-      <h3 className="text-xl font-black text-gray-900 mb-4">Desglose de Precio</h3>
+      <h3 className="text-xl font-black text-orange-600 mb-4">Desglose de Precio</h3>
 
       <div className="space-y-3">
         {/* Base Price */}
         <div className="flex justify-between items-center">
           <div className="flex items-center gap-2">
-            <span className="text-gray-700 font-semibold">
+            <span className="text-orange-600 font-semibold">
               ${pricing.price_per_night} × {pricing.nights} {pricing.nights === 1 ? 'noche' : 'noches'}
             </span>
             {pricing.is_high_season && (
@@ -33,7 +33,7 @@ const PricingBreakdown = ({ pricing, loading }) => {
               </span>
             )}
           </div>
-          <span className="text-gray-900 font-bold">${pricing.base_price.toFixed(2)}</span>
+          <span className="text-orange-600 font-bold">${pricing.base_price.toFixed(2)}</span>
         </div>
 
         {/* Guest Surcharge */}
@@ -59,7 +59,7 @@ const PricingBreakdown = ({ pricing, loading }) => {
         {/* Total */}
         <div className="border-t-2 border-orange-300 pt-3 mt-3">
           <div className="flex justify-between items-center">
-            <span className="text-xl font-black text-gray-900">Total</span>
+            <span className="text-xl font-black text-orange-600">Total</span>
             <span className="text-3xl font-black text-orange-600">
               ${pricing.total.toFixed(2)}
             </span>
