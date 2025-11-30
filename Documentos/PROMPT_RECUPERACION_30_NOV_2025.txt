@@ -23,13 +23,13 @@ LOGROS DE HOY (30 NOV 2025):
    - PROBADO con 4 escenarios reales: TODOS PASARON ✅
    - Ubicación: Supabase SQL Editor
 
-✅ 2. calculate_booking_price() - Función SQL Supabase
-   - Cálculo completo con todas las reglas de negocio
-   - High season multiplier: +30% (Junio, Julio, Agosto, Diciembre)
+✅ 2. calculate_booking_price() - Función SQL Supabase [ACTUALIZADA]
+   - Cálculo simple: base_price × nights (sin multiplicadores automáticos)
    - Guest surcharge: $20/noche por cada huésped extra
    - Cleaning fee: $50 (fijo)
    - Service fee: 15% del subtotal
-   - PROBADO con 2 escenarios: TODOS PASARON ✅
+   - **DECISIÓN:** Usuario ajusta precios manualmente en tabla properties según temporada
+   - PROBADO y FUNCIONANDO ✅
    - Ubicación: Supabase SQL Editor
 
 ✅ 3. Frontend Integration - React Components
