@@ -2,10 +2,10 @@ import React from 'react';
 import { Instagram, Facebook, Twitter, Linkedin } from 'lucide-react';
 
 const CampaignCard = ({ name, platform, status, reach, engagement, clicks, budget, startDate, endDate }) => (
-  <div className="bg-white rounded-2xl p-6 border-2 border-gray-100 hover:border-purple-200 transition-all hover:shadow-lg">
+  <div className="bg-white/95 backdrop-blur-sm rounded-3xl p-6 border-2 border-white/50 hover:border-orange-200 transition-all hover:shadow-2xl shadow-xl">
     <div className="flex items-start justify-between mb-4">
       <div className="flex-1">
-        <h4 className="font-bold text-gray-900 text-xl mb-2">{name}</h4>
+        <h4 className="font-bold text-orange-600 text-xl mb-2">{name}</h4>
         <div className="flex items-center gap-2">
           {platform === 'Instagram' && <Instagram className="w-5 h-5 text-pink-500" />}
           {platform === 'Facebook' && <Facebook className="w-5 h-5 text-blue-600" />}
@@ -37,11 +37,11 @@ const CampaignCard = ({ name, platform, status, reach, engagement, clicks, budge
     <div className="flex items-center justify-between pt-4 border-t-2 border-gray-100">
       <div>
         <p className="text-xs text-gray-500 mb-1">Budget</p>
-        <p className="text-xl font-black text-gray-900">${budget}</p>
+        <p className="text-xl font-black text-orange-600">${budget}</p>
       </div>
       <div className="text-right">
         <p className="text-xs text-gray-500 mb-1">Period</p>
-        <p className="text-sm font-bold text-gray-700">{startDate} - {endDate}</p>
+        <p className="text-sm font-bold text-orange-600">{startDate} - {endDate}</p>
       </div>
     </div>
   </div>

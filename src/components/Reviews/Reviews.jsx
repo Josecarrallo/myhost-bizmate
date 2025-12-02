@@ -39,46 +39,54 @@ const ReviewsReputation = ({ onBack }) => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-yellow-50 via-white to-orange-50 flex flex-col">
-      <div className="bg-white border-b-2 border-gray-200 p-4">
+    <div className="min-h-screen bg-gradient-to-br from-orange-400 via-orange-500 to-orange-600 flex flex-col relative overflow-hidden">
+      {/* Animated background elements */}
+      <div className="absolute inset-0 overflow-hidden">
+        <div className="absolute w-96 h-96 bg-orange-300/20 rounded-full blur-3xl top-20 -left-48 animate-pulse"></div>
+        <div className="absolute w-96 h-96 bg-orange-300/20 rounded-full blur-3xl bottom-20 -right-48 animate-pulse" style={{ animationDelay: '1s' }}></div>
+        <div className="absolute w-72 h-72 bg-orange-200/30 rounded-full blur-2xl top-1/2 right-1/4 animate-pulse" style={{ animationDelay: '0.5s' }}></div>
+      </div>
+
+      <div className="bg-white/95 backdrop-blur-sm border-b-2 border-white/50 p-4 relative z-10 shadow-lg">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <button onClick={onBack} className="flex items-center gap-2 text-black hover:text-orange-500 transition-colors">
+          <button onClick={onBack} className="flex items-center gap-2 text-orange-600 hover:text-orange-500 transition-colors">
             <ChevronLeft className="w-5 h-5" />
             <span className="font-semibold">Back</span>
           </button>
-          <h1 className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-yellow-600 to-orange-600">
-            Reviews & Reputation
-          </h1>
+          <div className="text-center">
+            <h2 className="text-3xl md:text-4xl font-black text-white drop-shadow-2xl mb-1">MY HOST</h2>
+            <p className="text-xl md:text-2xl font-bold text-orange-100 drop-shadow-xl">BizMate</p>
+          </div>
           <div className="w-20"></div>
         </div>
       </div>
 
-      <div className="flex-1 overflow-auto p-6">
+      <div className="flex-1 overflow-auto p-6 relative z-10">
         <div className="max-w-7xl mx-auto space-y-6">
           <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-            <div className="bg-gradient-to-br from-yellow-400 to-orange-500 rounded-2xl p-6 text-white">
+            <div className="bg-gradient-to-br from-orange-500 to-orange-600 rounded-2xl p-6 text-white shadow-xl">
               <div className="text-4xl font-black mb-1">{stats.overallRating}</div>
               <div className="text-sm font-semibold opacity-90">Overall Rating</div>
             </div>
-            <div className="bg-white rounded-2xl p-6 border-2 border-gray-200">
-              <div className="text-3xl font-black text-gray-900 mb-1">{stats.totalReviews}</div>
+            <div className="bg-white/95 backdrop-blur-sm rounded-2xl p-6 border-2 border-white/50 shadow-lg">
+              <div className="text-3xl font-black text-orange-600 mb-1">{stats.totalReviews}</div>
               <div className="text-xs font-semibold text-gray-600">Total Reviews</div>
             </div>
-            <div className="bg-white rounded-2xl p-6 border-2 border-pink-200">
+            <div className="bg-white/95 backdrop-blur-sm rounded-2xl p-6 border-2 border-white/50 shadow-lg">
               <div className="text-3xl font-black text-pink-600 mb-1">{stats.airbnb}</div>
               <div className="text-xs font-semibold text-gray-600">Airbnb Rating</div>
             </div>
-            <div className="bg-white rounded-2xl p-6 border-2 border-blue-200">
+            <div className="bg-white/95 backdrop-blur-sm rounded-2xl p-6 border-2 border-white/50 shadow-lg">
               <div className="text-3xl font-black text-blue-600 mb-1">{stats.booking}</div>
               <div className="text-xs font-semibold text-gray-600">Booking.com</div>
             </div>
-            <div className="bg-white rounded-2xl p-6 border-2 border-green-200">
+            <div className="bg-white/95 backdrop-blur-sm rounded-2xl p-6 border-2 border-white/50 shadow-lg">
               <div className="text-3xl font-black text-green-600 mb-1">{stats.responseRate}</div>
               <div className="text-xs font-semibold text-gray-600">Response Rate</div>
             </div>
           </div>
 
-          <div className="bg-white rounded-2xl p-4 border-2 border-gray-200">
+          <div className="bg-white/95 backdrop-blur-sm rounded-2xl p-4 border-2 border-white/50 shadow-lg">
             <div className="flex gap-2 overflow-x-auto">
               {platforms.map((platform) => (
                 <button
@@ -86,7 +94,7 @@ const ReviewsReputation = ({ onBack }) => {
                   onClick={() => setSelectedPlatform(platform.id)}
                   className={`flex items-center gap-2 px-6 py-3 rounded-xl font-bold transition-all whitespace-nowrap ${
                     selectedPlatform === platform.id
-                      ? 'bg-gradient-to-r from-yellow-500 to-orange-500 text-white'
+                      ? 'bg-gradient-to-r from-orange-500 to-orange-600 text-white shadow-lg'
                       : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                   }`}
                 >
@@ -98,14 +106,14 @@ const ReviewsReputation = ({ onBack }) => {
           </div>
 
           <div className="space-y-4">
-            <h2 className="text-2xl font-black text-gray-900">Recent Reviews</h2>
+            <h2 className="text-2xl font-black text-white drop-shadow-lg">Recent Reviews</h2>
 
             {filteredReviews.map((review) => (
-              <div key={review.id} className="bg-white rounded-2xl p-6 border-2 border-gray-200 hover:shadow-xl transition-all">
+              <div key={review.id} className="bg-white/95 backdrop-blur-sm rounded-3xl p-6 border-2 border-white/50 hover:shadow-2xl transition-all shadow-xl">
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex-1">
                     <div className="flex items-center gap-3 mb-2">
-                      <h3 className="text-lg font-black text-gray-900">{review.guest}</h3>
+                      <h3 className="text-lg font-black text-orange-600">{review.guest}</h3>
                       <span className="px-3 py-1 bg-gray-100 rounded-lg text-xs font-bold text-gray-700">
                         {review.platform}
                       </span>
@@ -129,7 +137,7 @@ const ReviewsReputation = ({ onBack }) => {
                     {review.status === 'published' ? '✓ Published' : '⚠ Needs Response'}
                   </span>
                   <div className="flex gap-2">
-                    <button className="px-4 py-2 bg-blue-500 text-white rounded-xl font-bold hover:bg-blue-600 transition-all text-sm">
+                    <button className="px-4 py-2 bg-orange-500 text-white rounded-xl font-bold hover:bg-orange-600 transition-all text-sm">
                       Reply
                     </button>
                     <button className="px-4 py-2 bg-gray-200 text-gray-700 rounded-xl font-bold hover:bg-gray-300 transition-all text-sm">
@@ -141,8 +149,8 @@ const ReviewsReputation = ({ onBack }) => {
             ))}
           </div>
 
-          <div className="bg-white rounded-2xl p-6 border-2 border-gray-200">
-            <h3 className="text-xl font-black text-gray-900 mb-4">Quick Response Templates</h3>
+          <div className="bg-white/95 backdrop-blur-sm rounded-3xl p-6 border-2 border-white/50 shadow-xl">
+            <h3 className="text-xl font-black text-orange-600 mb-4">Quick Response Templates</h3>
             <div className="grid md:grid-cols-3 gap-4">
               <button className="p-4 bg-green-50 border-2 border-green-200 rounded-xl hover:bg-green-100 transition-all text-left">
                 <div className="flex items-center gap-2 mb-2">
