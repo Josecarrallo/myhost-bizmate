@@ -15,16 +15,17 @@ const RMSIntegration = ({ onBack }) => {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-blue-50 flex flex-col">
+    <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-pink-50 flex flex-col">
       <div className="bg-white border-b-2 border-gray-200 p-4">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <button onClick={onBack} className="flex items-center gap-2 text-black hover:text-indigo-500 transition-colors">
+          <button onClick={onBack} className="flex items-center gap-2 text-orange-600 hover:text-orange-500 transition-colors">
             <ChevronLeft className="w-5 h-5" />
             <span className="font-semibold">Back</span>
           </button>
-          <h1 className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-blue-600">
-            RMS Integration
-          </h1>
+          <div className="text-center">
+            <h2 className="text-3xl md:text-4xl font-black text-orange-600 mb-1">MY HOST</h2>
+            <p className="text-xl md:text-2xl font-bold text-orange-500">BizMate</p>
+          </div>
           <div className="w-20"></div>
         </div>
       </div>
@@ -64,7 +65,7 @@ const RMSIntegration = ({ onBack }) => {
                   </div>
 
                   <div className="flex gap-2">
-                    <button className="flex-1 py-2 bg-indigo-500 text-white rounded-xl font-bold hover:bg-indigo-600 transition-all text-sm">
+                    <button className="flex-1 py-2 bg-orange-500 text-white rounded-xl font-bold hover:bg-orange-600 transition-all text-sm">
                       Sync Now
                     </button>
                     <button className="px-4 py-2 bg-gray-200 text-gray-700 rounded-xl font-bold hover:bg-gray-300 transition-all">
@@ -80,11 +81,11 @@ const RMSIntegration = ({ onBack }) => {
             <h2 className="text-3xl font-black text-orange-600 mb-6">Available Channels</h2>
             <div className="grid md:grid-cols-3 gap-4">
               {availableChannels.map((channel) => (
-                <div key={channel.id} className="bg-white rounded-2xl p-6 border-2 border-gray-200 hover:border-indigo-300 hover:shadow-xl transition-all">
+                <div key={channel.id} className="bg-white rounded-2xl p-6 border-2 border-gray-200 hover:border-orange-300 hover:shadow-xl transition-all">
                   <div className="text-center">
                     <div className="text-5xl mb-4">{channel.logo}</div>
                     <h3 className="text-xl font-black text-orange-600 mb-4">{channel.name}</h3>
-                    <button className="w-full py-3 bg-gradient-to-r from-indigo-500 to-blue-500 text-white rounded-xl font-bold hover:shadow-lg transition-all">
+                    <button className="w-full py-3 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-xl font-bold hover:shadow-lg transition-all">
                       + Connect
                     </button>
                   </div>

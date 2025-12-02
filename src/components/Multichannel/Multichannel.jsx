@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import {
   ChevronLeft,
   CheckCircle,
@@ -8,6 +8,10 @@ import {
 } from 'lucide-react';
 
 const MultichannelIntegration = ({ onBack }) => {
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+
   const channels = [
     { name: 'Booking.com', logo: '🔵', gradient: 'from-blue-500 to-blue-600', bgColor: 'bg-blue-50', textColor: 'text-blue-700', connected: true, lastSync: '3h ago', stats: { listings: 6, pending: 3, revenue: '24.5K' } },
     { name: 'Airbnb', logo: '🔴', gradient: 'from-red-500 to-pink-600', bgColor: 'bg-red-50', textColor: 'text-red-700', connected: true, lastSync: '1h ago', stats: { listings: 8, pending: 5, revenue: '32.8K' } },

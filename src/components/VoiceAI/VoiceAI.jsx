@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   ChevronLeft,
   MessageSquare,
@@ -8,6 +8,10 @@ import {
 } from 'lucide-react';
 
 const VoiceAIAgent = ({ onBack }) => {
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+
   const [callStatus, setCallStatus] = useState('idle');
   const [currentCall, setCurrentCall] = useState(null);
   const [callHistory] = useState([
@@ -95,8 +99,8 @@ const VoiceAIAgent = ({ onBack }) => {
             <span className="font-semibold">Back</span>
           </button>
           <div className="text-center">
-            <h2 className="text-3xl md:text-4xl font-black text-white drop-shadow-2xl mb-1">MY HOST</h2>
-            <p className="text-xl md:text-2xl font-bold text-orange-100 drop-shadow-xl">BizMate</p>
+            <h2 className="text-3xl md:text-4xl font-black text-orange-600 mb-1">MY HOST</h2>
+            <p className="text-xl md:text-2xl font-bold text-orange-500">BizMate</p>
           </div>
           <div className="w-20"></div>
         </div>

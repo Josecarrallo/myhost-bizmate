@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import {
   ChevronLeft,
   Plus,
@@ -10,6 +10,10 @@ import {
 import { StatCard, CampaignCard } from '../common';
 
 const MarketingSuite = ({ onBack }) => {
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-400 via-orange-500 to-orange-600 p-4 pb-24 relative overflow-hidden">
       {/* Animated background elements */}

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   ChevronLeft,
   DollarSign,
@@ -37,6 +37,10 @@ import {
 
 const ReportsInsights = ({ onBack }) => {
   const [activeTab, setActiveTab] = useState('overview');
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
 
   const monthlyData = [
     { month: 'Nov 24', revenue: 38500, bookings: 24, occupancy: 78, adr: 385 },

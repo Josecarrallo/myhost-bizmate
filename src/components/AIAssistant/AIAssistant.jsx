@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import {
   ChevronLeft,
   Sparkles,
@@ -8,6 +8,9 @@ import {
 } from 'lucide-react';
 
 const AIAssistant = ({ onBack }) => {
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
   const userQuery = `Hi, I would like to know which villas are available for rent in the area and at what price. Please also check the occupancy level and based on that give me a recommendation/action to rent my vacant villas and earn more money.`;
 
   const aiResponse = {

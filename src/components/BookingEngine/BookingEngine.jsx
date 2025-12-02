@@ -124,9 +124,10 @@ const BookingEngineWidget = ({ onBack }) => {
             <ChevronLeft className="w-5 h-5" />
             <span className="font-semibold">Back</span>
           </button>
-          <h1 className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-orange-500 to-pink-500">
-            Booking Engine
-          </h1>
+          <div className="text-center">
+            <h2 className="text-3xl md:text-4xl font-black text-orange-600 mb-1">MY HOST</h2>
+            <p className="text-xl md:text-2xl font-bold text-orange-500">BizMate</p>
+          </div>
           <div className="w-20"></div>
         </div>
 

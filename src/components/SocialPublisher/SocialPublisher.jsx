@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   ChevronLeft,
   Plus,
@@ -15,6 +15,10 @@ import {
 import { StatCard } from '../common';
 
 const SocialPublisher = ({ onBack }) => {
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+
   const [posts] = useState([
     {
       id: 1,

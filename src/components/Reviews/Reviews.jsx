@@ -1,8 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ChevronLeft, Star, ThumbsUp, ThumbsDown } from 'lucide-react';
 
 const ReviewsReputation = ({ onBack }) => {
   const [selectedPlatform, setSelectedPlatform] = useState('all');
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
 
   const mockReviews = [
     { id: 1, guest: "Sarah Johnson", property: "Villa Sunset", platform: "Airbnb", rating: 5, date: "2025-11-05", comment: "Amazing stay! The villa was spotless and the host was incredibly responsive. Highly recommend!", status: "published" },
@@ -54,8 +58,8 @@ const ReviewsReputation = ({ onBack }) => {
             <span className="font-semibold">Back</span>
           </button>
           <div className="text-center">
-            <h2 className="text-3xl md:text-4xl font-black text-white drop-shadow-2xl mb-1">MY HOST</h2>
-            <p className="text-xl md:text-2xl font-bold text-orange-100 drop-shadow-xl">BizMate</p>
+            <h2 className="text-3xl md:text-4xl font-black text-orange-600 mb-1">MY HOST</h2>
+            <p className="text-xl md:text-2xl font-bold text-orange-500">BizMate</p>
           </div>
           <div className="w-20"></div>
         </div>
