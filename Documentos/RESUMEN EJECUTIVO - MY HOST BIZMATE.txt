@@ -189,7 +189,7 @@ CARACTERÍSTICAS TÉCNICAS:
 ✅ Arquitectura v4.0 Multi-Agent
 ✅ +6,500 líneas de código
 ✅ Deploy en Vercel
-✅ Demo en vivo: https://myhost-bizmate.vercel.app
+✅ Demo en vivo: https://myhost-bizmate-l78k.vercel.app
 
 ========================================================================
 ⏭️ PRÓXIMOS PASOS (3-4 SEMANAS)
@@ -432,7 +432,7 @@ ROI comprobado: +156-271% mensual por propiedad."
 📞 CONTACTO
 ========================================================================
 
-Demo en vivo: https://myhost-bizmate.vercel.app
+Demo en vivo: https://myhost-bizmate-l78k.vercel.app
 GitHub: https://github.com/Josecarrallo/myhost-bizmate
 Documentación completa: C:\myhost-bizmate\Documentos\
 
