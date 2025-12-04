@@ -1,0 +1,610 @@
+PROMPT 3 – FASE 3: INTELIGENCIA ARTIFICIAL (12 AGENTES IA)
+========================================================================
+
+CONTEXTO:
+---------
+FASE 1 completada ✅ (04 DIC 2025)
+FASE 2 completada ✅ (Backend + Supabase CRUD)
+
+Ahora implementamos los 12 Agentes de Inteligencia Artificial para automatizar
+el 80-90% de las operaciones del PMS.
+
+Este prompt está PRIORIZADO en 3 fases:
+- FASE 3A: MVP (3 agentes críticos) - SEMANA 1
+- FASE 3B: EXPANSIÓN (3 agentes importantes) - SEMANA 2
+- FASE 3C: COMPLETO (6 agentes complementarios) - SEMANA 3-4
+
+STACK TÉCNICO:
+--------------
+- IA: Claude 3.5 Sonnet (Anthropic API)
+- Automatización: n8n (workflows)
+- WhatsApp: WhatsApp Business API + Cloud API
+- Integración: Supabase Functions + Webhooks
+- Frontend: React 18 (ya existe)
+
+========================================================================
+FASE 3A: MVP - 3 AGENTES CRÍTICOS (SEMANA 1)
+========================================================================
+
+OBJETIVO: Sistema IA funcional atendiendo huéspedes y optimizando revenue.
+
+----------------------------
+🤖 AGENTE 9: WhatsApp Hospitality Concierge Agent (PRIORIDAD MÁXIMA)
+----------------------------
+
+DESCRIPCIÓN:
+Agente IA que atiende consultas de huéspedes vía WhatsApp 24/7 en múltiples idiomas,
+proporcionando información sobre la villa, recomendaciones locales, check-in/out,
+y resolviendo problemas durante la estancia.
+
+CAPACIDADES:
+✓ Responder preguntas sobre la villa (amenities, WiFi, reglas)
+✓ Dar recomendaciones de restaurantes, actividades, tours
+✓ Información de check-in/check-out (horarios, access codes)
+✓ Resolver problemas durante estancia (AC no funciona, WiFi lento)
+✓ Procesar solicitudes (toallas extra, early check-in, late check-out)
+✓ Multilingual: Inglés, Español, Francés, Alemán, Japonés, Chino
+✓ Escalar a humano si no puede resolver
+
+CONTEXTO QUE MANEJA:
+- Booking del huésped (property, dates, guests)
+- Property info (amenities, rules, WiFi, access codes)
+- Base de conocimiento de recomendaciones locales
+- Staff disponible (para escalamiento)
+
+TECNOLOGÍA:
+- WhatsApp Business API + Cloud API
+- Claude 3.5 Sonnet con function calling
+- n8n workflow: webhook → Claude → respuesta
+- Supabase: guardar historial de conversaciones
+
+TABLA: whatsapp_conversations
+- id (UUID, PK)
+- booking_id (UUID, FK, nullable)
+- phone_number (TEXT)
+- guest_name (TEXT)
+- message (TEXT)
+- response (TEXT)
+- ai_handled (BOOLEAN)
+- escalated (BOOLEAN)
+- escalated_to (UUID, FK a users)
+- sentiment (ENUM: positive, neutral, negative)
+- created_at (TIMESTAMP)
+
+n8n WORKFLOW:
+1. Webhook recibe mensaje WhatsApp
+2. Identificar booking por phone_number
+3. Cargar contexto (booking + property + knowledge base)
+4. Llamar Claude con contexto + historial
+5. Claude genera respuesta (o decide escalar)
+6. Enviar respuesta por WhatsApp
+7. Guardar conversación en DB
+
+PROMPT SYSTEM:
+```
+Eres el Concierge IA de [Property Name], un asistente experto en hospitalidad
+que ayuda a huéspedes antes, durante y después de su estancia en Bali.
+
+INFORMACIÓN DEL HUÉSPED:
+- Nombre: {guest_name}
+- Check-in: {check_in}
+- Check-out: {check_out}
+- Property: {property_name}
+
+INFORMACIÓN DE LA VILLA:
+- WiFi: {wifi_password}
+- Access Code: {access_code}
+- Amenities: {amenities}
+- House Rules: {house_rules}
+
+RECOMENDACIONES LOCALES:
+{knowledge_base_restaurants}
+{knowledge_base_activities}
+{knowledge_base_transport}
+
+TU ROL:
+- Ser amigable, profesional y proactivo
+- Responder en el idioma del huésped
+- Dar recomendaciones personalizadas
+- Resolver problemas rápidamente
+- Escalar a staff si: emergencia, solicitud fuera de tu capacidad, problema técnico complejo
+
+FORMATO DE RESPUESTA:
+- Breve y conciso (máx 3 párrafos)
+- Usa emojis apropiados
+- Incluye links/mapas si es relevante
+```
+
+FUNCIONES DISPONIBLES (function calling):
+- get_property_info(property_id)
+- get_booking_details(booking_id)
+- get_local_recommendations(category, location)
+- create_maintenance_issue(property_id, description)
+- escalate_to_human(reason, urgency)
+- send_access_code(booking_id)
+
+CRITERIO ÉXITO:
+✓ 80% de consultas resueltas sin intervención humana
+✓ Tiempo respuesta < 30 segundos
+✓ Satisfacción huésped > 4.5/5
+✓ 100 conversaciones reales gestionadas
+
+----------------------------
+🤖 AGENTE 2: Booking Manager Agent
+----------------------------
+
+DESCRIPCIÓN:
+Agente que procesa reservas automáticamente: valida disponibilidad, calcula precio,
+envía confirmaciones, gestiona pagos, y comunica con el huésped pre-llegada.
+
+CAPACIDADES:
+✓ Recibir inquiries de múltiples canales (WhatsApp, email, web)
+✓ Validar disponibilidad en tiempo real
+✓ Calcular precio con reglas de pricing
+✓ Crear booking en Supabase
+✓ Enviar confirmación por email/WhatsApp
+✓ Gestionar pagos (generar link de Stripe)
+✓ Enviar recordatorios pre-llegada (48h antes)
+✓ Coordinar con Digital Check-in Agent
+
+TECNOLOGÍA:
+- n8n workflows
+- Claude para decisiones inteligentes
+- Supabase Functions
+- Stripe para pagos
+- Email (SendGrid/Resend) + WhatsApp
+
+n8n WORKFLOWS:
+
+WORKFLOW 1: Nueva Inquiry
+1. Webhook recibe inquiry (web form, WhatsApp, email)
+2. Claude extrae: dates, guests, preferences
+3. Check availability (Supabase function)
+4. Calculate price (pricing rules + seasonal adjustments)
+5. Claude genera respuesta personalizada
+6. Enviar quote por WhatsApp/email
+7. Guardar inquiry en bookings (status='inquiry')
+
+WORKFLOW 2: Confirmación de Booking
+1. Huésped confirma (responde "Yes" o click en link)
+2. Crear booking definitivo (status='confirmed')
+3. Generar payment link (Stripe)
+4. Enviar confirmación con:
+   - Booking details
+   - Payment link
+   - House rules
+   - Parking info
+5. Agregar a calendario
+6. Trigger Digital Check-in (enviar link 48h antes)
+
+WORKFLOW 3: Reminder Pre-Llegada
+1. Cron job: daily at 10am
+2. Query bookings con check-in en 48h
+3. Para cada booking:
+   - Verificar si completó check-in digital
+   - Enviar reminder por WhatsApp:
+     * Link check-in digital
+     * Arrival instructions
+     * Contact info
+4. Si no responde en 24h → escalar a humano
+
+PROMPT SYSTEM (Booking Agent):
+```
+Eres el Booking Manager de MY HOST BizMate, un agente profesional que gestiona
+reservas de propiedades vacacionales en Bali.
+
+TU ROL:
+- Responder inquiries rápidamente (< 5 min)
+- Calcular precios precisos considerando todos los factores
+- Ser persuasivo pero honesto
+- Confirmar todos los detalles claramente
+- Coordinar con otros agentes (Check-in, Housekeeping)
+
+CONTEXTO:
+{property_details}
+{availability_calendar}
+{pricing_rules}
+{current_season}
+
+DECISIONES QUE TOMAS:
+- Aceptar/rechazar booking según criterios
+- Aplicar descuentos (siguiendo reglas)
+- Ofrecer propiedades alternativas si no hay disponibilidad
+- Escalar a owner si: solicitud especial compleja, grupo grande, precio fuera de rango
+
+FORMATO RESPUESTAS:
+- Profesional y cálido
+- Incluir siempre: precio total, dates, guests, property
+- CTA claro (confirmar, pagar, etc.)
+```
+
+FUNCIONES DISPONIBLES:
+- check_availability(property_id, check_in, check_out)
+- calculate_price(property_id, check_in, check_out, guests)
+- create_booking(booking_data)
+- generate_payment_link(booking_id, amount)
+- send_confirmation_email(booking_id)
+- send_whatsapp_message(phone, message)
+
+CRITERIO ÉXITO:
+✓ 90% inquiries respondidas en < 5 minutos
+✓ 60% conversion rate (inquiry → confirmed)
+✓ 0 double bookings
+✓ 100% confirmaciones enviadas automáticamente
+
+----------------------------
+🤖 AGENTE 12: Revenue Manager Agent (Dynamic Pricing)
+----------------------------
+
+DESCRIPCIÓN:
+Agente que optimiza precios dinámicamente basado en demanda, competencia, eventos,
+temporada y comportamiento del mercado para maximizar revenue y ocupación.
+
+CAPACIDADES:
+✓ Analizar demanda histórica
+✓ Detectar eventos locales (Nyepi, high season, festivales)
+✓ Monitorear competencia (scraping Airbnb/Booking)
+✓ Calcular precio óptimo por día
+✓ Ajustar precios automáticamente
+✓ Aplicar estrategias: last-minute, early-bird, long-stay
+✓ Generar reportes de performance
+
+TECNOLOGÍA:
+- Claude para análisis y decisiones
+- n8n para cron jobs diarios
+- Supabase para pricing_rules y price_history
+- Web scraping (opcional: Bright Data API)
+
+TABLAS:
+
+pricing_suggestions
+- id (UUID, PK)
+- property_id (UUID, FK)
+- date (DATE)
+- current_price (DECIMAL)
+- suggested_price (DECIMAL)
+- reason (TEXT) - explicación del ajuste
+- confidence (DECIMAL 0-1)
+- applied (BOOLEAN)
+- applied_at (TIMESTAMP)
+- created_at (TIMESTAMP)
+
+price_history
+- property_id (UUID, FK)
+- date (DATE)
+- price (DECIMAL)
+- occupancy (BOOLEAN)
+- revenue (DECIMAL)
+- created_at (TIMESTAMP)
+
+LÓGICA DE PRICING:
+
+FACTORES QUE CONSIDERA:
+1. Ocupación histórica (misma fecha año anterior)
+2. Ocupación actual próximos 30 días
+3. Lead time (cuánto falta para la fecha)
+4. Eventos culturales/festivales
+5. Temporada (alta/baja)
+6. Día de la semana (weekend premium)
+7. Duración de estancia (descuento long-stay)
+8. Competencia (precios similares en la zona)
+
+ESTRATEGIAS:
+
+HIGH DEMAND (ocupación > 80% próximos 30 días):
+- Aumentar precio +15-25%
+- Priorizar profit sobre ocupación
+
+LOW DEMAND (ocupación < 40%):
+- Reducir precio -10-20%
+- Ofrecer descuentos early-bird
+- Priorizar ocupación
+
+LAST MINUTE (< 7 días):
+- Descuento -15% si no hay booking
+- Mejor ocupado con descuento que vacío
+
+LONG STAY (> 7 noches):
+- Descuento progresivo: 7-13 nights (-10%), 14-27 (-15%), 28+ (-20%)
+
+n8n WORKFLOW (Daily Pricing Update):
+1. Cron: daily at 6am
+2. Para cada property activa:
+   - Calcular ocupación next 30/60/90 días
+   - Consultar eventos culturales
+   - Analizar historical performance
+   - Claude analiza factores y sugiere precios
+   - Guardar suggestions en pricing_suggestions
+3. Si confidence > 0.8 y change < 15%:
+   - Aplicar automáticamente
+   - Actualizar prices en property
+4. Si confidence < 0.8 o change > 15%:
+   - Notificar owner para aprobación manual
+
+PROMPT SYSTEM (Revenue Manager):
+```
+Eres el Revenue Manager de MY HOST BizMate, experto en optimización de precios
+para propiedades vacacionales en Bali.
+
+OBJETIVO:
+Maximizar revenue total anual manteniendo ocupación óptima (70-85%).
+
+FILOSOFÍA:
+- No siempre el precio más alto es el mejor
+- Balancear revenue vs. ocupación
+- Considerar costos de limpieza (mejor ocupación larga que corta)
+- Ser conservador (cambios graduales)
+
+DATOS DISPONIBLES:
+{property_base_price}
+{occupancy_next_30_days}
+{historical_occupancy_same_period}
+{upcoming_cultural_events}
+{competitor_prices}
+{current_season}
+
+TU ANÁLISIS DEBE INCLUIR:
+1. Tendencia de demanda (alta/media/baja)
+2. Precio recomendado (+/- % del base_price)
+3. Razón del ajuste (2-3 bullets)
+4. Confidence score (0-1)
+5. Riesgos del ajuste
+
+REGLAS:
+- Nunca bajar > 30% del base_price
+- Nunca subir > 50% del base_price
+- Cambios graduales (máx 15% por semana)
+- Respetar minimum_stay requirements
+```
+
+FUNCIONES DISPONIBLES:
+- get_occupancy_stats(property_id, date_from, date_to)
+- get_cultural_events(date_from, date_to)
+- get_competitor_prices(location, date)
+- get_booking_history(property_id, date_from, date_to)
+- apply_price_change(property_id, date, new_price, reason)
+- notify_owner_approval(property_id, suggestion_id)
+
+CRITERIO ÉXITO:
+✓ Revenue increase +20-30% vs. static pricing
+✓ Ocupación mantener 70-85%
+✓ RevPAR (Revenue Per Available Room) increase +25%
+✓ 90% de sugerencias aceptadas por owners
+
+========================================================================
+FASE 3B: EXPANSIÓN - 3 AGENTES IMPORTANTES (SEMANA 2)
+========================================================================
+
+----------------------------
+🤖 AGENTE 5: Housekeeping Scheduler Agent
+----------------------------
+
+DESCRIPCIÓN:
+Coordina automáticamente limpiezas entre check-outs y check-ins, asigna staff,
+optimiza rutas, y gestiona inventario de supplies.
+
+CAPACIDADES:
+✓ Detectar check-outs y crear task automática
+✓ Asignar staff basado en: disponibilidad, ubicación, carga de trabajo
+✓ Optimizar rutas (múltiples propiedades mismo día)
+✓ Enviar notificaciones a staff (WhatsApp)
+✓ Tracking de status (pending → in-progress → completed)
+✓ Alertar si demora (check-in en 2h y aún no completada)
+✓ Gestionar inventario (detectar cuando faltan supplies)
+
+n8n WORKFLOW:
+1. Trigger: booking.status = 'checked_out'
+2. Calcular tiempo disponible (checkout → next check-in)
+3. Crear housekeeping_task en Supabase
+4. Claude selecciona mejor staff:
+   - Disponibilidad
+   - Ubicación (cerca de property)
+   - Carga actual (no más de 3 tasks/día)
+   - Performance rating
+5. Asignar task a staff
+6. Enviar WhatsApp a staff:
+   "Nueva limpieza: [Property Name], antes de [time]. Tap para confirmar."
+7. Staff confirma → status='in_progress'
+8. Staff completa → status='completed' + upload photos
+9. Si demora (2h antes de next check-in y no completed):
+   - Escalar a manager
+   - Buscar staff backup
+
+CRITERIO ÉXITO:
+✓ 100% properties limpiadas a tiempo
+✓ 0 check-ins con property no ready
+✓ Tiempo promedio limpieza < 2.5h
+✓ Staff utilization 70-85%
+
+----------------------------
+🤖 AGENTE 3: Guest Manager Agent
+----------------------------
+
+DESCRIPCIÓN:
+Gestiona experiencia completa del huésped desde pre-llegada hasta post-estancia,
+automatizando comunicaciones, check-in/out, y solicitudes.
+
+CAPACIDADES:
+✓ Bienvenida personalizada (pre-llegada)
+✓ Coordinar Digital Check-in
+✓ Enviar info útil durante estancia (día 2: recordar restaurant recommendation)
+✓ Gestionar solicitudes (extra towels, late checkout)
+✓ Check-out instructions (día antes)
+✓ Solicitar review (post check-out)
+✓ Thank you message + future discount
+
+COMUNICACIONES AUTOMÁTICAS:
+
+T-48h (Pre-llegada):
+"Hi {guest_name}! 👋 Your stay at {property_name} is in 2 days.
+Please complete check-in: [link].
+Arrival instructions: [details].
+Questions? Just reply!"
+
+T-0 (Día llegada):
+"Welcome to Bali! 🌴 Your access code: {code}.
+WiFi: {wifi_ssid} / {password}.
+Need anything? I'm here 24/7."
+
+T+1 (Durante estancia):
+"Hope you're enjoying {property_name}! 😊
+Here are my top 3 restaurant recommendations nearby: [list].
+Questions or need anything?"
+
+T+3 (Mid-stay):
+"Everything good? Any issues with the villa?
+I'm here to help make your stay perfect!"
+
+T-1 (Pre-checkout):
+"Check-out tomorrow at {checkout_time}.
+Instructions: [details].
+Thank you for staying with us! 🙏"
+
+T+1 (Post-checkout):
+"Thank you {guest_name}! 🌟
+We'd love your feedback: [review_link].
+Come back soon! Use code RETURN10 for 10% off your next stay."
+
+CRITERIO ÉXITO:
+✓ 90% check-ins sin contacto humano
+✓ 50% solicitan recomendaciones proactivamente
+✓ 40% response rate en solicitud de review
+✓ 15% booking rate en return guests
+
+----------------------------
+🤖 AGENTE 8: Task Automation Agent
+----------------------------
+
+DESCRIPCIÓN:
+Orquestador maestro que detecta triggers y ejecuta workflows automáticos,
+coordinando entre todos los agentes y sistemas.
+
+CAPACIDADES:
+✓ Detectar eventos en DB (new booking, checkout, payment, etc.)
+✓ Ejecutar workflows automáticos
+✓ Coordinar entre agentes
+✓ Logging y error handling
+✓ Reportes de automación
+
+WORKFLOWS QUE ORQUESTA:
+
+NEW BOOKING CONFIRMED:
+→ Enviar confirmación (Booking Agent)
+→ Crear calendario entry (Calendar Agent)
+→ Programar check-in reminder (Guest Manager Agent)
+→ Calcular pricing impact (Revenue Manager)
+
+CHECK-OUT DETECTED:
+→ Crear housekeeping task (Housekeeping Scheduler)
+→ Solicitar review (Guest Manager)
+→ Actualizar availability (Calendar Agent)
+→ Calcular revenue performance (Financial Manager)
+
+PAYMENT RECEIVED:
+→ Actualizar booking status (Booking Manager)
+→ Enviar receipt (Financial Manager)
+→ Log transaction
+
+CHECK-IN DELAYED (2h past arrival time):
+→ Send WhatsApp to guest
+→ Notify manager
+→ Update ETA
+
+CRITERIO ÉXITO:
+✓ 95% workflows ejecutados sin errores
+✓ 100% eventos críticos detectados
+✓ < 1min latencia entre trigger y acción
+
+========================================================================
+FASE 3C: COMPLETO - 6 AGENTES COMPLEMENTARIOS (SEMANA 3-4)
+========================================================================
+
+Estos agentes se implementan después de validar MVP y expansión.
+
+🤖 AGENTE 4: Calendar & Availability Agent
+🤖 AGENTE 6: Maintenance Manager Agent
+🤖 AGENTE 7: Staff Manager Agent
+🤖 AGENTE 10: Multilingual Translation Agent
+🤖 AGENTE 11: Financial Manager Agent (FMS)
+🤖 AGENTE 1: PMS Core Agent (orquestador general)
+
+Especificación detallada de estos 6 agentes se proporciona cuando
+se completen FASE 3A y 3B exitosamente.
+
+========================================================================
+INFRAESTRUCTURA GENERAL FASE 3
+========================================================================
+
+CLAUDE API:
+- Modelo: Claude 3.5 Sonnet
+- Rate limits: considerar en workflows
+- Caching: cachear property info, knowledge base
+- Costos: ~$3-6 per 1M tokens (Sonnet)
+
+n8n WORKFLOWS:
+- Self-hosted en Railway/Render (ya existe)
+- Workflows por agente (modular)
+- Error handling robusto
+- Logging centralizado
+
+SUPABASE:
+- Database triggers para eventos
+- Supabase Functions para lógica compleja
+- Realtime subscriptions para UI updates
+
+WHATSAPP BUSINESS:
+- Cloud API (oficial Facebook/Meta)
+- Webhook setup en n8n
+- Templates pre-aprobados para notificaciones
+- Rate limits: 1000 mensajes/día (tier 1)
+
+MONITOREO:
+- Sentry para errors
+- Logs en Supabase logs table
+- Dashboard de métricas IA:
+  * Mensajes procesados
+  * Accuracy rate
+  * Tiempo respuesta
+  * Escalamientos a humano
+  * Satisfacción usuario
+
+========================================================================
+CRITERIOS DE ÉXITO GLOBAL FASE 3
+========================================================================
+
+FASE 3A (MVP - 3 agentes):
+✓ WhatsApp Concierge atendiendo 80% consultas automáticamente
+✓ Booking Agent procesando 60% inquiries → confirmación sin humano
+✓ Revenue Manager generando +20% revenue vs. static pricing
+✓ 100 conversaciones reales gestionadas
+✓ 50 bookings automáticos creados
+✓ 0 errores críticos
+
+FASE 3B (Expansión - 6 agentes total):
+✓ Housekeeping 100% automatizado
+✓ Guest Manager gestionando journey completo
+✓ Task Automation orquestando todos los workflows
+✓ 500 conversaciones IA gestionadas
+✓ 200 bookings automáticos
+✓ 95% satisfaction score huéspedes
+
+FASE 3C (Completo - 12 agentes):
+✓ Sistema 90% autónomo
+✓ 5 propiedades operando full automated
+✓ Owner intervención solo en casos excepcionales
+✓ Revenue increase +30-40% vs. gestión manual
+✓ Time saved: 25-30 horas/semana por propiedad
+
+========================================================================
+NEXT STEPS DESPUÉS DE FASE 3
+========================================================================
+
+1. Onboarding de propiedades reales (pilotos)
+2. Refinamiento basado en feedback
+3. Expansión a más canales (Email, Instagram DM, etc.)
+4. Integraciones: Airbnb/Booking APIs, PMS externos
+5. Mobile app (opcional)
+6. Marketplace de servicios locales (tours, transporte, chef privado)
+
+FIN DEL PROMPT 3 - FASE 3
+========================================================================

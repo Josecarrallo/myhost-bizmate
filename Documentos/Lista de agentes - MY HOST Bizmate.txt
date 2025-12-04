@@ -1,0 +1,12 @@
+☐ AGENTE 1 — PMS Core Agent
+☐ AGENTE 2 — Booking Manager Agent
+☐ AGENTE 3 — Guest Manager Agent
+☐ AGENTE 4 — Calendar & Availability Agent
+☐ AGENTE 5 — Cleaning & Housekeeping Scheduler Agent
+☐ AGENTE 6 — Maintenance Manager Agent
+☐ AGENTE 7 — Staff Manager Agent
+☐ AGENTE 8 — Task Automation Agent
+☐ AGENTE 9 — WhatsApp Hospitality Concierge Agent
+☐ AGENTE 10 — Multilingual Translation Agent
+☐ AGENTE 11 — Financial Manager Agent (FMS)
+☐ AGENTE 12 — Revenue Manager Agent (Dynamic Pricing)

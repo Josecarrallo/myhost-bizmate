@@ -1,0 +1,441 @@
+PROMPT 2 – FASE 2: BACKEND REAL (SUPABASE + CRUD COMPLETO)
+========================================================================
+
+CONTEXTO:
+---------
+FASE 1 completada al 100% (04 DIC 2025).
+Ahora conectamos TODO a Supabase con CRUD real, autenticación y base de datos completa.
+
+Este prompt está PRIORIZADO en 3 niveles: CRÍTICO, IMPORTANTE, PUEDE ESPERAR.
+
+STACK TÉCNICO:
+--------------
+- Frontend: React 18 + Vite + Tailwind (ya existe)
+- Backend: Supabase (PostgreSQL + Auth + Storage + Realtime)
+- APIs: Supabase Client (@supabase/supabase-js)
+- Auth: Supabase Auth con Row Level Security (RLS)
+
+OBJETIVO GENERAL:
+-----------------
+Transformar los 34 módulos de mock data a operaciones reales con base de datos,
+manteniendo el diseño y UX actuales al 100%.
+
+========================================================================
+PRIORIDAD 1: CRÍTICO (SEMANA 1-2) - CORE DEL SISTEMA
+========================================================================
+
+1) AUTENTICACIÓN Y USUARIOS
+----------------------------
+TABLA: users (extends auth.users)
+- id (UUID, FK a auth.users)
+- full_name (TEXT)
+- email (TEXT, único)
+- role (ENUM: owner, admin, reception, housekeeping, maintenance)
+- properties_access (JSONB) - array de property_ids autorizados
+- created_at (TIMESTAMP)
+
+FUNCIONALIDAD:
+✓ Login con email/password
+✓ Logout
+✓ Session management
+✓ Protect routes (redirect si no autenticado)
+✓ Role-based permissions (owner ve todo, reception solo reservas)
+
+PANTALLA:
+- LoginPage.jsx (nueva)
+- Header con botón Logout
+- ProtectedRoute wrapper component
+
+----------------------------
+2) PROPERTIES (PROPIEDADES)
+----------------------------
+TABLA: properties (ya existe parcialmente)
+- id (UUID, PK)
+- name (TEXT)
+- description (TEXT)
+- address (TEXT)
+- city (TEXT)
+- country (TEXT)
+- max_guests (INTEGER)
+- bedrooms (INTEGER)
+- bathrooms (DECIMAL)
+- base_price (DECIMAL)
+- currency (TEXT, default: 'USD')
+- amenities (JSONB) - array de strings
+- house_rules (JSONB) - array de strings
+- photos (JSONB) - array de URLs
+- status (ENUM: active, inactive, maintenance)
+- owner_id (UUID, FK a users)
+- created_at (TIMESTAMP)
+
+CRUD COMPLETO:
+✓ CREATE: Formulario crear propiedad (modal o página)
+✓ READ: Lista + detalle (ya existe en UI)
+✓ UPDATE: Editar propiedad (modal con 5 tabs)
+✓ DELETE: Soft delete (cambiar status a inactive)
+
+RLS:
+- Usuarios solo ven propiedades donde tienen acceso (users.properties_access)
+
+----------------------------
+3) BOOKINGS (RESERVAS)
+----------------------------
+TABLA: bookings (ya existe parcialmente)
+- id (UUID, PK)
+- property_id (UUID, FK a properties)
+- guest_name (TEXT)
+- guest_email (TEXT)
+- guest_phone (TEXT)
+- guest_country (TEXT)
+- check_in (DATE)
+- check_out (DATE)
+- guests (INTEGER)
+- nights (INTEGER, calculated)
+- status (ENUM: inquiry, confirmed, checked_in, checked_out, cancelled)
+- total_price (DECIMAL)
+- currency (TEXT)
+- payment_status (ENUM: pending, partial, paid, refunded)
+- channel (ENUM: direct, airbnb, booking, expedia, agoda, vrbo)
+- notes (TEXT)
+- created_by (UUID, FK a users)
+- created_at (TIMESTAMP)
+- updated_at (TIMESTAMP)
+
+CRUD COMPLETO:
+✓ CREATE: Formulario nueva reserva con:
+  - Selector de propiedad
+  - Check-in/Check-out (date pickers)
+  - Validación de disponibilidad (check_availability function)
+  - Cálculo automático de precio (calculate_booking_price function)
+✓ READ: Tabla con filtros (ya existe en UI)
+✓ UPDATE: Editar reserva (cambiar fechas, estado, precio)
+✓ DELETE: Cancelar reserva (cambiar status a cancelled)
+
+FUNCIONES SQL:
+- check_availability(property_id, check_in, check_out) → boolean
+- calculate_booking_price(property_id, check_in, check_out, guests) → decimal
+
+RLS:
+- Usuarios solo ven bookings de sus propiedades autorizadas
+
+----------------------------
+4) CALENDAR (DISPONIBILIDAD)
+----------------------------
+VISTA: calendar_view
+- Consulta combinada de bookings + properties
+- Muestra ocupación por propiedad por día
+- Color-coded por status
+
+FUNCIONALIDAD:
+✓ Vista Gantt mensual (ya existe en UI)
+✓ Cargar datos reales desde bookings
+✓ Click en día vacío → crear nueva reserva
+✓ Click en reserva existente → ver/editar detalle
+✓ Arrastrar reserva para cambiar fechas (opcional para después)
+
+----------------------------
+5) PAYMENTS (PAGOS)
+----------------------------
+TABLA: payments
+- id (UUID, PK)
+- booking_id (UUID, FK a bookings)
+- amount (DECIMAL)
+- currency (TEXT)
+- payment_method (ENUM: cash, card, bank_transfer, stripe, paypal)
+- payment_date (DATE)
+- status (ENUM: pending, completed, failed, refunded)
+- transaction_id (TEXT) - ID de Stripe/PayPal si aplica
+- notes (TEXT)
+- created_by (UUID, FK a users)
+- created_at (TIMESTAMP)
+
+CRUD COMPLETO:
+✓ CREATE: Registrar nuevo pago (modal)
+✓ READ: Lista de pagos con filtros (ya existe UI)
+✓ UPDATE: Editar pago
+✓ DELETE: Anular pago (cambiar status a refunded)
+
+INTEGRACIÓN:
+- Actualizar booking.payment_status automáticamente
+- Si sum(payments) >= booking.total_price → payment_status = 'paid'
+
+========================================================================
+PRIORIDAD 2: IMPORTANTE (SEMANA 3-4) - OPERACIONES
+========================================================================
+
+6) GUEST PORTAL DINÁMICO
+-------------------------
+FUNCIONALIDAD:
+✓ URL única por booking: /guest-portal/:booking_id/:token
+✓ Token de acceso (generado al crear booking)
+✓ Cargar datos reales del booking
+✓ Mostrar propiedad asignada (fotos, amenities, rules)
+✓ Check-in digital (guardar en DB)
+✓ Add-ons (guardar selección)
+✓ Soporte (enviar mensajes)
+
+TABLA: guest_portal_access
+- booking_id (UUID, FK)
+- access_token (TEXT, único)
+- expires_at (TIMESTAMP)
+
+----------------------------
+7) DIGITAL CHECK-IN
+----------------------------
+TABLA: digital_checkins
+- id (UUID, PK)
+- booking_id (UUID, FK, único)
+- passport_number (TEXT)
+- passport_photo_url (TEXT) - Supabase Storage
+- arrival_time (TIME)
+- special_requests (TEXT)
+- status (ENUM: pending, form_sent, completed)
+- access_code (TEXT) - generado al completar
+- completed_at (TIMESTAMP)
+- created_at (TIMESTAMP)
+
+CRUD:
+✓ CREATE: Huésped completa formulario
+✓ READ: Staff ve lista de check-ins pendientes
+✓ UPDATE: Staff genera access_code
+✓ Subir foto de pasaporte a Supabase Storage
+
+----------------------------
+8) OPERATIONS (HOUSEKEEPING + MAINTENANCE)
+-------------------------------------------
+
+TABLA: housekeeping_tasks
+- id (UUID, PK)
+- property_id (UUID, FK)
+- booking_id (UUID, FK, nullable)
+- task_type (ENUM: cleaning, inspection, restocking)
+- scheduled_date (DATE)
+- scheduled_time (TIME)
+- status (ENUM: pending, in_progress, completed, cancelled)
+- assigned_to (UUID, FK a users con role=housekeeping)
+- priority (ENUM: low, medium, high, urgent)
+- notes (TEXT)
+- completed_at (TIMESTAMP)
+- created_at (TIMESTAMP)
+
+TABLA: maintenance_issues
+- id (UUID, PK)
+- property_id (UUID, FK)
+- issue_type (ENUM: hvac, plumbing, electrical, pool, tech, security, preventive)
+- title (TEXT)
+- description (TEXT)
+- priority (ENUM: low, medium, high, urgent)
+- status (ENUM: open, in_progress, resolved, closed)
+- assigned_to (UUID, FK a users con role=maintenance)
+- reported_by (UUID, FK a users)
+- resolved_at (TIMESTAMP)
+- created_at (TIMESTAMP)
+
+CRUD AMBOS:
+✓ CREATE: Crear tarea/issue
+✓ READ: Lista con filtros por status, property, priority
+✓ UPDATE: Cambiar status, asignar staff, agregar notas
+✓ DELETE: Cancelar tarea/cerrar issue
+
+AUTOMATIZACIÓN (para FASE 3):
+- Crear housekeeping_task automáticamente después de cada checkout
+
+----------------------------
+9) REVIEWS (RESEÑAS)
+--------------------
+TABLA: reviews
+- id (UUID, PK)
+- booking_id (UUID, FK)
+- property_id (UUID, FK)
+- guest_name (TEXT)
+- rating (INTEGER, 1-5)
+- comment (TEXT)
+- platform (ENUM: direct, airbnb, booking, google, facebook)
+- sentiment (ENUM: positive, mixed, negative) - calculado por IA en Fase 3
+- response (TEXT) - respuesta del host
+- responded_at (TIMESTAMP)
+- review_date (DATE)
+- created_at (TIMESTAMP)
+
+CRUD:
+✓ CREATE: Importar review (manual por ahora)
+✓ READ: Lista con filtros (ya existe UI)
+✓ UPDATE: Responder a review
+✓ Análisis de sentimiento (mock por ahora, IA en Fase 3)
+
+========================================================================
+PRIORIDAD 3: PUEDE ESPERAR (DESPUÉS DE SEMANA 4) - REFINAMIENTO
+========================================================================
+
+10) REPORTS DINÁMICOS
+----------------------
+FUNCIONALIDAD:
+✓ Gráficos con datos reales (Recharts ya está instalado)
+✓ Revenue por periodo (query agregada)
+✓ Ocupación por propiedad (calcular desde bookings)
+✓ Métodos de pago (query desde payments)
+✓ Filtros por rango de fechas
+
+QUERIES:
+- Revenue mensual: SUM(payments.amount) GROUP BY month
+- Ocupación: COUNT(bookings) / días totales * 100
+- Performance por propiedad
+
+----------------------------
+11) STAFF MANAGER
+-----------------
+TABLA: users (ya creada en Prioridad 1)
+
+CRUD:
+✓ CREATE: Invitar nuevo staff (envía email de invitación)
+✓ READ: Lista de staff con roles
+✓ UPDATE: Cambiar rol, propiedades asignadas
+✓ DELETE: Desactivar usuario
+
+----------------------------
+12) CULTURAL INTELLIGENCE
+--------------------------
+TABLA: cultural_events
+- id (UUID, PK)
+- name (TEXT)
+- description (TEXT)
+- country (TEXT)
+- impact (ENUM: low, medium, high)
+- event_date (DATE)
+- created_at (TIMESTAMP)
+
+FUNCIONALIDAD:
+✓ CRUD básico de eventos culturales
+✓ Alertas cuando hay bookings de huéspedes de ese país
+
+----------------------------
+13) AI ASSISTANT (UI BÁSICA)
+-----------------------------
+TABLA: ai_chat_history
+- id (UUID, PK)
+- user_id (UUID, FK)
+- message (TEXT)
+- response (TEXT)
+- created_at (TIMESTAMP)
+
+FUNCIONALIDAD:
+✓ Chat UI funcional
+✓ Guardar historial
+✓ Integración con Claude API (Fase 3)
+
+----------------------------
+14) SMART PRICING (BÁSICO)
+---------------------------
+TABLA: pricing_rules
+- id (UUID, PK)
+- property_id (UUID, FK)
+- rule_type (ENUM: seasonal, event, last_minute, early_bird)
+- adjustment_type (ENUM: percentage, fixed)
+- adjustment_value (DECIMAL)
+- date_from (DATE)
+- date_to (DATE)
+- active (BOOLEAN)
+- created_at (TIMESTAMP)
+
+FUNCIONALIDAD:
+✓ CRUD de reglas de pricing
+✓ Aplicar reglas al calcular precio (calculate_booking_price)
+✓ IA de pricing dinámico (Fase 3)
+
+========================================================================
+ESTÁNDARES TÉCNICOS OBLIGATORIOS
+========================================================================
+
+1) ROW LEVEL SECURITY (RLS)
+----------------------------
+✓ Habilitar RLS en TODAS las tablas
+✓ Políticas por rol:
+  - owner: acceso total
+  - admin: acceso a propiedades asignadas
+  - reception: solo bookings y guests
+  - housekeeping: solo housekeeping_tasks
+  - maintenance: solo maintenance_issues
+
+2) VALIDACIONES
+---------------
+✓ Check constraints en DB (fechas, precios positivos, etc.)
+✓ Triggers para cálculos automáticos (nights, payment_status)
+✓ Validación en frontend antes de submit
+
+3) AUDITORÍA
+------------
+✓ created_at, updated_at en todas las tablas
+✓ created_by, updated_by donde aplique
+✓ Soft deletes (status='inactive' en vez de DELETE)
+
+4) PERFORMANCE
+--------------
+✓ Índices en FK, fechas, status
+✓ Pagination en listas largas (10-20 items por página)
+✓ Realtime subscriptions solo donde sea crítico
+
+5) ERROR HANDLING
+-----------------
+✓ Try-catch en todas las operaciones
+✓ Mensajes de error claros al usuario
+✓ Loading states durante operaciones
+✓ Toasts de confirmación (success/error)
+
+6) SEGURIDAD
+------------
+✓ Nunca exponer service_role_key en frontend
+✓ Solo usar anon key
+✓ Validar permisos en backend (RLS)
+✓ Sanitizar inputs (prevenir SQL injection)
+
+========================================================================
+ENTREGABLES FASE 2
+========================================================================
+
+SEMANA 1-2 (CRÍTICO):
+✓ Login/Logout funcional
+✓ Properties CRUD completo
+✓ Bookings CRUD completo
+✓ Calendar con datos reales
+✓ Payments CRUD completo
+
+SEMANA 3-4 (IMPORTANTE):
+✓ Guest Portal dinámico con token
+✓ Digital Check-in con Storage
+✓ Housekeeping CRUD
+✓ Maintenance CRUD
+✓ Reviews CRUD con respuestas
+
+DESPUÉS (PUEDE ESPERAR):
+✓ Reports dinámicos
+✓ Staff Manager completo
+✓ Cultural Intelligence CRUD
+✓ AI Assistant UI
+✓ Smart Pricing rules
+
+========================================================================
+CRITERIOS DE ÉXITO FASE 2
+========================================================================
+
+✓ 1 propiedad real operando end-to-end
+✓ 10 bookings reales creados y gestionados
+✓ 5 usuarios con diferentes roles funcionando
+✓ Login seguro con RLS habilitado
+✓ Cero errores en consola
+✓ Todas las operaciones CRUD funcionando
+✓ Guest Portal accesible con token único
+✓ Digital Check-in guardando datos reales
+✓ Housekeeping y Maintenance operativos
+
+========================================================================
+SIGUIENTE PASO
+========================================================================
+
+Una vez completada FASE 2, pasaremos a FASE 3: INTELIGENCIA ARTIFICIAL
+con los 3 agentes MVP:
+1. WhatsApp Concierge Agent
+2. Booking Manager Agent
+3. Revenue Manager Agent
+
+FIN DEL PROMPT 2 - FASE 2
+========================================================================

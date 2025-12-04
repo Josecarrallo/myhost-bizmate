@@ -1,0 +1,332 @@
+MY HOST BizMate – ARQUITECTURA v4.0
+(Agente Interno + Agente Externo + Cambios del Frontend + Fases + n8n + Supabase + Prompts para Cloudecode)
+
+────────────────────────────────────────
+1. INTRODUCCIÓN GENERAL
+────────────────────────────────────────
+
+MY HOST BizMate es un PMS moderno orientado a:
+- Villas independientes
+- Pequeños hoteles boutique
+- Operadores locales
+- Propietarios que manejan todo por WhatsApp
+
+BizMate combina:
+- PMS profesional
+- IA operativa
+- Automatización con n8n
+- WhatsApp Cloud API
+- Guest Experience completa
+
+A partir de hoy, BizMate adopta oficialmente una arquitectura basada en DOS agentes:
+
+A) Agente Interno → Operaciones y backoffice (PMS)
+B) Agente Externo → Huésped, ventas, marketing, comunicación
+
+Esto convierte a BizMate en un sistema profesional, escalable y claro para usuario y desarrollador.
+
+────────────────────────────────────────
+2. NUEVA ESTRUCTURA PRINCIPAL DEL SISTEMA (v4.0)
+────────────────────────────────────────
+
+El sistema se divide oficialmente en:
+
+──────────────────────
+A) AGENTE INTERNO (PMS)
+──────────────────────
+Usado por: Owner, Manager, Reception, Housekeeping, Maintenance.
+
+Incluye:
+- Dashboard
+- Bookings
+- PMS Calendar
+- Properties
+- Operations Hub
+   · Housekeeping
+   · Maintenance
+   · Staff & Roles
+- Payments
+- Reports
+- Smart Pricing
+- AI Assistant
+- Cultural Intelligence (interna)
+- Settings
+
+──────────────────────
+B) AGENTE EXTERNO (GUEST & MARKETING)
+──────────────────────
+Usado por: Huésped, marketing, ventas, automatizaciones.
+
+Incluye:
+- Booking Engine
+- Digital Check-in
+- Guest Portal (6 secciones)
+- Reviews
+- WhatsApp IA / Messages
+- Multichannel
+- Marketing
+- Social Publisher
+
+────────────────────────────────────────
+3. PROBLEMA DEL FRONTEND ACTUAL
+────────────────────────────────────────
+
+Actualmente todos los módulos aparecen mezclados:
+Dashboard, Bookings, Calendar, Properties, Payments, AI, Marketing, Guest Portal…
+
+Esto genera:
+- Falta de claridad
+- Poca profesionalidad
+- No escalabilidad
+- Dificultad para Cloudecode
+- Confusión para usuarios y huéspedes
+
+Por eso, el frontend debe reorganizarse completamente SIN reconstruirlo.
+
+────────────────────────────────────────
+4. CAMBIOS EXACTOS AL FRONTEND EXISTENTE
+────────────────────────────────────────
+
+Este punto es el más importante para Cloudecode.
+
+──────────────────────
+4.1 Separar todo el frontend en 2 BLOQUES
+──────────────────────
+
+BLOQUE 1 — AGENTE INTERNO
+- Dashboard
+- Bookings
+- PMS Calendar
+- Properties
+- Operations Hub (Housekeeping, Maintenance, Staff)
+- Payments
+- Reports
+- Smart Pricing
+- AI Assistant
+- Cultural Intelligence
+- Settings
+
+BLOQUE 2 — AGENTE EXTERNO
+- Booking Engine
+- Digital Check-in
+- Guest Portal (6 secciones)
+- Reviews
+- WhatsApp IA / Messages
+- Multichannel
+- Marketing
+- Social Publisher
+
+Nada se borra. Todo se reorganiza.
+
+──────────────────────
+4.2 Nuevo Dashboard Interno (mock)
+──────────────────────
+
+KPIs principales:
+- Occupancy (%)
+- ADR
+- Revenue hoy
+- Revenue semana
+- Reservas activas
+- Check-ins hoy
+- Check-outs hoy
+- Tareas críticas
+
+Tarjetas IA (mock):
+- Insight del día
+- Recomendación de precio
+- Alerta de incidencias
+- Alerta cultural
+- Sugerencia operativa
+
+Accesos rápidos:
+- Crear reserva
+- Abrir calendario
+- Housekeeping
+- Mantenimiento
+- Pagos pendientes
+- AI Assistant
+
+──────────────────────
+4.3 Todas las pantallas deben ser útiles (mock)
+──────────────────────
+
+BOOKINGS:
+- Tabla + filtros + búsqueda + detalle mock
+
+CALENDAR PMS:
+- Vista mensual/semanal tipo Airbnb/Cloudbeds
+
+PROPERTIES:
+- Tabla + tarjetas + pestañas (General, Tarifas, Fotos, Reglas, Amenities)
+
+OPERATIONS HUB:
+- Housekeeping: lista de tareas mock
+- Maintenance: incidencias mock
+- Staff & Roles: tabla mock
+
+PAYMENTS:
+- Tabla mock
+
+REPORTS:
+- 3 gráficos mock (línea, barras, donut)
+
+PRICING UI:
+- Tabla mock (precio actual / recomendado IA)
+
+AI ASSISTANT:
+- Chat UI mock
+
+CULTURAL INTELLIGENCE:
+- Lista mock de eventos
+
+AGENTE EXTERNO:
+- Booking Engine (mock)
+- Digital Check-in
+- Guest Portal (6 secciones)
+- Reviews mock
+- WhatsApp IA mock
+- Multichannel / Marketing / Social Publisher (UI limpia)
+
+────────────────────────────────────────
+5. ARQUITECTURA EN CAPAS
+────────────────────────────────────────
+
+Capa 1 — PMS (Agente Interno)
+Capa 2 — Guest Experience (Agente Externo)
+Capa 3 — IA (Pricing, Insights, Cultural, Assistant)
+Capa 4 — n8n Automations (WhatsApp + Email + Stripe + Tareas)
+
+────────────────────────────────────────
+6. QUÉ HACE CLOUDECODE Y QUÉ HACE n8n
+────────────────────────────────────────
+
+──────────────────────
+6.1 CLOUDECODE (React + Supabase)
+──────────────────────
+
+FRONTEND:
+- Todas las pantallas
+- Dashboard completo
+- Guest Engine
+- WhatsApp UI
+- Reports
+- Pricing UI
+- Guest Portal
+- Mobile-first
+
+BACKEND (FASE 2):
+- Tablas: properties, bookings, guests, staff, tasks, payments
+- CRUD real
+- Roles
+- Protección de rutas
+- Endpoints IA básicos
+
+──────────────────────
+6.2 n8n AUTOMATIONS
+──────────────────────
+
+HARÁ:
+- Pre-check-in WhatsApp
+- Bienvenida
+- Mensaje durante estancia
+- Checkout
+- Review request
+- Stripe webhook
+- Emails
+- Recordatorios
+- Tareas automáticas
+
+WhatsApp automático:
+- Un día antes
+- Check-in
+- During stay
+- Checkout
+- Review
+
+────────────────────────────────────────
+7. FASES OFICIALES DE DESARROLLO
+────────────────────────────────────────
+
+FASE 1 — Reorganizar y limpiar el frontend existente
+- NO Supabase
+- NO IA real
+- NO WhatsApp real
+- Todo mock
+- Reorganizar en Agente Interno/Externo
+- Limpiar Dashboard
+- Pantallas mínimamente útiles
+
+FASE 2 — Conectar Supabase CRUD real
+- properties / bookings / guests / staff / tasks / payments
+- Reports reales
+- Calendar real
+- Roles y permisos
+
+FASE 3 — IA + WhatsApp + n8n
+- Smart Pricing IA
+- Insight Engine
+- Cultural Intelligence IA
+- WhatsApp Cloud API real
+- Flujos automáticos completos
+
+────────────────────────────────────────
+8. PROMPTS OFICIALES PARA CLOUDECODE (v4.0)
+────────────────────────────────────────
+
+──────────────────────
+PROMPT 1 — actualizar frontend existente
+──────────────────────
+(Ya lo tienes arriba, y si quieres lo re-inserto aquí literal, solo pídelo).
+
+──────────────────────
+PROMPT 2 — AGENTE INTERNO
+──────────────────────
+Claudio, desarrolla y mejora TODAS las pantallas del AGENTE INTERNO utilizando solo MOCK DATA.
+
+Incluye:
+- Dashboard (KPIs + tarjetas IA + accesos rápidos)
+- Bookings (tabla + filtros + detalle)
+- PMS Calendar (vista mensual/semanal)
+- Properties (tabla + tarjetas + pestañas)
+- Operations Hub (housekeeping + mantenimiento + staff)
+- Payments (tabla)
+- Reports (gráficos mock)
+- Pricing UI (tabla mock)
+- AI Assistant (UI tipo chat)
+- Cultural Intelligence (lista de eventos mock)
+
+Todo mobile-first.
+No Supabase, no APIs.
+
+──────────────────────
+PROMPT 3 — AGENTE EXTERNO
+──────────────────────
+Claudio, desarrolla el AGENTE EXTERNO utilizando solo MOCK DATA.
+
+Incluye:
+- Booking Engine (propiedad, fechas, precio mock)
+- Digital Check-in (formulario)
+- Guest Portal (6 secciones)
+- Reviews (form + lista mock)
+- WhatsApp IA UI
+- Marketing / Multichannel / Social Publisher (UI limpia)
+
+No APIs reales.
+Todo navegable.
+
+────────────────────────────────────────
+9. OBJETIVO FINAL PARA CLOUDECODE
+────────────────────────────────────────
+
+Que BizMate pase de prototipo a:
+- PMS completo
+- Guest Experience completa
+- Menú organizado por agentes
+- Dashboard profesional
+- Diseño consistente
+- Código mantenible
+- Listo Fase 2 (Supabase)
+- Listo Fase 3 (IA + WhatsApp + n8n)
+
+FIN DEL DOCUMENTO BIZMATE v4.0

@@ -1,0 +1,657 @@
+PLAN DE EJECUCIÓN DÍA A DÍA - MY HOST BIZMATE
+========================================================================
+Actualizado: 04 Diciembre 2025
+Timeline: 3-4 semanas para sistema completo con IA
+========================================================================
+
+ESTADO ACTUAL (04 DIC 2025):
+✅ FASE 1 COMPLETADA (100%)
+- 34 módulos funcionales con UI/UX profesional
+- Arquitectura v4.0 Multi-Agent
+- Demo en vivo: https://myhost-bizmate.vercel.app
+- Todo commiteado y pusheado a GitHub
+
+PRÓXIMO PASO:
+🚀 FASE 2 - BACKEND REAL (SUPABASE + CRUD)
+
+========================================================================
+📅 SEMANA 1 (05-12 DIC): FASE 2 - BACKEND CRÍTICO
+========================================================================
+
+┌─────────────────────────────────────────────────────────────────────┐
+│ DÍA 1 - JUEVES 05 DIC: AUTH + SETUP                                 │
+└─────────────────────────────────────────────────────────────────────┘
+
+OBJETIVO: Sistema de autenticación funcional + setup Supabase completo
+
+MAÑANA (9am-1pm):
+-----------------
+1. CARGAR PROMPT EN CLAUDE:
+   "Hola Claude, continuamos con MY HOST BizMate - FASE 2.
+
+   Lee: C:\myhost-bizmate\Documentos\PROMPT 2 - FASE 2 BACKEND REAL - PRIORIZADO.txt
+
+   Vamos a empezar con PRIORIDAD 1, DÍA 1: Auth + Setup Supabase.
+
+   Necesito:
+   1. Crear todas las tablas en Supabase
+   2. Habilitar RLS con políticas
+   3. Crear functions SQL (check_availability, calculate_price)
+   4. Implementar LoginPage.jsx
+   5. ProtectedRoute wrapper
+   6. Actualizar Header con Logout"
+
+2. SUPABASE SETUP:
+   - Crear tablas: users, properties, bookings, payments
+   - Habilitar Row Level Security (RLS)
+   - Crear políticas por rol (owner, admin, reception, etc.)
+   - Crear funciones SQL
+
+3. AUTH IMPLEMENTATION:
+   - LoginPage.jsx (email/password)
+   - ProtectedRoute wrapper component
+   - Header con botón Logout
+   - Redirect si no autenticado
+
+TARDE (2pm-6pm):
+----------------
+4. TESTING AUTH:
+   - Crear 2-3 usuarios de prueba con diferentes roles
+   - Probar login/logout
+   - Verificar RLS (cada rol ve solo lo que debe)
+
+5. PRIMER COMMIT:
+   git commit -m "feat: Implement authentication system with RLS (Fase 2 - Día 1)"
+
+ENTREGABLE DÍA 1:
+✓ Login/Logout funcional
+✓ Todas las tablas creadas en Supabase
+✓ RLS habilitado
+✓ 3 usuarios de prueba creados
+
+┌─────────────────────────────────────────────────────────────────────┐
+│ DÍA 2 - VIERNES 06 DIC: PROPERTIES CRUD                             │
+└─────────────────────────────────────────────────────────────────────┘
+
+OBJETIVO: Gestión completa de propiedades con datos reales
+
+MAÑANA (9am-1pm):
+-----------------
+1. PROPERTIES CRUD:
+   - Conectar Properties.jsx a Supabase
+   - Cargar properties reales desde DB
+   - Formulario crear nueva property (modal)
+   - Formulario editar property (5 tabs)
+
+2. PRIMERA PROPIEDAD REAL:
+   - Crear 1 propiedad completa en DB con:
+     * Nombre, descripción, ubicación
+     * Fotos (URLs)
+     * 6 amenities
+     * 6 house rules
+     * Precio base
+     * Max guests
+
+TARDE (2pm-6pm):
+----------------
+3. TESTING PROPERTIES:
+   - Probar CRUD completo (Create, Read, Update, Delete/Soft)
+   - Verificar RLS (solo ver properties autorizadas)
+   - Probar vista Grid y Table
+
+4. COMMIT:
+   git commit -m "feat: Properties CRUD connected to Supabase (Fase 2 - Día 2)"
+
+ENTREGABLE DÍA 2:
+✓ Properties CRUD funcional
+✓ 1 propiedad real creada y visible
+✓ Formularios create/edit operativos
+
+┌─────────────────────────────────────────────────────────────────────┐
+│ DÍA 3 - SÁBADO 07 DIC: BOOKINGS CRUD                                │
+└─────────────────────────────────────────────────────────────────────┘
+
+OBJETIVO: Sistema de reservas con validación de disponibilidad
+
+MAÑANA (9am-1pm):
+-----------------
+1. BOOKINGS CRUD:
+   - Conectar Bookings.jsx a Supabase
+   - Cargar bookings reales desde DB
+   - Formulario nueva reserva:
+     * Selector de property
+     * Date pickers (check-in/out)
+     * Cálculo automático de noches
+     * Validación disponibilidad (check_availability)
+     * Cálculo precio (calculate_booking_price)
+
+2. FUNCIONES SQL:
+   - check_availability(property_id, check_in, check_out) → boolean
+   - calculate_booking_price(property_id, check_in, check_out, guests) → decimal
+
+TARDE (2pm-6pm):
+----------------
+3. CREAR BOOKINGS REALES:
+   - 3 bookings con diferentes estados:
+     * 1 confirmed (check-in futuro)
+     * 1 checked_in (estancia activa)
+     * 1 checked_out (completada)
+
+4. TESTING:
+   - Validar que no permite double bookings
+   - Verificar cálculo precio correcto
+   - Probar filtros (status, property, channel)
+
+5. COMMIT:
+   git commit -m "feat: Bookings CRUD with availability validation (Fase 2 - Día 3)"
+
+ENTREGABLE DÍA 3:
+✓ Bookings CRUD funcional
+✓ Validación disponibilidad operativa
+✓ 3 bookings reales creados
+✓ 0 double bookings posibles
+
+┌─────────────────────────────────────────────────────────────────────┐
+│ DÍA 4 - DOMINGO 08 DIC: CALENDAR + PAYMENTS                         │
+└─────────────────────────────────────────────────────────────────────┘
+
+OBJETIVO: Calendario visual + gestión de pagos
+
+MAÑANA (9am-1pm):
+-----------------
+1. CALENDAR CON DATOS REALES:
+   - Conectar PMSCalendar.jsx a Supabase
+   - Cargar bookings reales en vista Gantt
+   - Click en reserva → ver detalle
+   - Color-coded por status
+
+2. CREAR BOOKING DESDE CALENDAR (opcional):
+   - Click en día vacío → abrir modal nueva reserva
+   - Pre-rellenar property y fecha
+
+TARDE (2pm-6pm):
+----------------
+3. PAYMENTS CRUD:
+   - Conectar Payments.jsx a Supabase
+   - Crear payment asociado a booking
+   - Auto-update booking.payment_status
+   - Filtros por status y método
+
+4. CREAR PAYMENTS REALES:
+   - 2-3 pagos para bookings existentes
+   - Probar cálculo (si sum >= total → status=paid)
+
+5. COMMIT:
+   git commit -m "feat: Calendar with real data + Payments CRUD (Fase 2 - Día 4)"
+
+ENTREGABLE DÍA 4:
+✓ Calendar mostrando bookings reales
+✓ Payments CRUD funcional
+✓ Auto-update de payment_status
+
+┌─────────────────────────────────────────────────────────────────────┐
+│ DÍA 5 - LUNES 09 DIC: REVIEW & REFINAMIENTO                         │
+└─────────────────────────────────────────────────────────────────────┘
+
+OBJETIVO: Pulir PRIORIDAD 1 y validar end-to-end
+
+MAÑANA (9am-1pm):
+-----------------
+1. TESTING END-TO-END:
+   - Crear 1 propiedad nueva desde cero
+   - Crear 1 booking para esa propiedad
+   - Registrar 1 payment para ese booking
+   - Validar que todo fluye correctamente
+
+2. FIX BUGS:
+   - Corregir cualquier error encontrado
+   - Mejorar UX (loading states, toasts)
+
+TARDE (2pm-6pm):
+----------------
+3. DOCUMENTACIÓN:
+   - Actualizar README con instrucciones
+   - Documentar estructura DB
+   - Screenshots del sistema funcionando
+
+4. COMMIT FINAL PRIORIDAD 1:
+   git commit -m "feat: Complete FASE 2 - Prioridad 1 (Auth + Core CRUD) - Día 5"
+
+5. PUSH TO GITHUB:
+   git push origin backup-antes-de-automatizacion
+
+ENTREGABLE DÍA 5:
+✓ Sistema crítico 100% funcional
+✓ 1 propiedad operando end-to-end
+✓ Todo testeado y sin errores
+
+========================================================================
+CHECKPOINT SEMANA 1:
+✓ Auth + RLS funcionando
+✓ Properties CRUD completo
+✓ Bookings CRUD con validación
+✓ Calendar con datos reales
+✓ Payments CRUD operativo
+✓ 1 propiedad + 3 bookings + 2 payments reales
+========================================================================
+
+========================================================================
+📅 SEMANA 2 (10-16 DIC): FASE 2 - GUEST EXPERIENCE + OPERATIONS
+========================================================================
+
+┌─────────────────────────────────────────────────────────────────────┐
+│ DÍA 6 - MARTES 10 DIC: GUEST PORTAL DINÁMICO                        │
+└─────────────────────────────────────────────────────────────────────┘
+
+OBJETIVO: Guest Portal con URL única y datos reales por booking
+
+TAREAS:
+1. GUEST PORTAL TOKEN SYSTEM:
+   - Tabla: guest_portal_access (booking_id, token, expires_at)
+   - Generar token único al crear booking
+   - Ruta: /guest-portal/:booking_id/:token
+
+2. CARGAR DATOS REALES:
+   - Info de la propiedad asignada
+   - Datos del booking (dates, guests)
+   - Amenities, rules reales
+   - Recomendaciones locales
+
+3. TESTING:
+   - Crear link único para un booking
+   - Acceder sin login
+   - Verificar que muestra datos correctos
+
+ENTREGABLE:
+✓ Guest Portal accesible con URL única
+✓ Datos reales de booking + property
+✓ Token seguro con expiración
+
+┌─────────────────────────────────────────────────────────────────────┐
+│ DÍA 7 - MIÉRCOLES 11 DIC: DIGITAL CHECK-IN                          │
+└─────────────────────────────────────────────────────────────────────┘
+
+OBJETIVO: Check-in digital guardando datos + Supabase Storage
+
+TAREAS:
+1. DIGITAL CHECK-IN CRUD:
+   - Tabla: digital_checkins
+   - Formulario que guarda: passport, arrival time, requests
+   - Upload foto pasaporte a Supabase Storage
+
+2. ACCESS CODE GENERATION:
+   - Generar código al completar check-in
+   - Mostrar access_code en UI
+   - Status: pending → form_sent → completed
+
+3. TESTING:
+   - Completar check-in digital para 1 booking
+   - Upload 1 foto de prueba
+   - Verificar código generado
+
+ENTREGABLE:
+✓ Check-in digital guardando en DB
+✓ Supabase Storage funcionando
+✓ Access codes generados automáticamente
+
+┌─────────────────────────────────────────────────────────────────────┐
+│ DÍA 8 - JUEVES 12 DIC: HOUSEKEEPING CRUD                            │
+└─────────────────────────────────────────────────────────────────────┘
+
+OBJETIVO: Sistema de tareas de limpieza
+
+TAREAS:
+1. HOUSEKEEPING CRUD:
+   - Tabla: housekeeping_tasks
+   - Crear task para cada check-out
+   - Asignar a staff (manual por ahora)
+   - Status: pending → in_progress → completed
+
+2. STAFF ASSIGNMENT:
+   - Lista de staff con role=housekeeping
+   - Asignar task a staff específico
+   - Filtros por status y property
+
+3. TESTING:
+   - Crear 2-3 tasks manualmente
+   - Asignar a diferentes staff
+   - Cambiar status hasta completed
+
+ENTREGABLE:
+✓ Housekeeping CRUD funcional
+✓ 3 tasks creadas y gestionadas
+✓ Asignación de staff operativa
+
+┌─────────────────────────────────────────────────────────────────────┐
+│ DÍA 9 - VIERNES 13 DIC: MAINTENANCE + REVIEWS                       │
+└─────────────────────────────────────────────────────────────────────┘
+
+OBJETIVO: Issues de mantenimiento + Reviews CRUD
+
+MAÑANA:
+-------
+1. MAINTENANCE CRUD:
+   - Tabla: maintenance_issues
+   - Crear issue (tipo, prioridad, descripción)
+   - Asignar a staff maintenance
+   - Tracking de status
+
+TARDE:
+------
+2. REVIEWS CRUD:
+   - Tabla: reviews
+   - Conectar Reviews.jsx a Supabase
+   - CRUD completo (create, read, update)
+   - Responder a review (campo response)
+
+ENTREGABLE:
+✓ Maintenance CRUD funcional
+✓ Reviews CRUD funcional
+✓ 2 issues + 3 reviews creados
+
+┌─────────────────────────────────────────────────────────────────────┐
+│ DÍA 10 - SÁBADO 14 DIC: TESTING + REFINAMIENTO                      │
+└─────────────────────────────────────────────────────────────────────┘
+
+OBJETIVO: Validar FASE 2 completa end-to-end
+
+TAREAS:
+1. TESTING COMPLETO:
+   - Crear 1 propiedad nueva
+   - Crear 1 booking
+   - Guest completa check-in digital
+   - Registrar 1 payment
+   - Crear housekeeping task
+   - Completar workflow completo
+
+2. FIX BUGS + UX:
+   - Corregir errores encontrados
+   - Mejorar loading states
+   - Agregar confirmations toasts
+
+3. COMMIT FINAL FASE 2:
+   git commit -m "feat: Complete FASE 2 - Backend Real + CRUD (DIC 2025)"
+   git push origin backup-antes-de-automatizacion
+
+ENTREGABLE:
+✓ FASE 2 100% completada
+✓ Todos los módulos conectados a Supabase
+✓ Sistema funcionando sin errores
+✓ Listo para FASE 3 (IA)
+
+========================================================================
+CHECKPOINT SEMANA 2:
+✓ FASE 2 COMPLETADA (100%)
+✓ 10 bookings reales gestionados
+✓ 5 usuarios con roles funcionando
+✓ Guest Portal + Digital Check-in operativos
+✓ Housekeeping + Maintenance + Reviews CRUD
+✓ Sistema completo sin IA funcionando perfectamente
+========================================================================
+
+========================================================================
+📅 SEMANA 3 (17-23 DIC): FASE 3A - MVP IA (3 AGENTES CRÍTICOS)
+========================================================================
+
+┌─────────────────────────────────────────────────────────────────────┐
+│ DÍA 11-12 - LUN-MAR 17-18 DIC: WHATSAPP CONCIERGE AGENT            │
+└─────────────────────────────────────────────────────────────────────┘
+
+OBJETIVO: Concierge IA 24/7 atendiendo huéspedes por WhatsApp
+
+TAREAS:
+1. WHATSAPP BUSINESS API SETUP:
+   - Registrar WhatsApp Business (Meta/Facebook)
+   - Obtener API credentials
+   - Setup webhook en n8n
+
+2. N8N WORKFLOW:
+   - Webhook recibe mensaje WhatsApp
+   - Identificar booking por phone
+   - Cargar contexto (booking + property + knowledge base)
+   - Llamar Claude API con prompt
+   - Enviar respuesta por WhatsApp
+   - Guardar en DB (whatsapp_conversations)
+
+3. KNOWLEDGE BASE:
+   - Crear tabla: local_recommendations
+   - 10 restaurantes, 10 actividades, 5 tours
+   - Info por categoría y ubicación
+
+4. TESTING REAL:
+   - Enviar 5 mensajes de prueba
+   - Validar respuestas coherentes
+   - Verificar escalamiento a humano si necesario
+
+ENTREGABLE:
+✓ WhatsApp bot respondiendo consultas
+✓ Claude integrado con function calling
+✓ Knowledge base cargada
+✓ 10 conversaciones reales gestionadas
+
+┌─────────────────────────────────────────────────────────────────────┐
+│ DÍA 13-14 - MIÉ-JUE 19-20 DIC: BOOKING MANAGER AGENT               │
+└─────────────────────────────────────────────────────────────────────┘
+
+OBJETIVO: Automatizar procesamiento de inquiries → bookings
+
+TAREAS:
+1. N8N WORKFLOW - NUEVA INQUIRY:
+   - Webhook recibe inquiry (WhatsApp, email, web form)
+   - Claude extrae: dates, guests, preferences
+   - Check availability (Supabase function)
+   - Calculate price (pricing rules)
+   - Claude genera quote personalizado
+   - Enviar por WhatsApp/email
+   - Guardar inquiry (status='inquiry')
+
+2. N8N WORKFLOW - CONFIRMACIÓN:
+   - Huésped confirma
+   - Crear booking (status='confirmed')
+   - Generar payment link (Stripe)
+   - Enviar confirmación completa
+   - Agregar a calendario
+
+3. N8N WORKFLOW - REMINDER PRE-LLEGADA:
+   - Cron job: daily at 10am
+   - Query bookings con check-in en 48h
+   - Enviar reminder WhatsApp con check-in link
+
+4. TESTING:
+   - Enviar 3 inquiries por WhatsApp
+   - Validar quotes correctos
+   - Confirmar 1 booking automático
+
+ENTREGABLE:
+✓ Booking automation funcionando
+✓ 5 inquiries procesadas automáticamente
+✓ 3 bookings creados sin intervención humana
+
+┌─────────────────────────────────────────────────────────────────────┐
+│ DÍA 15 - VIERNES 21 DIC: REVENUE MANAGER AGENT                      │
+└─────────────────────────────────────────────────────────────────────┘
+
+OBJETIVO: Dynamic pricing ajustando precios automáticamente
+
+TAREAS:
+1. PRICING LOGIC:
+   - Tabla: pricing_suggestions
+   - Tabla: price_history
+   - Factores: ocupación, temporada, eventos, lead time
+
+2. N8N WORKFLOW - DAILY PRICING:
+   - Cron: daily at 6am
+   - Para cada property:
+     * Calcular ocupación next 30/60 días
+     * Consultar eventos culturales
+     * Claude analiza y sugiere precio
+     * Si confidence > 0.8: aplicar automático
+     * Si confidence < 0.8: notificar owner
+
+3. CULTURAL EVENTS:
+   - Cargar 5 eventos importantes (Nyepi, Galungan, etc.)
+   - Impact en pricing
+
+4. TESTING:
+   - Ejecutar workflow manualmente
+   - Validar sugerencias coherentes
+   - Aplicar 1 cambio de precio
+
+ENTREGABLE:
+✓ Dynamic pricing operativo
+✓ Precios ajustándose diariamente
+✓ 1 semana de price_history
+
+┌─────────────────────────────────────────────────────────────────────┐
+│ DÍA 16-17 - SÁB-DOM 22-23 DIC: TESTING + VALIDACIÓN MVP            │
+└─────────────────────────────────────────────────────────────────────┘
+
+OBJETIVO: Validar los 3 agentes IA funcionando en conjunto
+
+TAREAS:
+1. TESTING END-TO-END:
+   - Enviar 10 consultas WhatsApp (diferentes tipos)
+   - Procesar 5 inquiries → bookings automáticos
+   - Validar pricing ajustándose correctamente
+
+2. MÉTRICAS MVP:
+   - WhatsApp: % resueltas sin humano
+   - Booking: % conversion
+   - Pricing: % revenue increase
+
+3. FIX BUGS:
+   - Corregir errores encontrados
+   - Ajustar prompts Claude
+   - Optimizar workflows
+
+4. COMMIT FASE 3A:
+   git commit -m "feat: Complete FASE 3A - MVP IA (3 agentes críticos)"
+
+ENTREGABLE:
+✓ 3 agentes IA funcionando 24/7
+✓ 100 conversaciones WhatsApp gestionadas
+✓ 50 bookings automáticos procesados
+✓ Revenue increase medible
+
+========================================================================
+CHECKPOINT SEMANA 3:
+✓ FASE 3A COMPLETADA (MVP IA)
+✓ WhatsApp Concierge: 80% consultas automáticas
+✓ Booking Manager: 60% conversion automática
+✓ Revenue Manager: +20% revenue vs. static
+✓ Sistema con IA VALIDADO y funcionando
+========================================================================
+
+========================================================================
+📅 SEMANA 4 (24-30 DIC): FASE 3B - EXPANSIÓN (6 AGENTES TOTAL)
+========================================================================
+
+┌─────────────────────────────────────────────────────────────────────┐
+│ DÍA 18-19 - LUN-MAR 24-25 DIC: HOUSEKEEPING + GUEST MANAGER        │
+└─────────────────────────────────────────────────────────────────────┘
+
+OBJETIVO: Automatizar limpiezas + Guest journey completo
+
+AGENTE 5: Housekeeping Scheduler
+AGENTE 3: Guest Manager
+
+(Especificación detallada en PROMPT 3)
+
+┌─────────────────────────────────────────────────────────────────────┐
+│ DÍA 20-21 - MIÉ-JUE 26-27 DIC: TASK AUTOMATION                     │
+└─────────────────────────────────────────────────────────────────────┘
+
+OBJETIVO: Orquestador maestro coordinando todos los workflows
+
+AGENTE 8: Task Automation
+
+┌─────────────────────────────────────────────────────────────────────┐
+│ DÍA 22-23 - VIE-SÁB 28-29 DIC: TESTING + REFINAMIENTO              │
+└─────────────────────────────────────────────────────────────────────┘
+
+OBJETIVO: Validar sistema con 6 agentes funcionando
+
+ENTREGABLE:
+✓ FASE 3B COMPLETADA
+✓ 6 agentes operativos
+✓ 500 conversaciones gestionadas
+✓ 200 bookings automáticos
+✓ Sistema 80% autónomo
+
+========================================================================
+RESULTADO FINAL (30 DIC 2025):
+========================================================================
+
+✅ FASE 1: UI/UX completa (100%)
+✅ FASE 2: Backend Real + CRUD (100%)
+✅ FASE 3A: MVP IA - 3 agentes (100%)
+✅ FASE 3B: Expansión - 6 agentes (100%)
+
+SISTEMA OPERATIVO:
+- 6 agentes IA funcionando 24/7
+- 3 propiedades reales gestionadas
+- 80-90% operaciones automatizadas
+- Owner time: < 5h/semana por propiedad
+- Revenue increase: +25-35%
+- Validado con huéspedes reales
+
+LISTO PARA:
+- Onboarding más propiedades
+- FASE 3C (6 agentes adicionales) si necesario
+- Expansión comercial
+
+========================================================================
+💡 CONSEJOS CLAVE PARA EJECUCIÓN
+========================================================================
+
+1. COMMIT FRECUENTE:
+   - Commit al final de cada día
+   - Mensajes descriptivos
+   - Push a GitHub diariamente
+
+2. TESTING CONSTANTE:
+   - Probar cada feature antes de continuar
+   - No acumular bugs
+   - Validar con datos reales
+
+3. DOCUMENTAR:
+   - Actualizar README
+   - Screenshots de progreso
+   - Anotar problemas encontrados
+
+4. MANTENER MOMENTUM:
+   - 4-6 horas/día mínimo
+   - No perfectionism, iterar después
+   - Priorizar features críticas
+
+5. VALIDACIÓN TEMPRANA:
+   - Probar con 1 propiedad real en Semana 2
+   - Feedback de huéspedes reales en Semana 3
+   - Ajustar basado en uso real
+
+========================================================================
+🎯 SIGUIENTE PASO INMEDIATO (MAÑANA 05 DIC)
+========================================================================
+
+CARGAR EN CLAUDE:
+"Hola Claude, continuamos con MY HOST BizMate - FASE 2.
+
+Lee: C:\myhost-bizmate\Documentos\PROMPT 2 - FASE 2 BACKEND REAL - PRIORIZADO.txt
+
+Empezamos con DÍA 1: Auth + Setup Supabase.
+
+Necesito completar hoy:
+1. Crear todas las tablas en Supabase (users, properties, bookings, payments)
+2. Habilitar RLS con políticas por rol
+3. Crear functions SQL (check_availability, calculate_booking_price)
+4. Implementar LoginPage.jsx
+5. ProtectedRoute wrapper
+6. Header con botón Logout
+
+Objetivo: Login/Logout funcional + RLS operativo.
+
+¿Empezamos?"
+
+========================================================================
+FIN DEL PLAN DE EJECUCIÓN DÍA A DÍA
+========================================================================
