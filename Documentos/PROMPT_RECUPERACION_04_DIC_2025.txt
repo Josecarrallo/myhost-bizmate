@@ -1,0 +1,528 @@
+PROMPT DE RECUPERACIÓN - 04 DICIEMBRE 2025
+==========================================
+
+CONTEXTO DEL PROYECTO:
+----------------------
+Proyecto: MY HOST BizMate - Sistema de gestión de propiedades vacacionales en Bali
+Stack: React 18 + Vite + Tailwind + Supabase
+n8n: https://n8n-production-bb2d.up.railway.app (Railway)
+Frontend: Vercel
+Estado actual: FASE 1 - Reorganización arquitectura v4.0 EN PROGRESO (9 de 15 pasos completados - 60%)
+
+SESIONES ANTERIORES:
+--------------------
+- 28 NOV: Análisis de arquitectura de 21 flujos (Backend vs n8n) - 12+ horas
+- 29 NOV: Intento de configurar Flujo B (Recomendaciones IA) en n8n - PAUSADO
+- 30 NOV SESIÓN 1: Implementación EXITOSA de 3 flujos críticos de backend - COMPLETADO ✅
+- 30 NOV SESIÓN 2: Modernización completa de UI con colores corporativos - COMPLETADO ✅
+- 02 DIC SESIÓN 3: Finalización UI + ajustes finales (9 pantallas) - COMPLETADO ✅
+- 04 DIC SESIÓN 4: Reorganización arquitectura v4.0 - AI Agent-based system - COMPLETADO ✅
+
+LOGROS DE HOY (04 DIC 2025):
+-----------------------------
+
+=== SESIÓN 4 - REORGANIZACIÓN ARQUITECTURA V4.0 ===
+
+✅ 1. Adopción de Arquitectura v4.0 - AI Agent-based System
+   - Revisión de 8 documentos técnicos de arquitectura
+   - Adopción de rol: AI Systems Architect
+   - Transformación de PMS tradicional → Sistema basado en 2 agentes IA:
+     * AGENTE INTERNO (PMS Core) - 11 módulos operativos
+     * AGENTE EXTERNO (Guest Experience) - 8 módulos guest-facing
+   - Plan de 15 pasos definido y validado
+
+✅ 2. Reorganización HOME - Separación en 2 Bloques Claros
+   - ANTES: 5 grupos temáticos (Operations, Revenue, AI, Marketing, Workflows)
+   - AHORA: 2 bloques basados en agentes:
+     * BLOQUE A - Property Management System (11 módulos)
+     * BLOQUE B - Guest Experience & Marketing (6 módulos visibles)
+   - Módulos eliminados del grid: Voice AI Agent, Workflows, RMS Integration
+   - Channel Manager movido de Bloque B → Bloque A (crítico para clientes)
+   - Messages renombrado a "WhatsApp IA"
+
+✅ 3. Optimización Grid Layout - 4 a 5 Columnas
+   - Grid actualizado: `grid-cols-2 sm:grid-cols-3 lg:grid-cols-5`
+   - Gaps aumentados proporcionalmente: `gap-3 sm:gap-4 md:gap-5`
+   - Mejor utilización del espacio horizontal (~25%)
+   - Reducción de filas verticales:
+     * Bloque A: de 3 filas → 2.2 filas (11 módulos)
+     * Bloque B: de 2 filas → 1.2 filas (6 módulos)
+
+✅ 4. Actualización de Branding y Posicionamiento
+   **Landing Page (3 líneas):**
+   - MY HOST BizMate
+   - Smart Management for Modern Hospitality
+   - Powered by Artificial Intelligence
+
+   **Headers Dashboard:**
+   - MY HOST BizMate (simple)
+
+   **Títulos de bloques:**
+   - "Property Management System" (sin "AGENTE INTERNO")
+   - "Guest Experience & Marketing" (sin "AGENTE EXTERNO")
+   - Decisión: Lenguaje directo y profesional
+
+✅ 5. Dashboard - Expansión Completa con IA
+   **KPIs expandidos (4 → 7):**
+   - Revenue Today
+   - Revenue Week
+   - Active Bookings
+   - Check-ins Today
+   - Check-outs Today
+   - Occupancy
+   - Critical Tasks
+
+   **Nueva sección: AI Insights (5 cards):**
+   - Revenue Opportunity (con recomendación de descuento)
+   - Smart Pricing Alert (precio recomendado IA)
+   - Maintenance Alert (coordinación con check-in)
+   - Cultural Event (Nyepi - alertas culturales)
+   - Operational Tip (housekeeping scheduling)
+
+   **Nueva sección: Quick Actions (6 botones):**
+   - New Booking
+   - Calendar
+   - Housekeeping
+   - Maintenance
+   - Payments
+   - AI Assistant
+
+   **Contenido expandido:**
+   - Recent Bookings: 2 → 3 items
+   - Recent Messages: 2 → 3 items
+
+✅ 6. Análisis Completo Documentado
+   - Creado: `Documentos/Analisis MY HOST Bizmate AI agents Update Claude 04 DEC 2025.md`
+   - Contenido:
+     * Resumen ejecutivo de transformación
+     * Arquitectura v4.0 completa con diagramas
+     * Cambio de posicionamiento (ANTES/AHORA)
+     * Estructura de módulos detallada (19 módulos)
+     * Fases de desarrollo (Fase 1, 2, 3)
+     * Plan de trabajo de 15 pasos
+     * Preguntas críticas respondidas (5)
+     * Próximos pasos inmediatos
+     * Métricas de éxito
+     * Workflow de trabajo con checkpoints
+   - 409 líneas de documentación técnica
+
+✅ 6. Bookings Module - Tabla Profesional con Filtros (459 líneas)
+   - Añadida barra de búsqueda con filtrado en tiempo real
+   - 3 filtros dropdown (Status, Property, Channel)
+   - Tabla profesional con 8 columnas
+   - 10 bookings detallados mock
+   - Modal con 5 secciones (Guest Info, Booking Details, Payment, Notes, Tasks)
+
+✅ 7. PMS Calendar Module - Vista Gantt Mejorada (496 líneas)
+   - Vista Gantt estilo con properties como filas, días como columnas
+   - Bloques de booking horizontales spanning múltiples días
+   - Lógica de fechas corregida para display preciso
+   - Color-coded status indicators (verde, azul, amarillo)
+   - Click en booking abre modal detallado
+
+✅ 8. Properties Module - Grid/Table con 5 Tabs (679 líneas)
+   - Toggle entre vista Grid (tarjetas) y Table
+   - 6 properties mock detalladas
+   - Modal con 5 tabs: General, Tarifas, Fotos, Reglas, Amenities
+   - Status badges y stats comprehensivos
+   - Información completa de pricing y amenities
+
+✅ 9. Operations Hub - 3 Sub-módulos + Informe (1,220 líneas)
+   **Hub principal:**
+   - 4 KPIs naranjas (Active Tasks, Team Members, Pending Issues, Completed Today)
+   - 3 tarjetas de módulos compactas (layout horizontal: icono + nombre al lado)
+   - Informe "Recent Activities" consolidando todas las operaciones
+
+   **Housekeeping sub-módulo:**
+   - 8 tareas mock con tabla profesional
+   - Filtros de búsqueda y status
+   - Modal detallado con check-in/out times y notas
+
+   **Maintenance sub-módulo:**
+   - 7 issues mock con grid de tarjetas
+   - 7 tipos categorizados (HVAC, Plumbing, Electrical, Pool, Tech, Security, Preventive)
+   - Modal completo con timeline y technical notes
+
+   **Staff & Roles sub-módulo:**
+   - 10 empleados mock con 6 roles
+   - Filtros por rol (Housekeeping, Maintenance, Management, Front Desk, Concierge, Security) y status
+   - Avatares con iniciales, métricas (tasks today, completed, rating)
+   - Modal con perfil completo y certificaciones
+
+✅ 10. Git Commit #1 - Trabajo de Reorganización Completado
+   - Commit: 554c77b
+   - Branch: backup-antes-de-automatizacion
+   - Mensaje: "feat: Reorganización arquitectura v4.0 - AI Agent-based system (04 DIC 2025)"
+   - Archivos modificados: 3
+     * src/App.jsx (home + module grid reorganization)
+     * src/components/Dashboard/Dashboard.jsx (expanded with AI)
+     * Documentos/Analisis MY HOST Bizmate AI agents Update Claude 04 DEC 2025.md (new)
+   - Estadísticas: +518 inserciones, -50 eliminaciones
+
+✅ 11. Git Commit #2 - PMS Internal Modules Enhancement
+   - Commit: 49411f3
+   - Branch: backup-antes-de-automatizacion
+   - Mensaje: "feat: Enhance PMS internal agent modules - Session 4 (04 DIC 2025)"
+   - Archivos modificados: 4
+     * src/components/Bookings/Bookings.jsx (+432 líneas)
+     * src/components/Operations/Operations.jsx (+1,319 líneas)
+     * src/components/PMSCalendar/PMSCalendar.jsx (+645 líneas rewrite)
+     * src/components/Properties/Properties.jsx (+766 líneas rewrite)
+   - Estadísticas: +2,675 inserciones, -487 eliminaciones
+   - Total acumulado de la sesión: +3,193 líneas
+
+ARCHIVOS CLAVE MODIFICADOS (04 DIC 2025):
+------------------------------------------
+Frontend - Reorganización:
+- src/App.jsx
+  * Landing page: 3 líneas de título actualizadas
+  * Module grid: reorganizado de 5 grupos → 2 bloques
+  * Grid layout: lg:grid-cols-4 → lg:grid-cols-5
+  * Channel Manager movido a Bloque A
+  * Messages → "WhatsApp IA"
+
+Frontend - Dashboard Mejorado:
+- src/components/Dashboard/Dashboard.jsx
+  * KPIs: 4 → 7 tarjetas
+  * Nueva sección: AI Insights (5 cards con mock data)
+  * Nueva sección: Quick Actions (6 buttons)
+  * Recent Bookings: 2 → 3 items
+  * Recent Messages: 2 → 3 items
+
+Frontend - Bookings Module (Paso 6):
+- src/components/Bookings/Bookings.jsx (459 líneas)
+  * Tabla profesional con 8 columnas
+  * Search bar + 3 filtros (Status, Property, Channel)
+  * 10 bookings mock detallados
+  * Modal con 5 secciones
+
+Frontend - PMS Calendar Module (Paso 7):
+- src/components/PMSCalendar/PMSCalendar.jsx (496 líneas)
+  * Vista Gantt (properties como filas, días como columnas)
+  * Bloques de booking horizontales
+  * Lógica de fechas corregida
+  * Modal detallado clickeable
+
+Frontend - Properties Module (Paso 8):
+- src/components/Properties/Properties.jsx (679 líneas)
+  * Toggle Grid/Table views
+  * 6 properties mock completas
+  * Modal con 5 tabs (General, Tarifas, Fotos, Reglas, Amenities)
+  * Pricing y amenities completos
+
+Frontend - Operations Hub (Paso 9):
+- src/components/Operations/Operations.jsx (1,220 líneas)
+  * Hub con 4 KPIs + 3 módulos + informe
+  * Housekeeping: 8 tareas + tabla + modal
+  * Maintenance: 7 issues + grid + modal
+  * Staff & Roles: 10 empleados + filtros + modal
+  * Recent Activities: informe consolidado
+
+Documentación:
+- Documentos/Analisis MY HOST Bizmate AI agents Update Claude 04 DEC 2025.md (409 líneas)
+  * Análisis completo de arquitectura v4.0
+  * Plan de 15 pasos con status tracking
+  * Preguntas críticas y respuestas
+
+- Documentos/PROMPT_RECUPERACION_04_DIC_2025.txt (actualizado)
+  * Estado actualizado: 9 de 15 pasos completados (60%)
+  * Logros pasos 6-9 documentados
+  * 2 commits registrados
+
+ARQUITECTURA V4.0 - ESTRUCTURA DE MÓDULOS:
+-------------------------------------------
+
+**BLOQUE A - PROPERTY MANAGEMENT SYSTEM (11 módulos):**
+1. Dashboard ✅ MEJORADO - Paso 5 COMPLETADO
+2. Bookings ✅ MEJORADO - Paso 6 COMPLETADO (459 líneas - tabla profesional + filtros)
+3. PMS Calendar ✅ MEJORADO - Paso 7 COMPLETADO (496 líneas - vista Gantt)
+4. Properties ✅ MEJORADO - Paso 8 COMPLETADO (679 líneas - grid/table + 5 tabs)
+5. Operations Hub ✅ COMPLETO - Paso 9 COMPLETADO (1,220 líneas - 3 sub-módulos + informe)
+6. Channel Manager ✅ Existe (reposicionado hoy)
+7. Payments ✅ Existe (pendiente mejora Paso 10)
+8. Reports ✅ Existe (pendiente mejora Paso 10)
+9. Smart Pricing ✅ Existe (pendiente mejora Paso 10)
+10. AI Assistant ✅ Existe (pendiente mejora Paso 10)
+11. Cultural Intelligence ✅ Existe (pendiente mejora Paso 10)
+
+**BLOQUE B - GUEST EXPERIENCE & MARKETING (8 módulos):**
+1. Booking Engine ✅ Existe (pendiente limpieza Paso 11)
+2. Digital Check-in ✅ Existe (pendiente mejora Paso 11)
+3. Guest Portal ❌ NO EXISTE (pendiente crear 6 secciones Paso 12)
+4. Reviews ✅ Existe (pendiente mejora Paso 12)
+5. WhatsApp IA ✅ Existe (pendiente mejora Paso 13)
+6. Multichannel ✅ Existe (pendiente mejora Paso 13)
+7. Marketing ✅ Existe (pendiente mejora Paso 13)
+8. Social Publisher ✅ Existe (pendiente mejora Paso 13)
+
+**FUERA DEL GRID (accesibles por rutas):**
+- Voice AI Agent (ruta preservada)
+- Workflows (ruta preservada)
+- RMS Integration (ruta preservada)
+
+ESTADO ACTUAL (04 DIC 2025):
+----------------------------
+✅ COMPLETADO - FASE 1 (PASOS 1-9 de 15):
+- ✅ Paso 1: Preparación (análisis + documentación)
+- ✅ Paso 2: Reorganización HOME (2 bloques claros)
+- ✅ Paso 3: Actualización títulos landing page
+- ✅ Paso 4: Actualización títulos headers dashboard
+- ✅ Paso 5: Dashboard mejorado (KPIs + IA + Quick Actions)
+- ✅ Paso 6: Bookings mejorado (459 líneas - tabla profesional + filtros + modal detallado)
+- ✅ Paso 7: PMS Calendar mejorado (496 líneas - vista Gantt + modal detallado)
+- ✅ Paso 8: Properties mejorado (679 líneas - grid/table + modal 5 tabs)
+- ✅ Paso 9: Operations Hub completo (1,220 líneas - 3 sub-módulos + informe global)
+  * ✅ Housekeeping (8 tareas + tabla + filtros + modal)
+  * ✅ Maintenance (7 issues + grid + 7 tipos + modal)
+  * ✅ Staff & Roles (10 empleados + 6 roles + filtros + modal)
+  * ✅ Recent Activities (informe consolidado de todas las operaciones)
+
+⏭️ PENDIENTE - FASE 1 (PASOS 10-15 de 15):
+- ⏭️ Paso 10: Payments/Reports/Pricing/AI Assistant/Cultural Intelligence
+- ⏭️ Paso 11: Booking Engine + Digital Check-in
+- ⏭️ Paso 12: Guest Portal (6 secciones) + Reviews
+  * Guest Portal sections:
+    1. Información de la villa
+    2. Detalles de la reserva
+    3. Check-in/Check-out info
+    4. Recomendaciones y guía local
+    5. Servicios extra / Add-ons
+    6. Soporte y contacto
+- ⏭️ Paso 13: WhatsApp/Messages/Marketing/Social Publisher
+- ⏭️ Paso 14: Testing completo navegación + mobile-first
+- ⏭️ Paso 15: Git commit + push + deploy Vercel
+
+**PROGRESO GENERAL:** 9 de 15 pasos (60%) ✅✅✅
+
+**FASES SIGUIENTES (DESPUÉS DE FASE 1):**
+- FASE 2: Backend Real (Supabase CRUD completo) - 2-3 semanas
+- FASE 3: IA + Automación (12 agentes + n8n workflows) - 3-4 semanas
+
+CAMBIOS CLAVE vs SESIONES ANTERIORES:
+--------------------------------------
+1. **Arquitectura:**
+   - ANTES: PMS tradicional con 5 grupos temáticos
+   - AHORA: Sistema multi-agente (2 agentes claramente diferenciados)
+
+2. **Posicionamiento:**
+   - ANTES: "PMS para villas en Bali con automatizaciones"
+   - AHORA: "Smart Management for Modern Hospitality - Powered by AI"
+
+3. **Organización:**
+   - ANTES: 21 módulos en 5 bloques temáticos difusos
+   - AHORA: 19 módulos en 2 bloques agente-based claros (11 + 8)
+
+4. **Grid Layout:**
+   - ANTES: 4 columnas por fila (lg:grid-cols-4)
+   - AHORA: 5 columnas por fila (lg:grid-cols-5)
+
+5. **Dashboard:**
+   - ANTES: 4 KPIs básicos
+   - AHORA: 7 KPIs + AI Insights (5 cards) + Quick Actions (6 buttons)
+
+DOCUMENTACIÓN IMPORTANTE:
+--------------------------
+Lee PRIMERO (04 DIC 2025):
+1. C:\myhost-bizmate\Documentos\Analisis MY HOST Bizmate AI agents Update Claude 04 DEC 2025.md
+   - Análisis completo de arquitectura v4.0
+   - Plan de 15 pasos con tracking
+   - Preguntas críticas respondidas
+
+2. C:\myhost-bizmate\Documentos\MY HOST BizMate – ARQUITECTURA v4.0.txt
+   - Arquitectura completa del sistema multi-agente
+   - 12 agentes de IA especializados
+   - Capas del sistema
+
+3. C:\myhost-bizmate\Documentos\PROMPT 2 – ACTUALIZACIÓN COMPLETA DEL AGENTE INTERNO (BACKOFFICE).txt
+   - Especificaciones detalladas de los 11 módulos del Agente Interno
+
+4. C:\myhost-bizmate\Documentos\PROMPT 3 – DESARROLLO COMPLETO DEL AGENTE EXTERNO (GUEST EXPERIENCE).txt
+   - Especificaciones detalladas de los 8 módulos del Agente Externo
+   - 6 secciones del Guest Portal
+
+Lee DESPUÉS (contexto general):
+5. C:\myhost-bizmate\Documentos\ANÁLISIS DE ARQUITECTURA - 21 FLUJOS MYHOST-Bizmate NOV28 2025.md
+6. C:\myhost-bizmate\CLAUDE.md
+7. C:\myhost-bizmate\Documentos\MY-HOST-BizMate-Plan-Automatizaciones-n8n.md
+
+CREDENCIALES Y URLS:
+--------------------
+Supabase:
+- URL: https://jjpscimtxrudtepzwhag.supabase.co
+- Anon Key: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpqcHNjaW10eHJ1ZHRlcHp3aGFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI5NDMyMzIsImV4cCI6MjA3ODUxOTIzMn0._U_HwdF5-yT8-prJLzkdO_rGbNuu7Z3gpUQW0Q8zxa0
+- SQL Editor: https://supabase.com/dashboard/project/jjpscimtxrudtepzwhag/sql
+
+n8n:
+- URL: https://n8n-production-bb2d.up.railway.app
+- Usuario: [configurado en Railway]
+
+Stripe:
+- Dashboard: https://dashboard.stripe.com/test/dashboard
+- Publishable Key: pk_test_... (en sesión anterior)
+- Secret Key: sk_test_... (en sesión anterior)
+
+GitHub:
+- Repo: https://github.com/Josecarrallo/myhost-bizmate.git
+- Branch actual: backup-antes-de-automatizacion
+- Estado: En sync con origin (push completado)
+- Commits recientes:
+  * 554c77b - feat: Reorganización arquitectura v4.0 (04 DIC 2025) ✅ NUEVO HOY
+  * f7d6c5c - fix: Final UI adjustments (02 DIC 2025)
+  * af79eeb - feat: Complete UI modernization (02 DIC 2025)
+  * bbcbae6 - UI modernization (30 NOV sesión 2)
+  * 7f63d98 - Backend critical flows (30 NOV sesión 1)
+
+PROMPT PARA CLAUDE (PRÓXIMA SESIÓN):
+-------------------------------------
+"Hola Claude, continúo con MY HOST BizMate.
+
+CONTEXTO:
+Hoy (04 DIC) completamos SESIÓN 4 - Reorganización arquitectura v4.0 ✅:
+
+LOGROS PRINCIPALES:
+- ✅ Adopción de arquitectura v4.0 - Sistema multi-agente (2 agentes IA)
+- ✅ HOME reorganizada: 5 grupos temáticos → 2 bloques agente-based
+- ✅ Grid optimizado: 4 columnas → 5 columnas por fila
+- ✅ Branding actualizado: 'Smart Management for Modern Hospitality - Powered by AI'
+- ✅ Dashboard expandido: 7 KPIs + AI Insights (5 cards) + Quick Actions (6 buttons)
+- ✅ Channel Manager reposicionado en PMS (crítico para clientes)
+- ✅ Análisis completo documentado (409 líneas)
+- ✅ Commit: 554c77b
+
+PROGRESO: 5 de 15 pasos completados (33.3%)
+
+Todo está funcionando, commiteado y pusheado.
+
+Lee los documentos actualizados:
+1. C:\myhost-bizmate\Documentos\Analisis MY HOST Bizmate AI agents Update Claude 04 DEC 2025.md
+2. C:\myhost-bizmate\Documentos\MY HOST BizMate – ARQUITECTURA v4.0.txt
+
+PRÓXIMO PASO:
+Continuar con Paso 6: Módulo Bookings (tabla + filtros + detalle mock)
+
+FASE 1 - OBJETIVO:
+Reorganizar frontend existente SIN reconstruir, usando solo mock data.
+NO conectar Supabase real, IA real ni WhatsApp real todavía.
+
+¿Empezamos con el paso 6?"
+
+TESTING REALIZADO (SESIONES ANTERIORES):
+-----------------------------------------
+check_availability():
+- Test 1: Overlap caso 1 (overlap inicio) → false ✅
+- Test 2: Fechas libres → true ✅
+- Test 3: Overlap caso 2 (overlap fin) → false ✅
+- Test 4: Overlap caso 3 (overlap completo) → true ✅
+
+calculate_booking_price():
+- Test 1: Villa Sunset Paradise, 5 noches, 2 guests, Nov-Dic
+  * Temporada normal (Nov) + temporada alta (Dic)
+  * Total: $2,637.50 ✅
+- Test 2: Beach House Paradise, 5 noches, 5 guests, Diciembre
+  * Temporada alta (+30%)
+  * Guest extras: 3 guests × $20 × 5 noches = $300
+  * Total: $3,103.25 ✅
+
+ESTRUCTURA DE DATOS (SESIONES ANTERIORES):
+-------------------------------------------
+Tabla bookings:
+- id (UUID)
+- property_id (UUID → properties.id)
+- guest_name (TEXT)
+- guest_email (TEXT)
+- phone (TEXT)
+- check_in (DATE)
+- check_out (DATE)
+- guests (INTEGER)
+- status (TEXT: pending/confirmed/cancelled)
+- total_price (DECIMAL)
+- payment_link (TEXT)
+- created_at (TIMESTAMP)
+
+Tabla properties:
+- id (UUID)
+- name (TEXT)
+- base_price (DECIMAL) - precio por noche
+- max_guests (INTEGER)
+- description (TEXT)
+- currency (TEXT)
+
+NOTAS TÉCNICAS:
+---------------
+1. Las funciones SQL usan parámetros con prefijo p_ (ej: p_property_id)
+2. Frontend llama vía supabase.rpc('function_name', { params })
+3. Temporada alta: meses 6, 7, 8, 12 (Jun, Jul, Ago, Dic)
+4. Guest surcharge solo si guests > max_guests
+5. Service fee es 15% del (base_price + guest_surcharge)
+
+COMANDOS ÚTILES:
+----------------
+Git status:
+cd C:\myhost-bizmate && git status
+
+Git push:
+cd C:\myhost-bizmate && git push origin backup-antes-de-automatizacion
+
+Ver propiedades en Supabase:
+SELECT * FROM properties;
+
+Ver bookings:
+SELECT * FROM bookings ORDER BY created_at DESC;
+
+Dev server:
+npm run dev
+
+TIEMPO INVERTIDO TOTAL:
+------------------------
+Sesión 28 NOV: 12+ horas (análisis arquitectura)
+Sesión 29 NOV: 3-4 horas (intento n8n, pausado)
+Sesión 30 NOV - Sesión 1: 4-5 horas (implementación backend exitosa)
+Sesión 30 NOV - Sesión 2: 3-4 horas (UI modernization - 15 pantallas)
+Sesión 02 DIC - Sesión 3: 3-4 horas (UI modernization - 9 pantallas finales)
+Sesión 04 DIC - Sesión 4: 4-5 horas (reorganización arquitectura v4.0)
+Total: ~30-34 horas
+
+ESTIMACIÓN PRÓXIMOS PASOS:
+--------------------------
+Paso 6 (Bookings): 1-2 horas
+Paso 7 (PMS Calendar): 1-2 horas
+Paso 8 (Properties): 1-2 horas
+Paso 9 (Operations Hub - 3 sub-módulos): 2-3 horas
+Paso 10 (5 módulos restantes): 2-3 horas
+Paso 11 (Booking Engine + Digital Check-in): 1-2 horas
+Paso 12 (Guest Portal 6 secciones + Reviews): 3-4 horas
+Paso 13 (4 módulos marketing): 1-2 horas
+Paso 14 (Testing): 1 hora
+Paso 15 (Deploy): 30 min
+
+Total restante Fase 1: ~14-22 horas
+
+PATRÓN DE DISEÑO ESTABLECIDO:
+------------------------------
+1. Fondo: bg-gradient-to-br from-orange-400 via-orange-500 to-orange-600
+2. Elementos animados:
+   - Círculos pulsantes con bg-orange-300/20, blur-3xl
+   - Delays: 0s, 0.5s, 1s
+3. Header:
+   - "MY HOST" en text-white font-black
+   - "BizMate" en text-orange-100
+4. Tarjetas: bg-white/95 backdrop-blur-sm border-2 border-white/50
+5. Títulos: text-orange-600 (NUNCA text-gray-900)
+6. Labels: text-orange-600
+7. Valores/números: text-orange-600 font-black
+8. Botones back: p-3 bg-white/95 rounded-2xl hover:bg-white
+9. Inputs: text-orange-600 placeholder:text-gray-400
+10. Grid módulos: lg:grid-cols-5 gap-3 sm:gap-4 md:gap-5
+
+REGLA DE ORO (FASE 1):
+----------------------
+✅ Solo reorganización y mejora visual
+✅ Solo mock data
+✅ Componentes reutilizables
+✅ Mobile-first
+✅ Sin conexión a Supabase real
+✅ Sin IA real
+✅ Sin WhatsApp real
+
+FIN DEL PROMPT
+==============
