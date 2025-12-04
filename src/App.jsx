@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Building2, ChevronLeft, LayoutDashboard, Calendar, Home, CreditCard, MessageSquare, Sparkles, DollarSign, Megaphone, Share2, Workflow, BarChart3, Smartphone, Repeat, Star, Phone, Globe, ClipboardList } from 'lucide-react';
+import { Building2, ChevronLeft, LayoutDashboard, Calendar, Home, CreditCard, MessageSquare, Sparkles, DollarSign, Megaphone, Share2, Workflow, BarChart3, Smartphone, Repeat, Star, Phone, Globe, ClipboardList, User } from 'lucide-react';
 import ModuleGridCard from './components/common/ModuleGridCard';
 
 // Import all module components
@@ -25,6 +25,7 @@ import VoiceAI from './components/VoiceAI/VoiceAI';
 import BookingEngine from './components/BookingEngine/BookingEngine';
 import PMSCalendar from './components/PMSCalendar/PMSCalendar';
 import CulturalIntelligence from './components/CulturalIntelligence/CulturalIntelligence';
+import GuestPortal from './components/GuestPortal/GuestPortal';
 
 // ==================== MAIN APP ====================
 export default function App() {
@@ -166,6 +167,10 @@ export default function App() {
     return <Reviews onBack={() => setCurrentModule(null)} />;
   }
 
+  if (currentModule === 'guest-portal') {
+    return <GuestPortal onBack={() => setCurrentModule(null)} />;
+  }
+
   if (currentModule === 'rms') {
     return <RMSIntegration onBack={() => setCurrentModule(null)} />;
   }
@@ -230,6 +235,7 @@ export default function App() {
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4 md:gap-5">
                 <ModuleGridCard icon={Sparkles} title="Booking Engine" gradient="from-orange-500 to-pink-600" onClick={() => setCurrentModule('booking-engine')} />
                 <ModuleGridCard icon={Smartphone} title="Digital Check-in" gradient="from-green-500 to-emerald-600" onClick={() => setCurrentModule('digital-checkin')} />
+                <ModuleGridCard icon={User} title="Guest Portal" gradient="from-indigo-500 to-purple-600" onClick={() => setCurrentModule('guest-portal')} />
                 <ModuleGridCard icon={Star} title="Reviews" gradient="from-yellow-500 to-orange-600" onClick={() => setCurrentModule('reviews')} />
                 <ModuleGridCard icon={MessageSquare} title="WhatsApp IA" gradient="from-orange-500 to-red-600" onClick={() => setCurrentModule('messages')} />
                 <ModuleGridCard icon={Megaphone} title="Marketing" gradient="from-purple-600 to-pink-600" onClick={() => setCurrentModule('marketing')} />
