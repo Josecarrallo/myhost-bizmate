@@ -24,6 +24,11 @@ const BookingEngineWidget = ({ onBack }) => {
   const [isAvailable, setIsAvailable] = useState(false);
   const [error, setError] = useState(null);
 
+  // Scroll to top on mount
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+
   // Load properties from Supabase
   useEffect(() => {
     const loadProperties = async () => {
