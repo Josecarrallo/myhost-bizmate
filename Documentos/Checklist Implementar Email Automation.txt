@@ -1,0 +1,35 @@
+# Checklist: Implementar Email Automation
+
+## Supabase Setup
+- [ ] Habilitar extensión pg_net
+- [ ] Crear función notify_property_registered()
+- [ ] Crear trigger on_property_insert
+- [ ] Verificar trigger existe: `SELECT * FROM information_schema.triggers WHERE trigger_name = 'on_property_insert'`
+
+## n8n Setup
+- [ ] Crear workflow nuevo
+- [ ] Añadir nodo Webhook
+- [ ] Copiar Production URL
+- [ ] Añadir nodo SendGrid
+- [ ] Configurar credential SendGrid
+- [ ] Configurar mensaje email
+- [ ] Guardar workflow
+- [ ] Exportar JSON
+
+## SendGrid Setup
+- [ ] Crear cuenta SendGrid
+- [ ] Generar API Key
+- [ ] Verificar Sender Email
+- [ ] Probar envío manual
+
+## Testing
+- [ ] Insertar registro prueba en Supabase
+- [ ] Verificar ejecución en n8n
+- [ ] Verificar email recibido
+- [ ] Revisar logs: `SELECT * FROM net._http_response`
+
+## Deployment
+- [ ] Actualizar documentación
+- [ ] Guardar SQLs en repo
+- [ ] Exportar workflow n8n
+- [ ] Compartir con equipo

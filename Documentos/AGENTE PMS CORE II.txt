@@ -1,0 +1,46 @@
+1️⃣ Se crea una reserva en Supabase
+   - El backend o la app insertan una nueva fila en la tabla "bookings".
+   - Supabase detecta automáticamente el evento "INSERT".
+
+2️⃣ Supabase envía un Webhook a n8n
+   - Supabase tiene configurado un webhook para avisar a n8n.
+   - Envía todos los datos de la reserva al workflow n8n.
+
+3️⃣ n8n recibe el evento y arranca el workflow
+   - El nodo Webhook de n8n recibe la información.
+   - Desde aquí, n8n tiene el control del proceso.
+
+4️⃣ n8n consulta al PMS Core Agent
+   - n8n manda los datos al agente (Claude/ChatGPT) mediante un nodo HTTP.
+   - El agente actúa como “cerebro” y decide qué hacer:
+       * crear tareas de limpieza,
+       * enviar mensajes,
+       * notificar a propietarios,
+       * registrar logs,
+       * validar algo,
+       * calcular acciones.
+
+5️⃣ El PMS Core Agent responde con instrucciones
+   - El agente NO ejecuta nada.
+   - Solo dice qué acciones deben hacerse.
+   - Ejemplo:
+       {
+         "create_cleaning_task": true,
+         "notify_guest": true,
+         "notify_owner": false
+       }
+
+6️⃣ n8n ejecuta las acciones reales
+   - Inserta tareas en Supabase.
+   - Envía WhatsApps por la API.
+   - Manda emails o notificaciones.
+   - Llama a otros agentes si hace falta.
+   - Registra logs en Supabase.
+
+7️⃣ Todo queda guardado y sincronizado
+   - Supabase tiene toda la info actualizada:
+       * reserva,
+       * tareas,
+       * mensajes enviados,
+       * logs.
+   - El backend y los agentes ven todo al instante.

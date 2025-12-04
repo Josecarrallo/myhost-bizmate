@@ -1,0 +1,36 @@
+PROMPT 3 – DESARROLLO COMPLETO DEL AGENTE EXTERNO (GUEST EXPERIENCE)
+
+Claudio, ahora necesito que desarrolles el AGENTE EXTERNO,
+aprovechando lo que ya existe en el frontend actual,
+pero dejándolo limpio, organizado y funcional con datos mock.
+
+El Agente Externo representa todo lo que ve o usa el huésped antes, durante
+y después de su estancia. Este módulo es CLAVE para BizMate.
+
+────────────────────────────
+1) BOOKING ENGINE (PÚBLICO)
+────────────────────────────
+• Pantalla pública para seleccionar:
+  - Propiedad
+  - Fechas
+  - Nº huéspedes
+• Mostrar precio estimado (mock)
+• Botón CTA “Request to Book”
+• Mobile-first
+• Estilo consistente con el branding interno
+
+────────────────────────────
+2) DIGITAL CHECK-IN
+────────────────────────────
+• Formulario público mock con campos:
+  - Nombre completo
+  - Pasaporte/ID
+  - Hora estimada de llegada
+  - Nº huéspedes
+  - Preferencias especiales
+• Botón “Enviar check-in” (mock)
+• Pantalla de confirmación mock
+
+────────────────────────────
+3) GUEST PORTAL (6 SECCIONES)
+────────────────────────────

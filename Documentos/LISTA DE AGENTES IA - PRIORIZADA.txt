@@ -1,0 +1,528 @@
+LISTA DE AGENTES IA - MY HOST BIZMATE (PRIORIZADA)
+========================================================================
+Actualizado: 04 Diciembre 2025
+Total: 12 Agentes de Inteligencia Artificial
+========================================================================
+
+ESTRATEGIA DE IMPLEMENTACIÓN:
+------------------------------
+Los 12 agentes se implementan en 3 fases progresivas:
+
+FASE 3A: MVP (3 agentes críticos) - SEMANA 1
+FASE 3B: EXPANSIÓN (3 agentes importantes) - SEMANA 2
+FASE 3C: COMPLETO (6 agentes complementarios) - SEMANA 3-4
+
+========================================================================
+🔥 FASE 3A: MVP - 3 AGENTES CRÍTICOS (IMPLEMENTAR PRIMERO)
+========================================================================
+
+Estos 3 agentes generan el mayor ROI inmediato y son esenciales
+para el valor diferencial de MY HOST BizMate.
+
+┌─────────────────────────────────────────────────────────────────────┐
+│ ✅ AGENTE 9 — WhatsApp Hospitality Concierge Agent                  │
+│ PRIORIDAD: MÁXIMA (KILLER FEATURE)                                  │
+└─────────────────────────────────────────────────────────────────────┘
+
+DESCRIPCIÓN:
+Concierge IA 24/7 que atiende huéspedes vía WhatsApp en 6 idiomas,
+respondiendo consultas, dando recomendaciones y resolviendo problemas.
+
+CAPACIDADES:
+✓ Responder preguntas sobre villa (amenities, WiFi, reglas)
+✓ Dar recomendaciones locales personalizadas
+✓ Información check-in/out (horarios, códigos acceso)
+✓ Resolver problemas durante estancia
+✓ Procesar solicitudes (toallas extra, late checkout)
+✓ Multilingual: EN, ES, FR, DE, JP, CN
+✓ Escalar a humano cuando necesario
+
+TECNOLOGÍA:
+- Claude 3.5 Sonnet + function calling
+- WhatsApp Business Cloud API
+- n8n webhook → Claude → respuesta
+- Knowledge base en Supabase
+
+MÉTRICAS ÉXITO:
+✓ 80% consultas resueltas automáticamente
+✓ < 30 segundos tiempo respuesta
+✓ > 4.5/5 satisfacción huéspedes
+✓ 100 conversaciones reales gestionadas
+
+IMPACTO:
+- Ahorro: 15-20 horas/semana por propiedad
+- Coverage: 24/7 (vs. 8am-10pm manual)
+- Response time: < 2 min (vs. 2-4 horas)
+- Idiomas: 6 (vs. 1-2 manual)
+
+ROI:
+★★★★★ (5/5) - Máximo valor percibido por huéspedes
+
+┌─────────────────────────────────────────────────────────────────────┐
+│ ✅ AGENTE 2 — Booking Manager Agent                                 │
+│ PRIORIDAD: CRÍTICA                                                   │
+└─────────────────────────────────────────────────────────────────────┘
+
+DESCRIPCIÓN:
+Procesa inquiries automáticamente, valida disponibilidad, calcula precios,
+envía confirmaciones y gestiona comunicaciones pre-llegada.
+
+CAPACIDADES:
+✓ Procesar inquiries de múltiples canales
+✓ Validar disponibilidad en tiempo real
+✓ Calcular precio con reglas dinámicas
+✓ Crear booking en Supabase
+✓ Enviar confirmaciones email/WhatsApp
+✓ Gestionar pagos (link Stripe)
+✓ Recordatorios pre-llegada (48h antes)
+✓ Coordinar con Digital Check-in
+
+TECNOLOGÍA:
+- Claude 3.5 Sonnet para decisiones
+- n8n workflows (inquiry → quote → confirmation)
+- Supabase Functions (availability, pricing)
+- Stripe para pagos
+- SendGrid/Resend para emails
+
+MÉTRICAS ÉXITO:
+✓ 90% inquiries respondidas en < 5 min
+✓ 60% conversion (inquiry → confirmed)
+✓ 0 double bookings
+✓ 100% confirmaciones automáticas
+
+IMPACTO:
+- Conversion: +20-30% (respuesta inmediata)
+- Ahorro: 8-10 horas/semana
+- Revenue: +15% (pricing optimizado)
+- Disponibilidad: 24/7
+
+ROI:
+★★★★★ (5/5) - Impacto directo en revenue
+
+┌─────────────────────────────────────────────────────────────────────┐
+│ ✅ AGENTE 12 — Revenue Manager Agent (Dynamic Pricing)              │
+│ PRIORIDAD: CRÍTICA                                                   │
+└─────────────────────────────────────────────────────────────────────┘
+
+DESCRIPCIÓN:
+Optimiza precios dinámicamente basado en demanda, eventos, temporada
+y competencia para maximizar revenue y ocupación.
+
+CAPACIDADES:
+✓ Analizar demanda histórica
+✓ Detectar eventos culturales (Nyepi, festivales)
+✓ Monitorear competencia (scraping opcional)
+✓ Calcular precio óptimo por día
+✓ Ajustar precios automáticamente
+✓ Estrategias: last-minute, early-bird, long-stay
+✓ Reportes de performance
+
+TECNOLOGÍA:
+- Claude 3.5 Sonnet para análisis
+- n8n cron jobs (daily at 6am)
+- Supabase (pricing_rules, price_history)
+- Bright Data API para scraping (opcional)
+
+ESTRATEGIAS:
+- HIGH DEMAND (ocupación > 80%): +15-25%
+- LOW DEMAND (ocupación < 40%): -10-20%
+- LAST MINUTE (< 7 días): -15%
+- LONG STAY (7+ noches): -10-20%
+
+MÉTRICAS ÉXITO:
+✓ Revenue +20-30% vs. static pricing
+✓ Ocupación mantener 70-85%
+✓ RevPAR increase +25%
+✓ 90% sugerencias aceptadas
+
+IMPACTO:
+- Revenue: +$500-800/mes por propiedad
+- Ahorro: 5-8 horas/semana análisis
+- Decisiones: data-driven vs. intuición
+
+ROI:
+★★★★★ (5/5) - Impacto directo y medible en revenue
+
+========================================================================
+RESUMEN FASE 3A (MVP):
+- 3 agentes implementados
+- WhatsApp + Booking + Pricing automatizados
+- ROI inmediato y medible
+- Validación del sistema antes de expandir
+========================================================================
+
+========================================================================
+⚡ FASE 3B: EXPANSIÓN - 3 AGENTES IMPORTANTES (IMPLEMENTAR SEGUNDO)
+========================================================================
+
+Estos agentes automatizan operaciones y mejoran la experiencia
+del huésped de forma integral.
+
+┌─────────────────────────────────────────────────────────────────────┐
+│ ✅ AGENTE 5 — Cleaning & Housekeeping Scheduler Agent               │
+│ PRIORIDAD: ALTA                                                      │
+└─────────────────────────────────────────────────────────────────────┘
+
+DESCRIPCIÓN:
+Coordina limpiezas automáticamente entre check-outs y check-ins,
+asigna staff óptimo y optimiza rutas.
+
+CAPACIDADES:
+✓ Crear task automática post-checkout
+✓ Asignar staff óptimo (disponibilidad, ubicación, carga)
+✓ Optimizar rutas (múltiples properties)
+✓ Enviar notificaciones WhatsApp a staff
+✓ Tracking status (pending → in-progress → completed)
+✓ Alertar si demora (2h antes de check-in)
+✓ Gestionar inventario supplies
+
+TECNOLOGÍA:
+- n8n workflow trigger: booking.status='checked_out'
+- Claude para selección óptima de staff
+- WhatsApp para notificaciones
+- Supabase (housekeeping_tasks)
+
+MÉTRICAS ÉXITO:
+✓ 100% properties limpias a tiempo
+✓ 0 check-ins con property no ready
+✓ < 2.5h tiempo promedio limpieza
+✓ 70-85% staff utilization
+
+IMPACTO:
+- Ahorro: 5-7 horas/semana
+- Calidad: 100% consistente
+- Coordinación: automática
+
+ROI:
+★★★★☆ (4/5) - Crítico para operaciones
+
+┌─────────────────────────────────────────────────────────────────────┐
+│ ✅ AGENTE 3 — Guest Manager Agent                                   │
+│ PRIORIDAD: ALTA                                                      │
+└─────────────────────────────────────────────────────────────────────┘
+
+DESCRIPCIÓN:
+Gestiona experiencia completa del huésped desde pre-llegada hasta
+post-estancia con comunicaciones automatizadas personalizadas.
+
+CAPACIDADES:
+✓ Bienvenida personalizada (T-48h)
+✓ Coordinar Digital Check-in
+✓ Info útil durante estancia (T+1, T+3)
+✓ Gestionar solicitudes extras
+✓ Check-out instructions (T-1)
+✓ Solicitar review (post checkout)
+✓ Thank you + descuento futuro
+
+COMUNICACIONES AUTOMÁTICAS:
+- T-48h: Pre-llegada + link check-in
+- T0: Bienvenida + access code + WiFi
+- T+1: Recomendaciones restaurantes
+- T+3: Check-in mid-stay
+- T-1: Instrucciones check-out
+- T+1: Solicitud review + descuento return
+
+TECNOLOGÍA:
+- n8n cron jobs + triggers
+- Claude para personalización
+- WhatsApp + Email
+- Supabase (guest_communications)
+
+MÉTRICAS ÉXITO:
+✓ 90% check-ins sin contacto humano
+✓ 50% piden recomendaciones
+✓ 40% review response rate
+✓ 15% return booking rate
+
+IMPACTO:
+- Experiencia: consistente y proactiva
+- Reviews: +100% response rate
+- Return guests: +200%
+
+ROI:
+★★★★☆ (4/5) - Alto valor para retención
+
+┌─────────────────────────────────────────────────────────────────────┐
+│ ✅ AGENTE 8 — Task Automation Agent                                 │
+│ PRIORIDAD: ALTA                                                      │
+└─────────────────────────────────────────────────────────────────────┘
+
+DESCRIPCIÓN:
+Orquestador maestro que detecta eventos en DB y ejecuta workflows
+automáticos, coordinando entre todos los agentes.
+
+CAPACIDADES:
+✓ Detectar triggers (new booking, checkout, payment)
+✓ Ejecutar workflows automáticos
+✓ Coordinar entre agentes
+✓ Error handling robusto
+✓ Logging centralizado
+✓ Reportes de automación
+
+WORKFLOWS QUE ORQUESTA:
+- NEW BOOKING → confirmación + calendario + check-in reminder
+- CHECK-OUT → housekeeping + review request + availability
+- PAYMENT → update status + receipt + log
+- CHECK-IN DELAYED → reminder + notify manager
+
+TECNOLOGÍA:
+- n8n como motor principal
+- Supabase triggers + webhooks
+- Error tracking (Sentry)
+- Logging en DB
+
+MÉTRICAS ÉXITO:
+✓ 95% workflows sin errores
+✓ 100% eventos críticos detectados
+✓ < 1min latencia trigger → acción
+
+IMPACTO:
+- Coordinación: perfecta entre agentes
+- Confiabilidad: 95%+
+- Escalabilidad: ilimitada
+
+ROI:
+★★★★☆ (4/5) - Esencial para robustez
+
+========================================================================
+RESUMEN FASE 3B (EXPANSIÓN):
+- 6 agentes total implementados
+- Operaciones + Guest Journey automatizados
+- Sistema robusto y confiable
+- Listo para escalar a múltiples propiedades
+========================================================================
+
+========================================================================
+🔧 FASE 3C: COMPLETO - 6 AGENTES COMPLEMENTARIOS (IMPLEMENTAR TERCERO)
+========================================================================
+
+Estos agentes completan el sistema y lo hacen 90% autónomo.
+
+┌─────────────────────────────────────────────────────────────────────┐
+│ ☐ AGENTE 1 — PMS Core Agent                                         │
+│ PRIORIDAD: MEDIA                                                     │
+└─────────────────────────────────────────────────────────────────────┘
+
+DESCRIPCIÓN:
+Orquestador general que coordina todos los agentes y toma decisiones
+estratégicas de alto nivel.
+
+CAPACIDADES:
+✓ Coordinar los 12 agentes
+✓ Tomar decisiones estratégicas
+✓ Optimizar workflows
+✓ Aprender de patrones
+✓ Reportes ejecutivos
+✓ Alertas proactivas
+
+ROI:
+★★★☆☆ (3/5) - Valor cuando hay múltiples propiedades
+
+┌─────────────────────────────────────────────────────────────────────┐
+│ ☐ AGENTE 4 — Calendar & Availability Agent                          │
+│ PRIORIDAD: MEDIA                                                     │
+└─────────────────────────────────────────────────────────────────────┘
+
+DESCRIPCIÓN:
+Gestiona disponibilidad en tiempo real, sincroniza calendarios
+entre plataformas y previene double bookings.
+
+CAPACIDADES:
+✓ Sincronizar calendarios (Airbnb, Booking)
+✓ Actualizar disponibilidad en tiempo real
+✓ Prevenir double bookings
+✓ Gestionar minimum stays
+✓ Bloquear fechas mantenimiento
+
+ROI:
+★★★☆☆ (3/5) - Importante para multi-channel
+
+┌─────────────────────────────────────────────────────────────────────┐
+│ ☐ AGENTE 6 — Maintenance Manager Agent                              │
+│ PRIORIDAD: MEDIA                                                     │
+└─────────────────────────────────────────────────────────────────────┘
+
+DESCRIPCIÓN:
+Gestiona issues de mantenimiento, asigna técnicos, programa
+mantenimiento preventivo y trackea costos.
+
+CAPACIDADES:
+✓ Recibir reportes de issues (guest/staff)
+✓ Clasificar por tipo y urgencia
+✓ Asignar técnico apropiado
+✓ Tracking status y tiempo
+✓ Mantenimiento preventivo programado
+✓ Análisis de costos
+
+ROI:
+★★★☆☆ (3/5) - Mejora eficiencia operativa
+
+┌─────────────────────────────────────────────────────────────────────┐
+│ ☐ AGENTE 7 — Staff Manager Agent                                    │
+│ PRIORIDAD: BAJA                                                      │
+└─────────────────────────────────────────────────────────────────────┘
+
+DESCRIPCIÓN:
+Gestiona equipo: scheduling, performance tracking, training,
+y comunicación con staff.
+
+CAPACIDADES:
+✓ Scheduling óptimo (shifts)
+✓ Performance tracking (KPIs)
+✓ Training y onboarding
+✓ Comunicación con staff
+✓ Payroll integration
+
+ROI:
+★★☆☆☆ (2/5) - Útil con equipos grandes
+
+┌─────────────────────────────────────────────────────────────────────┐
+│ ☐ AGENTE 10 — Multilingual Translation Agent                        │
+│ PRIORIDAD: BAJA                                                      │
+└─────────────────────────────────────────────────────────────────────┘
+
+DESCRIPCIÓN:
+Traduce automáticamente comunicaciones, documentos y contenido
+a múltiples idiomas.
+
+CAPACIDADES:
+✓ Traducción en tiempo real (6+ idiomas)
+✓ Detección automática de idioma
+✓ Context-aware translations
+✓ Traducir documentos (house rules, etc.)
+✓ Localización de contenido
+
+ROI:
+★★☆☆☆ (2/5) - Integrado en otros agentes (ej: Agent 9)
+
+┌─────────────────────────────────────────────────────────────────────┐
+│ ☐ AGENTE 11 — Financial Manager Agent (FMS)                         │
+│ PRIORIDAD: MEDIA                                                     │
+└─────────────────────────────────────────────────────────────────────┘
+
+DESCRIPCIÓN:
+Gestiona finanzas: tracking revenue/expenses, invoicing, reportes,
+análisis profitability y forecasting.
+
+CAPACIDADES:
+✓ Tracking revenue en tiempo real
+✓ Tracking expenses por propiedad
+✓ Invoicing automático
+✓ Reportes financieros mensuales
+✓ Análisis profitability
+✓ Forecasting revenue
+✓ Tax calculations
+
+ROI:
+★★★☆☆ (3/5) - Crítico para reportes
+
+========================================================================
+RESUMEN FASE 3C (COMPLETO):
+- 12 agentes total implementados
+- Sistema 90% autónomo
+- Escalable a 50+ propiedades
+- Mínima intervención humana
+========================================================================
+
+========================================================================
+📊 TABLA RESUMEN - 12 AGENTES PRIORIZADOS
+========================================================================
+
+FASE 3A (MVP - SEMANA 1):
+┌────┬──────────────────────────────────┬────────────┬─────────────┐
+│ ID │ AGENTE                           │ PRIORIDAD  │ ROI         │
+├────┼──────────────────────────────────┼────────────┼─────────────┤
+│ 9  │ WhatsApp Concierge               │ MÁXIMA     │ ★★★★★ (5/5) │
+│ 2  │ Booking Manager                  │ CRÍTICA    │ ★★★★★ (5/5) │
+│ 12 │ Revenue Manager (Pricing)        │ CRÍTICA    │ ★★★★★ (5/5) │
+└────┴──────────────────────────────────┴────────────┴─────────────┘
+
+FASE 3B (EXPANSIÓN - SEMANA 2):
+┌────┬──────────────────────────────────┬────────────┬─────────────┐
+│ ID │ AGENTE                           │ PRIORIDAD  │ ROI         │
+├────┼──────────────────────────────────┼────────────┼─────────────┤
+│ 5  │ Housekeeping Scheduler           │ ALTA       │ ★★★★☆ (4/5) │
+│ 3  │ Guest Manager                    │ ALTA       │ ★★★★☆ (4/5) │
+│ 8  │ Task Automation                  │ ALTA       │ ★★★★☆ (4/5) │
+└────┴──────────────────────────────────┴────────────┴─────────────┘
+
+FASE 3C (COMPLETO - SEMANA 3-4):
+┌────┬──────────────────────────────────┬────────────┬─────────────┐
+│ ID │ AGENTE                           │ PRIORIDAD  │ ROI         │
+├────┼──────────────────────────────────┼────────────┼─────────────┤
+│ 11 │ Financial Manager (FMS)          │ MEDIA      │ ★★★☆☆ (3/5) │
+│ 6  │ Maintenance Manager              │ MEDIA      │ ★★★☆☆ (3/5) │
+│ 4  │ Calendar & Availability          │ MEDIA      │ ★★★☆☆ (3/5) │
+│ 1  │ PMS Core Agent                   │ MEDIA      │ ★★★☆☆ (3/5) │
+│ 7  │ Staff Manager                    │ BAJA       │ ★★☆☆☆ (2/5) │
+│ 10 │ Multilingual Translation         │ BAJA       │ ★★☆☆☆ (2/5) │
+└────┴──────────────────────────────────┴────────────┴─────────────┘
+
+========================================================================
+🎯 CRITERIOS DE PRIORIZACIÓN
+========================================================================
+
+Los agentes se priorizaron según:
+
+1. IMPACTO EN REVENUE (peso: 35%)
+   - Aumenta conversión booking?
+   - Optimiza precios?
+   - Genera return guests?
+
+2. AHORRO DE TIEMPO (peso: 30%)
+   - Cuántas horas/semana ahorra?
+   - Automatiza tareas repetitivas?
+   - Reduce carga operativa?
+
+3. VALOR PERCIBIDO POR HUÉSPED (peso: 20%)
+   - Mejora experiencia directamente?
+   - Respuesta más rápida?
+   - Servicio 24/7?
+
+4. COMPLEJIDAD TÉCNICA (peso: 10%)
+   - Fácil de implementar?
+   - Dependencias con otros agentes?
+   - Riesgos técnicos?
+
+5. ESCALABILIDAD (peso: 5%)
+   - Funciona con 1-50+ propiedades?
+   - Soporta crecimiento?
+
+========================================================================
+💡 RECOMENDACIÓN ESTRATÉGICA
+========================================================================
+
+OPCIÓN A (RECOMENDADA): MVP RÁPIDO
+- Implementar solo FASE 3A (3 agentes)
+- Validar con 2-3 propiedades reales
+- Iterar basado en feedback
+- Expandir a FASE 3B solo después de validación
+- Timeline: 1 semana MVP, 2-4 semanas validación
+
+VENTAJAS:
+✓ ROI inmediato medible
+✓ Menor riesgo técnico
+✓ Aprendizaje rápido
+✓ Ajustes basados en datos reales
+
+OPCIÓN B: IMPLEMENTACIÓN COMPLETA
+- Implementar las 3 fases seguidas
+- 12 agentes en 3-4 semanas
+- Testing con propiedades demo
+- Lanzamiento completo
+
+VENTAJAS:
+✓ Sistema completo más rápido
+✓ Visión integral
+
+DESVENTAJAS:
+⚠️ Mayor complejidad
+⚠️ Más tiempo sin validación real
+⚠️ Riesgo de ajustes grandes post-launch
+
+========================================================================
+RECOMENDACIÓN: Opción A - MVP Rápido con validación iterativa
+========================================================================
+
+FIN DE LISTA DE AGENTES IA - PRIORIZADA
+========================================================================

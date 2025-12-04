@@ -1,0 +1,71 @@
+# CONTEXTO: MY HOST BIZMATE - Flujo Facturas PDF Izumi Hotel
+
+## ESTADO ACTUAL DEL FLUJO
+Workflow: "Extraer Datos Facturas PDF - Izumi Hotel"
+ID: s1s6mIHFuWvey6DB
+URL: https://n8n-production-bb2d.up.railway.app/workflow/s1s6mIHFuWvey6DB
+
+## ESTRUCTURA DEL WORKFLOW (YA CREADO)
+1. Watch for New Invoices (Google Drive Trigger) - detecta PDF en carpeta
+2. Download Invoice PDF (Google Drive)
+3. Extract PDF Text
+4. Parse Invoice with OpenAI (HTTP Request)
+5. Format Invoice Data (Code)
+6. Save to Google Sheets
+7. Send Email Notification (Gmail)
+
+## RECURSOS YA CREADOS
+- Carpeta Google Drive: "Facturas Izumi" 
+  - ID: 1U0XC__hkoGWYf5SthfeYVBWFJiwJpwvI
+  - URL: https://drive.google.com/drive/folders/1U0XC__hkoGWYf5SthfeYVBWFJiwJpwvI
+
+- Google Sheet: "Invoice Database - Izumi"
+  - ID: 1zbI6NMK1_H37eNCGHkBXZDGUI0wWC0gJVmoC_GDXc7w
+  - URL: https://docs.google.com/spreadsheets/d/1zbI6NMK1_H37eNCGHkBXZDGUI0wWC0gJVmoC_GDXc7w
+  - Columnas: Invoice Number, Company Name, Company Email, Company Address, Company Phone, Invoice Date, Due Date, Total Amount
+
+- API Key OpenAI: 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
+
+- Email notificaciones: josecarrallodelafuente@gmail.com
+
+## PROBLEMA PENDIENTE
+Las credenciales de Google OAuth no funcionan en n8n self-hosted en Railway.
+Error: "403 access_denied - railway.app has not completed the Google verification process"
+
+Google no permite OAuth redirect a dominios genéricos de Railway (*.railway.app).
+
+## SOLUCIÓN PENDIENTE: SERVICE ACCOUNT
+Usar Google Service Account en lugar de OAuth:
+1. Crear Service Account en Google Cloud Console
+2. Descargar JSON con credenciales
+3. Compartir carpeta "Facturas Izumi" con el email del Service Account
+4. Compartir Google Sheet con el email del Service Account
+5. Configurar credenciales en n8n usando el JSON
+
+## GOOGLE CLOUD CONSOLE
+- Proyecto existente con OAuth Client creado (tipo Web Application)
+- OAuth Client: "Desktop MyHost-Bizmate-Data" (creado 30 Nov 2025)
+- Client ID: 563825671607-ld6e...
+- Redirect URI configurado: https://n8n-production-bb2d.up.railway.app/rest/oauth2-credential/callback
+
+## ARQUITECTURA GENERAL MY HOST BIZMATE
+- Frontend: React en Vercel (completo)
+- Backend: Supabase
+- Automatizaciones: n8n en Railway
+- URL n8n: https://n8n-production-bb2d.up.railway.app
+
+## OTROS FLUJOS FUNCIONANDO
+- Flujo B - Recomendaciones IA Diarias (FUNCIONAL) - ID: nVVjF4317EoKBJZv
+- Chatbot WhatsApp + Claude (Webhook Manual) MY HOST Bizmate II - ID: P0U2nNLqGzLvermS
+
+## CREDENCIALES n8n CONFIGURADAS
+- Supabase: ID "SJLQzwU9BVHEVAGc"
+- WhatsApp Business Cloud: configurado con Meta
+  - Phone Number ID: 846885438510763
+  - Business Account ID: 681354961503657
+
+## TIENES ACCESO AL MCP DE n8n
+Puedes listar, crear, actualizar y ejecutar workflows directamente.
+
+## TAREA PENDIENTE
+Completar la configuración de Service Account para que el flujo de facturas funcione.

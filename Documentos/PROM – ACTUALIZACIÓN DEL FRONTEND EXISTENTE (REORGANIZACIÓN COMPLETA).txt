@@ -1,0 +1,75 @@
+PROM – ACTUALIZACIÓN DEL FRONTEND EXISTENTE (REORGANIZACIÓN COMPLETA)
+
+Claudio, importante: el frontend de MY HOST BizMate YA ESTÁ CONSTRUIDO.
+Ahora necesito que lo reorganices siguiendo estos cambios EXACTOS:
+
+────────────────────────────
+1) SEPARAR LA HOME EN 2 BLOQUES
+────────────────────────────
+
+BLOQUE A – AGENTE INTERNO (PMS real):
+- Dashboard
+- Bookings
+- PMS Calendar
+- Properties
+- Operations Hub (Housekeeping, Maintenance, Staff & Roles)
+- Payments
+- Reports
+- Smart Pricing
+- AI Assistant
+- Cultural Intelligence (interna)
+- Settings
+
+BLOQUE B – AGENTE EXTERNO (guest):
+- Booking Engine
+- Digital Check-in
+- Guest Portal (6 secciones)
+- Reviews
+- Messages / WhatsApp IA (UI de chat)
+- Multichannel
+- Marketing
+- Social Publisher
+
+Mantén los iconos, estilos y colores, pero reordena completamente la home para que estos dos grupos queden perfectamente diferenciados.
+
+────────────────────────────
+2) LIMPIAR TODOS LOS MÓDULOS EXISTENTES
+────────────────────────────
+• No rehagas nada desde cero.
+• Mantén el diseño original.
+• Solo reorganiza, agrupa y mejora la navegación.
+• Cada módulo debe abrir una pantalla mínima funcional (mock data).
+
+────────────────────────────
+3) CAMBIOS REQUERIDOS EN LAS PANTALLAS
+────────────────────────────
+• Dashboard: dejarlo limpio con KPIs, tarjetas IA y accesos rápidos.
+• Bookings: tabla + filtros mock.
+• PMS Calendar: vista mensual/semanal mock.
+• Properties: vista tabla + cards + detalle con pestañas.
+• Operations Hub: dividir correctamente housekeeping/mantenimiento/staff.
+• Payments/Reports/Smart Pricing: UI mock.
+• AI Assistant: chat UI mock.
+• Cultural Intelligence: lista mock de eventos.
+• Booking Engine, Check-in y Guest Portal: UI externa limpia y mobile-first.
+• WhatsApp/Inbox: lista de chats + panel derecho mock.
+
+────────────────────────────
+4) ESTÁNDARES
+────────────────────────────
+• Todo debe quedar navegable.
+• No conectar Supabase aún.
+• No IA real todavía.
+• No WhatsApp real todavía.
+• Todo mock.
+• Componentes reutilizables.
+• Mobile-first.
+
+────────────────────────────
+5) OBJETIVO FINAL
+────────────────────────────
+Quiero un frontend organizado, profesional y entendible:
+- Dos bloques (interno/external).
+- PMS real organizado.
+- Guest experience separada.
+- Todo limpio, ordenado y listo para Fase 2 (Supabase).

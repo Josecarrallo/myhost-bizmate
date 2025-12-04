@@ -1,0 +1,27 @@
+Diseña un **AGENTE PMS CORE**, el agente principal del Property Management System para gestionar 3 villas en Bali.
+
+El agente debe ser capaz de:
+- manejar disponibilidad  
+- gestionar reservas  
+- mantener el calendario  
+- gestionar huéspedes  
+- crear y validar datos  
+- coordinar tareas con otros agentes  
+- comunicarse con Supabase y n8n mediante MCP  
+
+Quiero que generes:
+1. El **prompt completo del agente PMS CORE**
+2. Su **memoria interna y estructuras de datos**
+3. Los **workflows n8n** necesarios (crear reserva, modificar, cancelar, disponibilidad)
+4. Las **tablas Supabase** requeridas (villas, bookings, guests, tasks)
+5. Sus **reglas, límites y validaciones**
+6. Ejemplo de llamadas a MCP (Supabase + HTTP + n8n)
+
+El agente debe ser:
+- autónomo  
+- seguro  
+- riguroso en validaciones  
+- compatible con BizMate  
+- preparado para escalar a SaaS  
+
+Empieza generando la ARQUITECTURA del PMS Core y luego el prompt completo del agente.

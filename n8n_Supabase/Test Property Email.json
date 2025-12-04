@@ -1,0 +1,197 @@
+{
+  "name": "Test Property Email - Most Recent",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "manual-trigger",
+      "name": "When clicking 'Test workflow'",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "properties",
+        "returnAll": true,
+        "options": {
+          "queryString": "order=created_at.desc&limit=1"
+        }
+      },
+      "id": "supabase-get",
+      "name": "Get Most Recent Property",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [460, 300],
+      "credentials": {
+        "supabaseApi": {
+          "id": "your-supabase-credential-id",
+          "name": "Supabase"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fromEmail": "noreply@myhostbizmate.com",
+        "toEmail": "josecarrallodelafuente@gmail.com",
+        "subject": "=🏠 Test - Property Registered: {{ $json.name }}",
+        "emailType": "html",
+        "message": "=<!DOCTYPE html>\n<html>\n<head>\n  <meta charset=\"UTF-8\">\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n</head>\n<body style=\"margin: 0; padding: 0; font-family: 'Helvetica Neue', Arial, sans-serif; background-color: #f5f5f5;\">\n  <table width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"background-color: #f5f5f5; padding: 40px 20px;\">\n    <tr>\n      <td align=\"center\">\n        <table width=\"600\" cellpadding=\"0\" cellspacing=\"0\" style=\"background-color: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.1);\">\n          \n          <!-- Header -->\n          <tr>\n            <td style=\"background: linear-gradient(135deg, #FF5722 0%, #FF6F00 100%); padding: 40px 30px; text-align: center;\">\n              <h1 style=\"margin: 0; color: #ffffff; font-size: 32px; font-weight: 700;\">MY HOST</h1>\n              <p style=\"margin: 5px 0 0 0; color: #ffffff; font-size: 18px; font-weight: 600;\">BizMate</p>\n            </td>\n          </tr>\n          \n          <!-- Main Content -->\n          <tr>\n            <td style=\"padding: 40px 30px;\">\n              <h2 style=\"margin: 0 0 20px 0; color: #FF5722; font-size: 24px; font-weight: 700;\">🎉 Test Email - Property Registered!</h2>\n              \n              <p style=\"margin: 0 0 20px 0; color: #333333; font-size: 16px; line-height: 1.6;\">Hi José,</p>\n              \n              <p style=\"margin: 0 0 30px 0; color: #555555; font-size: 16px; line-height: 1.6;\">\n                This is a <strong>test email</strong> to confirm the n8n workflow is working correctly. The system successfully retrieved the most recent property from Supabase and sent this email.\n              </p>\n              \n              <!-- Property Details Card -->\n              <table width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); border-radius: 12px; padding: 25px; margin-bottom: 30px;\">\n                <tr>\n                  <td>\n                    <h3 style=\"margin: 0 0 20px 0; color: #FF5722; font-size: 18px; font-weight: 700;\">📋 Property Details</h3>\n                    \n                    <table width=\"100%\" cellpadding=\"8\" cellspacing=\"0\">\n                      <tr>\n                        <td style=\"color: #666666; font-size: 14px; font-weight: 600; width: 40%;\">Property Name:</td>\n                        <td style=\"color: #333333; font-size: 14px; font-weight: 700;\">{{ $json.name }}</td>\n                      </tr>\n                      <tr>\n                        <td style=\"color: #666666; font-size: 14px; font-weight: 600;\">Location:</td>\n                        <td style=\"color: #333333; font-size: 14px;\">{{ $json.location }}</td>\n                      </tr>\n                      <tr>\n                        <td style=\"color: #666666; font-size: 14px; font-weight: 600;\">Bedrooms:</td>\n                        <td style=\"color: #333333; font-size: 14px;\">{{ $json.bedrooms }}</td>\n                      </tr>\n                      <tr>\n                        <td style=\"color: #666666; font-size: 14px; font-weight: 600;\">Base Price:</td>\n                        <td style=\"color: #FF5722; font-size: 16px; font-weight: 700;\">${{ $json.base_price }}/night</td>\n                      </tr>\n                      <tr>\n                        <td style=\"color: #666666; font-size: 14px; font-weight: 600;\">Created:</td>\n                        <td style=\"color: #333333; font-size: 14px;\">{{ $json.created_at }}</td>\n                      </tr>\n                    </table>\n                  </td>\n                </tr>\n              </table>\n              \n              <!-- Success Message -->\n              <div style=\"background-color: #e8f5e9; border-left: 4px solid #4CAF50; padding: 20px; margin-bottom: 30px; border-radius: 8px;\">\n                <p style=\"margin: 0; color: #2e7d32; font-size: 14px; line-height: 1.6;\">\n                  <strong>✅ Success!</strong> The workflow is working correctly. n8n successfully:\n                </p>\n                <ul style=\"color: #2e7d32; font-size: 14px; margin: 10px 0; padding-left: 20px;\">\n                  <li>Connected to Supabase ✅</li>\n                  <li>Retrieved the most recent property ✅</li>\n                  <li>Sent this email to your inbox ✅</li>\n                </ul>\n              </div>\n              \n              <p style=\"margin: 30px 0 0 0; color: #777777; font-size: 14px; line-height: 1.6;\">\n                This is an automated test email from MY HOST BizMate workflow.\n              </p>\n            </td>\n          </tr>\n          \n          <!-- Footer -->\n          <tr>\n            <td style=\"background-color: #f8f9fa; padding: 30px; text-align: center; border-top: 1px solid #e0e0e0;\">\n              <p style=\"margin: 0 0 10px 0; color: #999999; font-size: 12px;\">\n                © 2024 MY HOST BizMate. All rights reserved.\n              </p>\n              <p style=\"margin: 0; color: #999999; font-size: 12px;\">\n                Effortlessly manage your villas in Southeast Asia\n              </p>\n            </td>\n          </tr>\n          \n        </table>\n      </td>\n    </tr>\n  </table>\n</body>\n</html>"
+      },
+      "id": "send-email",
+      "name": "Send Email",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2,
+      "position": [680, 300],
+      "credentials": {
+        "smtp": {
+          "id": "your-smtp-credential-id",
+          "name": "Gmail SMTP"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "When clicking 'Test workflow'": {
+      "main": [
+        [
+          {
+            "node": "Get Most Recent Property",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Most Recent Property": {
+      "main": [
+        [
+          {
+            "node": "Send Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}
+```
+
+---
+
+## 📋 PASO A PASO PARA CONFIGURAR:
+
+---
+
+### **PASO 1: IMPORTAR WORKFLOW EN N8N**
+```
+1. Abre n8n: https://n8n-production-bb2d.up.railway.app
+2. Click en el menú hamburguesa (☰) arriba izquierda
+3. Click "Import from Clipboard"
+4. Pega todo el JSON que te di arriba
+5. Click "Import"
+6. Dale nombre: "Test Property Email"
+```
+
+---
+
+### **PASO 2: CONFIGURAR CREDENCIALES SUPABASE**
+```
+1. En n8n, ve a: Settings (⚙️ icono) → Credentials
+2. Click "+ Add Credential"
+3. Busca "Supabase"
+4. Click en "Supabase"
+5. Rellena los campos:
+
+   Name: Supabase MY HOST
+   Host: https://TU-PROYECTO.supabase.co
+   Service Role Secret: [tu service_role key]
+
+6. Click "Save"
+```
+
+**¿Dónde encontrar estos datos?**
+```
+1. Ve a Supabase: https://supabase.com
+2. Selecciona tu proyecto
+3. Settings (gear icon) → API
+4. Copia:
+   - Project URL = Host (ejemplo: https://abcdefgh.supabase.co)
+   - service_role (secret) = Service Role Secret
+     ⚠️ Es el que dice "secret" - NO uses el "anon" public
+```
+
+---
+
+### **PASO 3: CONFIGURAR CREDENCIALES GMAIL**
+```
+1. Settings → Credentials
+2. "+ Add Credential"
+3. Busca "SMTP"
+4. Click "SMTP"
+5. Rellena:
+
+   Name: Gmail SMTP
+   Host: smtp.gmail.com
+   Port: 587
+   Security: STARTTLS
+   User: josecarrallodelafuente@gmail.com
+   Password: [App Password - NO tu contraseña normal]
+
+6. Click "Save"
+```
+
+**¿Cómo crear App Password de Gmail?**
+```
+1. Ve a: https://myaccount.google.com/security
+2. Verifica que "2-Step Verification" esté activado
+   (Si no → Actívalo primero)
+3. Busca "App passwords" (contraseñas de aplicación)
+4. Click "App passwords"
+5. En "Select app" → Other (Custom name)
+6. Escribe: "n8n MY HOST"
+7. Click "Generate"
+8. Copia el código de 16 caracteres (ej: abcd efgh ijkl mnop)
+9. Pégalo en n8n como "Password"
+10. ⚠️ NO uses espacios al pegar
+```
+
+---
+
+### **PASO 4: CONECTAR CREDENCIALES AL WORKFLOW**
+```
+1. Abre el workflow "Test Property Email"
+2. Click en el nodo "Get Most Recent Property"
+3. En "Credential to connect with":
+   - Click en el dropdown
+   - Selecciona "Supabase MY HOST"
+4. Click en el nodo "Send Email"
+5. En "Credential to connect with":
+   - Click en el dropdown
+   - Selecciona "Gmail SMTP"
+6. Click "Save" (arriba derecha del workflow)
+```
+
+---
+
+### **PASO 5: VERIFICAR CONFIGURACIÓN DEL NODO SUPABASE**
+```
+1. Click en nodo "Get Most Recent Property"
+2. Verifica estos parámetros:
+
+   Resource: Row
+   Operation: Get All
+   Table: properties  ⚠️ Asegúrate que sea el nombre exacto
+   Return All: ON (toggle activado)
+   
+   Additional Options:
+   Query String: order=created_at.desc&limit=1
+
+3. Si no ves "Query String":
+   - Click "Add Option"
+   - Selecciona "Query String"
+   - Escribe: order=created_at.desc&limit=1

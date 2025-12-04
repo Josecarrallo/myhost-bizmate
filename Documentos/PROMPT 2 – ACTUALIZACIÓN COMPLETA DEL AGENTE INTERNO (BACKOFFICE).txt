@@ -1,0 +1,130 @@
+PROMPT 2 – ACTUALIZACIÓN COMPLETA DEL AGENTE INTERNO (BACKOFFICE)
+
+Claudio, ahora que el frontend ya está reorganizado entre Agente Interno y Agente Externo,
+necesito que desarrolles y mejores TODAS las pantallas del AGENTE INTERNO,
+sin conectar todavía Supabase ni APIs. Usa solo MOCK DATA.
+
+Este trabajo es para dejar el Agente Interno totalmente preparado
+para la Fase 2 (CRUD real) y Fase 3 (IA + WhatsApp).
+
+────────────────────────────
+1) MÓDULO: DASHBOARD INTERNO
+────────────────────────────
+Mejorar y finalizar el Dashboard interno con:
+• KPIs mock (ocupación, ADR, revenue hoy/semana, check-ins/out, tareas abiertas)
+• Tarjetas IA mock (insight del día, pricing recomendado, alertas)
+• Accesos rápidos mock (crear reserva, abrir calendario, housekeeping, mantenimiento, pagos)
+• Diseño limpio, mobile-first, y consistente con el esquema actual.
+
+────────────────────────────
+2) MÓDULO: BOOKINGS
+────────────────────────────
+• Tabla mock con columnas: Guest, Fechas, Propiedad, Estado, Precio, Canal
+• Filtros por: Estado, Propiedad, Canal, Fechas
+• Barra de búsqueda
+• Vista de detalle mock (modal o página):
+  - Datos del huésped
+  - Estado
+  - Notas internas
+  - Pagos mock
+  - Tareas asociadas (housekeeping/mantenimiento)
+
+────────────────────────────
+3) MÓDULO: PMS CALENDAR
+────────────────────────────
+• Vista mensual tipo Gantt (Propiedades en filas, días en columnas)
+• Vista semanal compacta
+• Reservas mock con colores por estado
+• Tooltip mock con info del huésped y precio
+• Opción de “crear reserva” desde el calendario (mock)
+
+────────────────────────────
+4) MÓDULO: PROPERTIES
+────────────────────────────
+• Tabla + Vista en tarjetas
+• Pantalla de detalle mock con pestañas:
+  - General
+  - Tarifas
+  - Fotos
+  - Reglas
+  - Amenities
+
+Crear datos mock mínimos para simular 3 propiedades.
+
+────────────────────────────
+5) MÓDULO: OPERATIONS HUB
+────────────────────────────
+
+HOUSEKEEPING
+• Lista de tareas del día
+• Estados: pending / in-progress / done
+• Asignación mock a miembros del staff
+• Prioridades mock
+• Modal de detalle de cada tarea (mock)
+
+MAINTENANCE
+• Tickets mock: descripción, propiedad, prioridad, estado
+• Botón para “crear incidencia” (mock)
+• Historial mock de incidencias resueltas
+
+STAFF & ROLES
+• Tabla mock con: Nombre, Rol, Estado
+• Roles: Owner, Admin, Reception, Housekeeping, Maintenance
+• Vista de detalle del usuario mock
+
+────────────────────────────
+6) MÓDULO: PAYMENTS
+────────────────────────────
+• Tabla mock: fecha, huésped, reserva, importe, método, estado
+• Filtros mock por estado y método
+• Detalle de pago mock
+
+────────────────────────────
+7) MÓDULO: REPORTS
+────────────────────────────
+• Gráfico mock lineal (Revenue)
+• Gráfico mock barras (Ocupación por propiedad)
+• Gráfico mock donut (Métodos de pago)
+• Filtros mock por periodo
+
+────────────────────────────
+8) MÓDULO: SMART PRICING (UI)
+────────────────────────────
+• Tabla mock con:
+  - Propiedad
+  - Fecha
+  - Precio actual
+  - Precio recomendado IA (mock)
+  - Botón “Aceptar recomendación” (sin acción)
+
+────────────────────────────
+9) MÓDULO: AI ASSISTANT (UI)
+────────────────────────────
+• UI tipo chat
+• Historial mock de 3 mensajes
+• Campo input para escribir
+• Diseño simple y organizado
+
+────────────────────────────
+10) MÓDULO: CULTURAL INTELLIGENCE (INTERNA)
+────────────────────────────
+• Lista de eventos culturales mock (Galungan, Nyepi, Odalan)
+• Campo de “impacto” (alto/medio/bajo)
+• Tooltip o breve descripción mock
+
+────────────────────────────
+11) ESTÁNDARES TÉCNICOS
+────────────────────────────
+• No Supabase todavía
+• No IA real todavía
+• No WhatsApp todavía
+• Todo mock
+• Componentes reutilizables
+• Mobile-first
+• Respeta la estructura y rutas actuales
+
+────────────────────────────
+12) OBJETIVO FINAL
+────────────────────────────
+Quiero dejar todo el Agente Interno 100% limpio, organizado y listo para
+FASE 2 (CRUD real) sin romper nada del diseño existente.
