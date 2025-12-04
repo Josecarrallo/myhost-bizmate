@@ -62,6 +62,29 @@ const AITripPlanner = ({ onBack }) => {
         { time: "18:00", name: "Return to villa", category: "lodging", icon: Home },
         { time: "20:00", name: "Private villa dinner", category: "food", icon: Utensils }
       ]
+    },
+    {
+      day: 4,
+      title: "Beach & Water Sports",
+      activities: [
+        { time: "09:00", name: "Breakfast at Revolver Espresso", category: "food", icon: Coffee },
+        { time: "10:30", name: "Surfing Lesson at Canggu", category: "adventure", icon: Waves },
+        { time: "13:00", name: "Lunch at The Lawn", category: "food", icon: Utensils },
+        { time: "15:00", name: "Beach Club at Finns", category: "beach", icon: Waves },
+        { time: "18:00", name: "Sunset at Tanah Lot Temple", category: "culture", icon: Sun },
+        { time: "20:00", name: "Seafood dinner at Jimbaran Beach", category: "food", icon: Utensils }
+      ]
+    },
+    {
+      day: 5,
+      title: "Relaxation & Departure",
+      activities: [
+        { time: "08:00", name: "Villa breakfast", category: "food", icon: Coffee },
+        { time: "10:00", name: "Balinese Spa Treatment", category: "beach", icon: Leaf },
+        { time: "12:00", name: "Lunch at Métis", category: "food", icon: Utensils },
+        { time: "14:00", name: "Last minute shopping at Seminyak", category: "culture", icon: Camera },
+        { time: "16:00", name: "Check-out & Airport Transfer", category: "lodging", icon: Home }
+      ]
     }
   ];
 
@@ -85,11 +108,12 @@ const AITripPlanner = ({ onBack }) => {
             </div>
             <div className="flex-1">
               <h3 className="text-2xl font-black mb-2">Your Personalized Bali Adventure</h3>
-              <p className="text-white/90 mb-4">3-day curated itinerary based on your preferences</p>
+              <p className="text-white/90 mb-4">5-day curated itinerary based on your preferences</p>
               <div className="flex items-center gap-3 flex-wrap">
                 <span className="px-4 py-2 bg-white/20 rounded-full text-sm font-bold backdrop-blur-sm">Beach Lover</span>
                 <span className="px-4 py-2 bg-white/20 rounded-full text-sm font-bold backdrop-blur-sm">Foodie</span>
                 <span className="px-4 py-2 bg-white/20 rounded-full text-sm font-bold backdrop-blur-sm">Adventure Seeker</span>
+                <span className="px-4 py-2 bg-white/20 rounded-full text-sm font-bold backdrop-blur-sm">Culture Explorer</span>
               </div>
             </div>
           </div>
@@ -158,7 +182,7 @@ const AITripPlanner = ({ onBack }) => {
         <div className="mt-8 bg-gradient-to-r from-blue-500 to-cyan-500 text-white p-6 rounded-2xl">
           <div className="flex items-center gap-3 mb-4">
             <Sparkles className="w-6 h-6" />
-            <h4 className="text-lg font-black">AI Recommendations</h4>
+            <h4 className="text-lg font-black">AI Recommendations & Tips</h4>
           </div>
           <ul className="space-y-2 text-sm text-white/90">
             <li className="flex items-start gap-2">
@@ -172,6 +196,18 @@ const AITripPlanner = ({ onBack }) => {
             <li className="flex items-start gap-2">
               <Check className="w-5 h-5 flex-shrink-0 mt-0.5" />
               <span>Reserve dinner at Locavore at least 2 weeks ahead</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <Check className="w-5 h-5 flex-shrink-0 mt-0.5" />
+              <span>Hire a private driver for day trips - more convenient than taxis</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <Check className="w-5 h-5 flex-shrink-0 mt-0.5" />
+              <span>Visit Tanah Lot Temple at sunset for the best experience</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <Check className="w-5 h-5 flex-shrink-0 mt-0.5" />
+              <span>Book spa treatments in advance during peak season</span>
             </li>
           </ul>
         </div>

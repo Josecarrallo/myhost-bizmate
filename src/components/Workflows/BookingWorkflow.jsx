@@ -183,6 +183,22 @@ const BookingsReservationsWorkflow = ({ onBack }) => {
                   <span className="text-xs text-gray-500">28 min ago</span>
                 </div>
               </div>
+              <div className="flex items-center gap-4 p-4 bg-orange-50 rounded-xl">
+                <CalendarCheck className="w-6 h-6 text-orange-600" />
+                <div className="flex-1">
+                  <p className="font-bold text-gray-900">Review request sent</p>
+                  <p className="text-sm text-gray-600">David Park - Villa Sunset</p>
+                </div>
+                <span className="text-xs text-gray-500">35 min ago</span>
+              </div>
+              <div className="flex items-center gap-4 p-4 bg-pink-50 rounded-xl">
+                <CheckCircle className="w-6 h-6 text-pink-600" />
+                <div className="flex-1">
+                  <p className="font-bold text-gray-900">Cleaning scheduled</p>
+                  <p className="text-sm text-gray-600">Beach House - Dec 5 at 11:00 AM</p>
+                </div>
+                <span className="text-xs text-gray-500">42 min ago</span>
+              </div>
             </div>
           </div>
         )}

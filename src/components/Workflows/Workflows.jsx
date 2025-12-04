@@ -10,7 +10,8 @@ import {
   BellRing,
   Compass,
   Calendar,
-  Percent
+  Percent,
+  Star
 } from 'lucide-react';
 import { StatCard, WorkflowCard } from '../common';
 
@@ -128,6 +129,48 @@ const WorkflowsAutomations = ({ onBack, onNavigate }) => {
             lastRun="3 hours ago"
             runsToday={6}
             icon={Percent}
+          />
+
+          <WorkflowCard
+            name="Review Collection & Response"
+            trigger="After check-out"
+            actions={[
+              "Send review request email",
+              "Monitor review submission",
+              "Auto-respond with thank you message"
+            ]}
+            status="active"
+            lastRun="1 hour ago"
+            runsToday={3}
+            icon={Star}
+          />
+
+          <WorkflowCard
+            name="Maintenance Scheduling"
+            trigger="After guest check-out"
+            actions={[
+              "Schedule professional cleaning",
+              "Perform property inspection",
+              "Restock amenities and supplies"
+            ]}
+            status="active"
+            lastRun="30 min ago"
+            runsToday={4}
+            icon={CheckCircle}
+          />
+
+          <WorkflowCard
+            name="Guest Follow-up & Upsell"
+            trigger="7 days after check-out"
+            actions={[
+              "Send personalized thank you message",
+              "Offer discount for next booking",
+              "Request social media shares"
+            ]}
+            status="active"
+            lastRun="4 hours ago"
+            runsToday={2}
+            icon={BellRing}
           />
         </div>
       </div>
