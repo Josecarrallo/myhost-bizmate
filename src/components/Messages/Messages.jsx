@@ -1,19 +1,84 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   ChevronLeft,
   Search,
   MessageSquare,
   Bot,
   Clock,
-  Send
+  Send,
+  Filter,
+  X,
+  CheckCheck,
+  Sparkles,
+  User,
+  Calendar
 } from 'lucide-react';
-import { StatCard, MessageCard } from '../common';
 
 const Messages = ({ onBack }) => {
   const [messageText, setMessageText] = useState('');
+  const [selectedConversation, setSelectedConversation] = useState(null);
+  const [filter, setFilter] = useState('all'); // all, unread, ai-handled
+  const [searchQuery, setSearchQuery] = useState('');
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+
+  const conversations = [
+    { id: 1, name: "Emma Wilson", property: "City Loft", message: "Hi! I'd like to know if early check-in is possible for my reservation next week?", time: "5m ago", unread: true, avatar: "EW", aiHandled: false, checkIn: "2025-12-10", status: "confirmed" },
+    { id: 2, name: "David Park", property: "Mountain Cabin", message: "Thank you for the wonderful stay! Everything was perfect.", time: "2h ago", unread: false, avatar: "DP", aiHandled: true, checkIn: "2025-11-25", status: "checked-out" },
+    { id: 3, name: "Lisa Anderson", property: "Beach House", message: "Could you please send me the WiFi password? Thanks!", time: "1d ago", unread: false, avatar: "LA", aiHandled: true, checkIn: "2025-12-05", status: "checked-in" },
+    { id: 4, name: "James Rodriguez", property: "Villa Sunset", message: "Is parking available at the property? We're arriving with 2 cars.", time: "2d ago", unread: false, avatar: "JR", aiHandled: false, checkIn: "2025-12-15", status: "confirmed" },
+    { id: 5, name: "Sophie Martin", property: "Villa Paradise", message: "We'd like to extend our stay for 2 more days. Is it available?", time: "3d ago", unread: true, avatar: "SM", aiHandled: false, checkIn: "2025-12-08", status: "pending-extension" },
+    { id: 6, name: "Michael Chen", property: "Beach House", message: "The heater in bedroom 2 is not working properly. Can someone check it?", time: "3d ago", unread: true, avatar: "MC", aiHandled: false, checkIn: "2025-12-03", status: "checked-in" },
+    { id: 7, name: "Anna Kowalski", property: "City Loft", message: "Thank you for the quick response! Looking forward to our stay.", time: "4d ago", unread: false, avatar: "AK", aiHandled: true, checkIn: "2025-12-20", status: "confirmed" },
+    { id: 8, name: "Tom Harrison", property: "Mountain Cabin", message: "Are pets allowed at the property? We have a small dog.", time: "5d ago", unread: false, avatar: "TH", aiHandled: true, checkIn: "2025-12-18", status: "confirmed" },
+    { id: 9, name: "Maria Garcia", property: "Villa Sunset", message: "Can we have a late check-out? Our flight is at 8 PM.", time: "6d ago", unread: false, avatar: "MG", aiHandled: true, checkIn: "2025-11-28", status: "checked-out" },
+    { id: 10, name: "John Smith", property: "Villa Paradise", message: "Is airport transfer included in the booking?", time: "1w ago", unread: false, avatar: "JS", aiHandled: true, checkIn: "2025-12-12", status: "confirmed" }
+  ];
+
+  const aiTemplates = [
+    { id: 1, name: "Check-in Info", icon: "🏠", template: "Hi! Your check-in is confirmed for [DATE] at 2:00 PM. Your access code is [CODE]. The property address is [ADDRESS]. Let us know if you need anything!" },
+    { id: 2, name: "WiFi Password", icon: "📶", template: "Hi! Here's the WiFi information:\nNetwork: [PROPERTY_WIFI]\nPassword: [PASSWORD]\n\nLet us know if you need any help!" },
+    { id: 3, name: "Late Check-out", icon: "🕐", template: "Hi! We can accommodate a late check-out until [TIME] for an additional fee of $[AMOUNT]. Would you like to proceed?" },
+    { id: 4, name: "Parking Info", icon: "🚗", template: "Hi! Yes, we have [NUMBER] parking spaces available at the property. Parking is complimentary for all guests." },
+    { id: 5, name: "Pet Policy", icon: "🐕", template: "Hi! Unfortunately, pets are not allowed at this property due to allergies of other guests. We apologize for the inconvenience." },
+    { id: 6, name: "Airport Transfer", icon: "✈️", template: "Hi! Airport transfer is available for $[PRICE] one way. It includes a private driver and takes approximately [TIME] minutes. Would you like to book it?" }
+  ];
+
+  const fullConversation = [
+    { sender: "guest", text: "Hi! I'd like to know if early check-in is possible for my reservation next week?", time: "10:30 AM" },
+    { sender: "host", text: "Hi Emma! Let me check the availability for early check-in. One moment please.", time: "10:32 AM" },
+    { sender: "host", text: "Good news! We can accommodate early check-in at 11:00 AM on Dec 10th. There's no additional charge. Does that work for you?", time: "10:35 AM" },
+    { sender: "guest", text: "Perfect! Thank you so much!", time: "10:36 AM" },
+    { sender: "host", text: "You're welcome! See you soon! 🏠", time: "10:37 AM" }
+  ];
+
+  const filteredConversations = conversations.filter(conv => {
+    const matchesFilter = filter === 'all' ||
+      (filter === 'unread' && conv.unread) ||
+      (filter === 'ai-handled' && conv.aiHandled);
+
+    const matchesSearch = searchQuery === '' ||
+      conv.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      conv.property.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      conv.message.toLowerCase().includes(searchQuery.toLowerCase());
+
+    return matchesFilter && matchesSearch;
+  });
+
+  const stats = {
+    unread: conversations.filter(c => c.unread).length,
+    aiHandled: conversations.filter(c => c.aiHandled).length,
+    avgResponseTime: "8m"
+  };
+
+  const handleTemplateClick = (template) => {
+    setMessageText(template.template);
+  };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-400 via-orange-500 to-orange-600 p-4 pb-24 relative overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-orange-400 via-orange-500 to-orange-600 flex flex-col relative overflow-hidden">
       {/* Animated background elements */}
       <div className="absolute inset-0 overflow-hidden">
         <div className="absolute w-96 h-96 bg-orange-300/20 rounded-full blur-3xl top-20 -left-48 animate-pulse"></div>
@@ -21,50 +86,289 @@ const Messages = ({ onBack }) => {
         <div className="absolute w-72 h-72 bg-orange-200/30 rounded-full blur-2xl top-1/2 right-1/4 animate-pulse" style={{ animationDelay: '0.5s' }}></div>
       </div>
 
-      <div className="max-w-7xl mx-auto relative z-10">
-        <div className="flex items-center justify-between mb-8">
-          <button onClick={onBack} className="p-3 bg-white/95 backdrop-blur-sm rounded-2xl hover:bg-white transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 border-2 border-white/50">
-            <ChevronLeft className="w-6 h-6 text-orange-600" />
+      {/* Header */}
+      <div className="bg-white/95 backdrop-blur-sm border-b-2 border-white/50 p-4 relative z-10 shadow-lg">
+        <div className="max-w-7xl mx-auto flex items-center justify-between">
+          <button onClick={onBack} className="flex items-center gap-2 text-orange-600 hover:text-orange-500 transition-colors">
+            <ChevronLeft className="w-5 h-5" />
+            <span className="font-semibold">Back</span>
           </button>
           <div className="text-center">
-            <h2 className="text-4xl md:text-5xl font-black text-white drop-shadow-2xl mb-1">MY HOST</h2>
-            <p className="text-2xl md:text-3xl font-bold text-orange-100 drop-shadow-xl">BizMate</p>
+            <h2 className="text-3xl md:text-4xl font-black text-orange-600 mb-1">WhatsApp IA</h2>
+            <p className="text-sm md:text-base font-semibold text-orange-500">AI-Powered Messaging</p>
           </div>
-          <button className="p-3 bg-white/95 backdrop-blur-sm rounded-2xl hover:bg-white transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 border-2 border-white/50">
-            <Search className="w-6 h-6 text-orange-600" />
-          </button>
+          <div className="w-20"></div>
         </div>
+      </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-          <StatCard icon={MessageSquare} label="Unread Messages" value="12" gradient="from-orange-500 to-orange-600" />
-          <StatCard icon={Bot} label="AI Auto-Replies" value="45" trend="+20%" gradient="from-orange-500 to-orange-600" />
-          <StatCard icon={Clock} label="Avg Response Time" value="8m" trend="-15%" gradient="from-orange-500 to-orange-600" />
-        </div>
-
-        <div className="bg-white/95 backdrop-blur-sm rounded-3xl p-6 shadow-2xl border-2 border-white/50 mb-6">
-          <div className="space-y-4">
-            <MessageCard name="Emma Wilson" property="City Loft" message="Hi! I'd like to know if early check-in is possible for my reservation next week?" time="5m ago" unread={true} avatar="EW" />
-            <MessageCard name="David Park" property="Mountain Cabin" message="Thank you for the wonderful stay! Everything was perfect." time="2h ago" unread={false} avatar="DP" />
-            <MessageCard name="Lisa Anderson" property="Beach House" message="Could you please send me the WiFi password? Thanks!" time="1d ago" unread={false} avatar="LA" />
-            <MessageCard name="James Rodriguez" property="Villa Sunset" message="Is parking available at the property? We're arriving with 2 cars." time="2d ago" unread={false} avatar="JR" />
+      {/* Content */}
+      <div className="flex-1 overflow-auto p-6 relative z-10">
+        <div className="max-w-7xl mx-auto space-y-6">
+          {/* Stats */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="bg-white/95 backdrop-blur-sm rounded-2xl p-6 border-2 border-white/50 shadow-lg">
+              <div className="flex items-center gap-3 mb-2">
+                <MessageSquare className="w-6 h-6 text-orange-600" />
+                <span className="text-sm font-bold text-gray-600">Unread Messages</span>
+              </div>
+              <div className="text-3xl font-black text-orange-600">{stats.unread}</div>
+            </div>
+            <div className="bg-gradient-to-br from-orange-500 to-orange-600 rounded-2xl p-6 border-2 border-white/50 shadow-lg text-white">
+              <div className="flex items-center gap-3 mb-2">
+                <Bot className="w-6 h-6" />
+                <span className="text-sm font-bold opacity-90">AI Auto-Replies</span>
+              </div>
+              <div className="text-3xl font-black">{stats.aiHandled}</div>
+              <div className="text-xs opacity-75 mt-1">+20% this week</div>
+            </div>
+            <div className="bg-white/95 backdrop-blur-sm rounded-2xl p-6 border-2 border-white/50 shadow-lg">
+              <div className="flex items-center gap-3 mb-2">
+                <Clock className="w-6 h-6 text-orange-600" />
+                <span className="text-sm font-bold text-gray-600">Avg Response Time</span>
+              </div>
+              <div className="text-3xl font-black text-orange-600">{stats.avgResponseTime}</div>
+              <div className="text-xs text-green-600 font-bold mt-1">-15% improvement</div>
+            </div>
           </div>
-        </div>
 
-        <div className="bg-white/95 backdrop-blur-sm rounded-3xl p-6 shadow-2xl border-2 border-white/50">
-          <div className="flex items-center gap-4">
-            <input
-              type="text"
-              value={messageText}
-              onChange={(e) => setMessageText(e.target.value)}
-              placeholder="Type your message..."
-              className="flex-1 px-6 py-4 bg-gray-50 rounded-2xl border-2 border-gray-200 focus:border-orange-500 focus:outline-none text-gray-900 font-medium"
-            />
-            <button className="p-4 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-2xl hover:shadow-lg transition-all">
-              <Send className="w-6 h-6" />
-            </button>
+          {/* Filters */}
+          <div className="bg-white/95 backdrop-blur-sm rounded-2xl p-4 border-2 border-white/50 shadow-lg">
+            <div className="flex flex-col md:flex-row gap-3">
+              {/* Search */}
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="Search conversations..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full pl-10 pr-4 py-3 rounded-xl border-2 border-gray-200 focus:border-orange-500 focus:outline-none font-semibold text-gray-700"
+                />
+              </div>
+
+              {/* Filter Buttons */}
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setFilter('all')}
+                  className={`px-4 py-3 rounded-xl font-bold transition-all ${
+                    filter === 'all'
+                      ? 'bg-gradient-to-r from-orange-500 to-orange-600 text-white'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  All ({conversations.length})
+                </button>
+                <button
+                  onClick={() => setFilter('unread')}
+                  className={`px-4 py-3 rounded-xl font-bold transition-all ${
+                    filter === 'unread'
+                      ? 'bg-gradient-to-r from-orange-500 to-orange-600 text-white'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  Unread ({stats.unread})
+                </button>
+                <button
+                  onClick={() => setFilter('ai-handled')}
+                  className={`px-4 py-3 rounded-xl font-bold transition-all flex items-center gap-2 ${
+                    filter === 'ai-handled'
+                      ? 'bg-gradient-to-r from-orange-500 to-orange-600 text-white'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  <Bot className="w-4 h-4" />
+                  AI ({stats.aiHandled})
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Conversations */}
+          <div className="bg-white/95 backdrop-blur-sm rounded-3xl p-6 border-2 border-white/50 shadow-xl">
+            <h3 className="text-xl font-black text-orange-600 mb-4">Conversations</h3>
+            <div className="space-y-3">
+              {filteredConversations.map((conv) => (
+                <div
+                  key={conv.id}
+                  onClick={() => setSelectedConversation(conv)}
+                  className={`p-4 rounded-2xl border-2 transition-all cursor-pointer ${
+                    conv.unread
+                      ? 'bg-orange-50 border-orange-200 hover:bg-orange-100'
+                      : 'bg-gray-50 border-gray-200 hover:bg-gray-100'
+                  }`}
+                >
+                  <div className="flex items-start gap-4">
+                    <div className="flex-shrink-0 w-12 h-12 bg-gradient-to-br from-orange-500 to-orange-600 rounded-full flex items-center justify-center text-white font-black text-sm">
+                      {conv.avatar}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-start justify-between mb-1">
+                        <div>
+                          <h4 className="text-base font-black text-orange-600">{conv.name}</h4>
+                          <p className="text-xs font-semibold text-gray-500">{conv.property}</p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {conv.aiHandled && (
+                            <div className="px-2 py-1 bg-purple-100 rounded-lg flex items-center gap-1">
+                              <Bot className="w-3 h-3 text-purple-600" />
+                              <span className="text-xs font-bold text-purple-600">AI</span>
+                            </div>
+                          )}
+                          <span className="text-xs font-semibold text-gray-500">{conv.time}</span>
+                        </div>
+                      </div>
+                      <p className="text-sm text-gray-700 truncate">{conv.message}</p>
+                      <div className="flex items-center gap-3 mt-2">
+                        <div className="flex items-center gap-1 text-xs text-gray-500">
+                          <Calendar className="w-3 h-3" />
+                          <span className="font-semibold">{conv.checkIn}</span>
+                        </div>
+                        <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${
+                          conv.status === 'checked-in' ? 'bg-green-100 text-green-700' :
+                          conv.status === 'checked-out' ? 'bg-gray-100 text-gray-700' :
+                          conv.status === 'pending-extension' ? 'bg-yellow-100 text-yellow-700' :
+                          'bg-blue-100 text-blue-700'
+                        }`}>
+                          {conv.status}
+                        </span>
+                      </div>
+                    </div>
+                    {conv.unread && (
+                      <div className="flex-shrink-0 w-3 h-3 bg-orange-600 rounded-full"></div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* AI Templates */}
+          <div className="bg-white/95 backdrop-blur-sm rounded-3xl p-6 border-2 border-white/50 shadow-xl">
+            <div className="flex items-center gap-2 mb-4">
+              <Sparkles className="w-6 h-6 text-orange-600" />
+              <h3 className="text-xl font-black text-orange-600">AI Quick Response Templates</h3>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+              {aiTemplates.map((template) => (
+                <button
+                  key={template.id}
+                  onClick={() => handleTemplateClick(template)}
+                  className="p-4 bg-gradient-to-br from-orange-50 to-orange-100 border-2 border-orange-200 rounded-xl hover:from-orange-100 hover:to-orange-200 transition-all text-left"
+                >
+                  <div className="text-2xl mb-2">{template.icon}</div>
+                  <div className="text-sm font-bold text-orange-600">{template.name}</div>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Message Input */}
+          <div className="bg-white/95 backdrop-blur-sm rounded-3xl p-6 border-2 border-white/50 shadow-xl">
+            <div className="flex flex-col gap-3">
+              <textarea
+                value={messageText}
+                onChange={(e) => setMessageText(e.target.value)}
+                placeholder="Type your message or select an AI template..."
+                rows="3"
+                className="w-full px-4 py-3 bg-gray-50 rounded-2xl border-2 border-gray-200 focus:border-orange-500 focus:outline-none text-gray-900 font-medium resize-none"
+              ></textarea>
+              <div className="flex items-center justify-between">
+                <button
+                  onClick={() => setMessageText('')}
+                  className="px-4 py-2 bg-gray-200 text-gray-700 rounded-xl font-bold hover:bg-gray-300 transition-all"
+                >
+                  Clear
+                </button>
+                <button className="px-6 py-3 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-xl hover:shadow-lg transition-all flex items-center gap-2 font-bold">
+                  <Send className="w-5 h-5" />
+                  Send Message
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       </div>
+
+      {/* Conversation Modal */}
+      {selectedConversation && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-3xl max-w-2xl w-full max-h-[90vh] overflow-auto shadow-2xl">
+            <div className="sticky top-0 bg-gradient-to-r from-orange-500 to-orange-600 p-6 rounded-t-3xl">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center text-white font-black">
+                    {selectedConversation.avatar}
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-black text-white">{selectedConversation.name}</h3>
+                    <p className="text-sm text-white/80 font-semibold">{selectedConversation.property}</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setSelectedConversation(null)}
+                  className="w-10 h-10 bg-white/20 hover:bg-white/30 rounded-full flex items-center justify-center transition-all"
+                >
+                  <X className="w-6 h-6 text-white" />
+                </button>
+              </div>
+            </div>
+
+            <div className="p-6 space-y-4">
+              {/* Guest Info */}
+              <div className="bg-orange-50 rounded-2xl p-4 border-2 border-orange-200">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <span className="text-xs font-bold text-orange-600">Check-in</span>
+                    <p className="text-sm font-black text-gray-700">{selectedConversation.checkIn}</p>
+                  </div>
+                  <div>
+                    <span className="text-xs font-bold text-orange-600">Status</span>
+                    <p className="text-sm font-black text-gray-700">{selectedConversation.status}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Full Conversation */}
+              <div className="space-y-3">
+                {fullConversation.map((msg, idx) => (
+                  <div
+                    key={idx}
+                    className={`flex ${msg.sender === 'host' ? 'justify-end' : 'justify-start'}`}
+                  >
+                    <div
+                      className={`max-w-[80%] p-3 rounded-2xl ${
+                        msg.sender === 'host'
+                          ? 'bg-gradient-to-r from-orange-500 to-orange-600 text-white'
+                          : 'bg-gray-100 text-gray-700'
+                      }`}
+                    >
+                      <p className="text-sm font-medium">{msg.text}</p>
+                      <div className={`flex items-center gap-1 mt-1 text-xs ${
+                        msg.sender === 'host' ? 'text-white/70' : 'text-gray-500'
+                      }`}>
+                        <span>{msg.time}</span>
+                        {msg.sender === 'host' && <CheckCheck className="w-3 h-3" />}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Quick Reply */}
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  placeholder="Type a reply..."
+                  className="flex-1 px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-orange-500 focus:outline-none font-medium"
+                />
+                <button className="px-6 py-3 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-xl hover:shadow-lg transition-all flex items-center gap-2 font-bold">
+                  <Send className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
