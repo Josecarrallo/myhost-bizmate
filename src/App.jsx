@@ -55,11 +55,14 @@ export default function App() {
           <h1 className="text-7xl md:text-8xl font-black mb-3 text-white drop-shadow-2xl">
             MY HOST
           </h1>
-          <p className="text-5xl md:text-6xl font-bold mb-6 text-orange-100 drop-shadow-xl">
+          <p className="text-5xl md:text-6xl font-bold mb-8 text-orange-100 drop-shadow-xl">
             BizMate
           </p>
-          <p className="text-2xl text-orange-50 font-medium mb-12 drop-shadow-lg max-w-2xl mx-auto">
-            Smart management for modern hospitality.
+          <p className="text-2xl md:text-3xl text-white font-bold mb-3 drop-shadow-lg max-w-3xl mx-auto">
+            Smart Management for Modern Hospitality
+          </p>
+          <p className="text-xl md:text-2xl text-orange-100 font-semibold mb-12 drop-shadow-lg max-w-3xl mx-auto">
+            Powered by Artificial Intelligence
           </p>
 
           <div className="relative">
@@ -78,8 +81,8 @@ export default function App() {
             <div className="absolute inset-0 bg-white/20 blur-xl rounded-full -z-10 group-hover:bg-white/40 transition-all duration-500"></div>
           </div>
 
-          <p className="mt-16 text-orange-100 text-sm font-medium tracking-wider">
-            Powered by AI • Made for Hospitality Excellence
+          <p className="mt-16 text-orange-50/80 text-sm font-medium tracking-wider">
+            AI-Powered Property Management System
           </p>
         </div>
       </div>
@@ -198,59 +201,39 @@ export default function App() {
             <div className="w-12"></div>
           </div>
 
-          <div className="space-y-6">
-            {/* 1️⃣ Operations & Guest Management */}
+          <div className="space-y-8">
+            {/* 🏢 BLOQUE A - PROPERTY MANAGEMENT SYSTEM */}
             <div>
-              <h3 className="text-xl font-black text-white mb-4 px-1 drop-shadow-lg">Operations & Guest Management</h3>
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-3 md:gap-4">
+              <div className="mb-6">
+                <h2 className="text-3xl font-black text-white px-1 drop-shadow-2xl">Property Management System</h2>
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4 md:gap-5">
                 <ModuleGridCard icon={LayoutDashboard} title="Dashboard" gradient="from-purple-500 to-pink-600" onClick={() => setCurrentModule('dashboard')} />
                 <ModuleGridCard icon={Calendar} title="Bookings" gradient="from-blue-500 to-cyan-600" onClick={() => setCurrentModule('bookings')} />
                 <ModuleGridCard icon={Calendar} title="PMS Calendar" gradient="from-blue-500 to-purple-600" onClick={() => setCurrentModule('pms-calendar')} />
                 <ModuleGridCard icon={Home} title="Properties" gradient="from-pink-500 to-rose-600" onClick={() => setCurrentModule('properties')} />
                 <ModuleGridCard icon={ClipboardList} title="Operations Hub" gradient="from-blue-600 to-cyan-600" onClick={() => setCurrentModule('operations')} />
-                <ModuleGridCard icon={Smartphone} title="Digital Check-in" gradient="from-green-500 to-emerald-600" onClick={() => setCurrentModule('digital-checkin')} />
-                <ModuleGridCard icon={MessageSquare} title="Messages" gradient="from-orange-500 to-red-600" onClick={() => setCurrentModule('messages')} />
-              </div>
-            </div>
-
-            {/* 2️⃣ Revenue & Pricing */}
-            <div>
-              <h3 className="text-xl font-black text-white mb-4 px-1 drop-shadow-lg">Revenue & Pricing</h3>
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-3 md:gap-4">
-                <ModuleGridCard icon={Sparkles} title="Booking Engine" gradient="from-orange-500 to-pink-600" onClick={() => setCurrentModule('booking-engine')} />
+                <ModuleGridCard icon={Repeat} title="Channel Manager" gradient="from-indigo-500 to-blue-600" onClick={() => setCurrentModule('multichannel')} />
                 <ModuleGridCard icon={CreditCard} title="Payments" gradient="from-green-500 to-emerald-600" onClick={() => setCurrentModule('payments')} />
-                <ModuleGridCard icon={DollarSign} title="Smart Pricing" gradient="from-blue-600 to-indigo-600" onClick={() => setCurrentModule('pricing')} />
-                <ModuleGridCard icon={Repeat} title="RMS Integration" gradient="from-indigo-500 to-blue-600" onClick={() => setCurrentModule('rms')} />
                 <ModuleGridCard icon={BarChart3} title="Reports" gradient="from-orange-600 to-pink-600" onClick={() => setCurrentModule('reports')} />
-              </div>
-            </div>
-
-            {/* 3️⃣ AI Intelligence Layer */}
-            <div>
-              <h3 className="text-xl font-black text-white mb-4 px-1 drop-shadow-lg">AI Intelligence Layer</h3>
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-3 md:gap-4">
+                <ModuleGridCard icon={DollarSign} title="Smart Pricing" gradient="from-blue-600 to-indigo-600" onClick={() => setCurrentModule('pricing')} />
                 <ModuleGridCard icon={Sparkles} title="AI Assistant" gradient="from-purple-500 to-orange-500" onClick={() => setCurrentModule('ai')} />
-                <ModuleGridCard icon={Phone} title="Voice AI Agent" gradient="from-purple-600 to-pink-600" onClick={() => setCurrentModule('voice-ai')} />
                 <ModuleGridCard icon={Globe} title="Cultural Intelligence" gradient="from-indigo-500 to-purple-600" onClick={() => setCurrentModule('cultural-intelligence')} />
               </div>
             </div>
 
-            {/* 4️⃣ Marketing & Growth */}
+            {/* 🌍 BLOQUE B - GUEST EXPERIENCE & MARKETING */}
             <div>
-              <h3 className="text-xl font-black text-white mb-4 px-1 drop-shadow-lg">Marketing & Growth</h3>
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-3 md:gap-4">
-                <ModuleGridCard icon={Repeat} title="Multichannel" gradient="from-indigo-500 to-blue-600" onClick={() => setCurrentModule('multichannel')} />
+              <div className="mb-6">
+                <h2 className="text-3xl font-black text-white px-1 drop-shadow-2xl">Guest Experience & Marketing</h2>
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4 md:gap-5">
+                <ModuleGridCard icon={Sparkles} title="Booking Engine" gradient="from-orange-500 to-pink-600" onClick={() => setCurrentModule('booking-engine')} />
+                <ModuleGridCard icon={Smartphone} title="Digital Check-in" gradient="from-green-500 to-emerald-600" onClick={() => setCurrentModule('digital-checkin')} />
+                <ModuleGridCard icon={Star} title="Reviews" gradient="from-yellow-500 to-orange-600" onClick={() => setCurrentModule('reviews')} />
+                <ModuleGridCard icon={MessageSquare} title="WhatsApp IA" gradient="from-orange-500 to-red-600" onClick={() => setCurrentModule('messages')} />
                 <ModuleGridCard icon={Megaphone} title="Marketing" gradient="from-purple-600 to-pink-600" onClick={() => setCurrentModule('marketing')} />
                 <ModuleGridCard icon={Share2} title="Social Publisher" gradient="from-blue-600 to-cyan-600" onClick={() => setCurrentModule('social')} />
-                <ModuleGridCard icon={Star} title="Reviews" gradient="from-yellow-500 to-orange-600" onClick={() => setCurrentModule('reviews')} />
-              </div>
-            </div>
-
-            {/* 5️⃣ Workflows & Automations */}
-            <div>
-              <h3 className="text-xl font-black text-white mb-4 px-1 drop-shadow-lg">Workflows & Automations</h3>
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-3 md:gap-4">
-                <ModuleGridCard icon={Workflow} title="Workflows" gradient="from-indigo-600 to-purple-600" onClick={() => setCurrentModule('workflows')} />
               </div>
             </div>
           </div>
