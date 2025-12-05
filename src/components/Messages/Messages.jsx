@@ -11,7 +11,12 @@ import {
   CheckCheck,
   Sparkles,
   User,
-  Calendar
+  Calendar,
+  Mic,
+  Image as ImageIcon,
+  Play,
+  Pause,
+  Volume2
 } from 'lucide-react';
 
 const Messages = ({ onBack }) => {
@@ -25,16 +30,16 @@ const Messages = ({ onBack }) => {
   }, []);
 
   const conversations = [
-    { id: 1, name: "Emma Wilson", property: "City Loft", message: "Hi! I'd like to know if early check-in is possible for my reservation next week?", time: "5m ago", unread: true, avatar: "EW", aiHandled: false, checkIn: "2025-12-10", status: "confirmed" },
-    { id: 2, name: "David Park", property: "Mountain Cabin", message: "Thank you for the wonderful stay! Everything was perfect.", time: "2h ago", unread: false, avatar: "DP", aiHandled: true, checkIn: "2025-11-25", status: "checked-out" },
-    { id: 3, name: "Lisa Anderson", property: "Beach House", message: "Could you please send me the WiFi password? Thanks!", time: "1d ago", unread: false, avatar: "LA", aiHandled: true, checkIn: "2025-12-05", status: "checked-in" },
-    { id: 4, name: "James Rodriguez", property: "Villa Sunset", message: "Is parking available at the property? We're arriving with 2 cars.", time: "2d ago", unread: false, avatar: "JR", aiHandled: false, checkIn: "2025-12-15", status: "confirmed" },
-    { id: 5, name: "Sophie Martin", property: "Villa Paradise", message: "We'd like to extend our stay for 2 more days. Is it available?", time: "3d ago", unread: true, avatar: "SM", aiHandled: false, checkIn: "2025-12-08", status: "pending-extension" },
-    { id: 6, name: "Michael Chen", property: "Beach House", message: "The heater in bedroom 2 is not working properly. Can someone check it?", time: "3d ago", unread: true, avatar: "MC", aiHandled: false, checkIn: "2025-12-03", status: "checked-in" },
-    { id: 7, name: "Anna Kowalski", property: "City Loft", message: "Thank you for the quick response! Looking forward to our stay.", time: "4d ago", unread: false, avatar: "AK", aiHandled: true, checkIn: "2025-12-20", status: "confirmed" },
-    { id: 8, name: "Tom Harrison", property: "Mountain Cabin", message: "Are pets allowed at the property? We have a small dog.", time: "5d ago", unread: false, avatar: "TH", aiHandled: true, checkIn: "2025-12-18", status: "confirmed" },
-    { id: 9, name: "Maria Garcia", property: "Villa Sunset", message: "Can we have a late check-out? Our flight is at 8 PM.", time: "6d ago", unread: false, avatar: "MG", aiHandled: true, checkIn: "2025-11-28", status: "checked-out" },
-    { id: 10, name: "John Smith", property: "Villa Paradise", message: "Is airport transfer included in the booking?", time: "1w ago", unread: false, avatar: "JS", aiHandled: true, checkIn: "2025-12-12", status: "confirmed" }
+    { id: 1, name: "Emma Wilson", property: "City Loft", message: "Hi! I'd like to know if early check-in is possible for my reservation next week?", time: "5m ago", unread: true, avatar: "EW", aiHandled: false, checkIn: "2025-12-10", status: "confirmed", messageType: "text" },
+    { id: 2, name: "David Park", property: "Mountain Cabin", message: "🎤 Voice message: Thank you for the wonderful stay!", time: "2h ago", unread: false, avatar: "DP", aiHandled: true, checkIn: "2025-11-25", status: "checked-out", messageType: "voice", voiceDuration: "0:23" },
+    { id: 3, name: "Lisa Anderson", property: "Beach House", message: "Could you please send me the WiFi password? Thanks!", time: "1d ago", unread: false, avatar: "LA", aiHandled: true, checkIn: "2025-12-05", status: "checked-in", messageType: "text" },
+    { id: 4, name: "James Rodriguez", property: "Villa Sunset", message: "📷 Photo: Sent parking area photo", time: "2d ago", unread: false, avatar: "JR", aiHandled: true, checkIn: "2025-12-15", status: "confirmed", messageType: "photo", photoUrl: "https://images.unsplash.com/photo-1506521781263-d8422e82f27a?w=400" },
+    { id: 5, name: "Sophie Martin", property: "Villa Paradise", message: "We'd like to extend our stay for 2 more days. Is it available?", time: "3d ago", unread: true, avatar: "SM", aiHandled: false, checkIn: "2025-12-08", status: "pending-extension", messageType: "text" },
+    { id: 6, name: "Michael Chen", property: "Beach House", message: "📷 Photo: Sent heater issue photo", time: "3d ago", unread: true, avatar: "MC", aiHandled: true, checkIn: "2025-12-03", status: "checked-in", messageType: "photo", photoUrl: "https://images.unsplash.com/photo-1631889992558-087bb35233f1?w=400" },
+    { id: 7, name: "Anna Kowalski", property: "City Loft", message: "Thank you for the quick response! Looking forward to our stay.", time: "4d ago", unread: false, avatar: "AK", aiHandled: true, checkIn: "2025-12-20", status: "confirmed", messageType: "text" },
+    { id: 8, name: "Tom Harrison", property: "Mountain Cabin", message: "🎤 Voice message: Question about pets", time: "5d ago", unread: false, avatar: "TH", aiHandled: true, checkIn: "2025-12-18", status: "confirmed", messageType: "voice", voiceDuration: "0:15" },
+    { id: 9, name: "Maria Garcia", property: "Villa Sunset", message: "Can we have a late check-out? Our flight is at 8 PM.", time: "6d ago", unread: false, avatar: "MG", aiHandled: true, checkIn: "2025-11-28", status: "checked-out", messageType: "text" },
+    { id: 10, name: "John Smith", property: "Villa Paradise", message: "🎤 Voice message: Airport transfer inquiry", time: "1w ago", unread: false, avatar: "JS", aiHandled: true, checkIn: "2025-12-12", status: "confirmed", messageType: "voice", voiceDuration: "0:18" }
   ];
 
   const aiTemplates = [
@@ -43,15 +48,17 @@ const Messages = ({ onBack }) => {
     { id: 3, name: "Late Check-out", icon: "🕐", template: "Hi! We can accommodate a late check-out until [TIME] for an additional fee of $[AMOUNT]. Would you like to proceed?" },
     { id: 4, name: "Parking Info", icon: "🚗", template: "Hi! Yes, we have [NUMBER] parking spaces available at the property. Parking is complimentary for all guests." },
     { id: 5, name: "Pet Policy", icon: "🐕", template: "Hi! Unfortunately, pets are not allowed at this property due to allergies of other guests. We apologize for the inconvenience." },
-    { id: 6, name: "Airport Transfer", icon: "✈️", template: "Hi! Airport transfer is available for $[PRICE] one way. It includes a private driver and takes approximately [TIME] minutes. Would you like to book it?" }
+    { id: 6, name: "Airport Transfer", icon: "✈️", template: "Hi! Airport transfer is available for $[PRICE] one way. It includes a private driver and takes approximately [TIME] minutes. Would you like to book it?" },
+    { id: 7, name: "Voice Response", icon: "🎤", template: "Thanks for your voice message! I understood: '[TRANSCRIBED_TEXT]'. [AI_RESPONSE]" },
+    { id: 8, name: "Photo Response", icon: "📷", template: "Thanks for sending the photo! I can see [AI_PHOTO_DESCRIPTION]. [AI_RESPONSE_TO_PHOTO]" }
   ];
 
   const fullConversation = [
-    { sender: "guest", text: "Hi! I'd like to know if early check-in is possible for my reservation next week?", time: "10:30 AM" },
-    { sender: "host", text: "Hi Emma! Let me check the availability for early check-in. One moment please.", time: "10:32 AM" },
-    { sender: "host", text: "Good news! We can accommodate early check-in at 11:00 AM on Dec 10th. There's no additional charge. Does that work for you?", time: "10:35 AM" },
-    { sender: "guest", text: "Perfect! Thank you so much!", time: "10:36 AM" },
-    { sender: "host", text: "You're welcome! See you soon! 🏠", time: "10:37 AM" }
+    { sender: "guest", text: "Hi! I'd like to know if early check-in is possible for my reservation next week?", time: "10:30 AM", type: "text" },
+    { sender: "ai", text: "Hi Emma! Let me check the availability for early check-in. One moment please.", time: "10:32 AM", type: "text" },
+    { sender: "ai", text: "Good news! We can accommodate early check-in at 11:00 AM on Dec 10th. There's no additional charge. Does that work for you?", time: "10:35 AM", type: "text" },
+    { sender: "guest", text: "🎤 Voice message (0:08)", time: "10:36 AM", type: "voice", voiceText: "Perfect! Thank you so much!" },
+    { sender: "ai", text: "Thanks for your voice message! I heard: 'Perfect! Thank you so much!'\n\nYou're welcome! See you soon! 🏠", time: "10:37 AM", type: "text", isVoiceResponse: true }
   ];
 
   const filteredConversations = conversations.filter(conv => {
@@ -70,6 +77,8 @@ const Messages = ({ onBack }) => {
   const stats = {
     unread: conversations.filter(c => c.unread).length,
     aiHandled: conversations.filter(c => c.aiHandled).length,
+    voiceMessages: conversations.filter(c => c.messageType === 'voice').length,
+    photoMessages: conversations.filter(c => c.messageType === 'photo').length,
     avgResponseTime: "8m"
   };
 
@@ -105,7 +114,7 @@ const Messages = ({ onBack }) => {
       <div className="flex-1 overflow-auto p-6 relative z-10">
         <div className="max-w-7xl mx-auto space-y-6">
           {/* Stats */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
             <div className="bg-white/95 backdrop-blur-sm rounded-2xl p-6 border-2 border-white/50 shadow-lg">
               <div className="flex items-center gap-3 mb-2">
                 <MessageSquare className="w-6 h-6 text-orange-600" />
@@ -120,6 +129,22 @@ const Messages = ({ onBack }) => {
               </div>
               <div className="text-3xl font-black">{stats.aiHandled}</div>
               <div className="text-xs opacity-75 mt-1">+20% this week</div>
+            </div>
+            <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-2xl p-6 border-2 border-white/50 shadow-lg text-white">
+              <div className="flex items-center gap-3 mb-2">
+                <Mic className="w-6 h-6" />
+                <span className="text-sm font-bold opacity-90">Voice Messages</span>
+              </div>
+              <div className="text-3xl font-black">{stats.voiceMessages}</div>
+              <div className="text-xs opacity-75 mt-1">AI transcribed</div>
+            </div>
+            <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl p-6 border-2 border-white/50 shadow-lg text-white">
+              <div className="flex items-center gap-3 mb-2">
+                <ImageIcon className="w-6 h-6" />
+                <span className="text-sm font-bold opacity-90">Photo Messages</span>
+              </div>
+              <div className="text-3xl font-black">{stats.photoMessages}</div>
+              <div className="text-xs opacity-75 mt-1">AI analyzed</div>
             </div>
             <div className="bg-white/95 backdrop-blur-sm rounded-2xl p-6 border-2 border-white/50 shadow-lg">
               <div className="flex items-center gap-3 mb-2">
@@ -208,10 +233,22 @@ const Messages = ({ onBack }) => {
                           <p className="text-xs font-semibold text-gray-500">{conv.property}</p>
                         </div>
                         <div className="flex items-center gap-2">
-                          {conv.aiHandled && (
+                          {conv.messageType === 'voice' && (
                             <div className="px-2 py-1 bg-purple-100 rounded-lg flex items-center gap-1">
-                              <Bot className="w-3 h-3 text-purple-600" />
-                              <span className="text-xs font-bold text-purple-600">AI</span>
+                              <Mic className="w-3 h-3 text-purple-600" />
+                              <span className="text-xs font-bold text-purple-600">{conv.voiceDuration}</span>
+                            </div>
+                          )}
+                          {conv.messageType === 'photo' && (
+                            <div className="px-2 py-1 bg-blue-100 rounded-lg flex items-center gap-1">
+                              <ImageIcon className="w-3 h-3 text-blue-600" />
+                              <span className="text-xs font-bold text-blue-600">Photo</span>
+                            </div>
+                          )}
+                          {conv.aiHandled && (
+                            <div className="px-2 py-1 bg-orange-100 rounded-lg flex items-center gap-1">
+                              <Bot className="w-3 h-3 text-orange-600" />
+                              <span className="text-xs font-bold text-orange-600">AI</span>
                             </div>
                           )}
                           <span className="text-xs font-semibold text-gray-500">{conv.time}</span>
@@ -248,15 +285,25 @@ const Messages = ({ onBack }) => {
               <Sparkles className="w-6 h-6 text-orange-600" />
               <h3 className="text-xl font-black text-orange-600">AI Quick Response Templates</h3>
             </div>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               {aiTemplates.map((template) => (
                 <button
                   key={template.id}
                   onClick={() => handleTemplateClick(template)}
-                  className="p-4 bg-gradient-to-br from-orange-50 to-orange-100 border-2 border-orange-200 rounded-xl hover:from-orange-100 hover:to-orange-200 transition-all text-left"
+                  className={`p-4 border-2 rounded-xl transition-all text-left ${
+                    template.id === 7
+                      ? 'bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200 hover:from-purple-100 hover:to-purple-200'
+                      : template.id === 8
+                      ? 'bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200 hover:from-blue-100 hover:to-blue-200'
+                      : 'bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200 hover:from-orange-100 hover:to-orange-200'
+                  }`}
                 >
                   <div className="text-2xl mb-2">{template.icon}</div>
-                  <div className="text-sm font-bold text-orange-600">{template.name}</div>
+                  <div className={`text-sm font-bold ${
+                    template.id === 7 ? 'text-purple-600' :
+                    template.id === 8 ? 'text-blue-600' :
+                    'text-orange-600'
+                  }`}>{template.name}</div>
                 </button>
               ))}
             </div>
@@ -333,21 +380,49 @@ const Messages = ({ onBack }) => {
                 {fullConversation.map((msg, idx) => (
                   <div
                     key={idx}
-                    className={`flex ${msg.sender === 'host' ? 'justify-end' : 'justify-start'}`}
+                    className={`flex ${msg.sender === 'ai' ? 'justify-end' : 'justify-start'}`}
                   >
                     <div
                       className={`max-w-[80%] p-3 rounded-2xl ${
-                        msg.sender === 'host'
+                        msg.sender === 'ai'
                           ? 'bg-gradient-to-r from-orange-500 to-orange-600 text-white'
+                          : msg.type === 'voice'
+                          ? 'bg-purple-100 text-purple-900 border-2 border-purple-300'
+                          : msg.type === 'photo'
+                          ? 'bg-blue-100 text-blue-900 border-2 border-blue-300'
                           : 'bg-gray-100 text-gray-700'
                       }`}
                     >
-                      <p className="text-sm font-medium">{msg.text}</p>
+                      {msg.type === 'voice' && (
+                        <div className="flex items-center gap-2 mb-2">
+                          <div className="w-8 h-8 bg-purple-500 rounded-full flex items-center justify-center">
+                            <Mic className="w-4 h-4 text-white" />
+                          </div>
+                          <div className="flex-1 h-1 bg-purple-300 rounded-full overflow-hidden">
+                            <div className="h-full bg-purple-500 rounded-full" style={{ width: '60%' }}></div>
+                          </div>
+                        </div>
+                      )}
+                      {msg.voiceText && (
+                        <p className="text-xs italic mb-1 opacity-75">Transcribed: "{msg.voiceText}"</p>
+                      )}
+                      <p className="text-sm font-medium whitespace-pre-line">{msg.text}</p>
                       <div className={`flex items-center gap-1 mt-1 text-xs ${
-                        msg.sender === 'host' ? 'text-white/70' : 'text-gray-500'
+                        msg.sender === 'ai' ? 'text-white/70' :
+                        msg.type === 'voice' ? 'text-purple-600' :
+                        msg.type === 'photo' ? 'text-blue-600' :
+                        'text-gray-500'
                       }`}>
                         <span>{msg.time}</span>
-                        {msg.sender === 'host' && <CheckCheck className="w-3 h-3" />}
+                        {msg.sender === 'ai' && (
+                          <>
+                            <Bot className="w-3 h-3 ml-1" />
+                            <CheckCheck className="w-3 h-3" />
+                          </>
+                        )}
+                        {msg.isVoiceResponse && (
+                          <span className="ml-1 text-xs">• AI Voice Response</span>
+                        )}
                       </div>
                     </div>
                   </div>

@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
-import { Building2, ChevronLeft, LayoutDashboard, Calendar, Home, CreditCard, MessageSquare, Sparkles, DollarSign, Megaphone, Share2, Workflow, BarChart3, Smartphone, Repeat, Star, Phone, Globe, ClipboardList, User } from 'lucide-react';
+import { Building2, ChevronLeft, LayoutDashboard, Calendar, Home, CreditCard, MessageSquare, Sparkles, DollarSign, Megaphone, Share2, Workflow, BarChart3, Smartphone, Repeat, Star, Phone, Globe, ClipboardList, User, LogOut } from 'lucide-react';
 import ModuleGridCard from './components/common/ModuleGridCard';
+import { useAuth } from './contexts/AuthContext';
+import LoginPage from './components/Auth/LoginPage';
 
 // Import all module components
 import Dashboard from './components/Dashboard/Dashboard';
@@ -29,8 +31,26 @@ import GuestPortal from './components/GuestPortal/GuestPortal';
 
 // ==================== MAIN APP ====================
 export default function App() {
+  const { user, userData, loading, signOut } = useAuth();
   const [currentScreen, setCurrentScreen] = useState('home');
   const [currentModule, setCurrentModule] = useState(null);
+
+  // Show loading spinner while checking auth
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-orange-400 via-orange-500 to-orange-600 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-white/30 border-t-white rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-white text-xl font-bold">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show login if not authenticated
+  if (!user) {
+    return <LoginPage />;
+  }
 
   // Home Screen
   if (currentScreen === 'home') {
@@ -202,8 +222,15 @@ export default function App() {
             <div className="text-center">
               <h2 className="text-3xl md:text-4xl font-black text-white drop-shadow-2xl">MY HOST</h2>
               <p className="text-xl md:text-2xl font-bold text-orange-100 drop-shadow-xl">BizMate</p>
+              <p className="text-sm text-white/80 font-semibold mt-1">👋 {userData?.full_name || user.email}</p>
             </div>
-            <div className="w-12"></div>
+            <button
+              onClick={signOut}
+              className="p-3 bg-white/95 backdrop-blur-sm rounded-2xl hover:bg-red-50 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 border-2 border-white/50 group"
+              title="Logout"
+            >
+              <LogOut className="w-6 h-6 text-orange-600 group-hover:text-red-600" />
+            </button>
           </div>
 
           <div className="space-y-8">
