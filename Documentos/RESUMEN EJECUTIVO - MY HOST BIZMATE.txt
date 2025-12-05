@@ -27,10 +27,16 @@ MY HOST BIZMATE = PMS + IA:
 ---------------------------
 ✓ Gestión completa (como PMS tradicional)
 ✓ +12 Agentes de IA que operan 24/7
-✓ Concierge IA responde huéspedes en 6 idiomas
+✓ Concierge IA responde huéspedes en 6 idiomas (texto + voz + fotos)
 ✓ Pricing dinámico IA optimiza revenue automáticamente
 ✓ Booking automation procesa inquiries → confirmaciones sin humano
+✓ Operations automation (housekeeping, maintenance, staff)
 ✓ Aprende y mejora con cada interacción
+
+PARIDAD COMPETITIVA:
+Cloudbeds/MiniHotel/MyHotel incluyen WeSpeak (chat + voz + foto).
+MY HOST BizMate incluye lo mismo + Revenue optimization + Operations automation.
+No competimos solo en chat, competimos en profit total.
 
 ========================================================================
 💡 LA PROPUESTA DE VALOR
@@ -111,22 +117,28 @@ COSTOS MENSUALES (por propiedad):
 ----------------------------------
 MY HOST BizMate Platform:        $150-200/mes
 Claude API (IA):                 $30-50/mes
+OpenAI (Whisper + Vision):       $30-45/mes
 WhatsApp Business API:           $0-20/mes
 Infraestructura (Supabase/n8n): $45/mes (compartido)
 ────────────────────────────────────────────────
-TOTAL:                           ~$225-290/mes
+TOTAL:                           ~$255-335/mes
 
 VS. ALTERNATIVAS TRADICIONALES:
 --------------------------------
-PMS tradicional (Guesty/Hostaway):  $350-500/mes
-Staff tiempo (20h/semana):          $800-1,200/mes
-Herramientas adicionales:           $100-200/mes
+PMS con IA conversacional (Cloudbeds): $500/mes (incluye WeSpeak)
+Staff tiempo (15h/semana restante):    $600-900/mes
+Herramientas adicionales:              $100-200/mes
 ────────────────────────────────────────────────
-TOTAL ALTERNATIVAS:                 $1,250-1,900/mes
+TOTAL ALTERNATIVAS:                    $1,200-1,600/mes
 
 AHORRO NETO:
 ------------
-$960-1,610/mes por propiedad (-76-85%)
+$865-1,265/mes por propiedad (-72-79%)
+
+NOTA: Cloudbeds incluye PMS + WeSpeak (chat+voz+foto).
+MY HOST BizMate incluye lo mismo + Dynamic pricing (+$500-800/mes revenue)
++ Operations automation (+$600/mes ahorro staff).
+ROI total: +$1,965/mes vs solo usar Cloudbeds.
 
 REVENUE ADICIONAL:
 ------------------
