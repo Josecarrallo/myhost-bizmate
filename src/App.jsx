@@ -112,24 +112,24 @@ const modules = {
   management: [
     { icon: LayoutDashboard, label: 'Dashboard', color: 'from-blue-500 to-blue-600', module: 'dashboard' },
     { icon: Calendar, label: 'Bookings', color: 'from-emerald-500 to-teal-600', module: 'bookings' },
-    { icon: CalendarDays, label: 'PMS Calendar', color: 'from-violet-500 to-purple-600', module: 'pms-calendar' },
+    { icon: CalendarDays, label: 'PMS', color: 'from-violet-500 to-purple-600', module: 'pms-calendar' },
     { icon: Home, label: 'Properties', color: 'from-amber-500 to-orange-600', module: 'properties' },
-    { icon: Settings, label: 'Operations Hub', color: 'from-slate-500 to-slate-700', module: 'operations' },
-    { icon: ArrowLeftRight, label: 'Channel Manager', color: 'from-cyan-500 to-blue-600', module: 'multichannel' },
-    { icon: CreditCard, label: 'Payments', color: 'from-green-500 to-emerald-600', module: 'payments' },
+    { icon: Settings, label: 'Operations', color: 'from-slate-500 to-slate-700', module: 'operations' },
+    { icon: ArrowLeftRight, label: 'Channel', color: 'from-cyan-500 to-blue-600', module: 'multichannel' },
+    { icon: CreditCard, label: 'Payment', color: 'from-green-500 to-emerald-600', module: 'payments' },
     { icon: BarChart3, label: 'Reports', color: 'from-rose-500 to-pink-600', module: 'reports' },
     { icon: DollarSign, label: 'Smart Pricing', color: 'from-yellow-500 to-amber-600', module: 'pricing' },
-    { icon: Sparkles, label: 'AI Assistant', color: 'from-fuchsia-500 to-purple-600', module: 'ai' },
-    { icon: Globe, label: 'Cultural Intelligence', color: 'from-indigo-500 to-blue-600', module: 'cultural-intelligence' },
+    { icon: Sparkles, label: 'Assistant', color: 'from-fuchsia-500 to-purple-600', module: 'ai' },
+    { icon: Globe, label: 'Culture', color: 'from-indigo-500 to-blue-600', module: 'cultural-intelligence' },
   ],
   experience: [
     { icon: Rocket, label: 'Booking Engine', color: 'from-teal-500 to-cyan-600', module: 'booking-engine' },
-    { icon: Smartphone, label: 'Digital Check-in', color: 'from-sky-500 to-blue-600', module: 'digital-checkin' },
+    { icon: Smartphone, label: 'Check-in', color: 'from-sky-500 to-blue-600', module: 'digital-checkin' },
     { icon: Users, label: 'Guest Portal', color: 'from-violet-500 to-indigo-600', module: 'guest-portal' },
     { icon: Star, label: 'Reviews', color: 'from-amber-400 to-yellow-500', module: 'reviews' },
-    { icon: MessageSquare, label: 'WhatsApp IA', color: 'from-green-500 to-emerald-600', module: 'messages' },
-    { icon: Megaphone, label: 'Marketing', color: 'from-pink-500 to-rose-600', module: 'marketing' },
-    { icon: Share2, label: 'Social Publisher', color: 'from-blue-500 to-indigo-600', module: 'social' },
+    { icon: MessageSquare, label: 'WhatsApp', color: 'from-green-500 to-emerald-600', module: 'messages' },
+    { icon: Megaphone, label: 'Media Hype', color: 'from-pink-500 to-rose-600', module: 'marketing' },
+    { icon: Share2, label: 'Social', color: 'from-blue-500 to-indigo-600', module: 'social' },
   ]
 };
 
@@ -195,10 +195,10 @@ export default function App() {
         </div>
 
         {/* Floating feature icons */}
-        <FloatingIcon icon={Wifi} className="top-[15%] left-[10%]" delay={0} />
-        <FloatingIcon icon={Shield} className="top-[20%] right-[12%]" delay={1.5} />
-        <FloatingIcon icon={Zap} className="bottom-[25%] left-[8%]" delay={3} />
-        <FloatingIcon icon={Sparkles} className="bottom-[20%] right-[10%]" delay={2} />
+        <FloatingIcon icon={Wifi} className="top-[20%] left-[5%]" delay={0} />
+        <FloatingIcon icon={Shield} className="top-[20%] right-[5%]" delay={1.5} />
+        <FloatingIcon icon={Zap} className="bottom-[20%] left-[3%]" delay={3} />
+        <FloatingIcon icon={Sparkles} className="bottom-[20%] right-[3%]" delay={2} />
 
         {/* Main content */}
         <div className="relative z-10 text-center max-w-md">
