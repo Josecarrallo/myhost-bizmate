@@ -41,13 +41,23 @@ export const AuthProvider = ({ children }) => {
 
   const checkUser = async () => {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      // Add 3 second timeout to prevent infinite loading
+      const timeout = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Session check timeout')), 3000)
+      );
+
+      const sessionCheck = supabase.auth.getSession();
+
+      const { data: { session } } = await Promise.race([sessionCheck, timeout]);
+
       if (session?.user) {
         setUser(session.user);
         await fetchUserData(session.user.id);
       }
     } catch (error) {
       console.error('Error checking user:', error);
+      // If timeout or error, clear stored session and show login
+      localStorage.removeItem('supabase.auth.token');
     } finally {
       setLoading(false);
     }
@@ -86,12 +96,22 @@ export const AuthProvider = ({ children }) => {
 
   const signOut = async () => {
     try {
-      const { error } = await supabase.auth.signOut();
-      if (error) throw error;
-      setUser(null);
-      setUserData(null);
+      // Add timeout to prevent hanging
+      const timeout = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Sign out timeout')), 2000)
+      );
+
+      const signOutPromise = supabase.auth.signOut();
+
+      await Promise.race([signOutPromise, timeout]);
     } catch (error) {
       console.error('Error signing out:', error);
+    } finally {
+      // Always clear local state and storage, even if Supabase fails
+      setUser(null);
+      setUserData(null);
+      localStorage.clear();
+      window.location.reload();
     }
   };
 
