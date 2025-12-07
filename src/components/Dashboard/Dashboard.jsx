@@ -1,8 +1,11 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { ChevronLeft, Bell, Settings, DollarSign, Calendar, Home, TrendingUp, Sparkles, AlertCircle, Lightbulb, DollarSignIcon, Globe, Plus, ClipboardList, Wrench, CreditCard, MessageSquare } from 'lucide-react';
 import { StatCard, BookingCard, MessageCard } from '../common';
+import { dataService } from '../../services/data';
 
 const Dashboard = ({ onBack }) => {
+  const [stats, setStats] = useState(null);
+  const [loading, setLoading] = useState(true);
   // Mock AI Insights
   const aiInsights = [
     { id: 1, type: 'insight', icon: Lightbulb, title: 'Revenue Opportunity', message: 'Villa Sunset has 3 unbooked nights this week. Consider a 15% discount to fill gaps.', color: 'from-blue-500 to-cyan-600' },
@@ -21,6 +24,25 @@ const Dashboard = ({ onBack }) => {
     { id: 5, icon: CreditCard, label: 'Payments', color: 'from-indigo-500 to-purple-600' },
     { id: 6, icon: Sparkles, label: 'AI Assistant', color: 'from-orange-500 to-pink-600' },
   ];
+
+  // Cargar stats reales de Supabase
+  useEffect(() => {
+    loadStats();
+  }, []);
+
+  const loadStats = async () => {
+    try {
+      setLoading(true);
+      const data = await dataService.getDashboardStats();
+      if (data && data.length > 0) {
+        setStats(data[0]); // La función retorna un array con 1 objeto
+      }
+    } catch (error) {
+      console.error('Error loading dashboard stats:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-400 via-orange-500 to-orange-600 p-4 pb-24 relative overflow-hidden">
@@ -59,13 +81,13 @@ const Dashboard = ({ onBack }) => {
 
         {/* KPIs - Stats Cards */}
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3 mb-8">
+          <StatCard icon={Home} label="Properties" value={stats ? stats.total_properties.toString() : "..."} gradient="from-orange-500 to-orange-600" />
+          <StatCard icon={Calendar} label="Total Bookings" value={stats ? stats.total_bookings.toString() : "..."} gradient="from-orange-500 to-orange-600" />
+          <StatCard icon={Calendar} label="Active Bookings" value={stats ? stats.active_bookings.toString() : "..."} gradient="from-orange-500 to-orange-600" />
           <StatCard icon={DollarSign} label="Revenue Today" value="$2.4K" trend="+12%" gradient="from-orange-500 to-orange-600" />
-          <StatCard icon={DollarSign} label="Revenue Week" value="$18.5K" trend="+8%" gradient="from-orange-500 to-orange-600" />
-          <StatCard icon={Calendar} label="Active Bookings" value="28" gradient="from-orange-500 to-orange-600" />
           <StatCard icon={Calendar} label="Check-ins Today" value="5" gradient="from-orange-500 to-orange-600" />
           <StatCard icon={Calendar} label="Check-outs Today" value="3" gradient="from-orange-500 to-orange-600" />
           <StatCard icon={TrendingUp} label="Occupancy" value="87%" trend="+5%" gradient="from-orange-500 to-orange-600" />
-          <StatCard icon={AlertCircle} label="Critical Tasks" value="7" gradient="from-orange-500 to-orange-600" />
         </div>
 
         {/* Quick Actions */}
