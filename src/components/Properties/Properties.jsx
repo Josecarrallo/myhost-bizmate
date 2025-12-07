@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   ChevronLeft,
   Plus,
@@ -23,11 +23,14 @@ import {
   Clock
 } from 'lucide-react';
 import { StatCard } from '../common';
+import { dataService } from '../../services/data';
 
 const Properties = ({ onBack }) => {
   const [viewMode, setViewMode] = useState('grid'); // 'grid' or 'table'
   const [selectedProperty, setSelectedProperty] = useState(null);
   const [selectedTab, setSelectedTab] = useState('general');
+  const [properties, setProperties] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   // Mock Properties Data (expanded)
   const mockProperties = [
@@ -201,6 +204,59 @@ const Properties = ({ onBack }) => {
     }
   ];
 
+  // Cargar properties reales de Supabase
+  useEffect(() => {
+    loadProperties();
+  }, []);
+
+  const loadProperties = async () => {
+    try {
+      setLoading(true);
+      const realProperties = await dataService.getProperties();
+
+      // Si hay properties reales, usarlas. Si no, usar mock
+      if (realProperties && realProperties.length > 0) {
+        // Mapear datos de Supabase al formato del componente
+        const mapped = realProperties.map(prop => ({
+          id: prop.id,
+          name: prop.name,
+          location: `${prop.city}, ${prop.country}`,
+          type: "Property",
+          beds: prop.bedrooms,
+          baths: prop.bathrooms,
+          maxGuests: prop.max_guests,
+          basePrice: parseFloat(prop.base_price),
+          rating: 4.5,
+          reviews: 0,
+          status: prop.status,
+          revenue: "0",
+          occupancy: 0,
+          description: prop.description,
+          amenities: prop.amenities || [],
+          photos: ["🏠"],
+          checkInTime: "3:00 PM",
+          checkOutTime: "11:00 AM",
+          rules: [],
+          pricing: {
+            lowSeason: parseFloat(prop.base_price),
+            midSeason: parseFloat(prop.base_price),
+            highSeason: parseFloat(prop.base_price) * 1.2,
+            weeklyDiscount: 10,
+            monthlyDiscount: 25
+          }
+        }));
+        setProperties(mapped);
+      } else {
+        setProperties(mockProperties);
+      }
+    } catch (error) {
+      console.error('Error loading properties:', error);
+      setProperties(mockProperties); // Fallback a mock si falla
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const getStatusBadge = (status) => {
     switch(status) {
       case 'active':
@@ -248,7 +304,7 @@ const Properties = ({ onBack }) => {
 
         {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-          <StatCard icon={Home} label="Total Properties" value={mockProperties.length.toString()} gradient="from-orange-500 to-orange-600" />
+          <StatCard icon={Home} label="Total Properties" value={properties.length.toString()} gradient="from-orange-500 to-orange-600" />
           <StatCard icon={Star} label="Avg Rating" value="4.8" gradient="from-orange-500 to-orange-600" />
           <StatCard icon={DollarSign} label="Total Revenue" value="$71.7K" trend="+18%" gradient="from-orange-500 to-orange-600" />
           <StatCard icon={TrendingUp} label="Avg Occupancy" value="85%" trend="+5%" gradient="from-orange-500 to-orange-600" />
@@ -288,7 +344,7 @@ const Properties = ({ onBack }) => {
         {/* Grid View */}
         {viewMode === 'grid' && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {mockProperties.map(property => (
+            {properties.map(property => (
               <div
                 key={property.id}
                 className="bg-white/95 backdrop-blur-sm rounded-3xl overflow-hidden shadow-2xl border-2 border-white/50 hover:shadow-orange-200 transition-all cursor-pointer"
@@ -366,7 +422,7 @@ const Properties = ({ onBack }) => {
                   </tr>
                 </thead>
                 <tbody className="divide-y-2 divide-gray-200">
-                  {mockProperties.map(property => (
+                  {properties.map(property => (
                     <tr key={property.id} className="hover:bg-orange-50/50 transition-colors">
                       <td className="px-6 py-4">
                         <div className="font-bold text-orange-600">{property.name}</div>
