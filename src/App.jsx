@@ -59,7 +59,7 @@ const ModuleCard = ({ icon: Icon, label, color, delay, onClick }) => {
       }}
     >
       <div className={`
-        relative overflow-hidden rounded-2xl p-4
+        relative overflow-hidden rounded-2xl p-3
         bg-white/10 backdrop-blur-sm
         border border-white/20
         transition-all duration-300 ease-out
@@ -74,19 +74,19 @@ const ModuleCard = ({ icon: Icon, label, color, delay, onClick }) => {
 
         {/* Icon container */}
         <div className={`
-          relative w-14 h-14 mx-auto mb-3 rounded-xl
+          relative w-12 h-12 mx-auto mb-2 rounded-xl
           bg-gradient-to-br ${color}
           flex items-center justify-center
           shadow-lg
           transition-transform duration-300
           ${isHovered ? 'scale-110 rotate-3' : ''}
         `}>
-          <Icon className="w-7 h-7 text-white" strokeWidth={1.8} />
+          <Icon className="w-6 h-6 text-white" strokeWidth={1.8} />
         </div>
 
         {/* Label */}
         <p className={`
-          relative text-center text-sm font-medium
+          relative text-center text-xs font-medium leading-tight
           text-white/90 transition-colors duration-300
           ${isHovered ? 'text-white' : ''}
         `}>
@@ -118,17 +118,17 @@ const modules = {
     { icon: ArrowLeftRight, label: 'Channel', color: 'from-cyan-500 to-blue-600', module: 'multichannel' },
     { icon: CreditCard, label: 'Payment', color: 'from-green-500 to-emerald-600', module: 'payments' },
     { icon: BarChart3, label: 'Reports', color: 'from-rose-500 to-pink-600', module: 'reports' },
-    { icon: DollarSign, label: 'Smart Pricing', color: 'from-yellow-500 to-amber-600', module: 'pricing' },
+    { icon: DollarSign, label: 'Pricing', color: 'from-yellow-500 to-amber-600', module: 'pricing' },
     { icon: Sparkles, label: 'Assistant', color: 'from-fuchsia-500 to-purple-600', module: 'ai' },
     { icon: Globe, label: 'Culture', color: 'from-indigo-500 to-blue-600', module: 'cultural-intelligence' },
   ],
   experience: [
-    { icon: Rocket, label: 'Booking Engine', color: 'from-teal-500 to-cyan-600', module: 'booking-engine' },
+    { icon: Rocket, label: 'Bookings', color: 'from-teal-500 to-cyan-600', module: 'booking-engine' },
     { icon: Smartphone, label: 'Check-in', color: 'from-sky-500 to-blue-600', module: 'digital-checkin' },
-    { icon: Users, label: 'Guest Portal', color: 'from-violet-500 to-indigo-600', module: 'guest-portal' },
+    { icon: Users, label: 'Guests', color: 'from-violet-500 to-indigo-600', module: 'guest-portal' },
     { icon: Star, label: 'Reviews', color: 'from-amber-400 to-yellow-500', module: 'reviews' },
     { icon: MessageSquare, label: 'WhatsApp', color: 'from-green-500 to-emerald-600', module: 'messages' },
-    { icon: Megaphone, label: 'Media Hype', color: 'from-pink-500 to-rose-600', module: 'marketing' },
+    { icon: Megaphone, label: 'Campaigns', color: 'from-pink-500 to-rose-600', module: 'marketing' },
     { icon: Share2, label: 'Social', color: 'from-blue-500 to-indigo-600', module: 'social' },
   ]
 };
@@ -194,19 +194,13 @@ export default function App() {
           />
         </div>
 
-        {/* Floating feature icons */}
-        <FloatingIcon icon={Wifi} className="top-[20%] left-[5%]" delay={0} />
-        <FloatingIcon icon={Shield} className="top-[20%] right-[5%]" delay={1.5} />
-        <FloatingIcon icon={Zap} className="bottom-[20%] left-[3%]" delay={3} />
-        <FloatingIcon icon={Sparkles} className="bottom-[20%] right-[3%]" delay={2} />
-
         {/* Main content */}
         <div className="relative z-10 text-center max-w-md">
 
           {/* Logo container - ORIGINAL Building2 icon */}
           <div
             className={`
-              relative mx-auto mb-4 transition-all duration-1000
+              relative mx-auto mb-4 -mt-12 transition-all duration-1000
               ${isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-8'}
             `}
           >
@@ -242,10 +236,10 @@ export default function App() {
             />
           </div>
 
-          {/* Brand text - MOVED UP with more margin below */}
+          {/* Brand text */}
           <div
             className={`
-              mb-20 transition-all duration-1000 delay-200
+              mb-8 transition-all duration-1000 delay-200
               ${isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}
             `}
           >
@@ -260,7 +254,7 @@ export default function App() {
           {/* Tagline */}
           <div
             className={`
-              mb-10 transition-all duration-1000 delay-400
+              mb-6 transition-all duration-1000 delay-400
               ${isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}
             `}
           >
@@ -270,6 +264,15 @@ export default function App() {
             <p className="text-lg font-medium text-white/90">
               Powered by Artificial Intelligence
             </p>
+          </div>
+
+          {/* Single floating icon below Powered by text */}
+          <div className="mb-16 flex justify-center">
+            <div style={{ animation: 'float 6s ease-in-out infinite' }}>
+              <div className="w-12 h-12 rounded-2xl bg-white/10 backdrop-blur-sm border border-white/20 flex items-center justify-center">
+                <Sparkles className="w-6 h-6 text-white/60" />
+              </div>
+            </div>
           </div>
 
           {/* CTA Button */}
@@ -538,7 +541,7 @@ export default function App() {
           {/* Property Management Section */}
           <section className="mb-8">
             <SectionTitle>Property Management System</SectionTitle>
-            <div className="grid grid-cols-4 gap-3">
+            <div className="grid grid-cols-4 gap-2.5">
               {modules.management.map((mod, index) => (
                 <ModuleCard
                   key={mod.label}
@@ -555,7 +558,7 @@ export default function App() {
           {/* Guest Experience Section */}
           <section className="mb-8">
             <SectionTitle>Guest Experience & Marketing</SectionTitle>
-            <div className="grid grid-cols-4 gap-3">
+            <div className="grid grid-cols-4 gap-2.5">
               {modules.experience.map((mod, index) => (
                 <ModuleCard
                   key={mod.label}
