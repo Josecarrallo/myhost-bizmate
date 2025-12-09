@@ -28,5 +28,25 @@ export const dataService = {
     }
 
     return data;
+  },
+
+  // Obtener todos los bookings
+  async getBookings() {
+    const { data, error } = await supabase
+      .from('bookings')
+      .select(`
+        *,
+        properties (
+          name
+        )
+      `)
+      .order('check_in', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching bookings:', error);
+      return [];
+    }
+
+    return data;
   }
 };

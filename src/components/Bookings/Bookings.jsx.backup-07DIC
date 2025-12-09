@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   ChevronLeft,
   Plus,
@@ -19,14 +19,10 @@ import {
   CreditCard
 } from 'lucide-react';
 import { StatCard } from '../common';
-import { dataService } from '../../services/data';
 
 const Bookings = ({ onBack }) => {
-  const [allBookings, setAllBookings] = useState([]);
-  const [loading, setLoading] = useState(true);
-
-  // Mock bookings data (fallback)
-  const mockBookings = [
+  // Mock bookings data
+  const allBookings = [
     { id: 1, guest: 'Sarah Johnson', email: 'sarah.j@email.com', phone: '+1 555-0101', property: 'Villa Sunset Paradise', checkIn: '2025-01-15', checkOut: '2025-01-20', status: 'Confirmed', guests: 4, revenue: 1250, channel: 'Airbnb', nights: 5, notes: 'Early check-in requested', paymentStatus: 'Paid', tasks: ['Housekeeping scheduled', 'Pool cleaning'] },
     { id: 2, guest: 'Michael Chen', email: 'mchen@email.com', phone: '+1 555-0102', property: 'Beach House', checkIn: '2025-01-18', checkOut: '2025-01-23', status: 'Pending', guests: 6, revenue: 1800, channel: 'Booking.com', nights: 5, notes: 'Awaiting payment confirmation', paymentStatus: 'Pending', tasks: [] },
     { id: 3, guest: 'Emma Wilson', email: 'ewilson@email.com', phone: '+1 555-0103', property: 'City Loft', checkIn: '2025-01-12', checkOut: '2025-01-15', status: 'In Progress', guests: 2, revenue: 950, channel: 'Direct', nights: 3, notes: 'Guest currently checked in', paymentStatus: 'Paid', tasks: ['Daily cleaning'] },
@@ -38,55 +34,6 @@ const Bookings = ({ onBack }) => {
     { id: 9, guest: 'Maria Garcia', email: 'mgarcia@email.com', phone: '+1 555-0109', property: 'Villa Sunset Paradise', checkIn: '2025-01-08', checkOut: '2025-01-11', status: 'Cancelled', guests: 2, revenue: 0, channel: 'Direct', nights: 3, notes: 'Cancelled due to emergency', paymentStatus: 'Refunded', tasks: ['Refund processed'] },
     { id: 10, guest: 'John Smith', email: 'jsmith@email.com', phone: '+1 555-0110', property: 'Beach House', checkIn: '2025-02-05', checkOut: '2025-02-12', status: 'Confirmed', guests: 5, revenue: 2520, channel: 'Direct', nights: 7, notes: 'Long stay guest - weekly discount applied', paymentStatus: 'Paid', tasks: [] },
   ];
-
-  // Load bookings from Supabase
-  useEffect(() => {
-    loadBookings();
-  }, []);
-
-  const loadBookings = async () => {
-    try {
-      setLoading(true);
-      const realBookings = await dataService.getBookings();
-
-      if (realBookings && realBookings.length > 0) {
-        // Map Supabase data to component format
-        const mapped = realBookings.map(booking => ({
-          id: booking.id,
-          guest: booking.guest_name,
-          email: booking.guest_email || 'N/A',
-          phone: booking.guest_phone || 'N/A',
-          property: booking.properties?.name || 'Unknown Property',
-          checkIn: booking.check_in,
-          checkOut: booking.check_out,
-          status: capitalizeFirst(booking.status),
-          guests: booking.guests,
-          revenue: parseFloat(booking.total_price),
-          channel: capitalizeFirst(booking.channel),
-          nights: booking.nights,
-          notes: booking.notes || '',
-          paymentStatus: capitalizeFirst(booking.payment_status),
-          tasks: [] // Tasks feature to be implemented later
-        }));
-        setAllBookings(mapped);
-      } else {
-        // Fallback to mock data
-        setAllBookings(mockBookings);
-      }
-    } catch (error) {
-      console.error('Error loading bookings:', error);
-      // Fallback to mock data on error
-      setAllBookings(mockBookings);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Helper function to capitalize first letter
-  const capitalizeFirst = (str) => {
-    if (!str) return '';
-    return str.charAt(0).toUpperCase() + str.slice(1);
-  };
 
   const [selectedBooking, setSelectedBooking] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
