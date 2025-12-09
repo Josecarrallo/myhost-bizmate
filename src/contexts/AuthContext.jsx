@@ -41,9 +41,9 @@ export const AuthProvider = ({ children }) => {
 
   const checkUser = async () => {
     try {
-      // Add 3 second timeout to prevent infinite loading
+      // Add 5 second timeout to prevent infinite loading
       const timeout = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('Session check timeout')), 3000)
+        setTimeout(() => reject(new Error('Session check timeout')), 5000)
       );
 
       const sessionCheck = supabase.auth.getSession();
@@ -56,8 +56,25 @@ export const AuthProvider = ({ children }) => {
       }
     } catch (error) {
       console.error('Error checking user:', error);
-      // If timeout or error, clear stored session and show login
-      localStorage.removeItem('supabase.auth.token');
+
+      // If timeout or error, clear ALL auth data (corrupted/expired session)
+      try {
+        // Clear all Supabase auth tokens from localStorage
+        Object.keys(localStorage).forEach(key => {
+          if (key.startsWith('sb-') || key.includes('supabase')) {
+            localStorage.removeItem(key);
+          }
+        });
+
+        // Also try to sign out to clean up any remaining state
+        await supabase.auth.signOut({ scope: 'local' });
+      } catch (cleanupError) {
+        console.error('Error cleaning up auth:', cleanupError);
+      }
+
+      // Reset user state
+      setUser(null);
+      setUserData(null);
     } finally {
       setLoading(false);
     }
