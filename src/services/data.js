@@ -34,13 +34,7 @@ export const dataService = {
   async getBookings() {
     const { data, error } = await supabase
       .from('bookings')
-      .select(`
-        *,
-        properties (
-          name
-        )
-      `)
-      .order('check_in', { ascending: false });
+      .select('*');
 
     if (error) {
       console.error('Error fetching bookings:', error);

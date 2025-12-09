@@ -22,6 +22,7 @@ import { StatCard } from '../common';
 import { dataService } from '../../services/data';
 
 const Bookings = ({ onBack }) => {
+  // State for bookings data
   const [allBookings, setAllBookings] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -47,16 +48,16 @@ const Bookings = ({ onBack }) => {
   const loadBookings = async () => {
     try {
       setLoading(true);
-      const realBookings = await dataService.getBookings();
+      const data = await dataService.getBookings();
 
-      if (realBookings && realBookings.length > 0) {
+      if (data && data.length > 0) {
         // Map Supabase data to component format
-        const mapped = realBookings.map(booking => ({
+        const mappedBookings = data.map(booking => ({
           id: booking.id,
           guest: booking.guest_name,
           email: booking.guest_email || 'N/A',
           phone: booking.guest_phone || 'N/A',
-          property: booking.properties?.name || 'Unknown Property',
+          property: `Property ${booking.property_id}`,
           checkIn: booking.check_in,
           checkOut: booking.check_out,
           status: capitalizeFirst(booking.status),
@@ -66,26 +67,24 @@ const Bookings = ({ onBack }) => {
           nights: booking.nights,
           notes: booking.notes || '',
           paymentStatus: capitalizeFirst(booking.payment_status),
-          tasks: [] // Tasks feature to be implemented later
+          tasks: []
         }));
-        setAllBookings(mapped);
+        setAllBookings(mappedBookings);
       } else {
-        // Fallback to mock data
+        // Use mock data if no real data
         setAllBookings(mockBookings);
       }
     } catch (error) {
       console.error('Error loading bookings:', error);
-      // Fallback to mock data on error
       setAllBookings(mockBookings);
     } finally {
       setLoading(false);
     }
   };
 
-  // Helper function to capitalize first letter
   const capitalizeFirst = (str) => {
     if (!str) return '';
-    return str.charAt(0).toUpperCase() + str.slice(1);
+    return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
   };
 
   const [selectedBooking, setSelectedBooking] = useState(null);
