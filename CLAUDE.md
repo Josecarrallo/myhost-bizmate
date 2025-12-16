@@ -32,9 +32,20 @@ npm run preview
 
 ## Architecture
 
-### Recent Refactor (November 2025)
+### Recent Refactors
 
-The codebase underwent a major structural refactor that reduced `App.jsx` from 4,019 lines to 214 lines (94.7% reduction) by extracting 21 modules into separate components.
+**December 2025 - Dashboard Restructure**:
+- Implemented sidebar navigation with persistent layout
+- Eliminated splash screen and modules grid
+- Added Owner Executive Summary as default post-login view
+- Created Sidebar component for organized navigation
+- Simplified routing from 2 state variables to 1 (`currentView`)
+- Fixed layout issues for all modules to work with sidebar
+- All modules now use `flex-1 h-screen overflow-auto` pattern
+
+**November 2025 - Module Extraction**:
+- Reduced `App.jsx` from 4,019 lines to 214 lines (94.7% reduction)
+- Extracted 21 modules into separate components
 
 ### Component Structure
 
@@ -57,7 +68,13 @@ src/
 │   │   ├── CampaignCard.jsx
 │   │   ├── WorkflowCard.jsx
 │   │   └── index.js           # Barrel exports
+│   ├── Auth/
+│   │   └── LoginPage.jsx      # Split layout login screen
+│   ├── Layout/
+│   │   └── Sidebar.jsx        # Persistent navigation sidebar
 │   ├── Dashboard/
+│   │   ├── Dashboard.jsx      # Analytics dashboard (legacy)
+│   │   └── OwnerExecutiveSummary.jsx  # NEW: Default post-login view
 │   ├── Payments/
 │   ├── Bookings/
 │   ├── Messages/
@@ -98,11 +115,37 @@ Modules are organized into 5 thematic groups in the UI:
 
 ### Routing Pattern
 
-App.jsx uses a simple screen-based routing system with state:
-- `currentScreen`: Controls home screen vs modules grid
-- `currentModule`: Controls which module component is rendered
+**Current System (December 2025)**:
 
-All module components receive an `onBack` callback prop to return to the modules grid. The Workflows component also receives `onNavigate` to enable sub-module navigation.
+App.jsx uses a simplified view-based routing with persistent sidebar:
+- `currentView`: Single state variable controlling which view is displayed
+- Sidebar navigation always visible (except on mobile)
+- Default view: `overview` (OwnerExecutiveSummary)
+
+**Layout Structure**:
+```jsx
+<div className="flex h-screen overflow-hidden bg-gray-50">
+  <Sidebar currentView={currentView} onNavigate={setCurrentView} />
+  {renderContent()}
+</div>
+```
+
+**View Rendering**:
+```jsx
+const renderContent = () => {
+  switch (currentView) {
+    case 'overview':
+      return <OwnerExecutiveSummary userName={userData?.full_name} />;
+    case 'properties':
+      return <Properties key="properties" onBack={() => setCurrentView('overview')} />;
+    // ... other views
+  }
+};
+```
+
+**Important**: Module components that fetch data should use `key` prop to force remount on navigation, ensuring fresh data loads.
+
+All module components receive an `onBack` callback prop to return to the overview. The Workflows component also receives `onNavigate` to enable sub-module navigation.
 
 ### Component Patterns
 
@@ -115,11 +158,24 @@ import { StatCard, BookingCard, MessageCard } from '../common';
 
 **Module Components:**
 Each module follows this pattern:
-- Receives `onBack` prop for navigation
+- Container div: `className="flex-1 h-screen ... overflow-auto"` (fills available space next to sidebar)
+- Receives `onBack` prop for navigation to overview
 - Uses gradient backgrounds (`bg-gradient-to-br from-[color] via-[color] to-[color]`)
 - Includes header with back button, title, and action buttons
 - Uses Lucide React icons
 - Responsive design with Tailwind CSS
+- Data-fetching modules should receive `key` prop in App.jsx for proper remounting
+
+**Example Module Structure**:
+```jsx
+const MyModule = ({ onBack }) => {
+  return (
+    <div className="flex-1 h-screen bg-gradient-to-br from-orange-400 via-orange-500 to-orange-600 p-4 relative overflow-auto">
+      {/* Content */}
+    </div>
+  );
+};
+```
 
 **Styling:**
 - Primary brand color: Orange 500 (`bg-orange-500`)
@@ -294,6 +350,14 @@ This is a vacation rental management platform targeting property managers and ho
 
 ## Key Commits
 
+- `a54b99d` - **feat: Implement dashboard restructure with sidebar navigation** (Dec 16, 2025)
+  - Created Sidebar and OwnerExecutiveSummary components
+  - Redesigned LoginPage with split layout
+  - Simplified routing to single state variable
+  - Fixed layout for all modules (Properties, Bookings, Multichannel, AIAssistant)
+  - Fixed data reload bugs with key props
+- `4c61585` - docs: Add documentation package for 09 DIC 2025
+- `d2a3088` - docs: Add complete session documentation for 09 DIC 2025
 - `e149395` - Refactor: Extract 21 modules from App.jsx monolith (4019 → 214 lines)
 - `7d32967` - Update gitignore for Vercel and backend scripts
 - `f663601` - Add project documentation and architecture files
