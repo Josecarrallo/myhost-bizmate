@@ -145,8 +145,7 @@ const CulturalIntelligence = ({ onBack }) => {
             <ChevronLeft className="w-6 h-6 text-orange-600" />
           </button>
           <div className="text-center">
-            <h2 className="text-4xl md:text-5xl font-black text-white drop-shadow-2xl mb-1">MY HOST</h2>
-            <p className="text-2xl md:text-3xl font-bold text-orange-100 drop-shadow-xl">BizMate</p>
+            <h2 className="text-4xl md:text-5xl font-black text-white drop-shadow-2xl">Cultural Intelligence</h2>
           </div>
           <button className="p-3 bg-white/95 backdrop-blur-sm rounded-2xl hover:bg-white transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 border-2 border-white/50">
             <Sparkles className="w-6 h-6 text-orange-600" />

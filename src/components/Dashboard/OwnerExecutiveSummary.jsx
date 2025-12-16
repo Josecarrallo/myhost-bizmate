@@ -79,7 +79,16 @@ const OwnerExecutiveSummary = ({ userName = 'José' }) => {
   };
 
   return (
-    <div className="flex-1 bg-gray-50 overflow-auto">
+    <div className="flex-1 bg-gradient-to-br from-orange-400 via-orange-500 to-orange-600 overflow-auto relative">
+      {/* Animated background elements */}
+      <div className="absolute inset-0 overflow-hidden">
+        <div className="absolute w-96 h-96 bg-orange-300/20 rounded-full blur-3xl top-20 -left-48 animate-pulse"></div>
+        <div className="absolute w-96 h-96 bg-orange-300/20 rounded-full blur-3xl bottom-20 -right-48 animate-pulse" style={{ animationDelay: '1s' }}></div>
+        <div className="absolute w-72 h-72 bg-orange-200/30 rounded-full blur-2xl top-1/2 right-1/4 animate-pulse" style={{ animationDelay: '0.5s' }}></div>
+      </div>
+
+      {/* Content wrapper with relative z-index */}
+      <div className="relative z-10">
       {/* Top Bar */}
       <div className="bg-white border-b border-gray-200 px-6 py-4">
         <div className="flex items-center justify-between">
@@ -117,10 +126,10 @@ const OwnerExecutiveSummary = ({ userName = 'José' }) => {
       {/* Main Content */}
       <div className="p-6 max-w-7xl mx-auto">
         {/* Greeting */}
-        <h2 className="text-3xl font-bold text-gray-900 mb-1">
+        <h2 className="text-3xl font-black text-white mb-1">
           {getGreeting()}, {userName}
         </h2>
-        <p className="text-lg text-gray-600 mb-8">Owner Executive Summary</p>
+        <p className="text-lg text-white/90 font-semibold mb-8">Owner Executive Summary</p>
 
         {/* AI Snapshot Card */}
         <div className="bg-orange-50 border border-orange-100 rounded-xl p-6 mb-8">
@@ -152,16 +161,16 @@ const OwnerExecutiveSummary = ({ userName = 'José' }) => {
         {/* KPI Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
           {kpis.map((kpi, index) => (
-            <div key={index} className="bg-white rounded-xl p-6 border border-gray-200">
-              <p className="text-sm text-gray-600 mb-2">{kpi.label}</p>
+            <div key={index} className="bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl p-6 border-2 border-white/50 shadow-xl">
+              <p className="text-sm text-white/80 mb-2">{kpi.label}</p>
               <div className="flex items-baseline gap-2 mb-1">
-                <span className="text-3xl font-bold text-gray-900">{kpi.value}</span>
-                <span className={`text-sm font-medium ${kpi.trend === 'up' ? 'text-green-600' : 'text-red-600'}`}>
+                <span className="text-3xl font-bold text-white">{kpi.value}</span>
+                <span className={`text-sm font-medium ${kpi.trend === 'up' ? 'text-green-200' : 'text-red-200'}`}>
                   {kpi.change}
                 </span>
               </div>
               {kpi.subtext && (
-                <p className="text-sm text-gray-500">{kpi.subtext}</p>
+                <p className="text-sm text-white/70">{kpi.subtext}</p>
               )}
             </div>
           ))}
@@ -209,6 +218,7 @@ const OwnerExecutiveSummary = ({ userName = 'José' }) => {
             })}
           </div>
         </div>
+      </div>
       </div>
     </div>
   );

@@ -304,8 +304,7 @@ const ReportsInsights = ({ onBack }) => {
             <ChevronLeft className="w-6 h-6 text-orange-600" />
           </button>
           <div className="text-center">
-            <h2 className="text-4xl md:text-5xl font-black text-white drop-shadow-2xl mb-1">MY HOST</h2>
-            <p className="text-2xl md:text-3xl font-bold text-orange-100 drop-shadow-xl">BizMate</p>
+            <h2 className="text-4xl md:text-5xl font-black text-white drop-shadow-2xl">Reports</h2>
           </div>
           <div className="flex gap-2">
             <button className="px-6 py-3 bg-white/95 backdrop-blur-sm border-2 border-white/50 rounded-2xl font-bold hover:bg-white transition-all duration-300 shadow-lg text-orange-600">

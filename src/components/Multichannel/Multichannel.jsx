@@ -115,8 +115,7 @@ const MultichannelIntegration = ({ onBack }) => {
             <span className="font-semibold">Back</span>
           </button>
           <div className="text-center">
-            <h2 className="text-3xl md:text-4xl font-black text-orange-600 mb-1">Multichannel</h2>
-            <p className="text-sm md:text-base font-semibold text-orange-500">Channel Management</p>
+            <h2 className="text-4xl md:text-5xl font-black text-orange-600">Channel Integration</h2>
           </div>
           <div className="w-20"></div>
         </div>
@@ -127,21 +126,21 @@ const MultichannelIntegration = ({ onBack }) => {
         <div className="max-w-7xl mx-auto space-y-6">
           {/* Global Stats */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="bg-white/95 backdrop-blur-sm rounded-2xl p-6 border-2 border-white/50 shadow-lg">
-              <div className="text-3xl font-black text-orange-600 mb-1">{totalStats.connectedChannels}/{channels.length}</div>
-              <div className="text-xs font-semibold text-gray-600">Connected Channels</div>
+            <div className="bg-gradient-to-br from-orange-500 to-orange-600 rounded-2xl p-6 border-2 border-white/50 shadow-lg text-white">
+              <div className="text-3xl font-black mb-1">{totalStats.connectedChannels}/{channels.length}</div>
+              <div className="text-xs font-semibold opacity-90">Connected Channels</div>
             </div>
             <div className="bg-gradient-to-br from-orange-500 to-orange-600 rounded-2xl p-6 border-2 border-white/50 shadow-lg text-white">
               <div className="text-3xl font-black mb-1">{totalStats.totalListings}</div>
               <div className="text-xs font-semibold opacity-90">Total Listings</div>
             </div>
-            <div className="bg-white/95 backdrop-blur-sm rounded-2xl p-6 border-2 border-white/50 shadow-lg">
-              <div className="text-3xl font-black text-orange-600 mb-1">${totalStats.totalRevenue}</div>
-              <div className="text-xs font-semibold text-gray-600">Total Revenue</div>
+            <div className="bg-gradient-to-br from-orange-500 to-orange-600 rounded-2xl p-6 border-2 border-white/50 shadow-lg text-white">
+              <div className="text-3xl font-black mb-1">${totalStats.totalRevenue}</div>
+              <div className="text-xs font-semibold opacity-90">Total Revenue</div>
             </div>
-            <div className="bg-white/95 backdrop-blur-sm rounded-2xl p-6 border-2 border-white/50 shadow-lg">
-              <div className="text-3xl font-black text-orange-600 mb-1">{totalStats.totalBookings}</div>
-              <div className="text-xs font-semibold text-gray-600">Total Bookings</div>
+            <div className="bg-gradient-to-br from-orange-500 to-orange-600 rounded-2xl p-6 border-2 border-white/50 shadow-lg text-white">
+              <div className="text-3xl font-black mb-1">{totalStats.totalBookings}</div>
+              <div className="text-xs font-semibold opacity-90">Total Bookings</div>
             </div>
           </div>
 

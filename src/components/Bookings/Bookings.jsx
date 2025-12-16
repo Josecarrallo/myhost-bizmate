@@ -169,8 +169,7 @@ const Bookings = ({ onBack }) => {
             <ChevronLeft className="w-6 h-6 text-orange-600" />
           </button>
           <div className="text-center">
-            <h2 className="text-4xl md:text-5xl font-black text-white drop-shadow-2xl mb-1">MY HOST</h2>
-            <p className="text-2xl md:text-3xl font-bold text-orange-100 drop-shadow-xl">BizMate</p>
+            <h2 className="text-4xl md:text-5xl font-black text-white drop-shadow-2xl">Bookings</h2>
           </div>
           <button className="px-6 py-3 bg-white/95 backdrop-blur-sm text-orange-600 rounded-2xl font-bold hover:bg-white transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 border-2 border-white/50">
             <Plus className="w-5 h-5 inline mr-2" /> New Booking

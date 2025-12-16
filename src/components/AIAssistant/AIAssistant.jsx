@@ -42,8 +42,7 @@ const AIAssistant = ({ onBack }) => {
             <ChevronLeft className="w-6 h-6 text-orange-600" />
           </button>
           <div className="text-center">
-            <h2 className="text-4xl md:text-5xl font-black text-white drop-shadow-2xl mb-1">MY HOST</h2>
-            <p className="text-2xl md:text-3xl font-bold text-orange-100 drop-shadow-xl">BizMate</p>
+            <h2 className="text-4xl md:text-5xl font-black text-white drop-shadow-2xl">AI Assistant</h2>
           </div>
           <div className="w-14"></div>
         </div>

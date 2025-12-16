@@ -159,7 +159,7 @@ const GuestPortal = ({ onBack }) => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-400 via-orange-500 to-orange-600 flex flex-col relative overflow-hidden">
+    <div className="h-screen bg-gradient-to-br from-orange-400 via-orange-500 to-orange-600 flex flex-col relative overflow-hidden">
       {/* Animated background elements */}
       <div className="absolute inset-0 overflow-hidden">
         <div className="absolute w-96 h-96 bg-orange-300/20 rounded-full blur-3xl top-20 -left-48 animate-pulse"></div>
@@ -175,7 +175,7 @@ const GuestPortal = ({ onBack }) => {
             <span className="font-semibold">Back</span>
           </button>
           <div className="text-center">
-            <h2 className="text-3xl md:text-4xl font-black text-orange-600 mb-1">Guest Portal</h2>
+            <h2 className="text-4xl md:text-5xl font-black text-orange-600">Guest Portal</h2>
             <p className="text-sm md:text-base font-semibold text-orange-500">{bookingData.propertyName}</p>
           </div>
           <div className="w-20"></div>

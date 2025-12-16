@@ -23,8 +23,7 @@ const RMSIntegration = ({ onBack }) => {
             <span className="font-semibold">Back</span>
           </button>
           <div className="text-center">
-            <h2 className="text-3xl md:text-4xl font-black text-orange-600 mb-1">MY HOST</h2>
-            <p className="text-xl md:text-2xl font-bold text-orange-500">BizMate</p>
+            <h2 className="text-4xl md:text-5xl font-black text-orange-600">RMS Integration</h2>
           </div>
           <div className="w-20"></div>
         </div>
