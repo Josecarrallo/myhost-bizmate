@@ -16,7 +16,8 @@ import {
   Mail,
   Phone,
   ClipboardList,
-  CreditCard
+  CreditCard,
+  Zap
 } from 'lucide-react';
 import { StatCard } from '../common';
 import { dataService } from '../../services/data';
@@ -93,6 +94,57 @@ const Bookings = ({ onBack }) => {
   const [filterProperty, setFilterProperty] = useState('All');
   const [filterChannel, setFilterChannel] = useState('All');
   const [showFilters, setShowFilters] = useState(false);
+  const [testingWorkflow, setTestingWorkflow] = useState(false);
+
+  // Test workflow function
+  const handleTestWorkflow = async () => {
+    setTestingWorkflow(true);
+
+    try {
+      console.log('🧪 Testing n8n workflow...');
+
+      // Create test booking data
+      const testBooking = {
+        property_id: '18711359-1378-4d12-9ea6-fb31c0b1bac2', // Izumi Hotel
+        guest_name: 'Test User - n8n Integration',
+        guest_email: 'josecarrallodelafuente@gmail.com', // Tu email para recibir el test
+        guest_phone: '34619794604', // Tu teléfono
+        check_in: '2026-01-20',
+        check_out: '2026-01-25',
+        guests: 2,
+        total_price: 500,
+        status: 'confirmed',
+        channel: 'direct',
+        nights: 5,
+        notes: '🧪 TEST BOOKING - n8n workflow integration test',
+        payment_status: 'paid'
+      };
+
+      console.log('📤 Sending test booking:', testBooking);
+
+      // Create booking (this will trigger n8n workflow automatically)
+      const result = await dataService.createBooking(testBooking);
+
+      if (result.success) {
+        console.log('✅ Booking created successfully:', result.data);
+        console.log('📧 Check your email:', testBooking.guest_email);
+        console.log('📱 Check WhatsApp:', testBooking.guest_phone);
+
+        alert(`✅ Test booking created!\n\n📧 Check email: ${testBooking.guest_email}\n📱 Check WhatsApp: ${testBooking.guest_phone}\n\nWorkflow triggered successfully! Check console for details.`);
+
+        // Reload bookings to show the new test booking
+        await loadBookings();
+      } else {
+        console.error('❌ Error creating booking:', result.error);
+        alert(`❌ Error: ${result.error}`);
+      }
+    } catch (error) {
+      console.error('❌ Test failed:', error);
+      alert(`❌ Test failed: ${error.message}`);
+    } finally {
+      setTestingWorkflow(false);
+    }
+  };
 
   // Get unique properties and channels
   const properties = ['All', ...new Set(allBookings.map(b => b.property))];
@@ -171,9 +223,19 @@ const Bookings = ({ onBack }) => {
           <div className="text-center">
             <h2 className="text-4xl md:text-5xl font-black text-white drop-shadow-2xl">Bookings</h2>
           </div>
-          <button className="px-6 py-3 bg-white/95 backdrop-blur-sm text-orange-600 rounded-2xl font-bold hover:bg-white transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 border-2 border-white/50">
-            <Plus className="w-5 h-5 inline mr-2" /> New Booking
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={handleTestWorkflow}
+              disabled={testingWorkflow}
+              className="px-4 py-3 bg-purple-500/95 backdrop-blur-sm text-white rounded-2xl font-bold hover:bg-purple-600 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 border-2 border-white/50 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <Zap className="w-5 h-5 inline mr-2" />
+              {testingWorkflow ? 'Testing...' : 'Test n8n'}
+            </button>
+            <button className="px-6 py-3 bg-white/95 backdrop-blur-sm text-orange-600 rounded-2xl font-bold hover:bg-white transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 border-2 border-white/50">
+              <Plus className="w-5 h-5 inline mr-2" /> New Booking
+            </button>
+          </div>
         </div>
 
         {/* Stats */}
