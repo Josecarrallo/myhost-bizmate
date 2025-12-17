@@ -6,9 +6,9 @@
 
 import https from 'https';
 
-// Credenciales DOMUS (TEST mode)
-const DOMUS_API_USER = 'kVfLOhx6UDOJF+k0piBqggYrC5DUmhbmBRuUYktTOhA=';
-const DOMUS_API_PASSWORD = 'Pk5RHEEPn9sdZ27d+DKQWWgaYa35xbh0/B7d43gLGv4=';
+// Credenciales DOMUS (TEST mode) - Actualizadas 17 Dic 2025
+const DOMUS_API_USER = 'IfLKCinlg1KOK2BOVcQMjTUOdcD5teeuNFBVOQQ5Jno=';
+const DOMUS_API_PASSWORD = 'J9xiyR11I6iAF1yM6+QVmfhwULuxslmrmknziknsz0M=';
 const DOMUS_BASE_URL = 'api.zodomus.com';
 
 // Crear Basic Auth header
