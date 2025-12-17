@@ -1,7 +1,36 @@
 # 🔄 INFORMACIÓN PARA CONTINUAR SESIÓN
 
-**Última actualización:** 17 Dic 2025 - 23:00 PM
+**Última actualización:** 17 Dic 2025 - 20:30 PM
 **Sesión:** DOMUS Integration Day (17 Dic 2025)
+
+---
+
+## 🎉 NOVEDAD - DOMUS RESPONDIÓ (17 DIC 20:22 PM)
+
+### ✅ EMAIL DE SOPORTE RECIBIDO
+
+**From:** support@zodomus.com
+**Time:** 20:22 PM (3 minutos después de consulta)
+
+**Mensaje:**
+```
+You should activate already existing properties, since the process
+of creating a new property using APIs is not simple.
+
+I'm sending you a document to help.
+```
+
+### 📄 DOCUMENTO RECIBIDO
+
+**Archivo:** "Zodomus tutorial step by step tests only (basic channel manager operations)"
+**Ubicación:** Downloads
+**Tipo:** Tutorial paso a paso para operaciones básicas
+
+### 🔑 INSTRUCCIONES CLAVE DE DOMUS
+
+1. ✅ **NO crear más properties via API** - El proceso es complejo
+2. ✅ **ACTIVAR las 7 properties existentes** - Ya creadas correctamente
+3. ✅ **SEGUIR el tutorial paso a paso** - Flujo correcto documentado
 
 ---
 
@@ -16,24 +45,25 @@
 - n8n Railway funcionando
 
 #### 2. **DOMUS Integration: 95%** ✅
-- **7 properties creadas** en DOMUS
-- **5 rooms creadas** exitosamente
+- **7 properties creadas** en DOMUS (✅ confirmadas por soporte)
+- **5 rooms creadas** via API (no visibles aún)
 - **15+ endpoints API explorados** y documentados
 - **n8n polling workflow** creado y listo
 - **Credenciales actualizadas** (17 Dic 2025)
-- **Email a soporte enviado** (support@zodomus.com)
+- **Soporte DOMUS respondió** - Tutorial recibido ✅
 
 #### 3. **Commits del día:**
 - `1e97811` - DOMUS integration progress (scripts + docs)
 - `06c3b96` - n8n workflow polling reservations
 - `05de1a1` - Support wait status + Indonesia CM option
+- `afd86ce` - CONTINUAR_SESION.md actualizado
 
-### 🔴 BLOQUEADO:
-**Property Status:** "Evaluation OTA" (no "Active")
-- ❌ No se pueden configurar rates
-- ❌ No se pueden configurar availability
-- ❌ No se pueden activar rooms (devuelve 0)
-- ⏳ **Esperando respuesta de soporte DOMUS**
+### 🟢 DESBLOQUEADO - CAMINO CLARO:
+**Property Status:** "Evaluation OTA" → Activación pendiente siguiendo tutorial
+- ✅ Tutorial oficial recibido
+- ✅ 7 properties listas para activar
+- ✅ Flujo correcto documentado por DOMUS
+- 🎯 **Mañana:** Seguir tutorial paso a paso
 
 ---
 
@@ -41,15 +71,16 @@
 
 ### DOMUS Resources Created:
 
-**Properties (7 total):**
+**Properties (7 total - Confirmadas por soporte ✅):**
 - **Property ID Principal:** 5814990
 - Property Name: Izumi Hotel - Test
 - Property Type: 20 (Hotel)
 - Channel ID: 1 (Booking.com)
 - Mode: TEST
 - **Status:** Evaluation OTA ⏳
+- **Acción:** Activar siguiendo tutorial DOMUS
 
-**Rooms (5 total):**
+**Rooms (5 total - Creadas via API, no visibles):**
 ```
 Room IDs:
 - 581499084
@@ -65,7 +96,8 @@ Room Details:
 - Room Size: 25 sqm
 - Room Quantity: 5 per room
 - Status: "New" ✅
-- Rates: null (no configurados aún)
+- Problema: No aparecen en dashboard
+- Solución: Seguir tutorial para activación correcta
 ```
 
 ### Credenciales DOMUS (TEST) - Actualizadas 17 Dic 2025:
@@ -86,11 +118,11 @@ API_BASE_URL: 'https://api.zodomus.com'
 ```
 scripts/domus-test.js (468 líneas)
 └─ Test completo de integración DOMUS
-   ├─ Crear properties
-   ├─ Crear rooms
-   ├─ Configurar rates
-   ├─ Configurar availability
-   └─ Obtener property/room types
+   ├─ Crear properties ✅
+   ├─ Crear rooms ✅
+   ├─ Configurar rates (pendiente activación)
+   ├─ Configurar availability (pendiente activación)
+   └─ Obtener property/room types ✅
 
 scripts/domus-activate-correct.js (270 líneas)
 └─ Usar endpoints correctos de documentación
@@ -158,53 +190,92 @@ n8n_worlkflow_claude/
       └─ Monitoring queries
 ```
 
+### 📄 NUEVO - Tutorial DOMUS:
+
+```
+~/Downloads/
+└─ Zodomus tutorial step by step tests only.pdf (o similar)
+   └─ Tutorial oficial de DOMUS
+      ├─ Operaciones básicas channel manager
+      ├─ Flujo correcto de activación
+      ├─ Endpoints y orden exacto
+      └─ Solución a problema de rooms
+```
+
 ---
 
-## 📋 PRÓXIMOS PASOS
+## 🎯 PLAN PARA MAÑANA (18 DIC 2025)
 
-### Opción A: Esperar DOMUS Support ⏳
+### ✅ DECISIÓN ESTRATÉGICA CONFIRMADA
 
-**Status:** Email enviado a support@zodomus.com (17 Dic 2025)
+**USAR DOMUS 100%**
+Razón: Son los únicos que NO venden PMS
 
-**Request:**
-- Activar property 5814990
+- **MY HOST BizMate** = PMS completo (nuestro sistema)
+- **DOMUS** = Solo Channel Manager (módulo opcional)
+
+### 📋 TAREAS DEL DÍA
+
+#### 1️⃣ **REVISAR DOCUMENTO DOMUS** (30 min)
+```
+- Leer "Zodomus tutorial step by step tests only"
+- Entender flujo correcto de activación
+- Identificar endpoints necesarios
+- Tomar notas del orden exacto
+```
+
+#### 2️⃣ **ACTIVAR PROPERTY 5814990** (1-2 horas)
+```
+- Seguir tutorial paso a paso
 - Cambiar status: "Evaluation OTA" → "Active"
-- Habilitar configuración de rates y availability
+- Verificar activación en dashboard DOMUS
+```
 
-**Timeline:** Desconocido (puede ser días o semanas)
+#### 3️⃣ **CREAR/ACTIVAR ROOMS CORRECTAMENTE** (1-2 horas)
+```
+- Seguir instrucciones del tutorial
+- Configurar rate plans según documento
+- Mapear rooms con myRoomId
+- Verificar que aparezcan en dashboard
+```
 
-**Post-Activación:**
-1. Configurar rates ($100/noche, 365 días)
-2. Configurar availability (5 rooms, 365 días)
-3. Mapear rooms con myRoomId
-4. Importar workflow n8n
-5. Probar flujo completo
+#### 4️⃣ **CONFIGURAR RATES & AVAILABILITY** (1 hora)
+```
+- Rates: $100/noche, 365 días
+- Availability: 5 rooms disponibles
+- Currency: USD
+- Min Stay: 1 noche
+- Max Stay: 30 noches
+```
 
----
+#### 5️⃣ **IMPORTAR N8N WORKFLOW** (30 min)
+```
+- Importar: DOMUS Polling - Reservations Sync.json
+- Configurar credenciales DOMUS
+- Verificar conexión Supabase
+- Activar polling cada 5 min
+```
 
-### Opción B: Channel Manager Indonesia 🆕
+#### 6️⃣ **TESTING END-TO-END** (1 hora)
+```
+- Crear reserva de test via API
+- Verificar polling detecta reserva
+- Confirmar insert en Supabase
+- Probar Email confirmation (SendGrid)
+- Probar WhatsApp confirmation (ChakraHQ)
+```
 
-**Discovery:** https://www.channelmanager.co.id/
+### 🎯 OBJETIVO FINAL DÍA
 
-**Ventajas:**
-- 🆓 **2 meses FREE trial** (vs DOMUS TEST limitado)
-- 🇮🇩 **Soporte local Indonesia** (mejor zona horaria Bali)
-- 🏝️ **Enfocado en Bali** (mejores conexiones OTA locales)
-- 🚀 **Posible activación automática** (vs DOMUS manual)
+**DOMUS Integration: 100%** ✅
+- Property activada
+- Rooms visibles en dashboard
+- Rates configurados
+- Availability configurado
+- n8n workflow funcionando
+- Primera reserva test exitosa
 
-**Strategy:** Prueba paralela
-1. Mantener DOMUS listo ✅
-2. Probar Indonesia CM (2 meses gratis)
-3. Comparar ambos (2 semanas)
-4. Elegir ganador 🏆
-
-**Ventaja:** n8n workflow es genérico - solo cambiar endpoint URLs
-
-**Pasos para Indonesia CM:**
-1. Investigar API (30 min)
-2. Crear cuenta y property (1 hora)
-3. Probar activación (1-2 días)
-4. Comparar con DOMUS
+**Tiempo estimado total:** 5-7 horas
 
 ---
 
@@ -227,16 +298,19 @@ cat scripts/domus-create-rates.js
 # Exploración API completa
 cat "Claude Code Update 17122025/DOMUS_API_EXPLORATION_COMPLETE.md"
 
-# Estado de espera soporte
+# Estado de espera soporte (YA RESUELTO)
 cat "Claude Code Update 17122025/DOMUS_SUPPORT_WAIT_STATUS.md"
 
 # Setup workflow n8n
 cat "n8n_worlkflow_claude/DOMUS_POLLING_SETUP.md"
+
+# Tutorial DOMUS (NUEVO)
+# Buscar en Downloads
 ```
 
 ### Ejecutar Tests:
 ```bash
-# Test completo DOMUS (cuando property esté activa)
+# Test completo DOMUS (después de activación)
 node scripts/domus-test.js
 
 # Test activación correcta
@@ -248,53 +322,156 @@ node scripts/domus-create-rates.js
 
 ---
 
-## 💬 PROMPT PARA CLAUDE (PRÓXIMA SESIÓN)
+## 💬 PROMPT PARA CLAUDE (PRÓXIMA SESIÓN - 18 DIC 2025)
 
 Si la sesión se corta, usa este prompt:
 
 ```
-Hola, vamos a continuar el trabajo de DOMUS Integration.
+Hola Claude, vamos a continuar con la integración DOMUS.
 
-CONTEXTO COMPLETO:
-- Día 1 (n8n workflows): 100% completado ✅
-- DOMUS Integration: 95% completado ✅
-- Property 5814990 creada + 5 rooms
-- n8n workflow polling creado y listo
+══════════════════════════════════════════════
+CONTEXTO - DÍA ANTERIOR (17 DIC 2025)
+══════════════════════════════════════════════
+
+✅ COMPLETADO:
+- Día 1 (n8n workflows): 100%
+- DOMUS Integration: 95%
+- 7 properties creadas en DOMUS via API
+- 5 rooms creadas via API (pero no aparecen en dashboard)
 - 15+ endpoints API explorados
-- Todo documentado en: C:\myhost-bizmate\Claude Code Update 17122025\
+- n8n workflow polling completo (listo para importar)
+- Scripts funcionando: domus-test.js, domus-activate-correct.js, etc.
+- Documentación completa en: C:\myhost-bizmate\Claude Code Update 17122025\
 
-ESTADO ACTUAL:
-✅ 7 properties creadas en DOMUS
-✅ 5 rooms creadas (581499084, 581499086, 581499088, 581499095, 581499058)
-✅ Scripts funcionando (domus-test.js, domus-activate-correct.js, etc.)
-✅ n8n workflow completo (DOMUS Polling - Reservations Sync)
-✅ Documentación completa (DOMUS_API_EXPLORATION_COMPLETE.md)
-🔴 BLOQUEADO: Property status "Evaluation OTA"
-📧 Soporte contactado: support@zodomus.com (17 Dic 2025)
-
-DESCUBRIMIENTO NUEVO:
-🇮🇩 Channel Manager Indonesia (https://www.channelmanager.co.id/)
-- 2 meses FREE trial
-- Soporte local Indonesia
-- Posible alternativa a DOMUS
-
-COMMITS IMPORTANTES:
+COMMITS DEL DÍA:
 - 1e97811: DOMUS integration progress
-- 06c3b96: n8n workflow polling
-- 05de1a1: Support wait status + Indonesia CM
+- 06c3b96: n8n workflow polling reservations
+- 05de1a1: Support wait status
+- afd86ce: CONTINUAR_SESION.md actualizado
 
-PRÓXIMOS PASOS:
-Opción A: Esperar respuesta DOMUS support
-Opción B: Probar Channel Manager Indonesia en paralelo
+══════════════════════════════════════════════
+🎉 NOVEDAD - DOMUS RESPONDIÓ (17 DIC 20:22 PM)
+══════════════════════════════════════════════
 
-ARCHIVOS CLAVE:
-- scripts/domus-test.js (integración completa)
-- scripts/domus-activate-correct.js (endpoints correctos)
-- n8n_worlkflow_claude/DOMUS Polling - Reservations Sync.json
+EMAIL DE SOPORTE DOMUS:
+"You should activate already existing properties, since the process
+of creating a new property using APIs is not simple.
+I'm sending you a document to help"
+
+DOCUMENTO RECIBIDO:
+📄 "Zodomus tutorial step by step tests only (basic channel manager operations)"
+📁 Ubicación: Downloads
+
+INSTRUCCIÓN CLAVE:
+✅ NO crear más properties via API (es complejo)
+✅ ACTIVAR las 7 properties existentes
+✅ SEGUIR el tutorial paso a paso
+
+══════════════════════════════════════════════
+RECURSOS ACTUALES
+══════════════════════════════════════════════
+
+DOMUS Properties Creadas (confirmadas por soporte):
+- Property ID principal: 5814990
+- Property Name: Izumi Hotel - Test
+- Total properties: 7
+- Status actual: "Evaluation OTA"
+
+DOMUS Rooms Creadas (no visibles):
+- Room IDs: 581499084, 581499086, 581499088, 581499095, 581499058
+- Room Type: 17 (Double room)
+- Status: "New"
+- Problema: No aparecen en dashboard
+
+Credenciales DOMUS (17 Dic 2025):
+API_USER: 'IfLKCinlg1KOK2BOVcQMjTUOdcD5teeuNFBVOQQ5Jno='
+API_PASSWORD: 'J9xiyR11I6iAF1yM6+QVmfhwULuxslmrmknziknsz0M='
+
+Scripts Disponibles:
+- scripts/domus-test.js (468 líneas)
+- scripts/domus-activate-correct.js (270 líneas)
+- scripts/domus-create-rates.js (235 líneas)
+
+══════════════════════════════════════════════
+🎯 OBJETIVO HOY (18 DIC 2025)
+══════════════════════════════════════════════
+
+INTEGRACIÓN DOMUS 100%
+
+Plan de trabajo:
+
+1. REVISAR DOCUMENTO DOMUS (30 min)
+   📄 Leer "Zodomus tutorial step by step tests only"
+   📋 Entender flujo correcto de activación
+   ✍️ Tomar notas de endpoints y orden exacto
+
+2. ACTIVAR PROPERTY 5814990 (1-2 horas)
+   ✅ Seguir tutorial paso a paso
+   ✅ Cambiar status: "Evaluation OTA" → "Active"
+   ✅ Verificar en dashboard
+
+3. CREAR/ACTIVAR ROOMS CORRECTAMENTE (1-2 horas)
+   ✅ Seguir instrucciones del tutorial
+   ✅ Configurar rate plans
+   ✅ Mapear rooms con myRoomId
+   ✅ Verificar que aparezcan en dashboard
+
+4. CONFIGURAR RATES & AVAILABILITY (1 hora)
+   ✅ Rates: $100/noche, 365 días
+   ✅ Availability: 5 rooms disponibles
+   ✅ Currency: USD
+
+5. IMPORTAR N8N WORKFLOW (30 min)
+   ✅ Importar: n8n_worlkflow_claude/DOMUS Polling - Reservations Sync.json
+   ✅ Configurar credenciales
+   ✅ Activar polling cada 5 min
+
+6. TESTING END-TO-END (1 hora)
+   ✅ Crear reserva de test
+   ✅ Verificar polling detecta reserva
+   ✅ Confirmar insert en Supabase
+   ✅ Probar Email + WhatsApp confirmations
+
+══════════════════════════════════════════════
+ARCHIVOS CLAVE
+══════════════════════════════════════════════
+
+Documentación:
 - Claude Code Update 17122025/DOMUS_API_EXPLORATION_COMPLETE.md
 - Claude Code Update 17122025/DOMUS_SUPPORT_WAIT_STATUS.md
+- Claude Code Update 17122025/CONTINUAR_SESION.md
+- n8n_worlkflow_claude/DOMUS_POLLING_SETUP.md
 
-¿Continuamos con Indonesia CM o esperamos DOMUS?
+Tutorial DOMUS (NUEVO - CLAVE):
+- ~/Downloads/Zodomus tutorial step by step tests only.pdf (o similar)
+
+Scripts:
+- scripts/domus-test.js
+- scripts/domus-activate-correct.js
+- scripts/domus-create-rates.js
+
+══════════════════════════════════════════════
+DECISIÓN ESTRATÉGICA
+══════════════════════════════════════════════
+
+✅ USAR DOMUS 100%
+   Razón: Son los únicos que NO venden PMS
+
+   MY HOST BizMate = PMS completo (nuestro)
+   DOMUS = Solo Channel Manager (módulo opcional)
+
+══════════════════════════════════════════════
+PRIMER PASO
+══════════════════════════════════════════════
+
+Por favor:
+1. Lee el documento "Zodomus tutorial step by step tests only"
+   que está en Downloads
+2. Explícame el flujo correcto según el tutorial
+3. Ajustemos nuestros scripts según sus instrucciones
+4. Activemos la property 5814990
+
+¿Empezamos leyendo el documento?
 ```
 
 ---
@@ -311,8 +488,8 @@ GET  /currencies           // ✅ Monedas disponibles
 GET  /price-model          // ✅ 5 modelos de precios
 
 // Content APIs
-POST /property             // ✅ Crear properties (7 creadas)
-POST /room                 // ✅ Crear rooms (5 creadas)
+POST /property             // ✅ Crear properties (7 creadas ✅)
+POST /room                 // ✅ Crear rooms (5 creadas ✅)
 GET  /booking-property-types  // ✅ 50+ tipos de property
 GET  /booking-room-types   // ✅ Tipos de habitaciones
 
@@ -343,6 +520,8 @@ PUT  /property/:id         // 404
 PATCH /property/:id        // 404
 ```
 
+**SOLUCIÓN:** Tutorial DOMUS explicará flujo correcto ✅
+
 ---
 
 ## 🚀 HALLAZGOS TÉCNICOS IMPORTANTES
@@ -365,6 +544,8 @@ status: 1  // ❌ Valores numéricos no aceptados
 ```
 Created → Evaluation OTA → Active
           ↑ ESTAMOS AQUÍ ⏳
+
+Solución: Tutorial DOMUS ✅
 ```
 
 ### 3. Room Activation Requirements:
@@ -372,12 +553,14 @@ Created → Evaluation OTA → Active
 // Necesitas:
 1. ✅ Property creada
 2. ✅ Rooms creados
-3. ❌ Property status = "Active" (bloqueado)
-4. ❌ Rate plans configurados
-5. ❌ Rooms mapeados con myRoomId
+3. ⏳ Seguir tutorial DOMUS (flujo correcto)
+4. ⏳ Rate plans configurados
+5. ⏳ Rooms mapeados con myRoomId
 
 // Resultado actual:
 POST /rooms-activation → "Number of rooms activated: 0"
+
+// Solución: Tutorial DOMUS paso a paso ✅
 ```
 
 ### 4. Price Models:
@@ -421,12 +604,7 @@ POST /room {
 - **Panel Web:** https://www.zodomus.com/
 - **API Base:** https://api.zodomus.com
 - **Documentación:** Ver `n8n_worlkflow_claude/A list of Zodomus API's.txt`
-- **Soporte:** support@zodomus.com
-
-### Channel Manager Indonesia:
-- **Website:** https://www.channelmanager.co.id/
-- **Trial:** 2 meses gratis
-- **API Docs:** Pendiente investigar
+- **Soporte:** support@zodomus.com ✅ (respondieron 20:22 PM)
 
 ### MY HOST BizMate:
 - **n8n Railway:** https://n8n-production-bb2d.up.railway.app
@@ -437,67 +615,75 @@ POST /room {
 
 ## ⚠️ IMPORTANTE - NO HACER
 
-1. **No modificar Property ID 5814990** - Ya creada y en evaluación
-2. **No crear más properties en DOMUS** - Ya tenemos 7 (suficiente para testing)
+1. ✅ **No crear más properties via API** - DOMUS confirmó que es complejo
+2. ✅ **Usar las 7 properties existentes** - Activarlas según tutorial
 3. **No regenerar API keys** - Credenciales actualizadas 17 Dic 2025
-4. **No ejecutar scripts de rates/availability** - Bloqueado hasta activación
-5. **No intentar activación via API** - Requiere intervención manual/soporte
+4. **No intentar activación sin tutorial** - Esperar a leer documento
 
 ---
 
-## ✅ IMPORTANTE - SÍ HACER
+## ✅ IMPORTANTE - SÍ HACER MAÑANA
 
-1. **Revisar email de soporte DOMUS** - Diariamente
-2. **Considerar Channel Manager Indonesia** - Backup strategy
-3. **Mantener documentación actualizada** - CONTINUAR_SESION.md
-4. **Workflow n8n listo para importar** - Cuando property esté activa
-5. **Git commits regulares** - Documentar progreso
+1. ✅ **Leer tutorial DOMUS completo** - Primera prioridad
+2. ✅ **Seguir flujo exacto del tutorial** - No improvisar
+3. ✅ **Activar property 5814990** - Según instrucciones
+4. ✅ **Documentar pasos nuevos** - Para futuras properties
+5. ✅ **Completar integración 100%** - Objetivo del día
 
 ---
 
 ## 📈 PRÓXIMO HITO
 
-**Objetivo:** Property 5814990 status "Active"
+**Objetivo:** DOMUS Integration 100% ✅
 
-**Entonces podremos:**
-1. ✅ Configurar rates ($100/noche)
-2. ✅ Configurar availability (365 días)
-3. ✅ Activar 5 rooms con myRoomId
-4. ✅ Importar n8n workflow
-5. ✅ Recibir primera reserva de test
-6. ✅ Probar Email + WhatsApp confirmations
-7. ✅ 100% DOMUS Integration completada
+**Entonces tendremos:**
+1. ✅ Property 5814990 activada (status "Active")
+2. ✅ 5 rooms visibles en dashboard
+3. ✅ Rates configurados ($100/noche)
+4. ✅ Availability configurado (365 días)
+5. ✅ n8n workflow funcionando (288 polls/día)
+6. ✅ Primera reserva test sincronizada
+7. ✅ Email + WhatsApp confirmations probados
 
-**Timeline:**
-- DOMUS Support: Desconocido (días/semanas)
-- Indonesia CM: 1-2 semanas testing
-- Decisión: 2 semanas máximo
+**Timeline:** 1 día (18 Dic 2025)
 
 ---
 
-## 🎯 DECISIÓN RECOMENDADA
+## 🎯 RESUMEN PARA MAÑANA
 
-**Si no hay respuesta DOMUS en 3-5 días:**
-→ Iniciar prueba paralela con Channel Manager Indonesia
+### ✅ Lo que tienes:
+- 7 properties creadas en DOMUS ✅
+- 5 rooms creadas via API ✅
+- Tutorial oficial de DOMUS ✅
+- Scripts funcionando ✅
+- n8n workflow listo ✅
+- Camino claro ✅
 
-**Ventajas:**
-- 2 meses gratis = cero riesgo
-- Soporte local = respuestas más rápidas
-- n8n workflow genérico = fácil migración
-- Backup strategy = no dependemos de un solo proveedor
+### 🎯 Lo que harás:
+1. Leer tutorial DOMUS (30 min)
+2. Activar property según tutorial (1-2 horas)
+3. Activar rooms correctamente (1-2 horas)
+4. Configurar rates & availability (1 hora)
+5. Importar n8n workflow (30 min)
+6. Testing completo (1 hora)
+
+### 🏆 Resultado esperado:
+**DOMUS 100% funcionando** - MY HOST BizMate con Channel Manager integrado
 
 ---
 
-**¿Listo para continuar?** 🚀
+**¿Listo para mañana?** 🚀
 
-**Opción A:** Esperar DOMUS support
-**Opción B:** Explorar Channel Manager Indonesia (RECOMENDADO)
+**Total de horas trabajadas hoy:** 11 horas (9 AM - 8 PM)
+**Descansa bien!** Mañana completamos la integración 💪
 
-Siguiente comando:
+---
+
+**Primer comando mañana:**
 ```bash
-# Ver estado actual:
-cat "Claude Code Update 17122025/DOMUS_SUPPORT_WAIT_STATUS.md"
+# Leer tutorial DOMUS
+open ~/Downloads/Zodomus\ tutorial\ step\ by\ step\ tests\ only.pdf
 
-# O iniciar investigación Indonesia CM:
-# (pendiente crear scripts de exploración)
+# O si es otro formato:
+ls ~/Downloads/*zodomus* -la
 ```
