@@ -12,10 +12,12 @@ import {
   Sparkles,
   Settings,
   ChevronDown,
-  ChevronRight
+  ChevronRight,
+  Workflow,
+  Bot
 } from 'lucide-react';
 
-const Sidebar = ({ currentView, onNavigate }) => {
+const Sidebar = ({ currentView, onNavigate, isOpen, onClose }) => {
   const [expandedSections, setExpandedSections] = useState({
     properties: false,
     smartPricing: false
@@ -26,6 +28,14 @@ const Sidebar = ({ currentView, onNavigate }) => {
       ...prev,
       [section]: !prev[section]
     }));
+  };
+
+  const handleNavigate = (id) => {
+    onNavigate(id);
+    // Close sidebar on mobile after navigation
+    if (onClose) {
+      onClose();
+    }
   };
 
   const menuItems = [
@@ -65,7 +75,9 @@ const Sidebar = ({ currentView, onNavigate }) => {
     {
       section: 'AI Intelligence',
       items: [
-        { id: 'aiAssistant', label: 'AI Assistant', icon: Sparkles }
+        { id: 'aiAssistant', label: 'AI Assistant', icon: Sparkles },
+        { id: 'ai-receptionist', label: 'AI Receptionist', icon: Bot },
+        { id: 'workflows', label: 'Workflows & Automations', icon: Workflow }
       ]
     },
     {
@@ -77,12 +89,29 @@ const Sidebar = ({ currentView, onNavigate }) => {
   ];
 
   return (
-    <div className="w-64 bg-white h-screen flex flex-col border-r border-gray-200">
-      {/* Header */}
-      <div className="bg-orange-500 p-6">
-        <h1 className="text-white text-xl font-bold">MY HOST</h1>
-        <p className="text-white text-sm font-medium">BizMate</p>
-      </div>
+    <>
+      {/* Mobile Backdrop */}
+      {isOpen && (
+        <div
+          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+          onClick={onClose}
+        />
+      )}
+
+      {/* Sidebar */}
+      <div
+        className={`
+          fixed lg:static inset-y-0 left-0 z-50
+          w-64 bg-white h-screen flex flex-col border-r border-gray-200
+          transform transition-transform duration-300 ease-in-out
+          ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+        `}
+      >
+        {/* Header */}
+        <div className="bg-orange-500 p-6">
+          <h1 className="text-white text-xl font-bold">MY HOST</h1>
+          <p className="text-white text-sm font-medium">BizMate</p>
+        </div>
 
       {/* Navigation Menu */}
       <nav className="flex-1 overflow-y-auto p-4">
@@ -108,7 +137,7 @@ const Sidebar = ({ currentView, onNavigate }) => {
                         if (item.expandable) {
                           toggleSection(item.id);
                         } else {
-                          onNavigate(item.id);
+                          handleNavigate(item.id);
                         }
                       }}
                       className={`
@@ -144,7 +173,8 @@ const Sidebar = ({ currentView, onNavigate }) => {
           </div>
         ))}
       </nav>
-    </div>
+      </div>
+    </>
   );
 };
 

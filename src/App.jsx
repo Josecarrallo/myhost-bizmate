@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Building2, ChevronLeft, LayoutDashboard, Calendar, Home, CreditCard, MessageSquare, Sparkles, DollarSign, Megaphone, Share2, Workflow, BarChart3, Smartphone, Repeat, Star, Phone, Globe, ClipboardList, User, LogOut, Wifi, Shield, Zap, Bell, Search, CalendarDays, Settings, ArrowLeftRight, Rocket, Users } from 'lucide-react';
+import { Building2, ChevronLeft, LayoutDashboard, Calendar, Home, CreditCard, MessageSquare, Sparkles, DollarSign, Megaphone, Share2, Workflow, BarChart3, Smartphone, Repeat, Star, Phone, Globe, ClipboardList, User, LogOut, Wifi, Shield, Zap, Bell, Search, CalendarDays, Settings, ArrowLeftRight, Rocket, Users, Menu, X } from 'lucide-react';
 import ModuleGridCard from './components/common/ModuleGridCard';
 import { useAuth } from './contexts/AuthContext';
 import LoginPage from './components/Auth/LoginPage';
@@ -145,6 +145,7 @@ export default function App() {
   const { user, userData, loading, signOut } = useAuth();
   // Simplified state: just track current view
   const [currentView, setCurrentView] = useState('overview'); // 'overview' is the default after login
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false); // Sidebar state for mobile
 
   React.useEffect(() => {
     // Reset to overview when user logs in
@@ -239,10 +240,33 @@ export default function App() {
   return (
     <div className="flex h-screen overflow-hidden bg-gray-50">
       {/* Sidebar */}
-      <Sidebar currentView={currentView} onNavigate={setCurrentView} />
+      <Sidebar
+        currentView={currentView}
+        onNavigate={setCurrentView}
+        isOpen={isSidebarOpen}
+        onClose={() => setIsSidebarOpen(false)}
+      />
 
-      {/* Content Area */}
-      {renderContent()}
+      {/* Main Content Container */}
+      <div className="flex-1 flex flex-col overflow-hidden">
+        {/* Mobile Header with Hamburger */}
+        <div className="lg:hidden bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between">
+          <button
+            onClick={() => setIsSidebarOpen(true)}
+            className="p-2 rounded-lg hover:bg-gray-100"
+          >
+            <Menu className="w-6 h-6 text-gray-700" />
+          </button>
+          <div className="flex items-center gap-2">
+            <h1 className="text-lg font-bold text-orange-500">MY HOST</h1>
+            <span className="text-sm text-gray-600">BizMate</span>
+          </div>
+          <div className="w-10" /> {/* Spacer for centering */}
+        </div>
+
+        {/* Content Area */}
+        {renderContent()}
+      </div>
 
       {/* Voice Assistant - Botón flotante siempre visible */}
       <VoiceAssistant />
