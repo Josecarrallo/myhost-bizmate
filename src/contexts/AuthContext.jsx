@@ -17,6 +17,12 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // Absolute maximum timeout - force loading to false after 3 seconds
+    const absoluteTimeout = setTimeout(() => {
+      console.warn('Auth check exceeded 3s - forcing loading to false');
+      setLoading(false);
+    }, 3000);
+
     // Check active session
     checkUser();
 
@@ -35,6 +41,7 @@ export const AuthProvider = ({ children }) => {
     );
 
     return () => {
+      clearTimeout(absoluteTimeout);
       authListener?.subscription?.unsubscribe();
     };
   }, []);

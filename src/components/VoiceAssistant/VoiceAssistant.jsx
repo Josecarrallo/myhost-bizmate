@@ -97,6 +97,7 @@ const VoiceAssistant = () => {
     try {
       // Usar Transient Assistant (configuración inline)
       await vapiRef.current.start({
+        name: "Ayu - Izumi Hotel Assistant",
         transcriber: {
           provider: "deepgram",
           model: "nova-2",
