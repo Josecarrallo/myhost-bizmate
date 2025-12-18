@@ -1,8 +1,5 @@
 import React from 'react';
 import {
-  Menu,
-  Search,
-  Bell,
   Lightbulb,
   TrendingUp,
   TrendingDown,
@@ -89,57 +86,23 @@ const OwnerExecutiveSummary = ({ userName = 'José' }) => {
 
       {/* Content wrapper with relative z-index */}
       <div className="relative z-10">
-      {/* Top Bar */}
-      <div className="bg-white border-b border-gray-200 px-6 py-4">
-        <div className="flex items-center justify-between">
-          {/* Left: Menu + Search */}
-          <div className="flex items-center gap-4 flex-1">
-            <button className="lg:hidden p-2 hover:bg-gray-100 rounded-lg">
-              <Menu className="w-5 h-5 text-gray-600" />
-            </button>
-            <div className="relative max-w-md w-full">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Seveen..."
-                className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-200 focus:border-orange-500"
-              />
-            </div>
-          </div>
-
-          {/* Right: Notifications + Avatar */}
-          <div className="flex items-center gap-3">
-            <button className="relative p-2 hover:bg-gray-100 rounded-lg">
-              <Bell className="w-5 h-5 text-gray-600" />
-            </button>
-            <div className="w-10 h-10 rounded-full bg-gray-200 overflow-hidden">
-              <img
-                src="https://via.placeholder.com/40"
-                alt="User"
-                className="w-full h-full object-cover"
-              />
-            </div>
-          </div>
-        </div>
-      </div>
-
       {/* Main Content */}
-      <div className="p-6 max-w-7xl mx-auto">
+      <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto">
         {/* Greeting */}
-        <h2 className="text-3xl font-black text-white mb-1">
+        <h2 className="text-2xl sm:text-3xl font-black text-white mb-1">
           {getGreeting()}, {userName}
         </h2>
-        <p className="text-lg text-white/90 font-semibold mb-8">Owner Executive Summary</p>
+        <p className="text-base sm:text-lg text-white/90 font-semibold mb-6 sm:mb-8">Owner Executive Summary</p>
 
         {/* AI Snapshot Card */}
-        <div className="bg-orange-50 border border-orange-100 rounded-xl p-6 mb-8">
-          <div className="flex items-start justify-between gap-4">
-            <div className="flex items-start gap-4 flex-1">
-              <div className="p-2 bg-orange-500 rounded-lg">
-                <Lightbulb className="w-6 h-6 text-white" />
+        <div className="bg-orange-50 border border-orange-100 rounded-xl p-4 sm:p-6 mb-6 sm:mb-8">
+          <div className="flex flex-col sm:flex-row items-start justify-between gap-4">
+            <div className="flex items-start gap-3 sm:gap-4 flex-1 w-full">
+              <div className="p-2 bg-orange-500 rounded-lg flex-shrink-0">
+                <Lightbulb className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
               </div>
-              <div className="flex-1">
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">
+              <div className="flex-1 min-w-0">
+                <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-2">
                   MyHost AI - Today's Snapshot
                 </h3>
                 <p className="text-gray-700 text-sm leading-relaxed mb-1">
@@ -152,19 +115,19 @@ const OwnerExecutiveSummary = ({ userName = 'José' }) => {
                 </p>
               </div>
             </div>
-            <button className="px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg font-medium text-sm whitespace-nowrap transition-colors">
+            <button className="w-full sm:w-auto px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg font-medium text-sm whitespace-nowrap transition-colors flex-shrink-0">
               Ask MyHost AI
             </button>
           </div>
         </div>
 
         {/* KPI Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6 sm:mb-8">
           {kpis.map((kpi, index) => (
-            <div key={index} className="bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl p-6 border-2 border-white/50 shadow-xl">
-              <p className="text-sm text-white/80 mb-2">{kpi.label}</p>
+            <div key={index} className="bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl p-4 sm:p-6 border-2 border-white/50 shadow-xl">
+              <p className="text-xs sm:text-sm text-white/80 mb-1 sm:mb-2">{kpi.label}</p>
               <div className="flex items-baseline gap-2 mb-1">
-                <span className="text-3xl font-bold text-white">{kpi.value}</span>
+                <span className="text-2xl sm:text-3xl font-bold text-white">{kpi.value}</span>
                 <span className={`text-sm font-medium ${kpi.trend === 'up' ? 'text-green-200' : 'text-red-200'}`}>
                   {kpi.change}
                 </span>
