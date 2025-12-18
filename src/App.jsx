@@ -22,6 +22,7 @@ import SmartPricing from './components/SmartPricing/SmartPricing';
 import Workflows from './components/Workflows/Workflows';
 import AITripPlanner from './components/Workflows/AITripPlanner';
 import BookingWorkflow from './components/Workflows/BookingWorkflow';
+import WorkflowTester from './components/Workflows/WorkflowTester';
 import Reports from './components/Reports/Reports';
 import DigitalCheckIn from './components/DigitalCheckIn/DigitalCheckIn';
 import RMSIntegration from './components/RMSIntegration/RMSIntegration';
@@ -32,6 +33,8 @@ import BookingEngine from './components/BookingEngine/BookingEngine';
 import PMSCalendar from './components/PMSCalendar/PMSCalendar';
 import CulturalIntelligence from './components/CulturalIntelligence/CulturalIntelligence';
 import GuestPortal from './components/GuestPortal/GuestPortal';
+import VoiceAssistant from './components/VoiceAssistant/VoiceAssistant';
+import AIReceptionist from './components/AIReceptionist/AIReceptionist';
 
 // ==================== FLOATING ICON COMPONENT ====================
 const FloatingIcon = ({ icon: Icon, className, delay }) => (
@@ -203,6 +206,21 @@ export default function App() {
       case 'aiAssistant':
         return <AIAssistant onBack={() => setCurrentView('overview')} />;
 
+      case 'ai-receptionist':
+        return <AIReceptionist onBack={() => setCurrentView('overview')} />;
+
+      case 'workflows':
+        return <Workflows onBack={() => setCurrentView('overview')} onNavigate={setCurrentView} />;
+
+      case 'trip-planner':
+        return <AITripPlanner onBack={() => setCurrentView('workflows')} />;
+
+      case 'bookings-workflow':
+        return <BookingWorkflow onBack={() => setCurrentView('workflows')} />;
+
+      case 'workflow-tester':
+        return <WorkflowTester onBack={() => setCurrentView('workflows')} />;
+
       case 'settings':
         // Placeholder for settings
         return (
@@ -225,6 +243,9 @@ export default function App() {
 
       {/* Content Area */}
       {renderContent()}
+
+      {/* Voice Assistant - Botón flotante siempre visible */}
+      <VoiceAssistant />
     </div>
   );
 }
