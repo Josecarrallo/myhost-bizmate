@@ -34,7 +34,18 @@ npm run preview
 
 ### Recent Refactors
 
-**December 2025 - Dashboard Restructure**:
+**December 19, 2025 - Professional Collapsible Sidebar + AI Agents Reorganization**:
+- Implemented professional collapsible sidebar navigation (like Airbnb/Booking.com)
+- 6 main sections with expand/collapse functionality
+- Reorganized AI agents: AIReceptionist → AIAgentsMonitor (moved to PMS CORE)
+- Clear separation: PMS CORE (internal staff tools) vs GUEST MANAGEMENT (managing guest experience)
+- All collapsible sections start closed for clean initial view
+- Added chevron icons for visual feedback (ChevronRight/ChevronDown)
+- Direct link buttons for OVERVIEW and SETTINGS
+- Active state highlighting with orange-50 background
+- Integrated real villa photos (villa1-6.jpg) in Properties module
+
+**December 16, 2025 - Dashboard Restructure**:
 - Implemented sidebar navigation with persistent layout
 - Eliminated splash screen and modules grid
 - Added Owner Executive Summary as default post-login view
@@ -80,6 +91,7 @@ src/
 │   ├── Messages/
 │   ├── Properties/
 │   ├── AIAssistant/
+│   ├── AIAgentsMonitor/      # Renamed from AIReceptionist (Dec 19, 2025)
 │   ├── Multichannel/
 │   ├── Marketing/
 │   ├── SocialPublisher/
@@ -105,13 +117,43 @@ src/
 
 ### Module Organization
 
-Modules are organized into 5 thematic groups in the UI:
+**Sidebar Navigation Structure (December 19, 2025):**
 
-1. **Operations & Guest Management:** Dashboard, Bookings, PMS Calendar, Properties, Operations Hub, Digital Check-in, Messages
-2. **Revenue & Pricing:** Booking Engine, Payments, Smart Pricing, RMS Integration, Reports
-3. **AI Intelligence Layer:** AI Assistant, Voice AI Agent, Cultural Intelligence
-4. **Marketing & Growth:** Multichannel, Marketing, Social Publisher, Reviews
-5. **Workflows & Automations:** Workflows (with sub-modules: AI Trip Planner, Booking Workflow)
+Modules are organized into 6 main collapsible sections in the sidebar:
+
+1. **OVERVIEW** (Direct Link)
+   - Owner Executive Summary (default view)
+
+2. **OPERATIONS & GUESTS** (Collapsible)
+   - Dashboard
+   - Properties
+   - Bookings
+   - Calendar
+   - Guests
+
+3. **REVENUE & PRICING** (Collapsible)
+   - Payments
+   - Smart Pricing
+   - Reports
+   - Channel Integration
+
+4. **PMS CORE (Internal Agent)** (Collapsible)
+   - AI Assistant (staff chat)
+   - AI Agents Monitor (WhatsApp & VAPI monitoring)
+   - Workflows & Automations
+
+5. **GUEST MANAGEMENT (External Agent)** (Collapsible)
+   - Guest Database / CRM
+   - Booking Engine Config
+   - Digital Check-in Setup
+   - Reviews Management
+   - Marketing Campaigns
+   - Guest Analytics
+
+6. **SETTINGS** (Direct Link)
+   - Settings & Configuration
+
+**Note:** PMS CORE contains internal tools for staff operations, while GUEST MANAGEMENT contains tools for managing the guest experience (not a guest-facing portal).
 
 ### Routing Pattern
 
@@ -125,10 +167,23 @@ App.jsx uses a simplified view-based routing with persistent sidebar:
 **Layout Structure**:
 ```jsx
 <div className="flex h-screen overflow-hidden bg-gray-50">
-  <Sidebar currentView={currentView} onNavigate={setCurrentView} />
+  <Sidebar
+    currentView={currentView}
+    onNavigate={setCurrentView}
+    isOpen={isSidebarOpen}
+    onClose={() => setIsSidebarOpen(false)}
+  />
   {renderContent()}
 </div>
 ```
+
+**Sidebar Features:**
+- Collapsible sections with expand/collapse state
+- Chevron icons for visual feedback (ChevronRight → ChevronDown)
+- All sections start collapsed for clean initial view
+- Direct link buttons for OVERVIEW and SETTINGS (no sub-items)
+- Active state highlighting with orange-50 background
+- Mobile-responsive drawer with backdrop overlay
 
 **View Rendering**:
 ```jsx
@@ -350,6 +405,15 @@ This is a vacation rental management platform targeting property managers and ho
 
 ## Key Commits
 
+- `8c264b4` - **feat: Professional collapsible sidebar + AI agents reorganization** (Dec 19, 2025)
+  - Implemented professional collapsible navigation (6 main sections)
+  - Renamed AIReceptionist → AIAgentsMonitor (moved to PMS CORE)
+  - Clear separation: PMS CORE (staff tools) vs GUEST MANAGEMENT (guest experience tools)
+  - All sections start collapsed for clean UI
+  - Added chevron icons for visual feedback
+  - Integrated real villa photos (villa1-6.jpg)
+  - Applied corporate orange branding
+- `2f31adc` - **feat: Add Property modal + AI agent naming + UI fixes** (Dec 18, 2025)
 - `a54b99d` - **feat: Implement dashboard restructure with sidebar navigation** (Dec 16, 2025)
   - Created Sidebar and OwnerExecutiveSummary components
   - Redesigned LoginPage with split layout
