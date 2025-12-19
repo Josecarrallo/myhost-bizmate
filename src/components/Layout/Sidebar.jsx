@@ -75,8 +75,8 @@ const Sidebar = ({ currentView, onNavigate, isOpen, onClose }) => {
     {
       section: 'AI Intelligence',
       items: [
-        { id: 'aiAssistant', label: 'AI Assistant', icon: Sparkles },
-        { id: 'ai-receptionist', label: 'AI Receptionist', icon: Bot },
+        { id: 'aiAssistant', label: 'PMS Core', icon: Sparkles },
+        { id: 'ai-receptionist', label: 'Guest Experience', icon: Bot },
         { id: 'workflows', label: 'Workflows & Automations', icon: Workflow }
       ]
     },

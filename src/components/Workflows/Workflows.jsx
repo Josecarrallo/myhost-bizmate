@@ -11,7 +11,8 @@ import {
   Compass,
   Calendar,
   Percent,
-  Star
+  Star,
+  TestTube
 } from 'lucide-react';
 import { StatCard, WorkflowCard } from '../common';
 
@@ -47,6 +48,38 @@ const WorkflowsAutomations = ({ onBack, onNavigate }) => {
           <StatCard icon={Zap} label="Tasks Automated" value="348" trend="+45%" gradient="from-orange-500 to-orange-600" />
           <StatCard icon={Clock} label="Time Saved" value="24h" trend="+18%" gradient="from-orange-500 to-orange-600" />
           <StatCard icon={CheckCircle} label="Success Rate" value="98%" gradient="from-orange-500 to-orange-600" />
+        </div>
+
+        {/* Workflow Tester Button */}
+        <div
+          onClick={() => onNavigate('workflow-tester')}
+          className="mb-8 cursor-pointer bg-gradient-to-r from-purple-500 via-purple-600 to-purple-700 rounded-3xl p-8 shadow-2xl hover:shadow-3xl transition-all duration-300 transform hover:scale-105 border-4 border-white/50"
+        >
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="flex items-center gap-3 mb-3">
+                <div className="bg-white/20 backdrop-blur-sm p-3 rounded-2xl">
+                  <TestTube className="w-8 h-8 text-white" />
+                </div>
+                <h3 className="text-3xl font-black text-white">Workflow Tester</h3>
+                <span className="px-4 py-1 bg-green-400 text-green-900 rounded-full text-sm font-bold">LIVE</span>
+              </div>
+              <p className="text-white/90 text-lg ml-14">
+                Test WhatsApp AI Agent (VIII) and Vapi Voice AI (IX) directly from the app
+              </p>
+              <div className="flex gap-4 mt-4 ml-14">
+                <div className="flex items-center gap-2 bg-white/10 backdrop-blur-sm px-4 py-2 rounded-full">
+                  <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
+                  <span className="text-white text-sm font-medium">WhatsApp AI Ready</span>
+                </div>
+                <div className="flex items-center gap-2 bg-white/10 backdrop-blur-sm px-4 py-2 rounded-full">
+                  <span className="w-2 h-2 bg-blue-400 rounded-full animate-pulse"></span>
+                  <span className="text-white text-sm font-medium">Vapi Voice Ready</span>
+                </div>
+              </div>
+            </div>
+            <div className="text-white text-6xl font-black opacity-20">→</div>
+          </div>
         </div>
 
         <div className="space-y-4">

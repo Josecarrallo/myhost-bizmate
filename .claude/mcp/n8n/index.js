@@ -56,7 +56,7 @@ async function n8nRequest(endpoint, method = 'GET', body = null) {
 const server = new Server(
   {
     name: 'n8n-mcp-server',
-    version: '1.0.0',
+    version: '1.1.0',
   },
   {
     capabilities: {
@@ -233,6 +233,32 @@ async function updateWorkflow(args) {
   };
 }
 
+// ========================================
+// Tool 6: Get Workflow (NUEVA FUNCIÓN)
+// ========================================
+async function getWorkflow(args) {
+  const { workflow_id } = args;
+
+  if (!workflow_id) {
+    throw new Error('workflow_id is required');
+  }
+
+  const workflow = await n8nRequest(`/workflows/${workflow_id}`);
+
+  return {
+    id: workflow.id,
+    name: workflow.name,
+    active: workflow.active,
+    nodes: workflow.nodes || [],
+    connections: workflow.connections || {},
+    settings: workflow.settings || {},
+    staticData: workflow.staticData || null,
+    tags: workflow.tags || [],
+    createdAt: workflow.createdAt,
+    updatedAt: workflow.updatedAt,
+  };
+}
+
 // Register tool handlers
 server.setRequestHandler(ListToolsRequestSchema, async () => {
   return {
@@ -329,6 +355,23 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
           required: ['workflow_id', 'updates'],
         },
       },
+      // ========================================
+      // NUEVA HERRAMIENTA: get_workflow
+      // ========================================
+      {
+        name: 'get_workflow',
+        description: 'Get complete details of a specific workflow including all nodes, connections, and settings.',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            workflow_id: {
+              type: 'string',
+              description: 'ID of the workflow to retrieve',
+            },
+          },
+          required: ['workflow_id'],
+        },
+      },
     ],
   };
 });
@@ -355,6 +398,12 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         break;
       case 'update_workflow':
         result = await updateWorkflow(args);
+        break;
+      // ========================================
+      // NUEVO CASE: get_workflow
+      // ========================================
+      case 'get_workflow':
+        result = await getWorkflow(args);
         break;
       default:
         throw new Error(`Unknown tool: ${name}`);

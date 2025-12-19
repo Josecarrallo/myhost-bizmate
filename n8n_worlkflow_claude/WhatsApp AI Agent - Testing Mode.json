@@ -1,0 +1,141 @@
+{
+  "name": "WhatsApp AI Agent - Testing Mode (Simulator)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "whatsapp-testing",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "test-webhook-1",
+      "name": "Webhook Test",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [0, 0],
+      "webhookId": "whatsapp-testing"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.text }}",
+        "options": {
+          "systemMessage": "Eres el asistente virtual de Izumi Hotel, un hotel boutique de lujo 5 estrellas ubicado en Ubud, Bali, especializado en bienestar holístico, tratamientos médicos integrales y sanación transformadora.\n\nINFORMACIÓN DEL HOTEL:\n📍 Ubicación: Jl Raya Andong N. 18, Ubud, Bali, Indonesia\n⏰ Check-in: 14:00 | Check-out: 12:00\n❌ Cancelación: Gratuita hasta 24 horas antes de la llegada\n🗓️ Apertura: Verano 2026 (aceptamos pre-reservas)\n\nALOJAMIENTOS Y TARIFAS:\n- Tropical Room: $450/noche\n- River Villa: $500/noche\n- Nest Villa: $525/noche\n- Cave Villa: $550/noche\n- Sky Villa: $550/noche\n- Blossom Villa: $600/noche\n- 5BR Villa (ideal familias/grupos): $2,500/noche\n\nREGLAS DE CONVERSACIÓN:\n\n1. IDIOMA: Detecta el idioma del usuario y responde en el mismo idioma.\n\n2. TONO: Amable, profesional y cálido.\n\n3. HERRAMIENTAS DISPONIBLES - USA SIEMPRE QUE SEA NECESARIO:\n   - Check Availability: Para consultar disponibilidad de fechas\n   - Calculate Price: Para calcular el precio total de una estancia\n   - Create Booking: Para crear pre-reservas cuando tengas TODOS los datos\n\n4. PROCESO DE RESERVA:\n   Cuando un usuario quiera reservar, sigue este orden:\n   a) Primero pregunta: fechas de check-in/check-out, número de huéspedes y tipo de habitación preferida\n   b) Después pide EN UN SOLO MENSAJE: nombre completo, email y teléfono con código de país\n   c) Una vez tengas TODOS los datos, usa la herramienta Create Booking para crear la pre-reserva\n\n5. HANDOFF A HUMANO - SOLO en estos casos:\n   - El usuario pide explícitamente hablar con una persona\n   - Quejas o problemas urgentes\n   - Cancelación o modificación de reserva existente\n   - Negociación de precios o descuentos\n   - Grupos de +10 personas o eventos\n   \n   Respuesta de handoff: \"Voy a conectarte con nuestro equipo. Te contactarán pronto (8:00-22:00 hora Bali). WhatsApp: +62 813 2576 4867 / Email: reservations@izumi-hotel.com\"\n\n6. LIMITACIONES:\n   - No inventes información\n   - No prometas descuentos"
+        }
+      },
+      "id": "test-agent-1",
+      "name": "AI Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.8,
+      "position": [300, 0]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { \"output\": $json.output, \"status\": \"success\" } }}",
+        "options": {}
+      },
+      "id": "test-respond-1",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [600, 0]
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4o-mini"
+        },
+        "options": {}
+      },
+      "id": "test-openai-1",
+      "name": "OpenAI Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [300, 200],
+      "credentials": {
+        "openAiApi": {
+          "id": "hlVVk9ThwmKbr4yS",
+          "name": "OpenAi account 4"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "contextWindowLength": 20
+      },
+      "id": "test-memory-1",
+      "name": "Simple Memory",
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [500, 200]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://api.example.com/check-availability",
+        "options": {}
+      },
+      "id": "test-tool-1",
+      "name": "Check Availability",
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 1.1,
+      "position": [300, 400]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://api.example.com/calculate-price",
+        "options": {}
+      },
+      "id": "test-tool-2",
+      "name": "Calculate Price",
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 1.1,
+      "position": [500, 400]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.example.com/create-booking",
+        "options": {}
+      },
+      "id": "test-tool-3",
+      "name": "Create Booking",
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 1.1,
+      "position": [700, 400]
+    }
+  ],
+  "connections": {
+    "Webhook Test": {
+      "main": [[{ "node": "AI Agent", "type": "main", "index": 0 }]]
+    },
+    "AI Agent": {
+      "main": [[{ "node": "Respond to Webhook", "type": "main", "index": 0 }]]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [[{ "node": "AI Agent", "type": "ai_languageModel", "index": 0 }]]
+    },
+    "Simple Memory": {
+      "ai_memory": [[{ "node": "AI Agent", "type": "ai_memory", "index": 0 }]]
+    },
+    "Check Availability": {
+      "ai_tool": [[{ "node": "AI Agent", "type": "ai_tool", "index": 0 }]]
+    },
+    "Calculate Price": {
+      "ai_tool": [[{ "node": "AI Agent", "type": "ai_tool", "index": 0 }]]
+    },
+    "Create Booking": {
+      "ai_tool": [[{ "node": "AI Agent", "type": "ai_tool", "index": 0 }]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "meta": {},
+  "tags": []
+}

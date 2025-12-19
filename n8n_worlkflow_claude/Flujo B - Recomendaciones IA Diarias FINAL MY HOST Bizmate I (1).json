@@ -1,0 +1,244 @@
+{
+  "name": "Flujo B - Recomendaciones IA Diarias FINAL MY HOST Bizmate I",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 9 * * *"
+            }
+          ]
+        }
+      },
+      "name": "Trigger 9 AM Diario",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        0
+      ],
+      "id": "288f7ae7-8258-43bc-8b95-35022599ddde"
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "bookings",
+        "filterType": "string",
+        "filterString": "=status=eq.confirmed"
+      },
+      "name": "Obtener Huespedes Activos",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        224,
+        0
+      ],
+      "id": "874f046a-25a2-40fb-9d8f-55056f8d1525",
+      "credentials": {
+        "supabaseApi": {
+          "id": "SJLQzwU9BVHEVAGc",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-api-key",
+              "value": "=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"
+            },
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            },
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"claude-sonnet-4-20250514\",\n  \"max_tokens\": 1024,\n  \"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": \"Eres un concierge experto en Bali. Genera 5 recomendaciones para {{ $json.guest_name }}. Check-in: {{ $json.check_in }}, Check-out: {{ $json.check_out }}. Incluye: 1 restaurante, 1 actividad cultural, 1 naturaleza, 1 relax, 1 tip secreto. Responde en español.\"\n    }\n  ]\n}",
+        "options": {}
+      },
+      "name": "Claude API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        448,
+        0
+      ],
+      "id": "6b50e713-aed1-464c-a733-db4536c422cf"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "name": "guest_id",
+              "value": "={{ $json.id }}",
+              "type": "string",
+              "id": "57b8938d-cea9-4237-a24f-74b310484c26"
+            },
+            {
+              "name": "guest_name",
+              "value": "={{ $json.guest_name }}",
+              "type": "string",
+              "id": "6425b03d-8deb-4916-abe0-0fd46a573715"
+            },
+            {
+              "name": "recommendations",
+              "value": "={{ $json.content[0].text }}",
+              "type": "string",
+              "id": "64716bbf-ee33-4818-bb35-901f80b2e8fb"
+            },
+            {
+              "name": "sent_at",
+              "value": "={{ $now.toISO() }}",
+              "type": "string",
+              "id": "58e6c221-25d9-46bb-9399-789f553a7dc6"
+            },
+            {
+              "name": "status",
+              "value": "generated",
+              "type": "string",
+              "id": "521b672b-d2b8-4821-9dd2-b537acb227b8"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "Formatear Datos",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        656,
+        0
+      ],
+      "id": "9526540f-e153-4f36-a814-d11df4cd3824"
+    },
+    {
+      "parameters": {
+        "tableId": "recommendation_logs"
+      },
+      "name": "Guardar en Supabase",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        896,
+        0
+      ],
+      "id": "b7cf66b5-70b4-4a05-b626-39a068a4b028",
+      "credentials": {
+        "supabaseApi": {
+          "id": "SJLQzwU9BVHEVAGc",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "phoneNumberId": "=846885438510763",
+        "recipientPhoneNumber": "34619794604",
+        "textBody": "=🌴 Recomendaciones para {{ $('Formatear Datos').item.json.guest_name }}:\n\n{{ $('Formatear Datos').item.json.recommendations }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1.1,
+      "position": [
+        1104,
+        0
+      ],
+      "id": "2102aa3b-29a3-4160-9901-5b1de59bd6d2",
+      "name": "Send message",
+      "webhookId": "39d15056-8c63-4e5f-9e02-806d03a59db2",
+      "credentials": {
+        "whatsAppApi": {
+          "id": "WgPJRWbhlrzbIHH6",
+          "name": "WhatsApp account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Trigger 9 AM Diario": {
+      "main": [
+        [
+          {
+            "node": "Obtener Huespedes Activos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Obtener Huespedes Activos": {
+      "main": [
+        [
+          {
+            "node": "Claude API",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Claude API": {
+      "main": [
+        [
+          {
+            "node": "Formatear Datos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Formatear Datos": {
+      "main": [
+        [
+          {
+            "node": "Guardar en Supabase",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Guardar en Supabase": {
+      "main": [
+        [
+          {
+            "node": "Send message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Asia/Singapore",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
+  },
+  "versionId": "21c5575a-accc-4cf5-b35c-8ee443b11e12",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "ca7bc7f182c365457ea4a94a4dc2efe81c23590ab8904858ce5cabfbdd56e40f"
+  },
+  "id": "8xWqs3rlUZmSf8gc",
+  "tags": []
+}

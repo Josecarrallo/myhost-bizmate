@@ -31,6 +31,15 @@ const Properties = ({ onBack }) => {
   const [selectedTab, setSelectedTab] = useState('general');
   const [properties, setProperties] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [showDemoMessage, setShowDemoMessage] = useState(false);
+  const [formData, setFormData] = useState({
+    name: '',
+    location: '',
+    type: 'villa',
+    bedrooms: '',
+    price: ''
+  });
 
   // Mock Properties Data (expanded)
   const mockProperties = [
@@ -210,9 +219,20 @@ const Properties = ({ onBack }) => {
   }, []);
 
   const loadProperties = async () => {
+    setLoading(true);
+
+    // Usar mock properties siempre (fix temporal para ver UI)
+    setTimeout(() => {
+      setProperties(mockProperties);
+      console.log('Using mock properties:', mockProperties.length);
+      setLoading(false);
+    }, 500);
+
+    /* // Versión con Supabase (comentada temporalmente)
     try {
       setLoading(true);
       const realProperties = await dataService.getProperties();
+      console.log('Properties loaded from Supabase:', realProperties);
 
       // Si hay properties reales, usarlas. Si no, usar mock
       if (realProperties && realProperties.length > 0) {
@@ -246,15 +266,43 @@ const Properties = ({ onBack }) => {
           }
         }));
         setProperties(mapped);
+        console.log('Using real properties:', mapped.length);
       } else {
         setProperties(mockProperties);
+        console.log('Using mock properties:', mockProperties.length);
       }
     } catch (error) {
       console.error('Error loading properties:', error);
       setProperties(mockProperties); // Fallback a mock si falla
+      console.log('Fallback to mock properties:', mockProperties.length);
     } finally {
       setLoading(false);
     }
+    */
+  };
+
+  const handleAddProperty = (e) => {
+    e.preventDefault();
+    setShowDemoMessage(true);
+    setTimeout(() => {
+      setShowDemoMessage(false);
+      setShowAddModal(false);
+      setFormData({
+        name: '',
+        location: '',
+        type: 'villa',
+        bedrooms: '',
+        price: ''
+      });
+    }, 3000);
+  };
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
   };
 
   const getStatusBadge = (status) => {
@@ -279,7 +327,7 @@ const Properties = ({ onBack }) => {
   ];
 
   return (
-    <div className="flex-1 h-screen bg-gradient-to-br from-orange-400 via-orange-500 to-orange-600 p-4 pb-24 relative overflow-auto">
+    <div className="flex-1 h-screen bg-gradient-to-br from-orange-400 via-orange-500 to-orange-600 p-4 sm:p-6 lg:p-8 pb-24 relative overflow-auto">
       {/* Animated background elements */}
       <div className="absolute inset-0 overflow-hidden">
         <div className="absolute w-96 h-96 bg-orange-300/20 rounded-full blur-3xl top-20 -left-48 animate-pulse"></div>
@@ -289,20 +337,23 @@ const Properties = ({ onBack }) => {
 
       <div className="max-w-7xl mx-auto relative z-10">
         {/* Header */}
-        <div className="flex items-center justify-between mb-8">
-          <button onClick={onBack} className="p-3 bg-white/95 backdrop-blur-sm rounded-2xl hover:bg-white transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 border-2 border-white/50">
-            <ChevronLeft className="w-6 h-6 text-orange-600" />
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-4 mb-4 sm:mb-6">
+          <button onClick={onBack} className="lg:hidden self-start p-2 sm:p-3 bg-white/95 backdrop-blur-sm rounded-2xl hover:bg-white transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 border-2 border-white/50">
+            <ChevronLeft className="w-5 h-5 sm:w-6 sm:h-6 text-orange-600" />
           </button>
-          <div className="text-center">
-            <h2 className="text-4xl md:text-5xl font-black text-white drop-shadow-2xl">Properties</h2>
+          <div className="text-center flex-1">
+            <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-black text-white drop-shadow-2xl">Properties</h2>
           </div>
-          <button className="px-6 py-3 bg-white/95 backdrop-blur-sm text-orange-600 rounded-2xl font-bold hover:bg-white transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 border-2 border-white/50">
-            <Plus className="w-5 h-5 inline mr-2" /> Add Property
+          <button
+            onClick={() => setShowAddModal(true)}
+            className="w-full sm:w-auto px-4 sm:px-6 py-2 sm:py-3 bg-white/95 backdrop-blur-sm text-orange-600 rounded-2xl font-bold hover:bg-white transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 border-2 border-white/50"
+          >
+            <Plus className="w-4 h-4 sm:w-5 sm:h-5 inline mr-2" /> Add Property
           </button>
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3 mb-4 sm:mb-6">
           <StatCard icon={Home} label="Total Properties" value={properties.length.toString()} gradient="from-orange-500 to-orange-600" />
           <StatCard icon={Star} label="Avg Rating" value="4.8" gradient="from-orange-500 to-orange-600" />
           <StatCard icon={DollarSign} label="Total Revenue" value="$71.7K" trend="+18%" gradient="from-orange-500 to-orange-600" />
@@ -310,39 +361,54 @@ const Properties = ({ onBack }) => {
         </div>
 
         {/* View Toggle */}
-        <div className="bg-white/95 backdrop-blur-sm rounded-3xl p-6 shadow-2xl border-2 border-white/50 mb-6">
-          <div className="flex items-center justify-between">
-            <h3 className="text-2xl font-black text-orange-600">My Properties</h3>
-            <div className="flex gap-2">
+        <div className="bg-white/95 backdrop-blur-sm rounded-2xl p-3 sm:p-4 shadow-lg border-2 border-white/50 mb-3 sm:mb-4">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-3">
+            <h3 className="text-lg sm:text-xl font-black text-orange-600">My Properties</h3>
+            <div className="flex gap-2 w-full sm:w-auto">
               <button
                 onClick={() => setViewMode('grid')}
-                className={`px-4 py-2 rounded-xl font-bold transition-all ${
+                className={`flex-1 sm:flex-none px-3 sm:px-4 py-2 rounded-xl text-sm sm:text-base font-bold transition-all ${
                   viewMode === 'grid'
                     ? 'bg-orange-500 text-white'
                     : 'bg-white text-orange-600 border-2 border-gray-200 hover:border-orange-300'
                 }`}
               >
-                <LayoutGrid className="w-5 h-5 inline mr-2" />
+                <LayoutGrid className="w-4 h-4 sm:w-5 sm:h-5 inline mr-1 sm:mr-2" />
                 Cards
               </button>
               <button
                 onClick={() => setViewMode('table')}
-                className={`px-4 py-2 rounded-xl font-bold transition-all ${
+                className={`flex-1 sm:flex-none px-3 sm:px-4 py-2 rounded-xl text-sm sm:text-base font-bold transition-all ${
                   viewMode === 'table'
                     ? 'bg-orange-500 text-white'
                     : 'bg-white text-orange-600 border-2 border-gray-200 hover:border-orange-300'
                 }`}
               >
-                <List className="w-5 h-5 inline mr-2" />
+                <List className="w-4 h-4 sm:w-5 sm:h-5 inline mr-1 sm:mr-2" />
                 Table
               </button>
             </div>
           </div>
         </div>
 
+        {/* Loading State */}
+        {loading && (
+          <div className="text-center py-12">
+            <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-white"></div>
+            <p className="text-white mt-4">Loading properties...</p>
+          </div>
+        )}
+
+        {/* Empty State */}
+        {!loading && properties.length === 0 && (
+          <div className="text-center py-12 bg-white/20 rounded-2xl">
+            <p className="text-white text-lg">No properties found</p>
+          </div>
+        )}
+
         {/* Grid View */}
-        {viewMode === 'grid' && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {!loading && viewMode === 'grid' && properties.length > 0 && (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
             {properties.map(property => (
               <div
                 key={property.id}
@@ -404,7 +470,7 @@ const Properties = ({ onBack }) => {
         )}
 
         {/* Table View */}
-        {viewMode === 'table' && (
+        {!loading && viewMode === 'table' && properties.length > 0 && (
           <div className="bg-white/95 backdrop-blur-sm rounded-3xl shadow-2xl border-2 border-white/50 overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full">
@@ -481,40 +547,40 @@ const Properties = ({ onBack }) => {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50 overflow-y-auto" onClick={() => setSelectedProperty(null)}>
           <div className="bg-white rounded-3xl shadow-2xl max-w-4xl w-full my-8" onClick={(e) => e.stopPropagation()}>
             {/* Modal Header */}
-            <div className="bg-gradient-to-r from-orange-500 to-orange-600 p-6 rounded-t-3xl">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-3xl font-black text-white mb-1">{selectedProperty.name}</h3>
-                  <p className="text-orange-100 font-medium flex items-center gap-1">
-                    <MapPin className="w-4 h-4" />
+            <div className="bg-gradient-to-r from-orange-500 to-orange-600 p-4 sm:p-6 rounded-t-3xl">
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex-1">
+                  <h3 className="text-xl sm:text-2xl lg:text-3xl font-black text-white mb-1">{selectedProperty.name}</h3>
+                  <p className="text-sm sm:text-base text-orange-100 font-medium flex items-center gap-1">
+                    <MapPin className="w-3 h-3 sm:w-4 sm:h-4" />
                     {selectedProperty.location}
                   </p>
                 </div>
                 <button
                   onClick={() => setSelectedProperty(null)}
-                  className="p-2 bg-white/20 hover:bg-white/30 rounded-xl transition-colors"
+                  className="p-2 bg-white/20 hover:bg-white/30 rounded-xl transition-colors flex-shrink-0"
                 >
-                  <X className="w-6 h-6 text-white" />
+                  <X className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
                 </button>
               </div>
             </div>
 
             {/* Tabs */}
-            <div className="border-b-2 border-gray-200 px-6">
-              <div className="flex gap-2 overflow-x-auto">
+            <div className="border-b-2 border-gray-200 px-4 sm:px-6">
+              <div className="flex gap-1 sm:gap-2 overflow-x-auto">
                 {tabs.map(tab => {
                   const Icon = tab.icon;
                   return (
                     <button
                       key={tab.id}
                       onClick={() => setSelectedTab(tab.id)}
-                      className={`px-6 py-4 font-bold transition-all flex items-center gap-2 border-b-4 ${
+                      className={`px-3 sm:px-6 py-3 sm:py-4 text-sm sm:text-base font-bold transition-all flex items-center gap-1 sm:gap-2 border-b-4 whitespace-nowrap ${
                         selectedTab === tab.id
                           ? 'text-orange-600 border-orange-500'
                           : 'text-gray-400 border-transparent hover:text-orange-600'
                       }`}
                     >
-                      <Icon className="w-5 h-5" />
+                      <Icon className="w-4 h-4 sm:w-5 sm:h-5" />
                       {tab.label}
                     </button>
                   );
@@ -523,7 +589,7 @@ const Properties = ({ onBack }) => {
             </div>
 
             {/* Tab Content */}
-            <div className="p-6 max-h-[60vh] overflow-y-auto">
+            <div className="p-4 sm:p-6 max-h-[60vh] overflow-y-auto">
               {/* GENERAL TAB */}
               {selectedTab === 'general' && (
                 <div className="space-y-6">
@@ -532,7 +598,7 @@ const Properties = ({ onBack }) => {
                     <p className="text-gray-600 leading-relaxed">{selectedProperty.description}</p>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="border-2 border-gray-200 rounded-2xl p-4">
                       <p className="text-xs font-bold text-gray-500 mb-1">Property Type</p>
                       <p className="text-orange-600 font-bold text-lg">{selectedProperty.type}</p>
@@ -545,7 +611,7 @@ const Properties = ({ onBack }) => {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <div className="border-2 border-gray-200 rounded-2xl p-4 text-center">
                       <Bed className="w-8 h-8 text-orange-500 mx-auto mb-2" />
                       <p className="text-2xl font-black text-orange-600">{selectedProperty.beds}</p>
@@ -563,7 +629,7 @@ const Properties = ({ onBack }) => {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <div className="border-2 border-gray-200 rounded-2xl p-4">
                       <p className="text-xs font-bold text-gray-500 mb-1">Rating</p>
                       <div className="flex items-center gap-1">
@@ -589,7 +655,7 @@ const Properties = ({ onBack }) => {
                 <div className="space-y-6">
                   <div>
                     <h4 className="text-xl font-black text-orange-600 mb-4">Seasonal Pricing</h4>
-                    <div className="grid grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                       <div className="border-2 border-gray-200 rounded-2xl p-4">
                         <p className="text-xs font-bold text-gray-500 mb-2">Low Season</p>
                         <p className="text-3xl font-black text-orange-600">${selectedProperty.pricing.lowSeason}</p>
@@ -610,7 +676,7 @@ const Properties = ({ onBack }) => {
 
                   <div>
                     <h4 className="text-xl font-black text-orange-600 mb-4">Discounts</h4>
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div className="border-2 border-gray-200 rounded-2xl p-4">
                         <p className="text-sm font-bold text-gray-500 mb-2">Weekly Discount</p>
                         <p className="text-3xl font-black text-green-600">{selectedProperty.pricing.weeklyDiscount}%</p>
@@ -635,7 +701,7 @@ const Properties = ({ onBack }) => {
               {selectedTab === 'photos' && (
                 <div className="space-y-6">
                   <h4 className="text-xl font-black text-orange-600">Photo Gallery</h4>
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     {selectedProperty.photos.map((photo, index) => (
                       <div
                         key={index}
@@ -657,7 +723,7 @@ const Properties = ({ onBack }) => {
                 <div className="space-y-6">
                   <div>
                     <h4 className="text-xl font-black text-orange-600 mb-4">Check-in / Check-out</h4>
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div className="border-2 border-gray-200 rounded-2xl p-4">
                         <div className="flex items-center gap-2 mb-2">
                           <CheckCircle className="w-5 h-5 text-green-500" />
@@ -693,7 +759,7 @@ const Properties = ({ onBack }) => {
               {selectedTab === 'amenities' && (
                 <div className="space-y-6">
                   <h4 className="text-xl font-black text-orange-600">Amenities & Services</h4>
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                     {selectedProperty.amenities.map((amenity, index) => (
                       <div
                         key={index}
@@ -711,18 +777,166 @@ const Properties = ({ onBack }) => {
             </div>
 
             {/* Modal Footer */}
-            <div className="p-6 border-t-2 border-gray-200 flex gap-3">
-              <button className="flex-1 px-6 py-3 bg-orange-500 text-white rounded-2xl font-bold hover:bg-orange-600 transition-colors shadow-md">
-                <Edit className="w-5 h-5 inline mr-2" />
+            <div className="p-4 sm:p-6 border-t-2 border-gray-200 flex flex-col sm:flex-row gap-3">
+              <button className="flex-1 px-4 sm:px-6 py-3 bg-orange-500 text-white rounded-2xl text-sm sm:text-base font-bold hover:bg-orange-600 transition-colors shadow-md">
+                <Edit className="w-4 h-4 sm:w-5 sm:h-5 inline mr-2" />
                 Edit Property
               </button>
               <button
                 onClick={() => setSelectedProperty(null)}
-                className="px-6 py-3 bg-white border-2 border-gray-300 text-orange-600 rounded-2xl font-bold hover:border-orange-300 transition-colors"
+                className="px-4 sm:px-6 py-3 bg-white border-2 border-gray-300 text-orange-600 rounded-2xl text-sm sm:text-base font-bold hover:border-orange-300 transition-colors"
               >
                 Close
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add Property Modal */}
+      {showAddModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50" onClick={() => setShowAddModal(false)}>
+          <div className="bg-white rounded-3xl shadow-2xl max-w-2xl w-full" onClick={(e) => e.stopPropagation()}>
+            {/* Modal Header */}
+            <div className="bg-gradient-to-r from-orange-500 to-orange-600 p-6 rounded-t-3xl">
+              <div className="flex items-center justify-between">
+                <h3 className="text-2xl font-black text-white">Add New Property</h3>
+                <button
+                  onClick={() => setShowAddModal(false)}
+                  className="p-2 bg-white/20 hover:bg-white/30 rounded-xl transition-colors"
+                >
+                  <X className="w-6 h-6 text-white" />
+                </button>
+              </div>
+            </div>
+
+            {/* Form */}
+            <form onSubmit={handleAddProperty} className="p-6">
+              <div className="space-y-4">
+                {/* Property Name */}
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-2">
+                    Property Name *
+                  </label>
+                  <input
+                    type="text"
+                    name="name"
+                    value={formData.name}
+                    onChange={handleInputChange}
+                    required
+                    placeholder="e.g., Villa Sunset Paradise"
+                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-orange-500 focus:outline-none font-medium"
+                  />
+                </div>
+
+                {/* Location */}
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-2">
+                    Location *
+                  </label>
+                  <input
+                    type="text"
+                    name="location"
+                    value={formData.location}
+                    onChange={handleInputChange}
+                    required
+                    placeholder="e.g., Seminyak, Bali"
+                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-orange-500 focus:outline-none font-medium"
+                  />
+                </div>
+
+                {/* Property Type */}
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-2">
+                    Property Type *
+                  </label>
+                  <select
+                    name="type"
+                    value={formData.type}
+                    onChange={handleInputChange}
+                    required
+                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-orange-500 focus:outline-none font-medium"
+                  >
+                    <option value="villa">Villa</option>
+                    <option value="house">House</option>
+                    <option value="apartment">Apartment</option>
+                    <option value="cabin">Cabin</option>
+                    <option value="bungalow">Bungalow</option>
+                  </select>
+                </div>
+
+                {/* Bedrooms */}
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-2">
+                    Number of Bedrooms *
+                  </label>
+                  <input
+                    type="number"
+                    name="bedrooms"
+                    value={formData.bedrooms}
+                    onChange={handleInputChange}
+                    required
+                    min="1"
+                    placeholder="e.g., 4"
+                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-orange-500 focus:outline-none font-medium"
+                  />
+                </div>
+
+                {/* Base Price */}
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-2">
+                    Base Price per Night (USD) *
+                  </label>
+                  <input
+                    type="number"
+                    name="price"
+                    value={formData.price}
+                    onChange={handleInputChange}
+                    required
+                    min="1"
+                    placeholder="e.g., 280"
+                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-orange-500 focus:outline-none font-medium"
+                  />
+                </div>
+
+                {/* Demo Message */}
+                {showDemoMessage && (
+                  <div className="bg-blue-50 border-2 border-blue-300 rounded-xl p-4 animate-fade-in">
+                    <div className="flex items-start gap-3">
+                      <div className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                        <CheckCircle className="w-4 h-4 text-white" />
+                      </div>
+                      <div>
+                        <p className="font-bold text-blue-800 mb-1">Demo Mode</p>
+                        <p className="text-sm text-blue-700">
+                          This would create a new property in the production version. Form data has been validated successfully.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Modal Footer */}
+              <div className="flex flex-col sm:flex-row gap-3 mt-6">
+                <button
+                  type="submit"
+                  className="flex-1 px-6 py-3 bg-orange-500 text-white rounded-2xl font-bold hover:bg-orange-600 transition-colors shadow-md"
+                  disabled={showDemoMessage}
+                >
+                  <Plus className="w-5 h-5 inline mr-2" />
+                  {showDemoMessage ? 'Property Added!' : 'Add Property'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowAddModal(false)}
+                  className="px-6 py-3 bg-white border-2 border-gray-300 text-orange-600 rounded-2xl font-bold hover:border-orange-300 transition-colors"
+                  disabled={showDemoMessage}
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

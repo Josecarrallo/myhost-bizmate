@@ -136,17 +136,17 @@ const VoiceAssistant = () => {
   // Determinar estado del botón
   const getButtonState = () => {
     if (isLoading) return {
-      text: 'Conectando...',
+      text: 'Connecting...',
       icon: <Loader2 className="w-6 h-6 animate-spin" />,
       color: 'bg-yellow-500 hover:bg-yellow-600'
     };
     if (isCallActive) return {
-      text: 'Terminar Llamada',
+      text: 'End Call',
       icon: <PhoneOff className="w-6 h-6" />,
       color: 'bg-red-500 hover:bg-red-600'
     };
     return {
-      text: 'Hablar con Ayu',
+      text: 'Talk to Ayu',
       icon: <Phone className="w-6 h-6" />,
       color: 'bg-green-500 hover:bg-green-600'
     };
@@ -170,13 +170,13 @@ const VoiceAssistant = () => {
             <div className="flex items-center gap-3 mb-4">
               <div className={`w-4 h-4 rounded-full ${isSpeaking ? 'bg-green-500 animate-pulse' : 'bg-gray-300'}`} />
               <span className="text-base font-semibold text-gray-800">
-                {isSpeaking ? '🎤 Escuchando...' : '💬 Ayu está respondiendo...'}
+                {isSpeaking ? '🎤 Listening...' : '💬 Ayu is responding...'}
               </span>
             </div>
 
             {transcript && (
               <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl p-4 mt-3 border border-green-100">
-                <p className="text-xs font-medium text-green-600 mb-2">Transcripción:</p>
+                <p className="text-xs font-medium text-green-600 mb-2">Transcript:</p>
                 <p className="text-sm text-gray-700 leading-relaxed">{transcript}</p>
               </div>
             )}
@@ -187,7 +187,7 @@ const VoiceAssistant = () => {
         {error && error !== 'Vapi no configurado' && (
           <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-2 max-w-xs">
             <p className="text-sm text-red-700">
-              {typeof error === 'string' ? error : 'Error al conectar con VAPI'}
+              {typeof error === 'string' ? error : 'Error connecting to VAPI'}
             </p>
           </div>
         )}
@@ -215,10 +215,10 @@ const VoiceAssistant = () => {
         {!isCallActive && !isLoading && (
           <div className="bg-white/95 backdrop-blur-sm rounded-lg px-3 py-2 shadow-lg">
             <p className="text-xs font-medium text-gray-600">
-              🤖 Asistente de voz 24/7
+              🤖 24/7 Voice Assistant
             </p>
             <p className="text-xs text-gray-500">
-              Ayu - Recepcionista Izumi Hotel
+              Ayu - Izumi Hotel Receptionist
             </p>
           </div>
         )}
