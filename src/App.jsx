@@ -34,7 +34,7 @@ import PMSCalendar from './components/PMSCalendar/PMSCalendar';
 import CulturalIntelligence from './components/CulturalIntelligence/CulturalIntelligence';
 import GuestPortal from './components/GuestPortal/GuestPortal';
 import VoiceAssistant from './components/VoiceAssistant/VoiceAssistant';
-import AIReceptionist from './components/AIReceptionist/AIReceptionist';
+import AIAgentsMonitor from './components/AIAgentsMonitor/AIAgentsMonitor';
 
 // ==================== FLOATING ICON COMPONENT ====================
 const FloatingIcon = ({ icon: Icon, className, delay }) => (
@@ -207,8 +207,24 @@ export default function App() {
       case 'aiAssistant':
         return <AIAssistant onBack={() => setCurrentView('overview')} />;
 
-      case 'ai-receptionist':
-        return <AIReceptionist onBack={() => setCurrentView('overview')} />;
+      case 'ai-agents-monitor':
+        return <AIAgentsMonitor onBack={() => setCurrentView('overview')} />;
+
+      // Guest Management (External Agent)
+      case 'booking-engine':
+        return <BookingEngine onBack={() => setCurrentView('overview')} />;
+
+      case 'digital-checkin':
+        return <DigitalCheckIn onBack={() => setCurrentView('overview')} />;
+
+      case 'reviews':
+        return <Reviews onBack={() => setCurrentView('overview')} />;
+
+      case 'marketing':
+        return <Marketing onBack={() => setCurrentView('overview')} />;
+
+      case 'guest-analytics':
+        return <Reports onBack={() => setCurrentView('overview')} />; // Using Reports as Guest Analytics for now
 
       case 'workflows':
         return <Workflows onBack={() => setCurrentView('overview')} onNavigate={setCurrentView} />;

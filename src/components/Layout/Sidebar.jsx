@@ -14,13 +14,22 @@ import {
   ChevronDown,
   ChevronRight,
   Workflow,
-  Bot
+  Bot,
+  Activity,
+  Globe,
+  CheckCircle,
+  Star,
+  Megaphone
 } from 'lucide-react';
 
 const Sidebar = ({ currentView, onNavigate, isOpen, onClose }) => {
   const [expandedSections, setExpandedSections] = useState({
-    properties: false,
-    smartPricing: false
+    'overview': true,
+    'operations': false,
+    'revenue': false,
+    'pms-core': false,
+    'guest-management': false,
+    'settings': false
   });
 
   const toggleSection = (section) => {
@@ -40,51 +49,70 @@ const Sidebar = ({ currentView, onNavigate, isOpen, onClose }) => {
 
   const menuItems = [
     {
-      section: 'overview',
-      items: [
-        { id: 'overview', label: 'Overview', icon: Home }
-      ]
+      sectionId: 'overview',
+      sectionLabel: 'OVERVIEW',
+      sectionIcon: Home,
+      collapsible: false,
+      isDirectLink: true,
+      items: []
     },
     {
-      section: 'Operations & Guests',
+      sectionId: 'operations',
+      sectionLabel: 'OPERATIONS & GUESTS',
+      sectionIcon: LayoutDashboard,
+      collapsible: true,
       items: [
-        { id: 'dashboard', label: 'Dashboard / Overview', icon: LayoutDashboard },
-        {
-          id: 'properties',
-          label: 'Properties',
-          icon: Building2
-        },
+        { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+        { id: 'properties', label: 'Properties', icon: Building2 },
         { id: 'bookings', label: 'Bookings', icon: Calendar },
         { id: 'calendar', label: 'Calendar', icon: Calendar },
         { id: 'guests', label: 'Guests', icon: Users }
       ]
     },
     {
-      section: 'Revenue & Pricing',
+      sectionId: 'revenue',
+      sectionLabel: 'REVENUE & PRICING',
+      sectionIcon: DollarSign,
+      collapsible: true,
       items: [
         { id: 'payments', label: 'Payments', icon: CreditCard },
-        {
-          id: 'smartPricing',
-          label: 'Smart Pricing',
-          icon: DollarSign
-        },
+        { id: 'smartPricing', label: 'Smart Pricing', icon: DollarSign },
         { id: 'reports', label: 'Reports', icon: BarChart3 },
         { id: 'channelIntegration', label: 'Channel Integration', icon: Repeat }
       ]
     },
     {
-      section: 'AI Intelligence',
+      sectionId: 'pms-core',
+      sectionLabel: 'PMS CORE (Internal Agent)',
+      sectionIcon: Bot,
+      collapsible: true,
       items: [
-        { id: 'aiAssistant', label: 'PMS Core', icon: Sparkles },
-        { id: 'ai-receptionist', label: 'Guest Experience', icon: Bot },
+        { id: 'aiAssistant', label: 'AI Assistant', icon: Sparkles },
+        { id: 'ai-agents-monitor', label: 'AI Agents Monitor', icon: Activity },
         { id: 'workflows', label: 'Workflows & Automations', icon: Workflow }
       ]
     },
     {
-      section: 'settings',
+      sectionId: 'guest-management',
+      sectionLabel: 'GUEST MANAGEMENT (External Agent)',
+      sectionIcon: Users,
+      collapsible: true,
       items: [
-        { id: 'settings', label: 'Settings', icon: Settings }
+        { id: 'guests', label: 'Guest Database / CRM', icon: Users },
+        { id: 'booking-engine', label: 'Booking Engine Config', icon: Globe },
+        { id: 'digital-checkin', label: 'Digital Check-in Setup', icon: CheckCircle },
+        { id: 'reviews', label: 'Reviews Management', icon: Star },
+        { id: 'marketing', label: 'Marketing Campaigns', icon: Megaphone },
+        { id: 'guest-analytics', label: 'Guest Analytics', icon: BarChart3 }
       ]
+    },
+    {
+      sectionId: 'settings',
+      sectionLabel: 'SETTINGS',
+      sectionIcon: Settings,
+      collapsible: false,
+      isDirectLink: true, // Indica que la sección misma es clickeable
+      items: []
     }
   ];
 
@@ -115,63 +143,79 @@ const Sidebar = ({ currentView, onNavigate, isOpen, onClose }) => {
 
       {/* Navigation Menu */}
       <nav className="flex-1 overflow-y-auto p-4">
-        {menuItems.map((group, groupIndex) => (
-          <div key={groupIndex} className="mb-6">
-            {/* Section Header */}
-            {group.section !== 'overview' && group.section !== 'settings' && (
-              <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 px-3">
-                {group.section}
-              </h3>
-            )}
+        {menuItems.map((section) => {
+          const SectionIcon = section.sectionIcon;
+          const isExpanded = expandedSections[section.sectionId];
 
-            {/* Menu Items */}
-            <div className="space-y-1">
-              {group.items.map((item) => {
-                const Icon = item.icon;
-                const isActive = currentView === item.id;
+          return (
+            <div key={section.sectionId} className="mb-2">
+              {/* Section Header (Collapsible or Direct Link) */}
+              {section.collapsible ? (
+                <button
+                  onClick={() => toggleSection(section.sectionId)}
+                  className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-bold text-gray-600 hover:bg-gray-50 transition-colors uppercase tracking-wider"
+                >
+                  <SectionIcon className="w-4 h-4 flex-shrink-0" />
+                  <span className="flex-1 text-left">{section.sectionLabel}</span>
+                  {isExpanded ? (
+                    <ChevronDown className="w-4 h-4" />
+                  ) : (
+                    <ChevronRight className="w-4 h-4" />
+                  )}
+                </button>
+              ) : section.isDirectLink ? (
+                <button
+                  onClick={() => handleNavigate(section.sectionId)}
+                  className={`
+                    w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-colors
+                    ${currentView === section.sectionId
+                      ? 'bg-orange-50 text-orange-600'
+                      : 'text-gray-600 hover:bg-gray-50'
+                    }
+                  `}
+                >
+                  <SectionIcon className="w-4 h-4 flex-shrink-0" />
+                  <span className="flex-1 text-left">{section.sectionLabel}</span>
+                </button>
+              ) : (
+                <div className="px-3 py-2">
+                  <h3 className="text-xs font-bold text-gray-600 uppercase tracking-wider flex items-center gap-2">
+                    <SectionIcon className="w-4 h-4" />
+                    {section.sectionLabel}
+                  </h3>
+                </div>
+              )}
 
-                return (
-                  <div key={item.id}>
-                    <button
-                      onClick={() => {
-                        if (item.expandable) {
-                          toggleSection(item.id);
-                        } else {
-                          handleNavigate(item.id);
-                        }
-                      }}
-                      className={`
-                        w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium
-                        transition-colors
-                        ${isActive
-                          ? 'bg-orange-50 text-orange-600'
-                          : 'text-gray-700 hover:bg-gray-50'
-                        }
-                      `}
-                    >
-                      <Icon className="w-5 h-5 flex-shrink-0" />
-                      <span className="flex-1 text-left">{item.label}</span>
-                      {item.expandable && (
-                        item.expanded ? (
-                          <ChevronDown className="w-4 h-4" />
-                        ) : (
-                          <ChevronRight className="w-4 h-4" />
-                        )
-                      )}
-                    </button>
+              {/* Menu Items */}
+              {(!section.collapsible || isExpanded) && section.items.length > 0 && (
+                <div className="space-y-1 mt-1">
+                  {section.items.map((item) => {
+                    const Icon = item.icon;
+                    const isActive = currentView === item.id;
 
-                    {/* Expanded subitems (placeholder for future) */}
-                    {item.expandable && item.expanded && (
-                      <div className="ml-11 mt-1 space-y-1">
-                        {/* Future: Add subitems here */}
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
+                    return (
+                      <button
+                        key={item.id}
+                        onClick={() => handleNavigate(item.id)}
+                        className={`
+                          w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium
+                          transition-colors ml-2
+                          ${isActive
+                            ? 'bg-orange-50 text-orange-600 border-l-2 border-orange-500'
+                            : 'text-gray-700 hover:bg-gray-50'
+                          }
+                        `}
+                      >
+                        <Icon className="w-4 h-4 flex-shrink-0" />
+                        <span className="flex-1 text-left">{item.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
             </div>
-          </div>
-        ))}
+          );
+        })}
       </nav>
       </div>
     </>

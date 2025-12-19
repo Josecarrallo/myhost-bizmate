@@ -59,7 +59,7 @@ const Properties = ({ onBack }) => {
       occupancy: 87,
       description: "Luxury beachfront villa with stunning sunset views. Features modern Balinese architecture, private pool, and direct beach access.",
       amenities: ["WiFi", "Pool", "Beach Access", "Air Conditioning", "Kitchen", "Parking", "Security", "Garden"],
-      photos: ["🏖️", "🌅", "🏊", "🛏️"],
+      photos: ["/images/properties/villa1.jpg", "/images/properties/villa1.jpg", "/images/properties/villa1.jpg", "/images/properties/villa1.jpg"],
       checkInTime: "3:00 PM",
       checkOutTime: "11:00 AM",
       rules: ["No smoking", "No pets", "No parties", "Respect quiet hours 10 PM - 7 AM"],
@@ -87,7 +87,7 @@ const Properties = ({ onBack }) => {
       occupancy: 92,
       description: "Spacious beach house perfect for large groups. Modern amenities with traditional Balinese charm.",
       amenities: ["WiFi", "Pool", "Beach Access", "Air Conditioning", "Kitchen", "BBQ", "Parking", "Gym"],
-      photos: ["🏠", "🌊", "🏊", "🍽️"],
+      photos: ["/images/properties/villa2.jpg", "/images/properties/villa2.jpg", "/images/properties/villa2.jpg", "/images/properties/villa2.jpg"],
       checkInTime: "2:00 PM",
       checkOutTime: "12:00 PM",
       rules: ["No smoking indoors", "Pets allowed with deposit", "No parties", "Maximum 10 guests"],
@@ -115,7 +115,7 @@ const Properties = ({ onBack }) => {
       occupancy: 78,
       description: "Peaceful mountain retreat surrounded by rice terraces. Perfect for nature lovers seeking tranquility.",
       amenities: ["WiFi", "Air Conditioning", "Kitchen", "Parking", "Garden", "Yoga Space", "Hiking Trails"],
-      photos: ["⛰️", "🌾", "🧘", "☕"],
+      photos: ["/images/properties/villa3.jpg", "/images/properties/villa3.jpg", "/images/properties/villa3.jpg", "/images/properties/villa3.jpg"],
       checkInTime: "3:00 PM",
       checkOutTime: "11:00 AM",
       rules: ["No smoking", "No pets", "Eco-friendly practices encouraged", "Respect nature"],
@@ -143,7 +143,7 @@ const Properties = ({ onBack }) => {
       occupancy: 85,
       description: "Contemporary loft apartment in the heart of Sanur. Walking distance to beach and restaurants.",
       amenities: ["WiFi", "Air Conditioning", "Kitchen", "Balcony", "Parking", "Laundry", "Smart TV"],
-      photos: ["🏢", "🛋️", "🍳", "🌇"],
+      photos: ["/images/properties/villa4.jpg", "/images/properties/villa4.jpg", "/images/properties/villa4.jpg", "/images/properties/villa4.jpg"],
       checkInTime: "2:00 PM",
       checkOutTime: "12:00 PM",
       rules: ["No smoking", "No pets", "Keep noise levels reasonable", "Maximum 4 guests"],
@@ -171,7 +171,7 @@ const Properties = ({ onBack }) => {
       occupancy: 94,
       description: "Exclusive oceanfront villa with infinity pool. Premium amenities and butler service available.",
       amenities: ["WiFi", "Infinity Pool", "Beach Access", "Air Conditioning", "Gourmet Kitchen", "Butler Service", "Spa Room", "Gym", "Parking"],
-      photos: ["🏝️", "♾️", "🍾", "💆"],
+      photos: ["/images/properties/villa5.jpg", "/images/properties/villa5.jpg", "/images/properties/villa5.jpg", "/images/properties/villa5.jpg"],
       checkInTime: "3:00 PM",
       checkOutTime: "12:00 PM",
       rules: ["No smoking indoors", "No pets", "Events allowed with permission", "Respect staff"],
@@ -199,7 +199,7 @@ const Properties = ({ onBack }) => {
       occupancy: 72,
       description: "Unique treehouse-style villa nestled in the jungle. Eco-friendly design with natural materials.",
       amenities: ["WiFi", "Air Conditioning", "Kitchen", "Outdoor Shower", "Garden", "Swing", "Parking"],
-      photos: ["🌳", "🏡", "🦜", "🌺"],
+      photos: ["/images/properties/villa6.jpg", "/images/properties/villa6.jpg", "/images/properties/villa6.jpg", "/images/properties/villa6.jpg"],
       checkInTime: "3:00 PM",
       checkOutTime: "11:00 AM",
       rules: ["No smoking", "No pets", "Eco-conscious living", "Wildlife friendly"],
@@ -416,8 +416,12 @@ const Properties = ({ onBack }) => {
                 onClick={() => setSelectedProperty(property)}
               >
                 {/* Property Image */}
-                <div className="h-48 bg-gradient-to-br from-orange-100 to-orange-200 flex items-center justify-center text-6xl">
-                  {property.photos[0]}
+                <div className="h-48 bg-gradient-to-br from-orange-100 to-orange-200 overflow-hidden">
+                  <img
+                    src={property.photos[0]}
+                    alt={property.name}
+                    className="w-full h-full object-cover"
+                  />
                 </div>
 
                 {/* Property Info */}
@@ -705,9 +709,13 @@ const Properties = ({ onBack }) => {
                     {selectedProperty.photos.map((photo, index) => (
                       <div
                         key={index}
-                        className="aspect-video bg-gradient-to-br from-orange-100 to-orange-200 rounded-2xl flex items-center justify-center text-8xl border-2 border-gray-200 hover:border-orange-300 transition-all cursor-pointer"
+                        className="aspect-video bg-gradient-to-br from-orange-100 to-orange-200 rounded-2xl overflow-hidden border-2 border-gray-200 hover:border-orange-300 transition-all cursor-pointer"
                       >
-                        {photo}
+                        <img
+                          src={photo}
+                          alt={`${selectedProperty.name} - Photo ${index + 1}`}
+                          className="w-full h-full object-cover"
+                        />
                       </div>
                     ))}
                   </div>

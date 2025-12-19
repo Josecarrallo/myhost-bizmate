@@ -12,7 +12,7 @@ import {
   BarChart3
 } from 'lucide-react';
 
-const AIReceptionist = ({ onBack }) => {
+const AIAgentsMonitor = ({ onBack }) => {
   const [whatsappStats, setWhatsappStats] = useState({
     status: 'active',
     todayMessages: 0,
@@ -163,38 +163,39 @@ const AIReceptionist = ({ onBack }) => {
   };
 
   return (
-    <div className="flex-1 h-screen bg-gradient-to-br from-indigo-400 via-purple-500 to-pink-600 p-4 relative overflow-auto">
+    <div className="flex-1 h-screen bg-gradient-to-br from-orange-400 via-orange-500 to-orange-600 p-4 sm:p-6 lg:p-8 pb-24 relative overflow-auto">
       {/* Animated background */}
       <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute w-96 h-96 bg-purple-300/20 rounded-full blur-3xl top-20 -left-48 animate-pulse"></div>
-        <div className="absolute w-96 h-96 bg-pink-300/20 rounded-full blur-3xl bottom-20 -right-48 animate-pulse" style={{ animationDelay: '1s' }}></div>
+        <div className="absolute w-96 h-96 bg-orange-300/20 rounded-full blur-3xl top-20 -left-48 animate-pulse"></div>
+        <div className="absolute w-96 h-96 bg-orange-300/20 rounded-full blur-3xl bottom-20 -right-48 animate-pulse" style={{ animationDelay: '1s' }}></div>
+        <div className="absolute w-72 h-72 bg-orange-200/30 rounded-full blur-2xl top-1/2 right-1/4 animate-pulse" style={{ animationDelay: '0.5s' }}></div>
       </div>
 
       <div className="max-w-7xl mx-auto relative z-10">
         {/* Header */}
-        <div className="flex items-center justify-between mb-8">
-          <button onClick={onBack} className="p-3 bg-white/95 backdrop-blur-sm rounded-2xl hover:bg-white transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105">
-            <ChevronLeft className="w-6 h-6 text-purple-600" />
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-4 mb-6 sm:mb-8">
+          <button onClick={onBack} className="lg:hidden self-start p-2 sm:p-3 bg-white/95 backdrop-blur-sm rounded-2xl hover:bg-white transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 border-2 border-white/50">
+            <ChevronLeft className="w-5 h-5 sm:w-6 sm:h-6 text-orange-600" />
           </button>
-          <div className="text-center">
-            <h2 className="text-4xl md:text-5xl font-black text-white drop-shadow-2xl">AI Receptionist</h2>
-            <p className="text-white/90 text-lg mt-2">Monitoreo en tiempo real</p>
+          <div className="text-center flex-1">
+            <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-black text-white drop-shadow-2xl">AI Agents Monitor</h2>
+            <p className="text-white/90 text-sm sm:text-base lg:text-lg mt-1 sm:mt-2">Real-time monitoring - WhatsApp & Voice AI</p>
           </div>
-          <div className="w-12"></div>
+          <div className="w-12 hidden lg:block"></div>
         </div>
 
         {/* Status Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
           {/* WhatsApp AI Agent Card */}
-          <div className="bg-white/95 backdrop-blur-sm rounded-3xl p-6 shadow-2xl border-2 border-white/50">
+          <div className="bg-white/95 backdrop-blur-sm rounded-3xl p-4 sm:p-6 shadow-2xl border-2 border-white/50">
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center gap-3">
-                <div className="bg-gradient-to-br from-green-400 to-green-600 p-4 rounded-2xl">
-                  <MessageCircle className="w-8 h-8 text-white" />
+                <div className="bg-gradient-to-br from-orange-400 to-orange-600 p-3 sm:p-4 rounded-2xl shadow-lg">
+                  <MessageCircle className="w-6 h-6 sm:w-8 sm:h-8 text-white" />
                 </div>
                 <div>
-                  <h3 className="text-2xl font-bold text-gray-800">WhatsApp AI Agent</h3>
-                  <p className="text-sm text-gray-500">Workflow VIII</p>
+                  <h3 className="text-lg sm:text-2xl font-bold text-orange-600">WhatsApp AI</h3>
+                  <p className="text-xs sm:text-sm text-gray-500">Workflow VIII</p>
                 </div>
               </div>
               <div className={`flex items-center gap-2 px-4 py-2 rounded-full ${whatsappStats.status === 'active' ? 'bg-green-100' : 'bg-red-100'}`}>
@@ -205,46 +206,46 @@ const AIReceptionist = ({ onBack }) => {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4 mb-4">
-              <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-4">
+            <div className="grid grid-cols-2 gap-3 sm:gap-4 mb-4">
+              <div className="bg-gradient-to-br from-orange-50 to-orange-100 rounded-xl p-3 sm:p-4 border-2 border-orange-200">
                 <div className="flex items-center gap-2 mb-2">
-                  <Activity className="w-5 h-5 text-blue-600" />
-                  <span className="text-sm font-medium text-blue-700">Mensajes Hoy</span>
+                  <Activity className="w-4 h-4 sm:w-5 sm:h-5 text-orange-600" />
+                  <span className="text-xs sm:text-sm font-medium text-orange-700">Mensajes Hoy</span>
                 </div>
-                <p className="text-3xl font-black text-blue-900">{whatsappStats.todayMessages}</p>
+                <p className="text-2xl sm:text-3xl font-black text-orange-900">{whatsappStats.todayMessages}</p>
               </div>
 
-              <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl p-4">
+              <div className="bg-gradient-to-br from-orange-50 to-orange-100 rounded-xl p-3 sm:p-4 border-2 border-orange-200">
                 <div className="flex items-center gap-2 mb-2">
-                  <Clock className="w-5 h-5 text-purple-600" />
-                  <span className="text-sm font-medium text-purple-700">Resp. Media</span>
+                  <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-orange-600" />
+                  <span className="text-xs sm:text-sm font-medium text-orange-700">Resp. Media</span>
                 </div>
-                <p className="text-3xl font-black text-purple-900">{whatsappStats.avgResponseTime}</p>
+                <p className="text-2xl sm:text-3xl font-black text-orange-900">{whatsappStats.avgResponseTime}</p>
               </div>
             </div>
 
             <button
               onClick={() => toggleWorkflow(WORKFLOW_VIII_ID, whatsappStats.status === 'active')}
-              className={`w-full py-3 rounded-xl font-bold text-white transition-all ${
+              className={`w-full py-3 rounded-2xl font-bold text-white transition-all shadow-md ${
                 whatsappStats.status === 'active'
                   ? 'bg-red-500 hover:bg-red-600'
-                  : 'bg-green-500 hover:bg-green-600'
+                  : 'bg-orange-500 hover:bg-orange-600'
               }`}
             >
-              {whatsappStats.status === 'active' ? 'Desactivar' : 'Activar'}
+              {whatsappStats.status === 'active' ? 'Pause Agent' : 'Activate Agent'}
             </button>
           </div>
 
           {/* Vapi Voice AI Card */}
-          <div className="bg-white/95 backdrop-blur-sm rounded-3xl p-6 shadow-2xl border-2 border-white/50">
+          <div className="bg-white/95 backdrop-blur-sm rounded-3xl p-4 sm:p-6 shadow-2xl border-2 border-white/50">
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center gap-3">
-                <div className="bg-gradient-to-br from-blue-400 to-blue-600 p-4 rounded-2xl">
-                  <Phone className="w-8 h-8 text-white" />
+                <div className="bg-gradient-to-br from-orange-500 to-orange-700 p-3 sm:p-4 rounded-2xl shadow-lg">
+                  <Phone className="w-6 h-6 sm:w-8 sm:h-8 text-white" />
                 </div>
                 <div>
-                  <h3 className="text-2xl font-bold text-gray-800">Vapi Voice AI</h3>
-                  <p className="text-sm text-gray-500">Workflow IX</p>
+                  <h3 className="text-lg sm:text-2xl font-bold text-orange-600">Voice AI</h3>
+                  <p className="text-xs sm:text-sm text-gray-500">Workflow IX</p>
                 </div>
               </div>
               <div className={`flex items-center gap-2 px-4 py-2 rounded-full ${vapiStats.status === 'active' ? 'bg-green-100' : 'bg-red-100'}`}>
@@ -255,81 +256,81 @@ const AIReceptionist = ({ onBack }) => {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4 mb-4">
-              <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-xl p-4">
+            <div className="grid grid-cols-2 gap-3 sm:gap-4 mb-4">
+              <div className="bg-gradient-to-br from-orange-50 to-orange-100 rounded-xl p-3 sm:p-4 border-2 border-orange-200">
                 <div className="flex items-center gap-2 mb-2">
-                  <Phone className="w-5 h-5 text-green-600" />
-                  <span className="text-sm font-medium text-green-700">Llamadas Hoy</span>
+                  <Phone className="w-4 h-4 sm:w-5 sm:h-5 text-orange-600" />
+                  <span className="text-xs sm:text-sm font-medium text-orange-700">Llamadas Hoy</span>
                 </div>
-                <p className="text-3xl font-black text-green-900">{vapiStats.todayCalls}</p>
+                <p className="text-2xl sm:text-3xl font-black text-orange-900">{vapiStats.todayCalls}</p>
               </div>
 
-              <div className="bg-gradient-to-br from-amber-50 to-amber-100 rounded-xl p-4">
+              <div className="bg-gradient-to-br from-orange-50 to-orange-100 rounded-xl p-3 sm:p-4 border-2 border-orange-200">
                 <div className="flex items-center gap-2 mb-2">
-                  <Clock className="w-5 h-5 text-amber-600" />
-                  <span className="text-sm font-medium text-amber-700">Duración Media</span>
+                  <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-orange-600" />
+                  <span className="text-xs sm:text-sm font-medium text-orange-700">Duración Media</span>
                 </div>
-                <p className="text-3xl font-black text-amber-900">{vapiStats.avgDuration}</p>
+                <p className="text-2xl sm:text-3xl font-black text-orange-900">{vapiStats.avgDuration}</p>
               </div>
             </div>
 
             <button
               onClick={() => toggleWorkflow(WORKFLOW_IX_ID, vapiStats.status === 'active')}
-              className={`w-full py-3 rounded-xl font-bold text-white transition-all ${
+              className={`w-full py-3 rounded-2xl font-bold text-white transition-all shadow-md ${
                 vapiStats.status === 'active'
                   ? 'bg-red-500 hover:bg-red-600'
-                  : 'bg-green-500 hover:bg-green-600'
+                  : 'bg-orange-500 hover:bg-orange-600'
               }`}
             >
-              {vapiStats.status === 'active' ? 'Desactivar' : 'Activar'}
+              {vapiStats.status === 'active' ? 'Pause Agent' : 'Activate Agent'}
             </button>
           </div>
         </div>
 
         {/* Recent Conversations */}
-        <div className="bg-white/95 backdrop-blur-sm rounded-3xl p-6 shadow-2xl border-2 border-white/50">
+        <div className="bg-white/95 backdrop-blur-sm rounded-3xl p-4 sm:p-6 shadow-2xl border-2 border-white/50">
           <div className="flex items-center gap-3 mb-6">
-            <BarChart3 className="w-6 h-6 text-purple-600" />
-            <h3 className="text-2xl font-bold text-gray-800">Últimas Conversaciones</h3>
+            <BarChart3 className="w-5 h-5 sm:w-6 sm:h-6 text-orange-600" />
+            <h3 className="text-xl sm:text-2xl font-bold text-orange-600">Recent Conversations</h3>
           </div>
 
           {isLoading ? (
             <div className="text-center py-12">
-              <div className="w-12 h-12 border-4 border-purple-200 border-t-purple-600 rounded-full animate-spin mx-auto"></div>
-              <p className="text-gray-500 mt-4">Cargando...</p>
+              <div className="w-12 h-12 border-4 border-orange-200 border-t-orange-600 rounded-full animate-spin mx-auto"></div>
+              <p className="text-orange-600 font-medium mt-4">Loading conversations...</p>
             </div>
           ) : recentConversations.length === 0 ? (
             <div className="text-center py-12">
-              <p className="text-gray-500">No hay conversaciones hoy</p>
+              <p className="text-gray-500 text-sm sm:text-base">No conversations today</p>
             </div>
           ) : (
             <div className="space-y-3">
               {recentConversations.map((conv) => (
-                <div key={conv.id} className="bg-gradient-to-r from-gray-50 to-white rounded-xl p-4 border border-gray-200 hover:shadow-md transition-all">
+                <div key={conv.id} className="bg-gradient-to-r from-orange-50/50 to-white rounded-xl p-3 sm:p-4 border-2 border-orange-100 hover:border-orange-300 hover:shadow-md transition-all">
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className={`p-2 rounded-lg ${conv.type === 'whatsapp' ? 'bg-green-100' : 'bg-blue-100'}`}>
+                    <div className="flex items-center gap-2 sm:gap-3">
+                      <div className={`p-2 rounded-lg ${conv.type === 'whatsapp' ? 'bg-orange-100 border-2 border-orange-300' : 'bg-orange-100 border-2 border-orange-400'}`}>
                         {conv.type === 'whatsapp' ? (
-                          <MessageCircle className="w-5 h-5 text-green-600" />
+                          <MessageCircle className="w-4 h-4 sm:w-5 sm:h-5 text-orange-600" />
                         ) : (
-                          <Phone className="w-5 h-5 text-blue-600" />
+                          <Phone className="w-4 h-4 sm:w-5 sm:h-5 text-orange-700" />
                         )}
                       </div>
                       <div>
-                        <p className="font-semibold text-gray-800">
-                          {conv.type === 'whatsapp' ? 'WhatsApp' : 'Vapi Voice'}
+                        <p className="font-semibold text-sm sm:text-base text-orange-600">
+                          {conv.type === 'whatsapp' ? 'WhatsApp' : 'Voice Call'}
                         </p>
-                        <p className="text-sm text-gray-500">
-                          {conv.time.toLocaleTimeString('es-ES')}
+                        <p className="text-xs sm:text-sm text-gray-500">
+                          {conv.time.toLocaleTimeString('en-US')}
                         </p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-3">
-                      <span className="text-sm text-gray-600">{conv.duration}s</span>
+                    <div className="flex items-center gap-2 sm:gap-3">
+                      <span className="text-xs sm:text-sm text-gray-600 font-medium">{conv.duration}s</span>
                       {conv.status === 'success' ? (
-                        <CheckCircle className="w-5 h-5 text-green-500" />
+                        <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-green-500" />
                       ) : (
-                        <AlertCircle className="w-5 h-5 text-red-500" />
+                        <AlertCircle className="w-4 h-4 sm:w-5 sm:h-5 text-red-500" />
                       )}
                     </div>
                   </div>
@@ -343,4 +344,4 @@ const AIReceptionist = ({ onBack }) => {
   );
 };
 
-export default AIReceptionist;
+export default AIAgentsMonitor;
