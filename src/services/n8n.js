@@ -60,23 +60,32 @@ const logWorkflow = async (workflowName, status, data, error = null) => {
 };
 
 /**
- * Execute n8n workflow via REST API
+ * Webhook paths for each workflow
+ */
+const WEBHOOK_PATHS = {
+  [WORKFLOWS.NEW_PROPERTY]: 'new_property',
+  [WORKFLOWS.BOOKING_CONFIRMATION]: 'booking-created',
+  [WORKFLOWS.BOOKING_CONFIRMATION_2]: 'booking-created-2',
+  [WORKFLOWS.WHATSAPP_AI_AGENT]: 'whatsapp-webhook',
+};
+
+/**
+ * Execute n8n workflow via Webhook
  */
 const executeWorkflow = async (workflowId, payload, workflowName) => {
-  const url = `${N8N_URL}/api/v1/workflows/${workflowId}/execute`;
+  // Get webhook path or use workflow ID as fallback
+  const webhookPath = WEBHOOK_PATHS[workflowId] || workflowId;
+  const url = `${N8N_URL}/webhook/${webhookPath}`;
 
   try {
-    console.log(`[n8n] Executing ${workflowName} (${workflowId})...`, { payload });
+    console.log(`[n8n] Executing ${workflowName} via webhook: ${url}`, { payload });
 
     const response = await fetch(url, {
       method: 'POST',
       headers: {
-        'X-N8N-API-KEY': N8N_API_KEY,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        data: payload
-      }),
+      body: JSON.stringify(payload),
     });
 
     if (!response.ok) {
@@ -114,22 +123,20 @@ const executeWorkflow = async (workflowId, payload, workflowName) => {
  */
 export const onPropertyCreated = async (property) => {
   const payload = {
-    event: 'property.created',
-    property: {
-      id: property.id,
-      name: property.name,
-      property_type: property.property_type,
-      address: property.address,
-      city: property.city,
-      country: property.country,
-      bedrooms: property.bedrooms,
-      bathrooms: property.bathrooms,
-      max_guests: property.max_guests,
-      base_price: property.base_price,
-      currency: property.currency,
-      status: property.status,
-      created_at: property.created_at
-    }
+    property_id: property.id,
+    property_name: property.name,
+    description: property.description,
+    location: `${property.city}, ${property.country}`,
+    address: property.address,
+    city: property.city,
+    country: property.country,
+    bedrooms: property.bedrooms,
+    bathrooms: property.bathrooms,
+    max_guests: property.max_guests,
+    base_price: property.base_price,
+    currency: property.currency,
+    status: property.status,
+    created_at: property.created_at || new Date().toISOString()
   };
 
   return executeWorkflow(
@@ -151,7 +158,7 @@ export const onPropertyUpdated = async (property) => {
     property: {
       id: property.id,
       name: property.name,
-      property_type: property.property_type,
+      description: property.description,
       base_price: property.base_price,
       status: property.status,
       updated_at: property.updated_at || new Date().toISOString()

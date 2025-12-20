@@ -65,11 +65,11 @@ const Bookings = ({ onBack }) => {
           checkIn: booking.check_in,
           checkOut: booking.check_out,
           status: capitalizeFirst(booking.status),
-          guests: booking.number_of_guests || 0,
+          guests: booking.guests || 0,
           revenue: parseFloat(booking.total_price) || 0,
           channel: capitalizeFirst(booking.source || 'direct'),
           nights: booking.nights || 0,
-          notes: booking.special_requests || '',
+          notes: booking.notes || '',
           paymentStatus: capitalizeFirst(booking.payment_status),
           tasks: []
         }));
@@ -121,12 +121,14 @@ const Bookings = ({ onBack }) => {
         guest_phone: '34619794604',
         check_in: '2026-01-20',
         check_out: '2026-01-25',
-        number_of_guests: 2,
+        guests: 2,
         total_price: 500,
         status: 'confirmed',
-        source: 'direct',
-        special_requests: '🧪 TEST BOOKING - n8n workflow integration test',
-        payment_status: 'paid'
+        channel: 'direct',
+        notes: '🧪 TEST BOOKING - n8n workflow integration test',
+        payment_status: 'paid',
+        nights: 5,
+        currency: 'USD'
       };
 
       console.log('[Bookings] 📤 Creating test booking in Supabase:', testBooking);

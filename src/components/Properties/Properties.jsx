@@ -233,7 +233,7 @@ const Properties = ({ onBack }) => {
           id: prop.id,
           name: prop.name,
           location: `${prop.city || 'Bali'}, ${prop.country || 'Indonesia'}`,
-          type: prop.property_type || 'Property',
+          type: 'Property',
           beds: prop.bedrooms || 0,
           baths: prop.bathrooms || 0,
           maxGuests: prop.max_guests || 0,
@@ -281,22 +281,19 @@ const Properties = ({ onBack }) => {
       // Create property in Supabase
       const newProperty = {
         name: formData.name,
-        property_type: formData.type.charAt(0).toUpperCase() + formData.type.slice(1),
+        description: `Beautiful ${formData.type} in ${formData.location}`,
         address: formData.location.split(',')[0]?.trim() || formData.location,
         city: formData.location.split(',')[1]?.trim() || 'Bali',
         country: 'Indonesia',
         bedrooms: parseInt(formData.bedrooms),
-        bathrooms: Math.max(1, Math.floor(parseInt(formData.bedrooms) / 2)), // Estimate: 1 bath per 2 bedrooms
-        max_guests: parseInt(formData.bedrooms) * 2, // Estimate: 2 guests per bedroom
+        bathrooms: Math.max(1, Math.floor(parseInt(formData.bedrooms) / 2)),
+        max_guests: parseInt(formData.bedrooms) * 2,
         base_price: parseFloat(formData.price),
         currency: 'USD',
         status: 'active',
-        description: `Beautiful ${formData.type} in ${formData.location}`,
         amenities: [],
-        metadata: {
-          source: 'manual_entry',
-          created_by: 'web_interface'
-        }
+        house_rules: [],
+        photos: []
       };
 
       console.log('[Properties] Creating property:', newProperty);

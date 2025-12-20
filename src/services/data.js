@@ -1,6 +1,6 @@
 // Servicio para obtener datos reales de Supabase
 import { supabase } from '../lib/supabase';
-import { triggerBookingConfirmation, triggerStaffNotification } from './n8n';
+import { onBookingCreated } from './n8n';
 
 export const dataService = {
   // Obtener todas las properties
@@ -62,14 +62,10 @@ export const dataService = {
 
       console.log('✅ Booking created in Supabase:', data);
 
-      // 2. Trigger n8n workflows (non-blocking)
-      // Run workflows in parallel without waiting
-      Promise.all([
-        triggerBookingConfirmation(data),
-        triggerStaffNotification(data),
-      ])
-        .then(([confirmResult, staffResult]) => {
-          console.log('✅ Workflows triggered:', { confirmResult, staffResult });
+      // 2. Trigger n8n workflow (non-blocking)
+      onBookingCreated(data)
+        .then((result) => {
+          console.log('✅ Booking workflow triggered:', result);
         })
         .catch((workflowError) => {
           console.error('⚠️ Workflow trigger failed:', workflowError);
