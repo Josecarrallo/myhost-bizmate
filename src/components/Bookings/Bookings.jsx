@@ -21,6 +21,8 @@ import {
 } from 'lucide-react';
 import { StatCard } from '../common';
 import { dataService } from '../../services/data';
+import { supabaseService } from '../../services/supabase';
+import n8nService from '../../services/n8n';
 
 const Bookings = ({ onBack }) => {
   // State for bookings data
@@ -49,7 +51,8 @@ const Bookings = ({ onBack }) => {
   const loadBookings = async () => {
     try {
       setLoading(true);
-      const data = await dataService.getBookings();
+      const data = await supabaseService.getBookings();
+      console.log('[Bookings] Loaded from Supabase:', data);
 
       if (data && data.length > 0) {
         // Map Supabase data to component format
@@ -58,26 +61,29 @@ const Bookings = ({ onBack }) => {
           guest: booking.guest_name,
           email: booking.guest_email || 'N/A',
           phone: booking.guest_phone || 'N/A',
-          property: `Property ${booking.property_id}`,
+          property: `Property ${booking.property_id?.substring(0, 8)}`,
           checkIn: booking.check_in,
           checkOut: booking.check_out,
           status: capitalizeFirst(booking.status),
-          guests: booking.guests,
-          revenue: parseFloat(booking.total_price),
-          channel: capitalizeFirst(booking.channel),
-          nights: booking.nights,
-          notes: booking.notes || '',
+          guests: booking.number_of_guests || 0,
+          revenue: parseFloat(booking.total_price) || 0,
+          channel: capitalizeFirst(booking.source || 'direct'),
+          nights: booking.nights || 0,
+          notes: booking.special_requests || '',
           paymentStatus: capitalizeFirst(booking.payment_status),
           tasks: []
         }));
         setAllBookings(mappedBookings);
+        console.log('[Bookings] Using real bookings:', mappedBookings.length);
       } else {
         // Use mock data if no real data
         setAllBookings(mockBookings);
+        console.log('[Bookings] No real bookings, using mock:', mockBookings.length);
       }
     } catch (error) {
-      console.error('Error loading bookings:', error);
+      console.error('[Bookings] Error loading:', error);
       setAllBookings(mockBookings);
+      console.log('[Bookings] Fallback to mock bookings:', mockBookings.length);
     } finally {
       setLoading(false);
     }
@@ -101,45 +107,45 @@ const Bookings = ({ onBack }) => {
     setTestingWorkflow(true);
 
     try {
-      console.log('🧪 Testing n8n workflow...');
+      console.log('[Bookings] 🧪 Testing n8n workflow...');
+
+      // Get first property from Supabase
+      const properties = await supabaseService.getProperties();
+      const firstProperty = properties && properties.length > 0 ? properties[0] : null;
 
       // Create test booking data
       const testBooking = {
-        property_id: '18711359-1378-4d12-9ea6-fb31c0b1bac2', // Izumi Hotel
+        property_id: firstProperty?.id || '18711359-1378-4d12-9ea6-fb31c0b1bac2',
         guest_name: 'Test User - n8n Integration',
-        guest_email: 'josecarrallodelafuente@gmail.com', // Tu email para recibir el test
-        guest_phone: '34619794604', // Tu teléfono
+        guest_email: 'josecarrallodelafuente@gmail.com',
+        guest_phone: '34619794604',
         check_in: '2026-01-20',
         check_out: '2026-01-25',
-        guests: 2,
+        number_of_guests: 2,
         total_price: 500,
         status: 'confirmed',
-        channel: 'direct',
-        nights: 5,
-        notes: '🧪 TEST BOOKING - n8n workflow integration test',
+        source: 'direct',
+        special_requests: '🧪 TEST BOOKING - n8n workflow integration test',
         payment_status: 'paid'
       };
 
-      console.log('📤 Sending test booking:', testBooking);
+      console.log('[Bookings] 📤 Creating test booking in Supabase:', testBooking);
 
-      // Create booking (this will trigger n8n workflow automatically)
-      const result = await dataService.createBooking(testBooking);
+      // Create booking in Supabase
+      const createdBooking = await supabaseService.createBooking(testBooking);
+      console.log('[Bookings] ✅ Booking created:', createdBooking);
 
-      if (result.success) {
-        console.log('✅ Booking created successfully:', result.data);
-        console.log('📧 Check your email:', testBooking.guest_email);
-        console.log('📱 Check WhatsApp:', testBooking.guest_phone);
+      // Trigger n8n workflow
+      console.log('[Bookings] 🔄 Triggering n8n workflow...');
+      const workflowResult = await n8nService.onBookingCreated(createdBooking);
+      console.log('[Bookings] ✅ n8n workflow result:', workflowResult);
 
-        alert(`✅ Test booking created!\n\n📧 Check email: ${testBooking.guest_email}\n📱 Check WhatsApp: ${testBooking.guest_phone}\n\nWorkflow triggered successfully! Check console for details.`);
+      alert(`✅ Test booking created!\n\n📧 Check email: ${testBooking.guest_email}\n📱 Check WhatsApp: ${testBooking.guest_phone}\n\nWorkflow triggered successfully! Check console for details.`);
 
-        // Reload bookings to show the new test booking
-        await loadBookings();
-      } else {
-        console.error('❌ Error creating booking:', result.error);
-        alert(`❌ Error: ${result.error}`);
-      }
+      // Reload bookings to show the new test booking
+      await loadBookings();
     } catch (error) {
-      console.error('❌ Test failed:', error);
+      console.error('[Bookings] ❌ Test failed:', error);
       alert(`❌ Test failed: ${error.message}`);
     } finally {
       setTestingWorkflow(false);

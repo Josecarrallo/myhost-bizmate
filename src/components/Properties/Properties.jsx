@@ -24,6 +24,8 @@ import {
 } from 'lucide-react';
 import { StatCard } from '../common';
 import { dataService } from '../../services/data';
+import { supabaseService } from '../../services/supabase';
+import n8nService from '../../services/n8n';
 
 const Properties = ({ onBack }) => {
   const [viewMode, setViewMode] = useState('grid'); // 'grid' or 'table'
@@ -219,20 +221,10 @@ const Properties = ({ onBack }) => {
   }, []);
 
   const loadProperties = async () => {
-    setLoading(true);
-
-    // Usar mock properties siempre (fix temporal para ver UI)
-    setTimeout(() => {
-      setProperties(mockProperties);
-      console.log('Using mock properties:', mockProperties.length);
-      setLoading(false);
-    }, 500);
-
-    /* // Versión con Supabase (comentada temporalmente)
     try {
       setLoading(true);
-      const realProperties = await dataService.getProperties();
-      console.log('Properties loaded from Supabase:', realProperties);
+      const realProperties = await supabaseService.getProperties();
+      console.log('[Properties] Loaded from Supabase:', realProperties);
 
       // Si hay properties reales, usarlas. Si no, usar mock
       if (realProperties && realProperties.length > 0) {
@@ -240,61 +232,102 @@ const Properties = ({ onBack }) => {
         const mapped = realProperties.map(prop => ({
           id: prop.id,
           name: prop.name,
-          location: `${prop.city}, ${prop.country}`,
-          type: "Property",
-          beds: prop.bedrooms,
-          baths: prop.bathrooms,
-          maxGuests: prop.max_guests,
-          basePrice: parseFloat(prop.base_price),
+          location: `${prop.city || 'Bali'}, ${prop.country || 'Indonesia'}`,
+          type: prop.property_type || 'Property',
+          beds: prop.bedrooms || 0,
+          baths: prop.bathrooms || 0,
+          maxGuests: prop.max_guests || 0,
+          basePrice: parseFloat(prop.base_price) || 0,
           rating: 4.5,
           reviews: 0,
-          status: prop.status,
+          status: prop.status || 'active',
           revenue: "0",
           occupancy: 0,
-          description: prop.description,
-          amenities: prop.amenities || [],
-          photos: ["🏠"],
+          description: prop.description || '',
+          amenities: Array.isArray(prop.amenities) ? prop.amenities : [],
+          photos: ["/images/properties/villa1.jpg"],
           checkInTime: "3:00 PM",
           checkOutTime: "11:00 AM",
-          rules: [],
+          rules: ["No smoking", "Respect quiet hours"],
           pricing: {
-            lowSeason: parseFloat(prop.base_price),
-            midSeason: parseFloat(prop.base_price),
-            highSeason: parseFloat(prop.base_price) * 1.2,
+            lowSeason: parseFloat(prop.base_price) || 0,
+            midSeason: parseFloat(prop.base_price) || 0,
+            highSeason: (parseFloat(prop.base_price) || 0) * 1.2,
             weeklyDiscount: 10,
             monthlyDiscount: 25
           }
         }));
         setProperties(mapped);
-        console.log('Using real properties:', mapped.length);
+        console.log('[Properties] Using real properties:', mapped.length);
       } else {
         setProperties(mockProperties);
-        console.log('Using mock properties:', mockProperties.length);
+        console.log('[Properties] No real properties, using mock:', mockProperties.length);
       }
     } catch (error) {
-      console.error('Error loading properties:', error);
+      console.error('[Properties] Error loading:', error);
       setProperties(mockProperties); // Fallback a mock si falla
-      console.log('Fallback to mock properties:', mockProperties.length);
+      console.log('[Properties] Fallback to mock properties:', mockProperties.length);
     } finally {
       setLoading(false);
     }
-    */
   };
 
-  const handleAddProperty = (e) => {
+  const handleAddProperty = async (e) => {
     e.preventDefault();
-    setShowDemoMessage(true);
-    setTimeout(() => {
+
+    try {
+      setShowDemoMessage(true);
+
+      // Create property in Supabase
+      const newProperty = {
+        name: formData.name,
+        property_type: formData.type.charAt(0).toUpperCase() + formData.type.slice(1),
+        address: formData.location.split(',')[0]?.trim() || formData.location,
+        city: formData.location.split(',')[1]?.trim() || 'Bali',
+        country: 'Indonesia',
+        bedrooms: parseInt(formData.bedrooms),
+        bathrooms: Math.max(1, Math.floor(parseInt(formData.bedrooms) / 2)), // Estimate: 1 bath per 2 bedrooms
+        max_guests: parseInt(formData.bedrooms) * 2, // Estimate: 2 guests per bedroom
+        base_price: parseFloat(formData.price),
+        currency: 'USD',
+        status: 'active',
+        description: `Beautiful ${formData.type} in ${formData.location}`,
+        amenities: [],
+        metadata: {
+          source: 'manual_entry',
+          created_by: 'web_interface'
+        }
+      };
+
+      console.log('[Properties] Creating property:', newProperty);
+      const createdProperty = await supabaseService.createProperty(newProperty);
+      console.log('[Properties] Property created:', createdProperty);
+
+      // Trigger n8n workflow for new property
+      console.log('[Properties] Triggering n8n workflow...');
+      const workflowResult = await n8nService.onPropertyCreated(createdProperty);
+      console.log('[Properties] n8n workflow result:', workflowResult);
+
+      // Reload properties to show the new one
+      await loadProperties();
+
+      // Close modal after 2 seconds
+      setTimeout(() => {
+        setShowDemoMessage(false);
+        setShowAddModal(false);
+        setFormData({
+          name: '',
+          location: '',
+          type: 'villa',
+          bedrooms: '',
+          price: ''
+        });
+      }, 2000);
+    } catch (error) {
+      console.error('[Properties] Error creating property:', error);
+      alert('Failed to create property. Check console for details.');
       setShowDemoMessage(false);
-      setShowAddModal(false);
-      setFormData({
-        name: '',
-        location: '',
-        type: 'villa',
-        bedrooms: '',
-        price: ''
-      });
-    }, 3000);
+    }
   };
 
   const handleInputChange = (e) => {

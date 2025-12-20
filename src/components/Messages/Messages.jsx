@@ -18,29 +18,95 @@ import {
   Pause,
   Volume2
 } from 'lucide-react';
+import { supabaseService } from '../../services/supabase';
 
 const Messages = ({ onBack }) => {
   const [messageText, setMessageText] = useState('');
   const [selectedConversation, setSelectedConversation] = useState(null);
   const [filter, setFilter] = useState('all'); // all, unread, ai-handled
   const [searchQuery, setSearchQuery] = useState('');
+  const [conversations, setConversations] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState({
+    unread: 0,
+    aiHandled: 0,
+    voiceMessages: 0,
+    photoMessages: 0,
+    avgResponseTime: '8m'
+  });
 
   useEffect(() => {
     window.scrollTo(0, 0);
+    loadMessages();
   }, []);
 
-  const conversations = [
-    { id: 1, name: "Emma Wilson", property: "City Loft", message: "Hi! I'd like to know if early check-in is possible for my reservation next week?", time: "5m ago", unread: true, avatar: "EW", aiHandled: false, checkIn: "2025-12-10", status: "confirmed", messageType: "text" },
-    { id: 2, name: "David Park", property: "Mountain Cabin", message: "🎤 Voice message: Thank you for the wonderful stay!", time: "2h ago", unread: false, avatar: "DP", aiHandled: true, checkIn: "2025-11-25", status: "checked-out", messageType: "voice", voiceDuration: "0:23" },
-    { id: 3, name: "Lisa Anderson", property: "Beach House", message: "Could you please send me the WiFi password? Thanks!", time: "1d ago", unread: false, avatar: "LA", aiHandled: true, checkIn: "2025-12-05", status: "checked-in", messageType: "text" },
-    { id: 4, name: "James Rodriguez", property: "Villa Sunset", message: "📷 Photo: Sent parking area photo", time: "2d ago", unread: false, avatar: "JR", aiHandled: true, checkIn: "2025-12-15", status: "confirmed", messageType: "photo", photoUrl: "https://images.unsplash.com/photo-1506521781263-d8422e82f27a?w=400" },
-    { id: 5, name: "Sophie Martin", property: "Villa Paradise", message: "We'd like to extend our stay for 2 more days. Is it available?", time: "3d ago", unread: true, avatar: "SM", aiHandled: false, checkIn: "2025-12-08", status: "pending-extension", messageType: "text" },
-    { id: 6, name: "Michael Chen", property: "Beach House", message: "📷 Photo: Sent heater issue photo", time: "3d ago", unread: true, avatar: "MC", aiHandled: true, checkIn: "2025-12-03", status: "checked-in", messageType: "photo", photoUrl: "https://images.unsplash.com/photo-1631889992558-087bb35233f1?w=400" },
-    { id: 7, name: "Anna Kowalski", property: "City Loft", message: "Thank you for the quick response! Looking forward to our stay.", time: "4d ago", unread: false, avatar: "AK", aiHandled: true, checkIn: "2025-12-20", status: "confirmed", messageType: "text" },
-    { id: 8, name: "Tom Harrison", property: "Mountain Cabin", message: "🎤 Voice message: Question about pets", time: "5d ago", unread: false, avatar: "TH", aiHandled: true, checkIn: "2025-12-18", status: "confirmed", messageType: "voice", voiceDuration: "0:15" },
-    { id: 9, name: "Maria Garcia", property: "Villa Sunset", message: "Can we have a late check-out? Our flight is at 8 PM.", time: "6d ago", unread: false, avatar: "MG", aiHandled: true, checkIn: "2025-11-28", status: "checked-out", messageType: "text" },
-    { id: 10, name: "John Smith", property: "Villa Paradise", message: "🎤 Voice message: Airport transfer inquiry", time: "1w ago", unread: false, avatar: "JS", aiHandled: true, checkIn: "2025-12-12", status: "confirmed", messageType: "voice", voiceDuration: "0:18" }
-  ];
+  const loadMessages = async () => {
+    try {
+      setLoading(true);
+      const messages = await supabaseService.getMessages();
+
+      // Transform messages to conversation format
+      const transformedConversations = messages.map((msg, index) => {
+        const initials = msg.guest_name
+          ? msg.guest_name.split(' ').map(n => n[0]).join('').toUpperCase()
+          : 'GU';
+
+        // Calculate relative time
+        const sentDate = new Date(msg.sent_at);
+        const now = new Date();
+        const diffMs = now - sentDate;
+        const diffMins = Math.floor(diffMs / 60000);
+        const diffHours = Math.floor(diffMs / 3600000);
+        const diffDays = Math.floor(diffMs / 86400000);
+
+        let timeAgo;
+        if (diffMins < 60) timeAgo = `${diffMins}m ago`;
+        else if (diffHours < 24) timeAgo = `${diffHours}h ago`;
+        else if (diffDays === 1) timeAgo = '1d ago';
+        else if (diffDays < 7) timeAgo = `${diffDays}d ago`;
+        else timeAgo = `${Math.floor(diffDays / 7)}w ago`;
+
+        return {
+          id: index + 1,
+          name: msg.guest_name || 'Guest',
+          property: 'Property',
+          message: msg.message_type === 'voice' ? `🎤 Voice message: ${msg.message_text || 'Voice message'}` :
+                   msg.message_type === 'photo' ? `📷 Photo: ${msg.message_text || 'Photo message'}` :
+                   msg.message_text,
+          time: timeAgo,
+          unread: msg.status === 'unread',
+          avatar: initials,
+          aiHandled: msg.ai_handled || false,
+          checkIn: '-',
+          status: msg.status === 'unread' ? 'pending' : 'confirmed',
+          messageType: msg.message_type,
+          voiceDuration: msg.message_type === 'voice' ? '0:15' : undefined,
+          photoUrl: msg.media_url
+        };
+      });
+
+      setConversations(transformedConversations);
+
+      // Calculate stats
+      const unreadCount = transformedConversations.filter(c => c.unread).length;
+      const aiHandledCount = transformedConversations.filter(c => c.aiHandled).length;
+      const voiceCount = transformedConversations.filter(c => c.messageType === 'voice').length;
+      const photoCount = transformedConversations.filter(c => c.messageType === 'photo').length;
+
+      setStats({
+        unread: unreadCount,
+        aiHandled: aiHandledCount,
+        voiceMessages: voiceCount,
+        photoMessages: photoCount,
+        avgResponseTime: '8m'
+      });
+
+      setLoading(false);
+    } catch (error) {
+      console.error('Error loading messages:', error);
+      setLoading(false);
+    }
+  };
 
   const aiTemplates = [
     { id: 1, name: "Check-in Info", icon: "🏠", template: "Hi! Your check-in is confirmed for [DATE] at 2:00 PM. Your access code is [CODE]. The property address is [ADDRESS]. Let us know if you need anything!" },
@@ -74,17 +140,20 @@ const Messages = ({ onBack }) => {
     return matchesFilter && matchesSearch;
   });
 
-  const stats = {
-    unread: conversations.filter(c => c.unread).length,
-    aiHandled: conversations.filter(c => c.aiHandled).length,
-    voiceMessages: conversations.filter(c => c.messageType === 'voice').length,
-    photoMessages: conversations.filter(c => c.messageType === 'photo').length,
-    avgResponseTime: "8m"
-  };
-
   const handleTemplateClick = (template) => {
     setMessageText(template.template);
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-orange-400 via-orange-500 to-orange-600 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-white mx-auto mb-4"></div>
+          <p className="text-white text-xl font-bold">Loading messages...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-400 via-orange-500 to-orange-600 flex flex-col relative overflow-hidden">

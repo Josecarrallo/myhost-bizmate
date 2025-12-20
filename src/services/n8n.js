@@ -1,15 +1,23 @@
 /**
- * n8n Webhook Service
+ * n8n Workflow Service
  *
  * Handles all integrations with n8n workflows on Railway
  * Base URL: https://n8n-production-bb2d.up.railway.app
+ * Uses n8n REST API for workflow execution
  */
 
-const N8N_BASE_URL = import.meta.env.VITE_N8N_BASE_URL;
-const WEBHOOKS = {
-  bookingConfirmation: import.meta.env.VITE_N8N_WEBHOOK_BOOKING_CONFIRMATION,
-  staffNotification: import.meta.env.VITE_N8N_WEBHOOK_STAFF_NOTIFICATION,
-  whatsappChatbot: import.meta.env.VITE_N8N_WEBHOOK_WHATSAPP_CHATBOT,
+const N8N_URL = 'https://n8n-production-bb2d.up.railway.app';
+const N8N_API_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMmNkZWVjOC0xM2U0LTQzYTQtODAzYS0zOTU2NmIzYzRiNDAiLCJpc3MiOiJuOG4iLCJhdWQiOiJwdWJsaWMtYXBpIiwiaWF0IjoxNzY2MjA5ODE0LCJleHAiOjE3Njg3OTg4MDB9.tEOyZs1H0W4hw9jTiCuE5uAhmcDgn3fZKfSZZOITPlM';
+
+// Workflow IDs from n8n instance
+export const WORKFLOWS = {
+  NEW_PROPERTY: '6eqkTXvYQLdsazdC',
+  BOOKING_CONFIRMATION: 'OxNTDO0yitqV6MAL',
+  BOOKING_CONFIRMATION_2: 'F8YPuLhcNe6wGcCv',
+  WHATSAPP_AI_AGENT: 'ln2myAS3406D6F8W',
+  VAPI_VOICE_ASSISTANT: '3sU4RgV892az8nLZ',
+  CHANNEL_MANAGER: 'hvXxsxJhU1cuq6q3',
+  RECOMENDACIONES_AI: '8xWqs3rlUZmSf8gc'
 };
 
 /**
@@ -52,24 +60,27 @@ const logWorkflow = async (workflowName, status, data, error = null) => {
 };
 
 /**
- * Trigger n8n webhook
+ * Execute n8n workflow via REST API
  */
-const triggerWebhook = async (webhookPath, payload, workflowName) => {
-  const url = `${N8N_BASE_URL}${webhookPath}`;
+const executeWorkflow = async (workflowId, payload, workflowName) => {
+  const url = `${N8N_URL}/api/v1/workflows/${workflowId}/execute`;
 
   try {
-    console.log(`[n8n] Triggering ${workflowName}...`, { url, payload });
+    console.log(`[n8n] Executing ${workflowName} (${workflowId})...`, { payload });
 
     const response = await fetch(url, {
       method: 'POST',
       headers: {
+        'X-N8N-API-KEY': N8N_API_KEY,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(payload),
+      body: JSON.stringify({
+        data: payload
+      }),
     });
 
     if (!response.ok) {
-      throw new Error(`Webhook failed: ${response.status} ${response.statusText}`);
+      throw new Error(`Workflow execution failed: ${response.status} ${response.statusText}`);
     }
 
     const result = await response.json().catch(() => ({ success: true }));
@@ -91,6 +102,96 @@ const triggerWebhook = async (webhookPath, payload, workflowName) => {
   }
 };
 
+// =====================================================
+// PROPERTY WORKFLOWS
+// =====================================================
+
+/**
+ * Trigger New Property Workflow
+ * Executes when a new property is created
+ *
+ * @param {Object} property - Property data from Supabase
+ */
+export const onPropertyCreated = async (property) => {
+  const payload = {
+    event: 'property.created',
+    property: {
+      id: property.id,
+      name: property.name,
+      property_type: property.property_type,
+      address: property.address,
+      city: property.city,
+      country: property.country,
+      bedrooms: property.bedrooms,
+      bathrooms: property.bathrooms,
+      max_guests: property.max_guests,
+      base_price: property.base_price,
+      currency: property.currency,
+      status: property.status,
+      created_at: property.created_at
+    }
+  };
+
+  return executeWorkflow(
+    WORKFLOWS.NEW_PROPERTY,
+    payload,
+    'New Property Created'
+  );
+};
+
+/**
+ * Trigger Property Update Workflow (Channel Manager)
+ * Syncs property updates to all channels
+ *
+ * @param {Object} property - Updated property data
+ */
+export const onPropertyUpdated = async (property) => {
+  const payload = {
+    event: 'property.updated',
+    property: {
+      id: property.id,
+      name: property.name,
+      property_type: property.property_type,
+      base_price: property.base_price,
+      status: property.status,
+      updated_at: property.updated_at || new Date().toISOString()
+    }
+  };
+
+  return executeWorkflow(
+    WORKFLOWS.CHANNEL_MANAGER,
+    payload,
+    'Property Updated - Channel Sync'
+  );
+};
+
+/**
+ * Trigger Property Deletion Workflow (Channel Manager)
+ * Removes property from all channels
+ *
+ * @param {Object} property - Property data being deleted
+ */
+export const onPropertyDeleted = async (property) => {
+  const payload = {
+    event: 'property.deleted',
+    property: {
+      id: property.id,
+      name: property.name,
+      deleted_at: new Date().toISOString()
+    }
+  };
+
+  return executeWorkflow(
+    WORKFLOWS.CHANNEL_MANAGER,
+    payload,
+    'Property Deleted - Channel Sync'
+  );
+};
+
+// =====================================================
+// BOOKING WORKFLOWS
+// =====================================================
+
 /**
  * Trigger Booking Confirmation Workflow
  *
@@ -100,90 +201,131 @@ const triggerWebhook = async (webhookPath, payload, workflowName) => {
  * - WhatsApp to property owner
  *
  * @param {Object} booking - Booking data
- * @param {string} booking.property_id - Property UUID
- * @param {string} booking.guest_email - Guest email
- * @param {string} booking.guest_name - Guest name
- * @param {string} booking.guest_phone - Guest phone (with country code, no +)
- * @param {string} booking.check_in - Check-in date (YYYY-MM-DD)
- * @param {string} booking.check_out - Check-out date (YYYY-MM-DD)
- * @param {number} booking.guests_count - Number of guests
- * @param {number} booking.total_amount - Total booking amount
  */
-export const triggerBookingConfirmation = async (booking) => {
+export const onBookingCreated = async (booking) => {
   const payload = {
-    property_id: booking.property_id,
-    guest_email: booking.guest_email,
-    guest_name: booking.guest_name,
-    guest_phone: booking.guest_phone.replace(/[^0-9]/g, ''), // Remove all non-digits
-    check_in: booking.check_in,
-    check_out: booking.check_out,
-    guests_count: booking.guests_count || booking.guests,
-    total_amount: booking.total_amount || booking.total_price,
+    event: 'booking.created',
+    booking: {
+      id: booking.id,
+      property_id: booking.property_id,
+      guest_email: booking.guest_email,
+      guest_name: booking.guest_name,
+      guest_phone: booking.guest_phone?.replace(/[^0-9]/g, ''),
+      check_in: booking.check_in,
+      check_out: booking.check_out,
+      number_of_guests: booking.number_of_guests || booking.guests_count || booking.guests,
+      total_price: booking.total_price || booking.total_amount,
+      status: booking.status,
+      created_at: booking.created_at || new Date().toISOString()
+    }
   };
 
-  return triggerWebhook(
-    WEBHOOKS.bookingConfirmation,
+  return executeWorkflow(
+    WORKFLOWS.BOOKING_CONFIRMATION,
     payload,
     'Booking Confirmation'
   );
 };
 
 /**
- * Trigger Staff Notification Workflow
+ * Trigger Booking Update Workflow
+ * Notifies guest and staff of booking changes
  *
- * Notifies staff of new booking via:
- * - WhatsApp to staff
- * - WhatsApp confirmation to guest
- *
- * @param {Object} booking - Full booking record from Supabase
+ * @param {Object} booking - Updated booking data
  */
-export const triggerStaffNotification = async (booking) => {
+export const onBookingUpdated = async (booking) => {
   const payload = {
-    body: {
-      record: {
-        id: booking.id,
-        guest_name: booking.guest_name,
-        guest_email: booking.guest_email,
-        guest_phone: booking.guest_phone.replace(/[^0-9]/g, ''),
-        check_in: booking.check_in,
-        check_out: booking.check_out,
-        guests: booking.guests_count || booking.guests,
-        total_price: booking.total_amount || booking.total_price,
-        status: booking.status || 'confirmed',
-        channel: booking.channel || 'direct',
-        created_at: booking.created_at || new Date().toISOString(),
-        property_id: booking.property_id,
-      },
-    },
+    event: 'booking.updated',
+    booking: {
+      id: booking.id,
+      property_id: booking.property_id,
+      guest_email: booking.guest_email,
+      guest_name: booking.guest_name,
+      guest_phone: booking.guest_phone?.replace(/[^0-9]/g, ''),
+      check_in: booking.check_in,
+      check_out: booking.check_out,
+      status: booking.status,
+      updated_at: booking.updated_at || new Date().toISOString()
+    }
   };
 
-  return triggerWebhook(
-    WEBHOOKS.staffNotification,
+  return executeWorkflow(
+    WORKFLOWS.BOOKING_CONFIRMATION_2,
     payload,
-    'Staff Notification'
+    'Booking Updated'
   );
 };
 
 /**
- * Trigger WhatsApp Chatbot Workflow
+ * Trigger Booking Cancellation Workflow
+ * Handles booking cancellations and refunds
  *
- * Sends message to WhatsApp AI chatbot
+ * @param {Object} booking - Booking data being cancelled
+ */
+export const onBookingCancelled = async (booking) => {
+  const payload = {
+    event: 'booking.cancelled',
+    booking: {
+      id: booking.id,
+      property_id: booking.property_id,
+      guest_email: booking.guest_email,
+      guest_name: booking.guest_name,
+      guest_phone: booking.guest_phone?.replace(/[^0-9]/g, ''),
+      check_in: booking.check_in,
+      check_out: booking.check_out,
+      total_price: booking.total_price || booking.total_amount,
+      cancelled_at: new Date().toISOString(),
+      cancellation_reason: booking.cancellation_reason || 'Guest request'
+    }
+  };
+
+  return executeWorkflow(
+    WORKFLOWS.BOOKING_CONFIRMATION_2,
+    payload,
+    'Booking Cancelled'
+  );
+};
+
+// =====================================================
+// MESSAGING WORKFLOWS
+// =====================================================
+
+/**
+ * Trigger WhatsApp AI Agent Workflow
+ * Sends message to WhatsApp AI Agent for processing
  *
  * @param {Object} message - WhatsApp message data
  */
-export const triggerWhatsAppChatbot = async (message) => {
-  return triggerWebhook(
-    WEBHOOKS.whatsappChatbot,
-    message,
-    'WhatsApp Chatbot'
+export const onWhatsAppMessage = async (message) => {
+  const payload = {
+    event: 'whatsapp.message',
+    message: {
+      from: message.from,
+      to: message.to,
+      text: message.text,
+      timestamp: message.timestamp || new Date().toISOString(),
+      conversation_id: message.conversation_id,
+      guest_name: message.guest_name,
+      property_id: message.property_id
+    }
+  };
+
+  return executeWorkflow(
+    WORKFLOWS.WHATSAPP_AI_AGENT,
+    payload,
+    'WhatsApp AI Message'
   );
 };
+
+// =====================================================
+// UTILITY FUNCTIONS
+// =====================================================
 
 /**
  * Check if n8n is configured
  */
 export const isN8nConfigured = () => {
-  return !!(N8N_BASE_URL && WEBHOOKS.bookingConfirmation);
+  return !!(N8N_URL && N8N_API_KEY);
 };
 
 /**
@@ -191,16 +333,33 @@ export const isN8nConfigured = () => {
  */
 export const getN8nInfo = () => {
   return {
-    baseUrl: N8N_BASE_URL,
-    webhooks: WEBHOOKS,
+    baseUrl: N8N_URL,
+    apiKey: N8N_API_KEY ? '***configured***' : null,
+    workflows: WORKFLOWS,
     configured: isN8nConfigured(),
   };
 };
 
+// =====================================================
+// DEFAULT EXPORT
+// =====================================================
+
 export default {
-  triggerBookingConfirmation,
-  triggerStaffNotification,
-  triggerWhatsAppChatbot,
+  // Property workflows
+  onPropertyCreated,
+  onPropertyUpdated,
+  onPropertyDeleted,
+
+  // Booking workflows
+  onBookingCreated,
+  onBookingUpdated,
+  onBookingCancelled,
+
+  // Messaging workflows
+  onWhatsAppMessage,
+
+  // Utilities
   isN8nConfigured,
   getN8nInfo,
+  WORKFLOWS,
 };

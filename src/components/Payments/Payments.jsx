@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   ChevronLeft,
   Plus,
@@ -20,25 +20,76 @@ import {
   ExternalLink
 } from 'lucide-react';
 import { StatCard } from '../common';
+import { supabaseService } from '../../services/supabase';
 
 const Payments = ({ onBack }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('All');
   const [filterMethod, setFilterMethod] = useState('All');
   const [selectedPayment, setSelectedPayment] = useState(null);
+  const [allTransactions, setAllTransactions] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState({
+    totalRevenue: 0,
+    completed: 0,
+    pending: 0,
+    transactionCount: 0,
+    avgAmount: 0
+  });
 
-  const allTransactions = [
-    { id: 'TXN001', guest: 'Sarah Johnson', email: 'sarah.j@email.com', property: 'Villa Sunset Paradise', checkIn: '2025-10-25', checkOut: '2025-10-30', amount: 2125, status: 'Completed', method: 'Credit Card', date: '2025-10-20', time: '14:32', bookingRef: 'BK-2510-001', nights: 5, type: 'Full Payment' },
-    { id: 'TXN002', guest: 'Michael Chen', email: 'mchen@email.com', property: 'Beach House Deluxe', checkIn: '2025-10-28', checkOut: '2025-11-02', amount: 2600, status: 'Pending', method: 'Bank Transfer', date: '2025-10-22', time: '09:15', bookingRef: 'BK-2510-002', nights: 5, type: 'Deposit' },
-    { id: 'TXN003', guest: 'Emma Wilson', email: 'emma.w@email.com', property: 'City Loft Premium', checkIn: '2025-10-24', checkOut: '2025-10-27', amount: 1140, status: 'Completed', method: 'Credit Card', date: '2025-10-18', time: '16:45', bookingRef: 'BK-2510-003', nights: 3, type: 'Full Payment' },
-    { id: 'TXN004', guest: 'David Park', email: 'dpark@email.com', property: 'Mountain Cabin Retreat', checkIn: '2025-10-22', checkOut: '2025-10-25', amount: 735, status: 'Completed', method: 'PayPal', date: '2025-10-15', time: '11:20', bookingRef: 'BK-2510-004', nights: 3, type: 'Full Payment' },
-    { id: 'TXN005', guest: 'Lisa Anderson', email: 'lisa.a@email.com', property: 'Villa Sunset Paradise', checkIn: '2025-11-01', checkOut: '2025-11-08', amount: 2975, status: 'Completed', method: 'Stripe', date: '2025-10-18', time: '10:30', bookingRef: 'BK-2510-005', nights: 7, type: 'Full Payment' },
-    { id: 'TXN006', guest: 'Robert Taylor', email: 'rtaylor@email.com', property: 'Beach House Deluxe', checkIn: '2025-11-05', checkOut: '2025-11-10', amount: 1300, status: 'Pending', method: 'Bank Transfer', date: '2025-10-24', time: '13:45', bookingRef: 'BK-2510-006', nights: 5, type: 'Deposit' },
-    { id: 'TXN007', guest: 'Jennifer Martinez', email: 'jmartinez@email.com', property: 'City Loft Premium', checkIn: '2025-10-29', checkOut: '2025-11-03', amount: 1900, status: 'Completed', method: 'Credit Card', date: '2025-10-21', time: '15:10', bookingRef: 'BK-2510-007', nights: 5, type: 'Full Payment' },
-    { id: 'TXN008', guest: 'James Wilson', email: 'jwilson@email.com', property: 'Mountain Cabin Retreat', checkIn: '2025-11-08', checkOut: '2025-11-12', amount: 980, status: 'Completed', method: 'PayPal', date: '2025-10-25', time: '08:55', bookingRef: 'BK-2510-008', nights: 4, type: 'Full Payment' },
-    { id: 'TXN009', guest: 'Patricia Brown', email: 'pbrown@email.com', property: 'Villa Sunset Paradise', checkIn: '2025-11-12', checkOut: '2025-11-15', amount: 1275, status: 'Pending', method: 'Credit Card', date: '2025-10-26', time: '12:20', bookingRef: 'BK-2510-009', nights: 3, type: 'Deposit' },
-    { id: 'TXN010', guest: 'Daniel Garcia', email: 'dgarcia@email.com', property: 'Beach House Deluxe', checkIn: '2025-11-15', checkOut: '2025-11-22', amount: 3640, status: 'Completed', method: 'Stripe', date: '2025-10-27', time: '17:30', bookingRef: 'BK-2510-010', nights: 7, type: 'Full Payment' }
-  ];
+  // Load payments from Supabase on mount
+  useEffect(() => {
+    loadPayments();
+  }, []);
+
+  const loadPayments = async () => {
+    try {
+      setLoading(true);
+      const payments = await supabaseService.getPayments();
+
+      // Transform Supabase data to match component format
+      const transformedPayments = payments.map(payment => ({
+        id: payment.transaction_id || payment.id.substring(0, 8).toUpperCase(),
+        guest: payment.guest_name,
+        email: payment.guest_email,
+        amount: parseFloat(payment.amount),
+        status: payment.status.charAt(0).toUpperCase() + payment.status.slice(1),
+        method: payment.payment_method,
+        date: new Date(payment.transaction_date).toISOString().split('T')[0],
+        time: new Date(payment.transaction_date).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+        type: payment.payment_type || 'Full Payment',
+        property: 'Property', // TODO: Join with properties table
+        checkIn: '-',
+        checkOut: '-',
+        bookingRef: payment.booking_id ? `BK-${payment.booking_id.substring(0, 8)}` : '-',
+        nights: 0
+      }));
+
+      setAllTransactions(transformedPayments);
+
+      // Calculate stats
+      const completedPayments = transformedPayments.filter(p => p.status === 'Completed');
+      const pendingPayments = transformedPayments.filter(p => p.status === 'Pending');
+      const totalRevenue = completedPayments.reduce((sum, p) => sum + p.amount, 0);
+      const pendingAmount = pendingPayments.reduce((sum, p) => sum + p.amount, 0);
+      const avgAmount = transformedPayments.length > 0
+        ? transformedPayments.reduce((sum, p) => sum + p.amount, 0) / transformedPayments.length
+        : 0;
+
+      setStats({
+        totalRevenue: totalRevenue.toFixed(0),
+        completed: totalRevenue.toFixed(0),
+        pending: pendingAmount.toFixed(0),
+        transactionCount: transformedPayments.length,
+        avgAmount: avgAmount.toFixed(0)
+      });
+
+      setLoading(false);
+    } catch (error) {
+      console.error('Error loading payments:', error);
+      setLoading(false);
+    }
+  };
 
   const filteredTransactions = allTransactions.filter(txn => {
     const matchesSearch = txn.guest.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -59,6 +110,17 @@ const Payments = ({ onBack }) => {
       default: return 'bg-gray-100 text-gray-700 border-gray-200';
     }
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-orange-400 via-orange-500 to-orange-600 p-4 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-white mx-auto mb-4"></div>
+          <p className="text-white text-xl font-bold">Loading payments...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-400 via-orange-500 to-orange-600 p-4 pb-24 relative overflow-hidden">
@@ -84,11 +146,11 @@ const Payments = ({ onBack }) => {
 
         {/* Stats */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 mb-6">
-          <StatCard icon={DollarSign} label="Total Revenue" value="$19.5K" gradient="from-orange-500 to-orange-600" />
-          <StatCard icon={CheckCircle} label="Completed" value="$15.2K" gradient="from-orange-500 to-orange-600" />
-          <StatCard icon={Clock} label="Pending" value="$4.3K" gradient="from-orange-500 to-orange-600" />
-          <StatCard icon={CreditCard} label="Transactions" value="10" gradient="from-orange-500 to-orange-600" />
-          <StatCard icon={TrendingUp} label="Avg Amount" value="$1,950" gradient="from-orange-500 to-orange-600" />
+          <StatCard icon={DollarSign} label="Total Revenue" value={`$${(stats.totalRevenue / 1000).toFixed(1)}K`} gradient="from-orange-500 to-orange-600" />
+          <StatCard icon={CheckCircle} label="Completed" value={`$${(stats.completed / 1000).toFixed(1)}K`} gradient="from-orange-500 to-orange-600" />
+          <StatCard icon={Clock} label="Pending" value={`$${(stats.pending / 1000).toFixed(1)}K`} gradient="from-orange-500 to-orange-600" />
+          <StatCard icon={CreditCard} label="Transactions" value={stats.transactionCount} gradient="from-orange-500 to-orange-600" />
+          <StatCard icon={TrendingUp} label="Avg Amount" value={`$${Number(stats.avgAmount).toLocaleString()}`} gradient="from-orange-500 to-orange-600" />
         </div>
 
         {/* Search and Filters */}
