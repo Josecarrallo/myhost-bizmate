@@ -34,6 +34,19 @@ npm run preview
 
 ### Recent Refactors
 
+**December 20, 2025 - Complete My Site Module + React Router**:
+- Implemented complete "My Site" module for creating direct booking websites
+- 5-step wizard for property owners to build their own websites in 5 minutes
+- Public website component (PublicSite) with professional landing pages
+- React Router integration for public URLs (`/site/:slug`)
+- 5 professional visual themes (Bali Minimal, Tropical Luxury, Ocean Breeze, Sunset Warmth, Jungle Modern)
+- WhatsApp booking integration
+- Enhanced login page with large branding display
+- Fixed text input bugs (controlled → uncontrolled inputs)
+- Service layer (mySiteService.js) with localStorage (ready for Supabase)
+- shadcn/ui components integrated (Dialog, Input, Checkbox, Progress, etc.)
+- vercel.json added for SPA routing in production
+
 **December 19, 2025 - Professional Collapsible Sidebar + AI Agents Reorganization**:
 - Implemented professional collapsible sidebar navigation (like Airbnb/Booking.com)
 - 6 main sections with expand/collapse functionality
@@ -405,6 +418,17 @@ This is a vacation rental management platform targeting property managers and ho
 
 ## Key Commits
 
+- `0fac888` - **feat: Complete My Site module with public website builder and React Router** (Dec 20, 2025)
+  - Full My Site module with 5-step wizard for creating direct booking websites
+  - Public website component (PublicSite.jsx) with professional landing pages
+  - React Router integration for `/site/:slug` public URLs
+  - 5 visual themes (Bali Minimal, Tropical Luxury, Ocean Breeze, Sunset Warmth, Jungle Modern)
+  - WhatsApp booking integration
+  - Enhanced login page with large "AI Operating System" branding
+  - Fixed text input bugs (controlled → uncontrolled inputs with onBlur)
+  - Service layer with localStorage (ready for Supabase migration)
+  - shadcn/ui components (Dialog, Input, Checkbox, Progress, RadioGroup, Textarea)
+  - vercel.json for SPA routing in production
 - `8c264b4` - **feat: Professional collapsible sidebar + AI agents reorganization** (Dec 19, 2025)
   - Implemented professional collapsible navigation (6 main sections)
   - Renamed AIReceptionist → AIAgentsMonitor (moved to PMS CORE)
