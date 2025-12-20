@@ -27,13 +27,22 @@ const LoginPage = () => {
 
   return (
     <div className="min-h-screen flex">
-      {/* Left Side - Solid Orange */}
-      <div className="hidden lg:flex lg:w-1/2 bg-orange-500 relative overflow-hidden">
-        {/* Subtle gradient overlay */}
-        <div className="absolute inset-0 bg-gradient-to-br from-orange-400 to-orange-600 opacity-50"></div>
-
-        {/* Optional: Add subtle pattern or branding here later */}
-        <div className="relative z-10 w-full"></div>
+      {/* Left Side - Branding */}
+      <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-orange-400 via-orange-500 to-orange-600 relative overflow-hidden">
+        {/* Content */}
+        <div className="relative z-10 w-full flex items-center justify-center p-12">
+          <div className="text-center">
+            <h1 className="text-6xl font-black text-white mb-4 drop-shadow-lg">
+              MY HOST
+            </h1>
+            <p className="text-5xl font-bold text-white/95 mb-8">
+              BizMate
+            </p>
+            <p className="text-3xl font-semibold text-white/90 leading-relaxed max-w-lg">
+              AI Operating System for Property Owners
+            </p>
+          </div>
+        </div>
       </div>
 
       {/* Right Side - Light Gray with White Card */}
@@ -43,15 +52,9 @@ const LoginPage = () => {
           {/* Login Card */}
           <div className="bg-white rounded-2xl shadow-xl p-10">
 
-            {/* Logo and Title */}
+            {/* Login Title (sin logo arriba) */}
             <div className="text-center mb-8">
-              <h1 className="text-4xl font-bold text-gray-800 mb-1">
-                MY HOST
-              </h1>
-              <p className="text-3xl font-bold text-orange-500">
-                BizMate
-              </p>
-              <p className="text-gray-600 mt-6 text-lg">
+              <p className="text-gray-600 text-lg">
                 Sign in to your account
               </p>
             </div>

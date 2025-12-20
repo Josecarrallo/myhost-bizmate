@@ -19,7 +19,8 @@ import {
   Globe,
   CheckCircle,
   Star,
-  Megaphone
+  Megaphone,
+  Monitor
 } from 'lucide-react';
 
 const Sidebar = ({ currentView, onNavigate, isOpen, onClose }) => {
@@ -89,7 +90,8 @@ const Sidebar = ({ currentView, onNavigate, isOpen, onClose }) => {
       items: [
         { id: 'aiAssistant', label: 'AI Assistant', icon: Sparkles },
         { id: 'ai-agents-monitor', label: 'AI Agents Monitor', icon: Activity },
-        { id: 'workflows', label: 'Workflows & Automations', icon: Workflow }
+        { id: 'workflows', label: 'Workflows & Automations', icon: Workflow },
+        { id: 'my-site', label: 'My Site', icon: Monitor }
       ]
     },
     {

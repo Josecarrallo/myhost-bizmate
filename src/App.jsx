@@ -35,6 +35,7 @@ import CulturalIntelligence from './components/CulturalIntelligence/CulturalInte
 import GuestPortal from './components/GuestPortal/GuestPortal';
 import VoiceAssistant from './components/VoiceAssistant/VoiceAssistant';
 import AIAgentsMonitor from './components/AIAgentsMonitor/AIAgentsMonitor';
+import MySite from './components/MySite/MySite';
 
 // ==================== FLOATING ICON COMPONENT ====================
 const FloatingIcon = ({ icon: Icon, className, delay }) => (
@@ -209,6 +210,9 @@ export default function App() {
 
       case 'ai-agents-monitor':
         return <AIAgentsMonitor onBack={() => setCurrentView('overview')} />;
+
+      case 'my-site':
+        return <MySite key="my-site" onBack={() => setCurrentView('overview')} />;
 
       // Guest Management (External Agent)
       case 'booking-engine':
