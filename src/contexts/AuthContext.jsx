@@ -17,11 +17,11 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Absolute maximum timeout - force loading to false after 3 seconds
+    // Absolute maximum timeout - force loading to false after 5 seconds
     const absoluteTimeout = setTimeout(() => {
-      console.warn('Auth check exceeded 3s - forcing loading to false');
+      console.warn('Auth check exceeded 5s - forcing loading to false');
       setLoading(false);
-    }, 3000);
+    }, 5000);
 
     // Check active session
     checkUser();
@@ -29,6 +29,7 @@ export const AuthProvider = ({ children }) => {
     // Listen for auth changes
     const { data: authListener } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        clearTimeout(absoluteTimeout);
         if (session?.user) {
           setUser(session.user);
           await fetchUserData(session.user.id);
@@ -48,14 +49,15 @@ export const AuthProvider = ({ children }) => {
 
   const checkUser = async () => {
     try {
-      // Add 5 second timeout to prevent infinite loading
-      const timeout = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('Session check timeout')), 5000)
-      );
+      const { data: { session }, error } = await supabase.auth.getSession();
 
-      const sessionCheck = supabase.auth.getSession();
-
-      const { data: { session } } = await Promise.race([sessionCheck, timeout]);
+      if (error) {
+        console.error('Session error:', error);
+        setUser(null);
+        setUserData(null);
+        setLoading(false);
+        return;
+      }
 
       if (session?.user) {
         setUser(session.user);
@@ -63,23 +65,6 @@ export const AuthProvider = ({ children }) => {
       }
     } catch (error) {
       console.error('Error checking user:', error);
-
-      // If timeout or error, clear ALL auth data (corrupted/expired session)
-      try {
-        // Clear all Supabase auth tokens from localStorage
-        Object.keys(localStorage).forEach(key => {
-          if (key.startsWith('sb-') || key.includes('supabase')) {
-            localStorage.removeItem(key);
-          }
-        });
-
-        // Also try to sign out to clean up any remaining state
-        await supabase.auth.signOut({ scope: 'local' });
-      } catch (cleanupError) {
-        console.error('Error cleaning up auth:', cleanupError);
-      }
-
-      // Reset user state
       setUser(null);
       setUserData(null);
     } finally {

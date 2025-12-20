@@ -1,71 +1,48 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Lightbulb,
   TrendingUp,
-  TrendingDown,
+  Home,
+  Calendar,
+  DollarSign,
   AlertCircle,
   CreditCard,
-  Package
+  Package,
+  Users
 } from 'lucide-react';
+import { dataService } from '../../services/data';
 
 const OwnerExecutiveSummary = ({ userName = 'José' }) => {
-  // Mock data for KPIs
-  const kpis = [
-    {
-      label: 'Guests in-house',
-      value: '10',
-      change: '+2%',
-      subtext: '+2% vs last year',
-      trend: 'up'
-    },
-    {
-      label: 'Arrivals today',
-      value: '8',
-      change: '-1%',
-      subtext: 'Today',
-      trend: 'down'
-    },
-    {
-      label: 'Revenue (MTD)',
-      value: '$32,400',
-      change: '+4%',
-      subtext: '',
-      trend: 'up'
-    },
-    {
-      label: 'Occupancy',
-      value: '68%',
-      change: '+2%',
-      subtext: '+6%  $210',
-      trend: 'up'
-    }
-  ];
+  const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState(null);
+  const [checkIns, setCheckIns] = useState([]);
+  const [checkOuts, setCheckOuts] = useState([]);
+  const [alerts, setAlerts] = useState([]);
 
-  // Mock data for Action Queue
-  const actionQueue = [
-    {
-      icon: Package,
-      label: '5 Check-outs today',
-      time: 'Today',
-      status: 'Pending',
-      statusColor: 'orange'
-    },
-    {
-      icon: CreditCard,
-      label: '$1,280 Pending payments',
-      time: 'Today',
-      status: 'Pending',
-      statusColor: 'orange'
-    },
-    {
-      icon: AlertCircle,
-      label: '3 Low supplies alerts',
-      time: 'Today',
-      status: 'Needs Action',
-      statusColor: 'orange',
-      alert: true
+  useEffect(() => {
+    loadDashboardData();
+  }, []);
+
+  const loadDashboardData = async () => {
+    setLoading(true);
+    try {
+      const [statsData, checkInsData, checkOutsData, alertsData] = await Promise.all([
+        dataService.getDashboardStats(),
+        dataService.getTodayCheckIns(),
+        dataService.getTodayCheckOuts(),
+        dataService.getActiveAlerts()
+      ]);
+
+      setStats(statsData);
+      setCheckIns(checkInsData);
+      setCheckOuts(checkOutsData);
+      setAlerts(alertsData);
+    } catch (error) {
+      console.error('Error loading dashboard:', error);
+    } finally {
+      setLoading(false);
     }
-  ];
+  };
 
   // Get current time for greeting
   const getGreeting = () => {
@@ -74,6 +51,81 @@ const OwnerExecutiveSummary = ({ userName = 'José' }) => {
     if (hour < 18) return 'Good afternoon';
     return 'Good evening';
   };
+
+  if (loading) {
+    return (
+      <div className="flex-1 bg-gradient-to-br from-orange-400 via-orange-500 to-orange-600 flex items-center justify-center">
+        <div className="text-white text-2xl font-bold">Loading dashboard...</div>
+      </div>
+    );
+  }
+
+  // KPIs from real data
+  const kpis = [
+    {
+      label: 'Total Revenue',
+      value: `$${stats?.total_revenue?.toLocaleString() || '0'}`,
+      change: '+12%',
+      subtext: 'All time',
+      trend: 'up',
+      icon: DollarSign,
+      color: 'from-green-500 to-green-600'
+    },
+    {
+      label: 'Occupancy Rate',
+      value: `${stats?.occupancy_rate || 0}%`,
+      change: '+5%',
+      subtext: 'Active bookings',
+      trend: 'up',
+      icon: TrendingUp,
+      color: 'from-blue-500 to-blue-600'
+    },
+    {
+      label: 'Active Bookings',
+      value: stats?.active_bookings || 0,
+      change: '+3',
+      subtext: 'Confirmed',
+      trend: 'up',
+      icon: Calendar,
+      color: 'from-purple-500 to-purple-600'
+    },
+    {
+      label: 'Properties',
+      value: stats?.total_properties || 0,
+      change: '',
+      subtext: 'Active listings',
+      trend: 'up',
+      icon: Home,
+      color: 'from-orange-500 to-orange-600'
+    }
+  ];
+
+  // Action Queue from real data
+  const actionQueue = [
+    ...(checkOuts.length > 0
+      ? [
+          {
+            icon: Package,
+            label: `${checkOuts.length} Check-out${checkOuts.length > 1 ? 's' : ''} today`,
+            time: 'Today',
+            status: 'Pending',
+            statusColor: 'orange',
+            details: checkOuts.map((c) => c.guest_name).join(', ')
+          }
+        ]
+      : []),
+    ...alerts.map((alert) => ({
+      icon: alert.severity === 'warning' ? AlertCircle : CreditCard,
+      label: alert.message,
+      time: new Date(alert.created_at).toLocaleTimeString('en-US', {
+        hour: '2-digit',
+        minute: '2-digit'
+      }),
+      status: alert.severity === 'warning' ? 'Needs Action' : 'Info',
+      statusColor: alert.severity === 'warning' ? 'orange' : 'blue',
+      alert: alert.severity === 'warning'
+    }))
+  ];
 
   return (
     <div className="flex-1 bg-gradient-to-br from-orange-400 via-orange-500 to-orange-600 overflow-auto relative">
@@ -86,102 +138,168 @@ const OwnerExecutiveSummary = ({ userName = 'José' }) => {
 
       {/* Content wrapper with relative z-index */}
       <div className="relative z-10">
-      {/* Main Content */}
-      <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto">
-        {/* Greeting */}
-        <h2 className="text-2xl sm:text-3xl font-black text-white mb-1">
-          {getGreeting()}, {userName}
-        </h2>
-        <p className="text-base sm:text-lg text-white/90 font-semibold mb-6 sm:mb-8">Owner Executive Summary</p>
+        {/* Main Content */}
+        <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto">
+          {/* Greeting */}
+          <h2 className="text-2xl sm:text-3xl font-black text-white mb-1">
+            {getGreeting()}, {userName}
+          </h2>
+          <p className="text-base sm:text-lg text-white/90 font-semibold mb-6 sm:mb-8">
+            Owner Executive Summary - {new Date().toLocaleDateString('en-US', {
+              weekday: 'long',
+              year: 'numeric',
+              month: 'long',
+              day: 'numeric'
+            })}
+          </p>
 
-        {/* AI Snapshot Card */}
-        <div className="bg-orange-50 border border-orange-100 rounded-xl p-4 sm:p-6 mb-6 sm:mb-8">
-          <div className="flex flex-col sm:flex-row items-start justify-between gap-4">
-            <div className="flex items-start gap-3 sm:gap-4 flex-1 w-full">
-              <div className="p-2 bg-orange-500 rounded-lg flex-shrink-0">
-                <Lightbulb className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+          {/* AI Snapshot Card */}
+          <div className="bg-orange-50 border border-orange-100 rounded-xl p-4 sm:p-6 mb-6 sm:mb-8">
+            <div className="flex flex-col sm:flex-row items-start justify-between gap-4">
+              <div className="flex items-start gap-3 sm:gap-4 flex-1 w-full">
+                <div className="p-2 bg-orange-500 rounded-lg flex-shrink-0">
+                  <Lightbulb className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-2">
+                    MyHost AI - Today's Snapshot
+                  </h3>
+                  <p className="text-gray-700 text-sm leading-relaxed mb-1">
+                    You have {stats?.active_bookings || 0} active booking{stats?.active_bookings !== 1 ? 's' : ''} with an occupancy rate of {stats?.occupancy_rate || 0}%.
+                    {checkIns.length > 0 && ` ${checkIns.length} guest${checkIns.length > 1 ? 's are' : ' is'} checking in today.`}
+                  </p>
+                  <p className="text-gray-700 text-sm leading-relaxed">
+                    Total revenue: ${stats?.total_revenue?.toLocaleString() || '0'}. Average nightly rate: ${stats?.avg_nightly_rate?.toFixed(0) || '0'}.
+                  </p>
+                </div>
               </div>
-              <div className="flex-1 min-w-0">
-                <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-2">
-                  MyHost AI - Today's Snapshot
-                </h3>
-                <p className="text-gray-700 text-sm leading-relaxed mb-1">
-                  Occupancy is slightly lower compared to last year, but bookings for November in Bali are
-                  picking up compared to last week.{' '}
-                  <span className="text-gray-500 text-xs">lit 5m 1r atee 4t 5m 1 rates</span>
-                </p>
-                <p className="text-gray-700 text-sm leading-relaxed">
-                  Recommendation: Offer early booking discounts or adjust pricing for next weekend.
-                </p>
-              </div>
+              <button className="w-full sm:w-auto px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg font-medium text-sm whitespace-nowrap transition-colors flex-shrink-0">
+                Ask MyHost AI
+              </button>
             </div>
-            <button className="w-full sm:w-auto px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg font-medium text-sm whitespace-nowrap transition-colors flex-shrink-0">
-              Ask MyHost AI
-            </button>
           </div>
-        </div>
 
-        {/* KPI Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6 sm:mb-8">
-          {kpis.map((kpi, index) => (
-            <div key={index} className="bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl p-4 sm:p-6 border-2 border-white/50 shadow-xl">
-              <p className="text-xs sm:text-sm text-white/80 mb-1 sm:mb-2">{kpi.label}</p>
-              <div className="flex items-baseline gap-2 mb-1">
-                <span className="text-2xl sm:text-3xl font-bold text-white">{kpi.value}</span>
-                <span className={`text-sm font-medium ${kpi.trend === 'up' ? 'text-green-200' : 'text-red-200'}`}>
-                  {kpi.change}
-                </span>
-              </div>
-              {kpi.subtext && (
-                <p className="text-sm text-white/70">{kpi.subtext}</p>
-              )}
-            </div>
-          ))}
-        </div>
-
-        {/* Action Queue */}
-        <div className="bg-white rounded-xl border border-gray-200">
-          <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
-            <h3 className="text-lg font-semibold text-gray-900">Action Queue</h3>
-            <button className="text-sm text-gray-500 hover:text-gray-700 font-medium">
-              View All →
-            </button>
-          </div>
-          <div className="divide-y divide-gray-200">
-            {actionQueue.map((action, index) => {
-              const Icon = action.icon;
+          {/* KPI Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6 sm:mb-8">
+            {kpis.map((kpi, index) => {
+              const Icon = kpi.icon;
               return (
-                <div key={index} className="px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors">
-                  <div className="flex items-center gap-4 flex-1">
-                    <div className={`p-2 rounded-lg ${action.alert ? 'bg-orange-100' : 'bg-gray-100'}`}>
-                      <Icon className={`w-5 h-5 ${action.alert ? 'text-orange-600' : 'text-gray-600'}`} />
-                    </div>
-                    <div className="flex-1">
-                      <p className="font-medium text-gray-900">{action.label}</p>
-                      <p className="text-sm text-gray-500">{action.time}</p>
-                    </div>
+                <div key={index} className={`bg-gradient-to-br ${kpi.color} rounded-xl p-4 sm:p-6 border-2 border-white/50 shadow-xl`}>
+                  <div className="flex items-start justify-between mb-3">
+                    <p className="text-xs sm:text-sm text-white/80 font-medium">{kpi.label}</p>
+                    <Icon className="w-5 h-5 text-white/80" />
                   </div>
-                  <div className="flex items-center gap-4">
-                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                      action.statusColor === 'orange'
-                        ? 'bg-orange-100 text-orange-700'
-                        : 'bg-gray-100 text-gray-700'
-                    }`}>
-                      {action.status}
-                    </span>
-                    {action.alert && (
-                      <div className="flex items-center gap-2 text-orange-600">
-                        <AlertCircle className="w-4 h-4" />
-                        <span className="text-sm font-medium">3 Low supplies alerts</span>
-                      </div>
+                  <div className="flex items-baseline gap-2 mb-1">
+                    <span className="text-2xl sm:text-3xl font-bold text-white">{kpi.value}</span>
+                    {kpi.change && (
+                      <span className="text-sm font-medium text-green-200">
+                        {kpi.change}
+                      </span>
                     )}
                   </div>
+                  {kpi.subtext && (
+                    <p className="text-sm text-white/70">{kpi.subtext}</p>
+                  )}
                 </div>
               );
             })}
           </div>
+
+          {/* Today's Activity */}
+          {checkIns.length > 0 && (
+            <div className="bg-white/95 backdrop-blur-sm rounded-xl p-6 mb-6 border-2 border-white/50 shadow-xl">
+              <h3 className="text-xl font-bold text-orange-600 mb-4 flex items-center gap-2">
+                <Calendar className="w-6 h-6" />
+                Check-ins Today ({checkIns.length})
+              </h3>
+              <div className="space-y-3">
+                {checkIns.map((checkin) => (
+                  <div key={checkin.booking_id} className="bg-orange-50 rounded-lg p-4 border border-orange-100">
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <p className="font-bold text-orange-600">{checkin.guest_name}</p>
+                        <p className="text-sm text-gray-600">{checkin.property_name}</p>
+                        <p className="text-xs text-gray-500 mt-1">
+                          {checkin.guests} guest{checkin.guests > 1 ? 's' : ''} • {checkin.nights} night{checkin.nights > 1 ? 's' : ''}
+                        </p>
+                      </div>
+                      <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-bold">
+                        Today
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Action Queue */}
+          {actionQueue.length > 0 && (
+            <div className="bg-white rounded-xl border border-gray-200 shadow-xl">
+              <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+                <h3 className="text-lg font-semibold text-gray-900">Action Queue</h3>
+                <button
+                  onClick={loadDashboardData}
+                  className="text-sm text-orange-600 hover:text-orange-700 font-medium"
+                >
+                  Refresh ↻
+                </button>
+              </div>
+              <div className="divide-y divide-gray-200">
+                {actionQueue.map((action, index) => {
+                  const Icon = action.icon;
+                  return (
+                    <div key={index} className="px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors">
+                      <div className="flex items-center gap-4 flex-1">
+                        <div className={`p-2 rounded-lg ${action.alert ? 'bg-orange-100' : 'bg-blue-100'}`}>
+                          <Icon className={`w-5 h-5 ${action.alert ? 'text-orange-600' : 'text-blue-600'}`} />
+                        </div>
+                        <div className="flex-1">
+                          <p className="font-medium text-gray-900">{action.label}</p>
+                          <p className="text-sm text-gray-500">{action.time}</p>
+                          {action.details && (
+                            <p className="text-xs text-gray-400 mt-1">{action.details}</p>
+                          )}
+                        </div>
+                      </div>
+                      <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+                        action.statusColor === 'orange'
+                          ? 'bg-orange-100 text-orange-700'
+                          : 'bg-blue-100 text-blue-700'
+                      }`}>
+                        {action.status}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Quick Stats */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
+            <div className="bg-white/95 backdrop-blur-sm rounded-xl p-4 border-2 border-white/50 text-center shadow-lg">
+              <div className="text-orange-600 mb-2"><Users className="w-6 h-6 mx-auto" /></div>
+              <p className="text-2xl font-bold text-orange-600">{stats?.guests_this_month || 0}</p>
+              <p className="text-xs text-gray-600 font-medium">Guests (this month)</p>
+            </div>
+            <div className="bg-white/95 backdrop-blur-sm rounded-xl p-4 border-2 border-white/50 text-center shadow-lg">
+              <div className="text-green-600 mb-2"><Calendar className="w-6 h-6 mx-auto" /></div>
+              <p className="text-2xl font-bold text-green-600">{stats?.confirmed_bookings || 0}</p>
+              <p className="text-xs text-gray-600 font-medium">Confirmed</p>
+            </div>
+            <div className="bg-white/95 backdrop-blur-sm rounded-xl p-4 border-2 border-white/50 text-center shadow-lg">
+              <div className="text-orange-600 mb-2"><AlertCircle className="w-6 h-6 mx-auto" /></div>
+              <p className="text-2xl font-bold text-orange-600">{stats?.pending_bookings || 0}</p>
+              <p className="text-xs text-gray-600 font-medium">Pending</p>
+            </div>
+            <div className="bg-white/95 backdrop-blur-sm rounded-xl p-4 border-2 border-white/50 text-center shadow-lg">
+              <div className="text-blue-600 mb-2"><DollarSign className="w-6 h-6 mx-auto" /></div>
+              <p className="text-2xl font-bold text-blue-600">${stats?.avg_nightly_rate?.toFixed(0) || 0}</p>
+              <p className="text-xs text-gray-600 font-medium">Avg/Night</p>
+            </div>
+          </div>
         </div>
-      </div>
       </div>
     </div>
   );

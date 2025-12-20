@@ -28,6 +28,45 @@ export const dataService = {
       return null;
     }
 
+    return data[0]; // Retorna el primer registro
+  },
+
+  // Check-ins de hoy
+  async getTodayCheckIns() {
+    const { data, error } = await supabase
+      .rpc('get_today_checkins');
+
+    if (error) {
+      console.error('Error fetching check-ins:', error);
+      return [];
+    }
+
+    return data;
+  },
+
+  // Check-outs de hoy
+  async getTodayCheckOuts() {
+    const { data, error } = await supabase
+      .rpc('get_today_checkouts');
+
+    if (error) {
+      console.error('Error fetching check-outs:', error);
+      return [];
+    }
+
+    return data;
+  },
+
+  // Alertas activas
+  async getActiveAlerts() {
+    const { data, error } = await supabase
+      .rpc('get_active_alerts');
+
+    if (error) {
+      console.error('Error fetching alerts:', error);
+      return [];
+    }
+
     return data;
   },
 
