@@ -50,11 +50,16 @@ export const AuthProvider = ({ children }) => {
         if (session?.user) {
           setUser(session.user);
           await fetchUserData(session.user.id);
+        } else {
+          // No session - clear everything
+          setUser(null);
+          setUserData(null);
         }
       } catch (error) {
         console.error('Auth init timeout or error:', error);
-        // Don't clear localStorage on timeout - user may still be logged in
-        // Only clear if there's a real auth error, not a network timeout
+        // On timeout or error, clear session to force re-login
+        setUser(null);
+        setUserData(null);
       } finally {
         if (mounted) {
           setLoading(false);
@@ -116,16 +121,27 @@ export const AuthProvider = ({ children }) => {
 
   const fetchUserData = async (userId) => {
     try {
-      const { data, error } = await supabase
+      // Add timeout to prevent hanging
+      const dataPromise = supabase
         .from('users')
         .select('*')
         .eq('id', userId)
         .single();
 
-      if (error) throw error;
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('User data fetch timeout')), 3000)
+      );
+
+      const { data, error } = await Promise.race([dataPromise, timeoutPromise]);
+
+      if (error) {
+        console.warn('User data not found, continuing without it');
+        return; // Continue without user data - not critical
+      }
       setUserData(data);
     } catch (error) {
-      console.error('Error fetching user data:', error);
+      console.warn('Error fetching user data (skipping):', error.message);
+      // Don't fail auth just because userData is missing
     }
   };
 

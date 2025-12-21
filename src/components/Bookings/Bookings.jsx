@@ -51,7 +51,7 @@ const Bookings = ({ onBack }) => {
   const loadBookings = async () => {
     try {
       setLoading(true);
-      const data = await supabaseService.getBookings();
+      const data = await dataService.getBookings();
       console.log('[Bookings] Loaded from Supabase:', data);
 
       if (data && data.length > 0) {

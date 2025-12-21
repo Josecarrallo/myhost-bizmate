@@ -1,0 +1,111 @@
+{
+  "name": "MY HOST - New Property Notification (Email+WhatsApp)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "new_property",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -128,
+        0
+      ],
+      "id": "webhook-new-property",
+      "name": "Webhook",
+      "webhookId": "new-property-webhook-id"
+    },
+    {
+      "parameters": {
+        "resource": "mail",
+        "fromEmail": "josecarrallodelafuente@gmail.com",
+        "fromName": "MY HOST BizMate",
+        "toEmail": "josecarrallodelafuente@gmail.com",
+        "subject": "=🏠 Nueva Propiedad Creada - {{ $node[\"Webhook\"].json[\"body\"][\"data\"][\"property\"][\"name\"] }}",
+        "contentValue": "=¡Nueva propiedad registrada en MY HOST BizMate!\n\nDETALLES DE LA PROPIEDAD:\n━━━━━━━━━━━━━━━━━━━━━━━━━\n🏠 Nombre: {{ $node[\"Webhook\"].json[\"body\"][\"data\"][\"property\"][\"name\"] }}\n📍 Ubicación: {{ $node[\"Webhook\"].json[\"body\"][\"data\"][\"property\"][\"city\"] }}, {{ $node[\"Webhook\"].json[\"body\"][\"data\"][\"property\"][\"country\"] }}\n🛏️ Habitaciones: {{ $node[\"Webhook\"].json[\"body\"][\"data\"][\"property\"][\"bedrooms\"] }}\n👥 Huéspedes máx: {{ $node[\"Webhook\"].json[\"body\"][\"data\"][\"property\"][\"max_guests\"] }}\n💰 Precio base: ${{ $node[\"Webhook\"].json[\"body\"][\"data\"][\"property\"][\"base_price\"] }} {{ $node[\"Webhook\"].json[\"body\"][\"data\"][\"property\"][\"currency\"] }}\n📋 Estado: {{ $node[\"Webhook\"].json[\"body\"][\"data\"][\"property\"][\"status\"] }}\n\nPróximos pasos:\n✅ Configurar fotos de la propiedad\n✅ Completar amenidades\n✅ Definir reglas de la casa\n✅ Activar sincronización con canales\n\nEl equipo de MY HOST BizMate 🌺",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.sendGrid",
+      "typeVersion": 1,
+      "position": [
+        64,
+        0
+      ],
+      "id": "send-email-owner",
+      "name": "Send Email to Owner",
+      "credentials": {
+        "sendGridApi": {
+          "id": "Y35BYbcV5SYfjBwc",
+          "name": "SendGrid account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.chakrahq.com/v1/ext/plugin/whatsapp/2e45a0bd-8600-41b4-ac92-599d59d6221c/api/v19.0/944855278702577/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer qiu1Z9eA3i2hhNjVM3Dm7QEK1Ey6iKQUE5IDWJlsFSAqXk5OlmQoD6DhqEwv9TOdgOVRWSYLWGxm6HfCs2LeCuwiU8Poqrw2Rgmvih0iEawZhoL6TTmMjVjvDUw2WuygAQgQ1vIeLCreDAKOGymGQCuR5bUYDHrRQQrvoMZLYwHw0LaGhFUuf4GxLpQbV3AQj8JDjhP2MzsCUYT4EVCARX6cODl1d1udr4pITGOmHQ793MUBtptq4XCvC8OGD3g"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"messaging_product\": \"whatsapp\",\n  \"to\": \"34619794604\",\n  \"type\": \"text\",\n  \"text\": {\n    \"body\": \"🏠 *Nueva Propiedad Registrada*\\n\\n{{ $('Webhook').item.json.body.data.property.name }}\\n\\n📍 {{ $('Webhook').item.json.body.data.property.city }}, {{ $('Webhook').item.json.body.data.property.country }}\\n🛏️ {{ $('Webhook').item.json.body.data.property.bedrooms }} habitaciones\\n👥 Máx {{ $('Webhook').item.json.body.data.property.max_guests }} huéspedes\\n💰 ${{ $('Webhook').item.json.body.data.property.base_price }} {{ $('Webhook').item.json.body.data.property.currency }}/noche\\n\\n✅ Email de confirmación enviado.\\n\\nPróximos pasos: Configurar fotos y amenidades.\"\n  }\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        256,
+        0
+      ],
+      "id": "whatsapp-owner",
+      "name": "WhatsApp to Owner"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Send Email to Owner",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Email to Owner": {
+      "main": [
+        [
+          {
+            "node": "WhatsApp to Owner",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "id": "6eqkTXvYQLdsazdC",
+  "tags": []
+}
