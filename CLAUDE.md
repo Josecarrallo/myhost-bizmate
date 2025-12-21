@@ -34,6 +34,15 @@ npm run preview
 
 ### Recent Refactors
 
+**December 21, 2025 - Authentication Stability Fix**:
+- Fixed infinite loading screen on login/logout
+- Resolved corrupted localStorage issues after logout
+- Reduced session check timeout from 5s to 2s for faster UX
+- Auto-clears corrupted localStorage on session timeout
+- Improved signOut() to clear localStorage before Supabase call
+- Added mounted flag to prevent state updates after unmount
+- Users can now login/logout seamlessly without manual localStorage.clear()
+
 **December 20, 2025 - Complete My Site Module + React Router**:
 - Implemented complete "My Site" module for creating direct booking websites
 - 5-step wizard for property owners to build their own websites in 5 minutes
