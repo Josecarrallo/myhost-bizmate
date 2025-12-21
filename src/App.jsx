@@ -176,7 +176,7 @@ export default function App() {
   const renderContent = () => {
     switch (currentView) {
       case 'overview':
-        return <OwnerExecutiveSummary userName={userData?.full_name || user?.email?.split('@')[0] || 'José'} />;
+        return <OwnerExecutiveSummary key="overview" userName={userData?.full_name || user?.email?.split('@')[0] || 'José'} />;
 
       case 'dashboard':
         return <Dashboard onBack={() => setCurrentView('overview')} />;
@@ -252,7 +252,7 @@ export default function App() {
         );
 
       default:
-        return <OwnerExecutiveSummary userName={userData?.full_name || user?.email?.split('@')[0] || 'José'} />;
+        return <OwnerExecutiveSummary key="overview-default" userName={userData?.full_name || user?.email?.split('@')[0] || 'José'} />;
     }
   };
 

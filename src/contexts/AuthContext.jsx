@@ -29,10 +29,10 @@ export const AuthProvider = ({ children }) => {
 
     const initAuth = async () => {
       try {
-        // Add timeout to getSession call
+        // Add timeout to getSession call (5s to handle slow Supabase)
         const sessionPromise = supabase.auth.getSession();
         const timeoutPromise = new Promise((_, reject) =>
-          setTimeout(() => reject(new Error('Session check timeout')), 2000)
+          setTimeout(() => reject(new Error('Session check timeout')), 5000)
         );
 
         const { data: { session }, error } = await Promise.race([sessionPromise, timeoutPromise]);
@@ -53,8 +53,8 @@ export const AuthProvider = ({ children }) => {
         }
       } catch (error) {
         console.error('Auth init timeout or error:', error);
-        // If timeout, clear potentially corrupted localStorage
-        localStorage.clear();
+        // Don't clear localStorage on timeout - user may still be logged in
+        // Only clear if there's a real auth error, not a network timeout
       } finally {
         if (mounted) {
           setLoading(false);
