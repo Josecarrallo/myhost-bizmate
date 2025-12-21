@@ -17,18 +17,59 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Absolute maximum timeout - force loading to false after 5 seconds
+    let mounted = true;
+
+    // Absolute maximum timeout - force loading to false after 3 seconds
     const absoluteTimeout = setTimeout(() => {
-      console.warn('Auth check exceeded 5s - forcing loading to false');
-      setLoading(false);
-    }, 5000);
+      if (mounted) {
+        console.warn('Auth check exceeded 3s - forcing loading to false');
+        setLoading(false);
+      }
+    }, 3000);
+
+    const initAuth = async () => {
+      try {
+        // Add timeout to getSession call
+        const sessionPromise = supabase.auth.getSession();
+        const timeoutPromise = new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('Session check timeout')), 2000)
+        );
+
+        const { data: { session }, error } = await Promise.race([sessionPromise, timeoutPromise]);
+
+        if (!mounted) return;
+
+        clearTimeout(absoluteTimeout);
+
+        if (error) {
+          console.error('Session error:', error);
+          setLoading(false);
+          return;
+        }
+
+        if (session?.user) {
+          setUser(session.user);
+          await fetchUserData(session.user.id);
+        }
+      } catch (error) {
+        console.error('Auth init timeout or error:', error);
+        // If timeout, clear potentially corrupted localStorage
+        localStorage.clear();
+      } finally {
+        if (mounted) {
+          setLoading(false);
+        }
+      }
+    };
 
     // Check active session
-    checkUser();
+    initAuth();
 
     // Listen for auth changes
     const { data: authListener } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        if (!mounted) return;
+
         clearTimeout(absoluteTimeout);
         if (session?.user) {
           setUser(session.user);
@@ -42,6 +83,7 @@ export const AuthProvider = ({ children }) => {
     );
 
     return () => {
+      mounted = false;
       clearTimeout(absoluteTimeout);
       authListener?.subscription?.unsubscribe();
     };
@@ -104,22 +146,24 @@ export const AuthProvider = ({ children }) => {
   };
 
   const signOut = async () => {
+    // Clear state and storage FIRST, before calling Supabase
+    setUser(null);
+    setUserData(null);
+    localStorage.clear();
+
     try {
-      // Add timeout to prevent hanging
+      // Then try to sign out from Supabase (with timeout)
       const timeout = new Promise((_, reject) =>
         setTimeout(() => reject(new Error('Sign out timeout')), 2000)
       );
 
       const signOutPromise = supabase.auth.signOut();
-
       await Promise.race([signOutPromise, timeout]);
     } catch (error) {
-      console.error('Error signing out:', error);
+      console.error('Error signing out from Supabase:', error);
+      // Don't worry if Supabase fails - we already cleared localStorage
     } finally {
-      // Always clear local state and storage, even if Supabase fails
-      setUser(null);
-      setUserData(null);
-      localStorage.clear();
+      // Reload to reset all state
       window.location.reload();
     }
   };
