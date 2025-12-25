@@ -28,17 +28,17 @@ const AIAssistant = ({ onBack }) => {
   const getStatusIcon = (status) => status === 'low' ? '🔴' : status === 'medium' ? '🟡' : '🟢';
 
   return (
-    <div className="flex-1 h-screen bg-gradient-to-br from-orange-400 via-orange-500 to-orange-600 p-4 pb-24 relative overflow-auto">
+    <div className="flex-1 h-screen bg-[#2a2f3a] p-4 pb-24 relative overflow-auto">
       {/* Animated background elements */}
       <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute w-96 h-96 bg-orange-300/20 rounded-full blur-3xl top-20 -left-48 animate-pulse"></div>
-        <div className="absolute w-96 h-96 bg-orange-300/20 rounded-full blur-3xl bottom-20 -right-48 animate-pulse" style={{ animationDelay: '1s' }}></div>
-        <div className="absolute w-72 h-72 bg-orange-200/30 rounded-full blur-2xl top-1/2 right-1/4 animate-pulse" style={{ animationDelay: '0.5s' }}></div>
+        <div className="absolute w-96 h-96 bg-[#d85a2a]/5 rounded-full blur-3xl top-20 -left-48 animate-pulse"></div>
+        <div className="absolute w-96 h-96 bg-[#d85a2a]/5 rounded-full blur-3xl bottom-20 -right-48 animate-pulse" style={{ animationDelay: '1s' }}></div>
+        <div className="absolute w-72 h-72 bg-[#d85a2a]/5 rounded-full blur-2xl top-1/2 right-1/4 animate-pulse" style={{ animationDelay: '0.5s' }}></div>
       </div>
 
       <div className="max-w-4xl mx-auto relative z-10">
         <div className="flex items-center justify-between mb-8">
-          <button onClick={onBack} className="p-3 bg-white/95 backdrop-blur-sm rounded-2xl hover:bg-white transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 border-2 border-white/50">
+          <button onClick={onBack} className="p-3 bg-[#1f2937]/95 backdrop-blur-sm rounded-2xl hover:bg-[#1f2937] transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 border-2 border-[#d85a2a]/20">
             <ChevronLeft className="w-6 h-6 text-orange-600" />
           </button>
           <div className="text-center">
@@ -47,9 +47,9 @@ const AIAssistant = ({ onBack }) => {
           <div className="w-14"></div>
         </div>
 
-        <div className="bg-gradient-to-br from-orange-500 to-orange-600 text-white p-8 rounded-3xl mb-8 shadow-2xl">
+        <div className="bg-gradient-to-br from-[#d85a2a] to-[#f5a524] text-white p-8 rounded-3xl mb-8 shadow-2xl">
           <div className="flex items-center gap-4">
-            <div className="p-4 bg-white/20 rounded-2xl backdrop-blur-sm">
+            <div className="p-4 bg-[#d85a2a]/10 rounded-2xl backdrop-blur-sm">
               <Sparkles className="w-8 h-8" strokeWidth={2.5} />
             </div>
             <div>
@@ -59,7 +59,7 @@ const AIAssistant = ({ onBack }) => {
           </div>
         </div>
 
-        <div className="bg-white/95 backdrop-blur-sm rounded-3xl shadow-2xl p-6 mb-6 border-2 border-white/50 border-l-4 border-l-blue-500">
+        <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-3xl shadow-2xl p-6 mb-6 border-2 border-[#d85a2a]/20 border-l-4 border-l-blue-500">
           <div className="flex items-start gap-3">
             <div className="text-2xl">💬</div>
             <div>
@@ -69,7 +69,7 @@ const AIAssistant = ({ onBack }) => {
           </div>
         </div>
 
-        <div className="bg-white/95 backdrop-blur-sm rounded-3xl shadow-2xl p-6 border-2 border-white/50">
+        <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-3xl shadow-2xl p-6 border-2 border-[#d85a2a]/20">
           <div className="flex items-start gap-3 mb-6">
             <div className="text-2xl">🤖</div>
             <div>
@@ -82,7 +82,7 @@ const AIAssistant = ({ onBack }) => {
             <h3 className="text-lg font-bold text-orange-600 mb-4 flex items-center gap-2">📊 OCCUPANCY ANALYSIS</h3>
             <div className="grid gap-4">
               {aiResponse.properties.map((property, index) => (
-                <div key={index} className="bg-white rounded-lg p-4 shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
+                <div key={index} className="bg-[#2a2f3a] rounded-lg p-4 shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
                   <div className="flex items-start justify-between mb-3">
                     <div className="flex items-center gap-3">
                       <span className="text-xl">🏠</span>
@@ -95,7 +95,7 @@ const AIAssistant = ({ onBack }) => {
                       {getStatusIcon(property.status)} {property.occupancy}%
                     </span>
                   </div>
-                  <div className="bg-orange-50 rounded-lg p-3 border-l-4 border-orange-500">
+                  <div className="bg-[#1f2937] rounded-lg p-3 border-l-4 border-orange-500">
                     <div className="flex items-start gap-2">
                       {property.status === 'high' ?
                         <TrendingUp className="text-orange-600 mt-0.5" size={18} /> :
@@ -113,7 +113,7 @@ const AIAssistant = ({ onBack }) => {
             </div>
           </div>
 
-          <div className="bg-white rounded-lg p-5 border-2 border-orange-200">
+          <div className="bg-[#2a2f3a] rounded-lg p-5 border-2 border-[#d85a2a]/30">
             <h3 className="text-lg font-bold text-orange-600 mb-4 flex items-center gap-2">💡 KEY RECOMMENDATIONS</h3>
             <div className="grid md:grid-cols-2 gap-4">
               <div className="flex items-start gap-3">
@@ -137,7 +137,7 @@ const AIAssistant = ({ onBack }) => {
                   <p className="text-orange-600">{aiResponse.insights.bestSeason}</p>
                 </div>
               </div>
-              <div className="md:col-span-2 bg-orange-50 rounded-lg p-3 border border-orange-200">
+              <div className="md:col-span-2 bg-[#1f2937] rounded-lg p-3 border border-[#d85a2a]/30">
                 <p className="text-sm font-semibold text-orange-800">🎯 {aiResponse.insights.topRecommendation}</p>
               </div>
             </div>
