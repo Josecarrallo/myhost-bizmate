@@ -245,7 +245,7 @@ const OwnerExecutiveSummary = ({ userName = 'José' }) => {
                   Refresh ↻
                 </button>
               </div>
-              <div className="divide-y divide-gray-200">
+              <div className="divide-y divide-[#d85a2a]/10">
                 {actionQueue.map((action, index) => {
                   const Icon = action.icon;
                   return (
@@ -264,7 +264,7 @@ const OwnerExecutiveSummary = ({ userName = 'José' }) => {
                       </div>
                       <span className={`px-3 py-1 rounded-full text-xs font-medium ${
                         action.statusColor === 'orange'
-                          ? 'bg-[#d85a2a]/20 text-orange-700'
+                          ? 'bg-[#d85a2a]/20 text-[#FF8C42]'
                           : 'bg-[#3b82f6]/20 text-[#3b82f6]'
                       }`}>
                         {action.status}
@@ -306,3 +306,4 @@ const OwnerExecutiveSummary = ({ userName = 'José' }) => {
 };
 
 export default OwnerExecutiveSummary;
+
