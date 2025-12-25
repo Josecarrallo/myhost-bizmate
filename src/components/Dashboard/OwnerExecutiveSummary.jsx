@@ -307,3 +307,4 @@ const OwnerExecutiveSummary = ({ userName = 'José' }) => {
 
 export default OwnerExecutiveSummary;
 
+
