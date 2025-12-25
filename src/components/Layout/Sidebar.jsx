@@ -135,13 +135,13 @@ const Sidebar = ({ currentView, onNavigate, isOpen, onClose }) => {
       <div
         className={`
           fixed lg:static inset-y-0 left-0 z-50
-          w-64 bg-white h-screen flex flex-col border-r border-gray-200
+          w-64 bg-[#2a2f3a] h-screen flex flex-col border-r border-white/10
           transform transition-transform duration-300 ease-in-out
           ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
         `}
       >
         {/* Header */}
-        <div className="bg-orange-500 p-6">
+        <div className="bg-gradient-to-r from-[#d85a2a] to-[#f5a524] p-6">
           <h1 className="text-white text-xl font-bold">MY HOST</h1>
           <p className="text-white text-sm font-medium">BizMate</p>
         </div>
@@ -158,7 +158,7 @@ const Sidebar = ({ currentView, onNavigate, isOpen, onClose }) => {
               {section.collapsible ? (
                 <button
                   onClick={() => toggleSection(section.sectionId)}
-                  className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-bold text-gray-600 hover:bg-gray-50 transition-colors uppercase tracking-wider"
+                  className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-bold text-white hover:bg-white/5 transition-colors uppercase tracking-wider"
                 >
                   <SectionIcon className="w-4 h-4 flex-shrink-0" />
                   <span className="flex-1 text-left">{section.sectionLabel}</span>
@@ -174,8 +174,8 @@ const Sidebar = ({ currentView, onNavigate, isOpen, onClose }) => {
                   className={`
                     w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-colors
                     ${currentView === section.sectionId
-                      ? 'bg-orange-50 text-orange-600'
-                      : 'text-gray-600 hover:bg-gray-50'
+                      ? 'bg-[#d85a2a]/20 text-[#FF8C42]'
+                      : 'text-white hover:bg-white/5'
                     }
                   `}
                 >
@@ -206,8 +206,8 @@ const Sidebar = ({ currentView, onNavigate, isOpen, onClose }) => {
                           w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium
                           transition-colors ml-2
                           ${isActive
-                            ? 'bg-orange-50 text-orange-600 border-l-2 border-orange-500'
-                            : 'text-gray-700 hover:bg-gray-50'
+                            ? 'bg-[#d85a2a]/20 text-[#FF8C42] border-l-2 border-[#FF8C42]'
+                            : 'text-white/90 hover:bg-white/5 hover:text-white'
                           }
                         `}
                       >
@@ -223,10 +223,10 @@ const Sidebar = ({ currentView, onNavigate, isOpen, onClose }) => {
         })}
 
         {/* Logout Button */}
-        <div className="mt-6 pt-6 border-t border-gray-200">
+        <div className="mt-6 pt-6 border-t border-white/10">
           <button
             onClick={signOut}
-            className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-red-600 hover:bg-red-50 transition-colors"
+            className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-red-400 hover:bg-red-500/10 transition-colors"
           >
             <LogOut className="w-4 h-4 flex-shrink-0" />
             <span className="flex-1 text-left">Logout</span>

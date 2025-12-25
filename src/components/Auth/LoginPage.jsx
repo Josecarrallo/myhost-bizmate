@@ -28,7 +28,7 @@ const LoginPage = () => {
   return (
     <div className="min-h-screen flex">
       {/* Left Side - Dark Branding */}
-      <div className="hidden lg:flex lg:w-1/2 bg-[#2a2f3a] relative overflow-hidden">
+      <div className="hidden lg:flex lg:w-1/2 bg-[#3a4150] relative overflow-hidden">
         {/* Subtle gradient overlay */}
         <div className="absolute inset-0 bg-gradient-to-br from-[#2f3542] via-[#2a2f3a] to-[#1a1f2a] opacity-60"></div>
 

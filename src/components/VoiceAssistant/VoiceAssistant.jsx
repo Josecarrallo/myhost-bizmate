@@ -148,7 +148,7 @@ const VoiceAssistant = () => {
     return {
       text: 'Talk to Ayu',
       icon: <Phone className="w-6 h-6" />,
-      color: 'bg-green-500 hover:bg-green-600'
+      color: 'bg-green-700 hover:bg-green-800'
     };
   };
 
@@ -213,11 +213,11 @@ const VoiceAssistant = () => {
 
         {/* Tooltip cuando no está en llamada */}
         {!isCallActive && !isLoading && (
-          <div className="bg-white/95 backdrop-blur-sm rounded-lg px-3 py-2 shadow-lg">
-            <p className="text-xs font-medium text-gray-600">
+          <div className="bg-gradient-to-br from-[#1f2937] to-[#374151] backdrop-blur-sm rounded-lg px-3 py-2 shadow-xl border-2 border-[#d85a2a]/30">
+            <p className="text-xs font-bold text-white">
               🤖 24/7 Voice Assistant
             </p>
-            <p className="text-xs text-gray-500">
+            <p className="text-xs text-white/90">
               Ayu - Izumi Hotel Receptionist
             </p>
           </div>
@@ -236,3 +236,4 @@ const VoiceAssistant = () => {
 };
 
 export default VoiceAssistant;
+
