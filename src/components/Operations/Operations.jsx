@@ -94,19 +94,19 @@ const Operations = ({ onBack }) => {
     };
 
     return (
-      <div className="min-h-screen bg-gradient-to-br from-orange-400 via-orange-500 to-orange-600 p-4 pb-24 relative overflow-hidden">
+      <div className="min-h-screen bg-[#2a2f3a] p-4 pb-24 relative overflow-hidden">
         {/* Animated background */}
         <div className="absolute inset-0 overflow-hidden">
-          <div className="absolute w-96 h-96 bg-orange-300/20 rounded-full blur-3xl top-20 -left-48 animate-pulse"></div>
-          <div className="absolute w-96 h-96 bg-orange-300/20 rounded-full blur-3xl bottom-20 -right-48 animate-pulse" style={{ animationDelay: '1s' }}></div>
-          <div className="absolute w-72 h-72 bg-orange-200/30 rounded-full blur-2xl top-1/2 right-1/4 animate-pulse" style={{ animationDelay: '0.5s' }}></div>
+          <div className="absolute w-96 h-96 bg-[#d85a2a]/5 rounded-full blur-3xl top-20 -left-48 animate-pulse"></div>
+          <div className="absolute w-96 h-96 bg-[#d85a2a]/5 rounded-full blur-3xl bottom-20 -right-48 animate-pulse" style={{ animationDelay: '1s' }}></div>
+          <div className="absolute w-72 h-72 bg-[#d85a2a]/5 rounded-full blur-2xl top-1/2 right-1/4 animate-pulse" style={{ animationDelay: '0.5s' }}></div>
         </div>
 
         <div className="max-w-7xl mx-auto relative z-10">
           {/* Header */}
           <div className="flex items-center justify-between mb-4">
-            <button onClick={onBack} className="p-3 bg-white/95 backdrop-blur-sm rounded-2xl hover:bg-white transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 border-2 border-white/50">
-              <ChevronLeft className="w-6 h-6 text-orange-600" />
+            <button onClick={onBack} className="p-3 bg-[#1f2937]/95 backdrop-blur-sm rounded-2xl hover:bg-[#1f2937] transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 border-2 border-[#d85a2a]/20">
+              <ChevronLeft className="w-6 h-6 text-[#FF8C42]" />
             </button>
             <div className="text-center">
               <h2 className="text-4xl md:text-5xl font-black text-white drop-shadow-2xl mb-1">Operations Hub</h2>
@@ -130,19 +130,19 @@ const Operations = ({ onBack }) => {
                 <div
                   key={module.id}
                   onClick={() => setCurrentView(module.id)}
-                  className="bg-white/95 backdrop-blur-sm rounded-2xl p-3 shadow-2xl border-2 border-white/50 hover:border-orange-300 hover:shadow-orange-200/50 transition-all duration-300 cursor-pointer transform hover:scale-105 group"
+                  className="bg-[#1f2937]/95 backdrop-blur-sm rounded-2xl p-3 shadow-2xl border-2 border-[#d85a2a]/20 hover:border-orange-300 hover:shadow-orange-200/50 transition-all duration-300 cursor-pointer transform hover:scale-105 group"
                 >
                   <div className="flex items-center gap-3 mb-2">
                     <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${module.gradient} flex items-center justify-center shadow-lg group-hover:shadow-xl transition-all flex-shrink-0`}>
                       <Icon className="w-5 h-5 text-white" />
                     </div>
-                    <h3 className="text-lg font-black text-orange-600">{module.title}</h3>
+                    <h3 className="text-lg font-black text-[#FF8C42]">{module.title}</h3>
                   </div>
                   <p className="text-gray-600 mb-2 font-medium text-xs">{module.description}</p>
                   <div className="flex gap-1 flex-wrap">
                     {Object.entries(module.stats).map(([key, value]) => (
                       <span key={key} className="px-2 py-0.5 bg-gray-100 rounded-full text-xs font-bold text-gray-600">
-                        {key}: <span className="text-orange-600">{value}</span>
+                        {key}: <span className="text-[#FF8C42]">{value}</span>
                       </span>
                     ))}
                   </div>
@@ -152,7 +152,7 @@ const Operations = ({ onBack }) => {
           </div>
 
           {/* Recent Activities Report */}
-          <div className="bg-white/95 backdrop-blur-sm rounded-3xl shadow-2xl border-2 border-white/50 overflow-hidden">
+          <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-3xl shadow-2xl border-2 border-[#d85a2a]/20 overflow-hidden">
             <div className="bg-gradient-to-r from-orange-500 to-orange-600 px-6 py-4">
               <h3 className="text-2xl font-black text-white">Recent Activities</h3>
               <p className="text-orange-100 text-sm font-semibold">All pending and in-progress tasks across operations</p>
@@ -367,29 +367,29 @@ const Housekeeping = ({ onBack }) => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-400 via-orange-500 to-orange-600 p-4 pb-24 relative overflow-hidden">
+    <div className="min-h-screen bg-[#2a2f3a] p-4 pb-24 relative overflow-hidden">
       <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute w-96 h-96 bg-orange-300/20 rounded-full blur-3xl top-20 -left-48 animate-pulse"></div>
-        <div className="absolute w-96 h-96 bg-orange-300/20 rounded-full blur-3xl bottom-20 -right-48 animate-pulse" style={{ animationDelay: '1s' }}></div>
+        <div className="absolute w-96 h-96 bg-[#d85a2a]/5 rounded-full blur-3xl top-20 -left-48 animate-pulse"></div>
+        <div className="absolute w-96 h-96 bg-[#d85a2a]/5 rounded-full blur-3xl bottom-20 -right-48 animate-pulse" style={{ animationDelay: '1s' }}></div>
       </div>
 
       <div className="max-w-7xl mx-auto relative z-10">
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
-          <button onClick={onBack} className="p-3 bg-white/95 backdrop-blur-sm rounded-2xl hover:bg-white transition-all shadow-lg hover:shadow-xl transform hover:scale-105 border-2 border-white/50">
-            <ChevronLeft className="w-6 h-6 text-orange-600" />
+          <button onClick={onBack} className="p-3 bg-[#1f2937]/95 backdrop-blur-sm rounded-2xl hover:bg-[#1f2937] transition-all shadow-lg hover:shadow-xl transform hover:scale-105 border-2 border-[#d85a2a]/20">
+            <ChevronLeft className="w-6 h-6 text-[#FF8C42]" />
           </button>
           <div className="text-center">
             <h2 className="text-4xl md:text-5xl font-black text-white drop-shadow-2xl mb-1">Housekeeping</h2>
             <p className="text-xl md:text-2xl font-bold text-orange-100 drop-shadow-xl">Room Management</p>
           </div>
-          <button className="px-6 py-3 bg-white/95 backdrop-blur-sm text-orange-600 rounded-2xl font-bold hover:bg-white transition-all shadow-lg hover:shadow-xl transform hover:scale-105 border-2 border-white/50">
+          <button className="px-6 py-3 bg-[#1f2937]/95 backdrop-blur-sm text-[#FF8C42] rounded-2xl font-bold hover:bg-[#1f2937] transition-all shadow-lg hover:shadow-xl transform hover:scale-105 border-2 border-[#d85a2a]/20">
             + New Task
           </button>
         </div>
 
         {/* Filters */}
-        <div className="bg-white/95 backdrop-blur-sm rounded-3xl p-6 mb-6 shadow-2xl border-2 border-white/50">
+        <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-3xl p-6 mb-6 shadow-2xl border-2 border-[#d85a2a]/20">
           <div className="flex flex-col md:flex-row gap-4">
             <div className="flex-1 relative">
               <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
@@ -415,7 +415,7 @@ const Housekeeping = ({ onBack }) => {
         </div>
 
         {/* Tasks Table */}
-        <div className="bg-white/95 backdrop-blur-sm rounded-3xl shadow-2xl border-2 border-white/50 overflow-hidden">
+        <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-3xl shadow-2xl border-2 border-[#d85a2a]/20 overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
@@ -434,7 +434,7 @@ const Housekeeping = ({ onBack }) => {
                   <tr key={task.id} className="hover:bg-orange-50 transition-colors cursor-pointer" onClick={() => setSelectedTask(task)}>
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-2">
-                        <Home className="w-5 h-5 text-orange-600" />
+                        <Home className="w-5 h-5 text-[#FF8C42]" />
                         <span className="font-bold text-gray-900">{task.room}</span>
                       </div>
                     </td>
@@ -479,9 +479,9 @@ const Housekeeping = ({ onBack }) => {
       {/* Task Detail Modal */}
       {selectedTask && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50" onClick={() => setSelectedTask(null)}>
-          <div className="bg-white rounded-3xl p-8 max-w-2xl w-full shadow-2xl max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+          <div className="bg-[#1f2937] rounded-3xl p-8 max-w-2xl w-full shadow-2xl max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-6">
-              <h3 className="text-3xl font-black text-orange-600">Task Details</h3>
+              <h3 className="text-3xl font-black text-[#FF8C42]">Task Details</h3>
               <button onClick={() => setSelectedTask(null)} className="p-2 hover:bg-gray-100 rounded-xl transition-all">
                 <X className="w-6 h-6 text-gray-600" />
               </button>
@@ -714,29 +714,29 @@ const Maintenance = ({ onBack }) => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-400 via-orange-500 to-orange-600 p-4 pb-24 relative overflow-hidden">
+    <div className="min-h-screen bg-[#2a2f3a] p-4 pb-24 relative overflow-hidden">
       <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute w-96 h-96 bg-orange-300/20 rounded-full blur-3xl top-20 -left-48 animate-pulse"></div>
-        <div className="absolute w-96 h-96 bg-orange-300/20 rounded-full blur-3xl bottom-20 -right-48 animate-pulse" style={{ animationDelay: '1s' }}></div>
+        <div className="absolute w-96 h-96 bg-[#d85a2a]/5 rounded-full blur-3xl top-20 -left-48 animate-pulse"></div>
+        <div className="absolute w-96 h-96 bg-[#d85a2a]/5 rounded-full blur-3xl bottom-20 -right-48 animate-pulse" style={{ animationDelay: '1s' }}></div>
       </div>
 
       <div className="max-w-7xl mx-auto relative z-10">
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
-          <button onClick={onBack} className="p-3 bg-white/95 backdrop-blur-sm rounded-2xl hover:bg-white transition-all shadow-lg hover:shadow-xl transform hover:scale-105 border-2 border-white/50">
-            <ChevronLeft className="w-6 h-6 text-orange-600" />
+          <button onClick={onBack} className="p-3 bg-[#1f2937]/95 backdrop-blur-sm rounded-2xl hover:bg-[#1f2937] transition-all shadow-lg hover:shadow-xl transform hover:scale-105 border-2 border-[#d85a2a]/20">
+            <ChevronLeft className="w-6 h-6 text-[#FF8C42]" />
           </button>
           <div className="text-center">
             <h2 className="text-4xl md:text-5xl font-black text-white drop-shadow-2xl mb-1">Maintenance</h2>
             <p className="text-xl md:text-2xl font-bold text-orange-100 drop-shadow-xl">Work Orders & Repairs</p>
           </div>
-          <button className="px-6 py-3 bg-white/95 backdrop-blur-sm text-orange-600 rounded-2xl font-bold hover:bg-white transition-all shadow-lg hover:shadow-xl transform hover:scale-105 border-2 border-white/50">
+          <button className="px-6 py-3 bg-[#1f2937]/95 backdrop-blur-sm text-[#FF8C42] rounded-2xl font-bold hover:bg-[#1f2937] transition-all shadow-lg hover:shadow-xl transform hover:scale-105 border-2 border-[#d85a2a]/20">
             + New Issue
           </button>
         </div>
 
         {/* Filters */}
-        <div className="bg-white/95 backdrop-blur-sm rounded-3xl p-6 mb-6 shadow-2xl border-2 border-white/50">
+        <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-3xl p-6 mb-6 shadow-2xl border-2 border-[#d85a2a]/20">
           <div className="flex flex-col md:flex-row gap-4">
             <div className="flex-1 relative">
               <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
@@ -767,7 +767,7 @@ const Maintenance = ({ onBack }) => {
             <div
               key={issue.id}
               onClick={() => setSelectedIssue(issue)}
-              className="bg-white/95 backdrop-blur-sm rounded-3xl p-6 shadow-2xl border-2 border-white/50 hover:border-orange-300 hover:shadow-orange-200/50 transition-all cursor-pointer"
+              className="bg-[#1f2937]/95 backdrop-blur-sm rounded-3xl p-6 shadow-2xl border-2 border-[#d85a2a]/20 hover:border-orange-300 hover:shadow-orange-200/50 transition-all cursor-pointer"
             >
               <div className="flex items-start justify-between mb-4">
                 <div className="flex-1">
@@ -779,7 +779,7 @@ const Maintenance = ({ onBack }) => {
                       {issue.priority}
                     </span>
                   </div>
-                  <h3 className="text-xl font-black text-orange-600 mb-2">{issue.title}</h3>
+                  <h3 className="text-xl font-black text-[#FF8C42] mb-2">{issue.title}</h3>
                 </div>
                 <span className={`px-3 py-1 rounded-full text-white text-xs font-bold ${getStatusColor(issue.status)}`}>
                   {issue.status}
@@ -815,9 +815,9 @@ const Maintenance = ({ onBack }) => {
       {/* Issue Detail Modal */}
       {selectedIssue && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50" onClick={() => setSelectedIssue(null)}>
-          <div className="bg-white rounded-3xl p-8 max-w-3xl w-full max-h-[90vh] overflow-y-auto shadow-2xl" onClick={(e) => e.stopPropagation()}>
+          <div className="bg-[#1f2937] rounded-3xl p-8 max-w-3xl w-full max-h-[90vh] overflow-y-auto shadow-2xl" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-6">
-              <h3 className="text-3xl font-black text-orange-600">Issue Details</h3>
+              <h3 className="text-3xl font-black text-[#FF8C42]">Issue Details</h3>
               <button onClick={() => setSelectedIssue(null)} className="p-2 hover:bg-gray-100 rounded-xl transition-all">
                 <X className="w-6 h-6 text-gray-600" />
               </button>
@@ -1092,29 +1092,29 @@ const StaffRoles = ({ onBack }) => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-400 via-orange-500 to-orange-600 p-4 pb-24 relative overflow-hidden">
+    <div className="min-h-screen bg-[#2a2f3a] p-4 pb-24 relative overflow-hidden">
       <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute w-96 h-96 bg-orange-300/20 rounded-full blur-3xl top-20 -left-48 animate-pulse"></div>
-        <div className="absolute w-96 h-96 bg-orange-300/20 rounded-full blur-3xl bottom-20 -right-48 animate-pulse" style={{ animationDelay: '1s' }}></div>
+        <div className="absolute w-96 h-96 bg-[#d85a2a]/5 rounded-full blur-3xl top-20 -left-48 animate-pulse"></div>
+        <div className="absolute w-96 h-96 bg-[#d85a2a]/5 rounded-full blur-3xl bottom-20 -right-48 animate-pulse" style={{ animationDelay: '1s' }}></div>
       </div>
 
       <div className="max-w-7xl mx-auto relative z-10">
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
-          <button onClick={onBack} className="p-3 bg-white/95 backdrop-blur-sm rounded-2xl hover:bg-white transition-all shadow-lg hover:shadow-xl transform hover:scale-105 border-2 border-white/50">
-            <ChevronLeft className="w-6 h-6 text-orange-600" />
+          <button onClick={onBack} className="p-3 bg-[#1f2937]/95 backdrop-blur-sm rounded-2xl hover:bg-[#1f2937] transition-all shadow-lg hover:shadow-xl transform hover:scale-105 border-2 border-[#d85a2a]/20">
+            <ChevronLeft className="w-6 h-6 text-[#FF8C42]" />
           </button>
           <div className="text-center">
             <h2 className="text-4xl md:text-5xl font-black text-white drop-shadow-2xl mb-1">Staff & Roles</h2>
             <p className="text-xl md:text-2xl font-bold text-orange-100 drop-shadow-xl">Team Management</p>
           </div>
-          <button className="px-6 py-3 bg-white/95 backdrop-blur-sm text-orange-600 rounded-2xl font-bold hover:bg-white transition-all shadow-lg hover:shadow-xl transform hover:scale-105 border-2 border-white/50">
+          <button className="px-6 py-3 bg-[#1f2937]/95 backdrop-blur-sm text-[#FF8C42] rounded-2xl font-bold hover:bg-[#1f2937] transition-all shadow-lg hover:shadow-xl transform hover:scale-105 border-2 border-[#d85a2a]/20">
             + Add Staff
           </button>
         </div>
 
         {/* Filters */}
-        <div className="bg-white/95 backdrop-blur-sm rounded-3xl p-6 mb-6 shadow-2xl border-2 border-white/50">
+        <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-3xl p-6 mb-6 shadow-2xl border-2 border-[#d85a2a]/20">
           <div className="flex flex-col md:flex-row gap-4">
             <div className="flex-1 relative">
               <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
@@ -1157,11 +1157,11 @@ const StaffRoles = ({ onBack }) => {
             <div
               key={member.id}
               onClick={() => setSelectedStaff(member)}
-              className="bg-white/95 backdrop-blur-sm rounded-3xl p-6 shadow-2xl border-2 border-white/50 hover:border-orange-300 hover:shadow-orange-200/50 transition-all cursor-pointer"
+              className="bg-[#1f2937]/95 backdrop-blur-sm rounded-3xl p-6 shadow-2xl border-2 border-[#d85a2a]/20 hover:border-orange-300 hover:shadow-orange-200/50 transition-all cursor-pointer"
             >
               <div className="flex items-start justify-between mb-4">
                 <div className="flex-1">
-                  <h3 className="text-xl font-black text-orange-600 mb-2">{member.name}</h3>
+                  <h3 className="text-xl font-black text-[#FF8C42] mb-2">{member.name}</h3>
                   <div className="flex items-center gap-2 mb-3">
                     <span className={`px-3 py-1 rounded-full text-xs font-bold ${getRoleColor(member.role)}`}>
                       {member.role}
@@ -1219,9 +1219,9 @@ const StaffRoles = ({ onBack }) => {
       {/* Staff Detail Modal */}
       {selectedStaff && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50" onClick={() => setSelectedStaff(null)}>
-          <div className="bg-white rounded-3xl p-8 max-w-3xl w-full max-h-[90vh] overflow-y-auto shadow-2xl" onClick={(e) => e.stopPropagation()}>
+          <div className="bg-[#1f2937] rounded-3xl p-8 max-w-3xl w-full max-h-[90vh] overflow-y-auto shadow-2xl" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-6">
-              <h3 className="text-3xl font-black text-orange-600">Staff Profile</h3>
+              <h3 className="text-3xl font-black text-[#FF8C42]">Staff Profile</h3>
               <button onClick={() => setSelectedStaff(null)} className="p-2 hover:bg-gray-100 rounded-xl transition-all">
                 <X className="w-6 h-6 text-gray-600" />
               </button>

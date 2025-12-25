@@ -146,7 +146,7 @@ const Messages = ({ onBack }) => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-orange-400 via-orange-500 to-orange-600 flex items-center justify-center">
+      <div className="min-h-screen bg-[#2a2f3a] flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-white mx-auto mb-4"></div>
           <p className="text-white text-xl font-bold">Loading messages...</p>
@@ -156,23 +156,23 @@ const Messages = ({ onBack }) => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-400 via-orange-500 to-orange-600 flex flex-col relative overflow-hidden">
+    <div className="min-h-screen bg-[#2a2f3a] flex flex-col relative overflow-hidden">
       {/* Animated background elements */}
       <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute w-96 h-96 bg-orange-300/20 rounded-full blur-3xl top-20 -left-48 animate-pulse"></div>
-        <div className="absolute w-96 h-96 bg-orange-300/20 rounded-full blur-3xl bottom-20 -right-48 animate-pulse" style={{ animationDelay: '1s' }}></div>
-        <div className="absolute w-72 h-72 bg-orange-200/30 rounded-full blur-2xl top-1/2 right-1/4 animate-pulse" style={{ animationDelay: '0.5s' }}></div>
+        <div className="absolute w-96 h-96 bg-[#d85a2a]/5 rounded-full blur-3xl top-20 -left-48 animate-pulse"></div>
+        <div className="absolute w-96 h-96 bg-[#d85a2a]/5 rounded-full blur-3xl bottom-20 -right-48 animate-pulse" style={{ animationDelay: '1s' }}></div>
+        <div className="absolute w-72 h-72 bg-[#d85a2a]/5 rounded-full blur-2xl top-1/2 right-1/4 animate-pulse" style={{ animationDelay: '0.5s' }}></div>
       </div>
 
       {/* Header */}
-      <div className="bg-white/95 backdrop-blur-sm border-b-2 border-white/50 p-4 relative z-10 shadow-lg">
+      <div className="bg-[#1f2937]/95 backdrop-blur-sm border-b-2 border-[#d85a2a]/20 p-4 relative z-10 shadow-lg">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <button onClick={onBack} className="flex items-center gap-2 text-orange-600 hover:text-orange-500 transition-colors">
+          <button onClick={onBack} className="flex items-center gap-2 text-[#FF8C42] hover:text-orange-500 transition-colors">
             <ChevronLeft className="w-5 h-5" />
             <span className="font-semibold">Back</span>
           </button>
           <div className="text-center">
-            <h2 className="text-3xl md:text-4xl font-black text-orange-600 mb-1">WhatsApp IA</h2>
+            <h2 className="text-3xl md:text-4xl font-black text-[#FF8C42] mb-1">WhatsApp IA</h2>
             <p className="text-sm md:text-base font-semibold text-orange-500">AI-Powered Messaging</p>
           </div>
           <div className="w-20"></div>
@@ -184,14 +184,14 @@ const Messages = ({ onBack }) => {
         <div className="max-w-7xl mx-auto space-y-6">
           {/* Stats */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-            <div className="bg-white/95 backdrop-blur-sm rounded-2xl p-6 border-2 border-white/50 shadow-lg">
+            <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-2xl p-6 border-2 border-[#d85a2a]/20 shadow-lg">
               <div className="flex items-center gap-3 mb-2">
-                <MessageSquare className="w-6 h-6 text-orange-600" />
+                <MessageSquare className="w-6 h-6 text-[#FF8C42]" />
                 <span className="text-sm font-bold text-gray-600">Unread Messages</span>
               </div>
-              <div className="text-3xl font-black text-orange-600">{stats.unread}</div>
+              <div className="text-3xl font-black text-[#FF8C42]">{stats.unread}</div>
             </div>
-            <div className="bg-gradient-to-br from-orange-500 to-orange-600 rounded-2xl p-6 border-2 border-white/50 shadow-lg text-white">
+            <div className="bg-gradient-to-br from-orange-500 to-orange-600 rounded-2xl p-6 border-2 border-[#d85a2a]/20 shadow-lg text-white">
               <div className="flex items-center gap-3 mb-2">
                 <Bot className="w-6 h-6" />
                 <span className="text-sm font-bold opacity-90">AI Auto-Replies</span>
@@ -199,7 +199,7 @@ const Messages = ({ onBack }) => {
               <div className="text-3xl font-black">{stats.aiHandled}</div>
               <div className="text-xs opacity-75 mt-1">+20% this week</div>
             </div>
-            <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-2xl p-6 border-2 border-white/50 shadow-lg text-white">
+            <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-2xl p-6 border-2 border-[#d85a2a]/20 shadow-lg text-white">
               <div className="flex items-center gap-3 mb-2">
                 <Mic className="w-6 h-6" />
                 <span className="text-sm font-bold opacity-90">Voice Messages</span>
@@ -207,7 +207,7 @@ const Messages = ({ onBack }) => {
               <div className="text-3xl font-black">{stats.voiceMessages}</div>
               <div className="text-xs opacity-75 mt-1">AI transcribed</div>
             </div>
-            <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl p-6 border-2 border-white/50 shadow-lg text-white">
+            <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl p-6 border-2 border-[#d85a2a]/20 shadow-lg text-white">
               <div className="flex items-center gap-3 mb-2">
                 <ImageIcon className="w-6 h-6" />
                 <span className="text-sm font-bold opacity-90">Photo Messages</span>
@@ -215,18 +215,18 @@ const Messages = ({ onBack }) => {
               <div className="text-3xl font-black">{stats.photoMessages}</div>
               <div className="text-xs opacity-75 mt-1">AI analyzed</div>
             </div>
-            <div className="bg-white/95 backdrop-blur-sm rounded-2xl p-6 border-2 border-white/50 shadow-lg">
+            <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-2xl p-6 border-2 border-[#d85a2a]/20 shadow-lg">
               <div className="flex items-center gap-3 mb-2">
-                <Clock className="w-6 h-6 text-orange-600" />
+                <Clock className="w-6 h-6 text-[#FF8C42]" />
                 <span className="text-sm font-bold text-gray-600">Avg Response Time</span>
               </div>
-              <div className="text-3xl font-black text-orange-600">{stats.avgResponseTime}</div>
+              <div className="text-3xl font-black text-[#FF8C42]">{stats.avgResponseTime}</div>
               <div className="text-xs text-green-600 font-bold mt-1">-15% improvement</div>
             </div>
           </div>
 
           {/* Filters */}
-          <div className="bg-white/95 backdrop-blur-sm rounded-2xl p-4 border-2 border-white/50 shadow-lg">
+          <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-2xl p-4 border-2 border-[#d85a2a]/20 shadow-lg">
             <div className="flex flex-col md:flex-row gap-3">
               {/* Search */}
               <div className="relative flex-1">
@@ -278,8 +278,8 @@ const Messages = ({ onBack }) => {
           </div>
 
           {/* Conversations */}
-          <div className="bg-white/95 backdrop-blur-sm rounded-3xl p-6 border-2 border-white/50 shadow-xl">
-            <h3 className="text-xl font-black text-orange-600 mb-4">Conversations</h3>
+          <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-3xl p-6 border-2 border-[#d85a2a]/20 shadow-xl">
+            <h3 className="text-xl font-black text-[#FF8C42] mb-4">Conversations</h3>
             <div className="space-y-3">
               {filteredConversations.map((conv) => (
                 <div
@@ -298,7 +298,7 @@ const Messages = ({ onBack }) => {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-start justify-between mb-1">
                         <div>
-                          <h4 className="text-base font-black text-orange-600">{conv.name}</h4>
+                          <h4 className="text-base font-black text-[#FF8C42]">{conv.name}</h4>
                           <p className="text-xs font-semibold text-gray-500">{conv.property}</p>
                         </div>
                         <div className="flex items-center gap-2">
@@ -316,8 +316,8 @@ const Messages = ({ onBack }) => {
                           )}
                           {conv.aiHandled && (
                             <div className="px-2 py-1 bg-orange-100 rounded-lg flex items-center gap-1">
-                              <Bot className="w-3 h-3 text-orange-600" />
-                              <span className="text-xs font-bold text-orange-600">AI</span>
+                              <Bot className="w-3 h-3 text-[#FF8C42]" />
+                              <span className="text-xs font-bold text-[#FF8C42]">AI</span>
                             </div>
                           )}
                           <span className="text-xs font-semibold text-gray-500">{conv.time}</span>
@@ -349,10 +349,10 @@ const Messages = ({ onBack }) => {
           </div>
 
           {/* AI Templates */}
-          <div className="bg-white/95 backdrop-blur-sm rounded-3xl p-6 border-2 border-white/50 shadow-xl">
+          <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-3xl p-6 border-2 border-[#d85a2a]/20 shadow-xl">
             <div className="flex items-center gap-2 mb-4">
-              <Sparkles className="w-6 h-6 text-orange-600" />
-              <h3 className="text-xl font-black text-orange-600">AI Quick Response Templates</h3>
+              <Sparkles className="w-6 h-6 text-[#FF8C42]" />
+              <h3 className="text-xl font-black text-[#FF8C42]">AI Quick Response Templates</h3>
             </div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               {aiTemplates.map((template) => (
@@ -371,7 +371,7 @@ const Messages = ({ onBack }) => {
                   <div className={`text-sm font-bold ${
                     template.id === 7 ? 'text-purple-600' :
                     template.id === 8 ? 'text-blue-600' :
-                    'text-orange-600'
+                    'text-[#FF8C42]'
                   }`}>{template.name}</div>
                 </button>
               ))}
@@ -379,7 +379,7 @@ const Messages = ({ onBack }) => {
           </div>
 
           {/* Message Input */}
-          <div className="bg-white/95 backdrop-blur-sm rounded-3xl p-6 border-2 border-white/50 shadow-xl">
+          <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-3xl p-6 border-2 border-[#d85a2a]/20 shadow-xl">
             <div className="flex flex-col gap-3">
               <textarea
                 value={messageText}
@@ -408,11 +408,11 @@ const Messages = ({ onBack }) => {
       {/* Conversation Modal */}
       {selectedConversation && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-3xl max-w-2xl w-full max-h-[90vh] overflow-auto shadow-2xl">
+          <div className="bg-[#1f2937] rounded-3xl max-w-2xl w-full max-h-[90vh] overflow-auto shadow-2xl">
             <div className="sticky top-0 bg-gradient-to-r from-orange-500 to-orange-600 p-6 rounded-t-3xl">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center text-white font-black">
+                  <div className="w-12 h-12 bg-[#d85a2a]/10 rounded-full flex items-center justify-center text-white font-black">
                     {selectedConversation.avatar}
                   </div>
                   <div>
@@ -422,7 +422,7 @@ const Messages = ({ onBack }) => {
                 </div>
                 <button
                   onClick={() => setSelectedConversation(null)}
-                  className="w-10 h-10 bg-white/20 hover:bg-white/30 rounded-full flex items-center justify-center transition-all"
+                  className="w-10 h-10 bg-[#d85a2a]/10 hover:bg-white/30 rounded-full flex items-center justify-center transition-all"
                 >
                   <X className="w-6 h-6 text-white" />
                 </button>
@@ -434,11 +434,11 @@ const Messages = ({ onBack }) => {
               <div className="bg-orange-50 rounded-2xl p-4 border-2 border-orange-200">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <span className="text-xs font-bold text-orange-600">Check-in</span>
+                    <span className="text-xs font-bold text-[#FF8C42]">Check-in</span>
                     <p className="text-sm font-black text-gray-700">{selectedConversation.checkIn}</p>
                   </div>
                   <div>
-                    <span className="text-xs font-bold text-orange-600">Status</span>
+                    <span className="text-xs font-bold text-[#FF8C42]">Status</span>
                     <p className="text-sm font-black text-gray-700">{selectedConversation.status}</p>
                   </div>
                 </div>

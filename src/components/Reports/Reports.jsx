@@ -108,7 +108,7 @@ const ReportsInsights = ({ onBack }) => {
     return (
       <div className={`bg-gradient-to-br ${gradient} text-white p-6 rounded-3xl transform transition-all hover:scale-105 hover:shadow-2xl`}>
         <div className="flex items-start justify-between mb-4">
-          <div className="p-3 bg-white/20 rounded-2xl backdrop-blur-sm">
+          <div className="p-3 bg-[#d85a2a]/10 rounded-2xl backdrop-blur-sm">
             <Icon className="w-6 h-6" strokeWidth={2.5} />
           </div>
           <div className={`flex items-center gap-1 px-3 py-1.5 rounded-full ${isPositive ? 'bg-green-500/20' : 'bg-red-500/20'}`}>
@@ -138,7 +138,7 @@ const ReportsInsights = ({ onBack }) => {
           <div className="flex-1 min-w-0">
             <div className="flex items-start justify-between mb-2">
               <div className="flex-1">
-                <h4 className="font-bold text-orange-600 text-lg mb-1">{client.name}</h4>
+                <h4 className="font-bold text-[#FF8C42] text-lg mb-1">{client.name}</h4>
                 <p className="text-gray-500 text-sm flex items-center gap-1">
                   <MapPin className="w-3.5 h-3.5" /> {client.property}
                 </p>
@@ -264,7 +264,7 @@ const ReportsInsights = ({ onBack }) => {
                 <div className="flex items-center justify-center gap-1 text-gray-600 mb-1">
                   <Activity className="w-4 h-4" />
                 </div>
-                <p className="text-sm font-bold text-orange-600">{content.engagement}%</p>
+                <p className="text-sm font-bold text-[#FF8C42]">{content.engagement}%</p>
               </div>
             </div>
           </div>
@@ -290,24 +290,24 @@ const ReportsInsights = ({ onBack }) => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-400 via-orange-500 to-orange-600 p-4 pb-24 relative overflow-hidden">
+    <div className="min-h-screen bg-[#2a2f3a] p-4 pb-24 relative overflow-hidden">
       {/* Animated background elements */}
       <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute w-96 h-96 bg-orange-300/20 rounded-full blur-3xl top-20 -left-48 animate-pulse"></div>
-        <div className="absolute w-96 h-96 bg-orange-300/20 rounded-full blur-3xl bottom-20 -right-48 animate-pulse" style={{ animationDelay: '1s' }}></div>
-        <div className="absolute w-72 h-72 bg-orange-200/30 rounded-full blur-2xl top-1/2 right-1/4 animate-pulse" style={{ animationDelay: '0.5s' }}></div>
+        <div className="absolute w-96 h-96 bg-[#d85a2a]/5 rounded-full blur-3xl top-20 -left-48 animate-pulse"></div>
+        <div className="absolute w-96 h-96 bg-[#d85a2a]/5 rounded-full blur-3xl bottom-20 -right-48 animate-pulse" style={{ animationDelay: '1s' }}></div>
+        <div className="absolute w-72 h-72 bg-[#d85a2a]/5 rounded-full blur-2xl top-1/2 right-1/4 animate-pulse" style={{ animationDelay: '0.5s' }}></div>
       </div>
 
       <div className="max-w-7xl mx-auto relative z-10">
         <div className="flex items-center justify-between mb-8">
-          <button onClick={onBack} className="p-3 bg-white/95 backdrop-blur-sm rounded-2xl hover:bg-white transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 border-2 border-white/50">
-            <ChevronLeft className="w-6 h-6 text-orange-600" />
+          <button onClick={onBack} className="p-3 bg-[#1f2937]/95 backdrop-blur-sm rounded-2xl hover:bg-[#1f2937] transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 border-2 border-[#d85a2a]/20">
+            <ChevronLeft className="w-6 h-6 text-[#FF8C42]" />
           </button>
           <div className="text-center">
             <h2 className="text-4xl md:text-5xl font-black text-white drop-shadow-2xl">Reports</h2>
           </div>
           <div className="flex gap-2">
-            <button className="px-6 py-3 bg-white/95 backdrop-blur-sm border-2 border-white/50 rounded-2xl font-bold hover:bg-white transition-all duration-300 shadow-lg text-orange-600">
+            <button className="px-6 py-3 bg-[#1f2937]/95 backdrop-blur-sm border-2 border-[#d85a2a]/20 rounded-2xl font-bold hover:bg-[#1f2937] transition-all duration-300 shadow-lg text-[#FF8C42]">
               Last 12 Months
             </button>
           </div>
@@ -321,21 +321,21 @@ const ReportsInsights = ({ onBack }) => {
         </div>
 
         <div className="flex gap-2 mb-8 overflow-x-auto pb-2">
-          <button onClick={() => setActiveTab('overview')} className={`px-6 py-3 rounded-2xl font-bold whitespace-nowrap transition-all shadow-lg ${activeTab === 'overview' ? 'bg-white text-orange-600' : 'bg-white/60 text-white hover:bg-white/80 border-2 border-white/50'}`}>
+          <button onClick={() => setActiveTab('overview')} className={`px-6 py-3 rounded-2xl font-bold whitespace-nowrap transition-all shadow-lg ${activeTab === 'overview' ? 'bg-white text-[#FF8C42]' : 'bg-white/60 text-white hover:bg-white/80 border-2 border-[#d85a2a]/20'}`}>
             <BarChart3 className="w-5 h-5 inline mr-2" />Overview
           </button>
-          <button onClick={() => setActiveTab('clients')} className={`px-6 py-3 rounded-2xl font-bold whitespace-nowrap transition-all shadow-lg ${activeTab === 'clients' ? 'bg-white text-orange-600' : 'bg-white/60 text-white hover:bg-white/80 border-2 border-white/50'}`}>
+          <button onClick={() => setActiveTab('clients')} className={`px-6 py-3 rounded-2xl font-bold whitespace-nowrap transition-all shadow-lg ${activeTab === 'clients' ? 'bg-white text-[#FF8C42]' : 'bg-white/60 text-white hover:bg-white/80 border-2 border-[#d85a2a]/20'}`}>
             <Users className="w-5 h-5 inline mr-2" />Clients & Top Guests
           </button>
-          <button onClick={() => setActiveTab('content')} className={`px-6 py-3 rounded-2xl font-bold whitespace-nowrap transition-all shadow-lg ${activeTab === 'content' ? 'bg-white text-orange-600' : 'bg-white/60 text-white hover:bg-white/80 border-2 border-white/50'}`}>
+          <button onClick={() => setActiveTab('content')} className={`px-6 py-3 rounded-2xl font-bold whitespace-nowrap transition-all shadow-lg ${activeTab === 'content' ? 'bg-white text-[#FF8C42]' : 'bg-white/60 text-white hover:bg-white/80 border-2 border-[#d85a2a]/20'}`}>
             <Eye className="w-5 h-5 inline mr-2" />Top Content
           </button>
         </div>
 
         {activeTab === 'overview' && (
           <div className="space-y-6">
-            <div className="bg-white rounded-3xl p-6 border-2 border-gray-100 shadow-lg">
-              <h3 className="text-2xl font-black text-orange-600 mb-6 flex items-center gap-2">
+            <div className="bg-[#1f2937] rounded-3xl p-6 border-2 border-gray-100 shadow-lg">
+              <h3 className="text-2xl font-black text-[#FF8C42] mb-6 flex items-center gap-2">
                 <TrendingUp className="w-6 h-6 text-orange-500" />
                 Monthly Revenue Trend
               </h3>
@@ -357,8 +357,8 @@ const ReportsInsights = ({ onBack }) => {
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <div className="bg-white rounded-3xl p-6 border-2 border-gray-100 shadow-lg">
-                <h3 className="text-xl font-black text-orange-600 mb-6 flex items-center gap-2">
+              <div className="bg-[#1f2937] rounded-3xl p-6 border-2 border-gray-100 shadow-lg">
+                <h3 className="text-xl font-black text-[#FF8C42] mb-6 flex items-center gap-2">
                   <Calendar className="w-6 h-6 text-blue-500" />
                   Bookings per Month
                 </h3>
@@ -373,8 +373,8 @@ const ReportsInsights = ({ onBack }) => {
                 </ResponsiveContainer>
               </div>
 
-              <div className="bg-white rounded-3xl p-6 border-2 border-gray-100 shadow-lg">
-                <h3 className="text-xl font-black text-orange-600 mb-6 flex items-center gap-2">
+              <div className="bg-[#1f2937] rounded-3xl p-6 border-2 border-gray-100 shadow-lg">
+                <h3 className="text-xl font-black text-[#FF8C42] mb-6 flex items-center gap-2">
                   <Percent className="w-6 h-6 text-purple-500" />
                   Occupancy Rate %
                 </h3>
@@ -390,8 +390,8 @@ const ReportsInsights = ({ onBack }) => {
               </div>
             </div>
 
-            <div className="bg-white rounded-3xl p-6 border-2 border-gray-100 shadow-lg">
-              <h3 className="text-2xl font-black text-orange-600 mb-6 flex items-center gap-2">
+            <div className="bg-[#1f2937] rounded-3xl p-6 border-2 border-gray-100 shadow-lg">
+              <h3 className="text-2xl font-black text-[#FF8C42] mb-6 flex items-center gap-2">
                 <BarChart3 className="w-6 h-6 text-pink-500" />
                 Bookings by Property (12M)
               </h3>

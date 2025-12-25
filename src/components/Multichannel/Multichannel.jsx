@@ -99,23 +99,23 @@ const MultichannelIntegration = ({ onBack }) => {
   };
 
   return (
-    <div className="flex-1 h-screen bg-gradient-to-br from-orange-400 via-orange-500 to-orange-600 flex flex-col relative overflow-auto">
+    <div className="flex-1 h-screen bg-[#2a2f3a] flex flex-col relative overflow-auto">
       {/* Animated background elements */}
       <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute w-96 h-96 bg-orange-300/20 rounded-full blur-3xl top-20 -left-48 animate-pulse"></div>
-        <div className="absolute w-96 h-96 bg-orange-300/20 rounded-full blur-3xl bottom-20 -right-48 animate-pulse" style={{ animationDelay: '1s' }}></div>
-        <div className="absolute w-72 h-72 bg-orange-200/30 rounded-full blur-2xl top-1/2 right-1/4 animate-pulse" style={{ animationDelay: '0.5s' }}></div>
+        <div className="absolute w-96 h-96 bg-[#d85a2a]/5 rounded-full blur-3xl top-20 -left-48 animate-pulse"></div>
+        <div className="absolute w-96 h-96 bg-[#d85a2a]/5 rounded-full blur-3xl bottom-20 -right-48 animate-pulse" style={{ animationDelay: '1s' }}></div>
+        <div className="absolute w-72 h-72 bg-[#d85a2a]/5 rounded-full blur-2xl top-1/2 right-1/4 animate-pulse" style={{ animationDelay: '0.5s' }}></div>
       </div>
 
       {/* Header */}
-      <div className="bg-white/95 backdrop-blur-sm border-b-2 border-white/50 p-4 relative z-10 shadow-lg">
+      <div className="bg-[#1f2937]/95 backdrop-blur-sm border-b-2 border-[#d85a2a]/20 p-4 relative z-10 shadow-lg">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <button onClick={onBack} className="flex items-center gap-2 text-orange-600 hover:text-orange-500 transition-colors">
+          <button onClick={onBack} className="flex items-center gap-2 text-[#FF8C42] hover:text-orange-500 transition-colors">
             <ChevronLeft className="w-5 h-5" />
             <span className="font-semibold">Back</span>
           </button>
           <div className="text-center">
-            <h2 className="text-4xl md:text-5xl font-black text-orange-600">Channel Integration</h2>
+            <h2 className="text-4xl md:text-5xl font-black text-[#FF8C42]">Channel Integration</h2>
           </div>
           <div className="w-20"></div>
         </div>
@@ -126,19 +126,19 @@ const MultichannelIntegration = ({ onBack }) => {
         <div className="max-w-7xl mx-auto space-y-6">
           {/* Global Stats */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="bg-gradient-to-br from-orange-500 to-orange-600 rounded-2xl p-6 border-2 border-white/50 shadow-lg text-white">
+            <div className="bg-gradient-to-br from-orange-500 to-orange-600 rounded-2xl p-6 border-2 border-[#d85a2a]/20 shadow-lg text-white">
               <div className="text-3xl font-black mb-1">{totalStats.connectedChannels}/{channels.length}</div>
               <div className="text-xs font-semibold opacity-90">Connected Channels</div>
             </div>
-            <div className="bg-gradient-to-br from-orange-500 to-orange-600 rounded-2xl p-6 border-2 border-white/50 shadow-lg text-white">
+            <div className="bg-gradient-to-br from-orange-500 to-orange-600 rounded-2xl p-6 border-2 border-[#d85a2a]/20 shadow-lg text-white">
               <div className="text-3xl font-black mb-1">{totalStats.totalListings}</div>
               <div className="text-xs font-semibold opacity-90">Total Listings</div>
             </div>
-            <div className="bg-gradient-to-br from-orange-500 to-orange-600 rounded-2xl p-6 border-2 border-white/50 shadow-lg text-white">
+            <div className="bg-gradient-to-br from-orange-500 to-orange-600 rounded-2xl p-6 border-2 border-[#d85a2a]/20 shadow-lg text-white">
               <div className="text-3xl font-black mb-1">${totalStats.totalRevenue}</div>
               <div className="text-xs font-semibold opacity-90">Total Revenue</div>
             </div>
-            <div className="bg-gradient-to-br from-orange-500 to-orange-600 rounded-2xl p-6 border-2 border-white/50 shadow-lg text-white">
+            <div className="bg-gradient-to-br from-orange-500 to-orange-600 rounded-2xl p-6 border-2 border-[#d85a2a]/20 shadow-lg text-white">
               <div className="text-3xl font-black mb-1">{totalStats.totalBookings}</div>
               <div className="text-xs font-semibold opacity-90">Total Bookings</div>
             </div>
@@ -147,13 +147,13 @@ const MultichannelIntegration = ({ onBack }) => {
           {/* Channels */}
           <div className="space-y-4">
             {channels.map((channel, idx) => (
-              <div key={idx} className="bg-white/95 backdrop-blur-sm rounded-3xl p-6 border-2 border-white/50 shadow-xl hover:shadow-2xl transition-all">
+              <div key={idx} className="bg-[#1f2937]/95 backdrop-blur-sm rounded-3xl p-6 border-2 border-[#d85a2a]/20 shadow-xl hover:shadow-2xl transition-all">
                 <div className="flex items-center gap-4 mb-6">
                   <div className={`w-16 h-16 rounded-full bg-gradient-to-br ${channel.gradient} flex items-center justify-center text-3xl shadow-lg`}>
                     {channel.logo}
                   </div>
                   <div className="flex-1">
-                    <h3 className="text-2xl font-black text-orange-600 mb-1">{channel.name}</h3>
+                    <h3 className="text-2xl font-black text-[#FF8C42] mb-1">{channel.name}</h3>
                     <div className="flex items-center gap-2">
                       {channel.connected ? (
                         <>
@@ -171,7 +171,7 @@ const MultichannelIntegration = ({ onBack }) => {
                   {channel.connected && (
                     <button
                       onClick={() => setSelectedChannel(channel)}
-                      className="px-4 py-2 bg-orange-100 text-orange-600 rounded-xl font-bold hover:bg-orange-200 transition-all"
+                      className="px-4 py-2 bg-orange-100 text-[#FF8C42] rounded-xl font-bold hover:bg-orange-200 transition-all"
                     >
                       View Details
                     </button>
@@ -184,23 +184,23 @@ const MultichannelIntegration = ({ onBack }) => {
                       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
                         <div>
                           <p className={`text-xs ${channel.textColor} font-semibold mb-2`}>Listings</p>
-                          <p className="text-3xl font-black text-orange-600">{channel.stats.listings}</p>
+                          <p className="text-3xl font-black text-[#FF8C42]">{channel.stats.listings}</p>
                         </div>
                         <div>
                           <p className={`text-xs ${channel.textColor} font-semibold mb-2`}>Pending</p>
-                          <p className="text-3xl font-black text-orange-600">{channel.stats.pending}</p>
+                          <p className="text-3xl font-black text-[#FF8C42]">{channel.stats.pending}</p>
                         </div>
                         <div>
                           <p className={`text-xs ${channel.textColor} font-semibold mb-2`}>Revenue</p>
-                          <p className="text-3xl font-black text-orange-600">${channel.stats.revenue}</p>
+                          <p className="text-3xl font-black text-[#FF8C42]">${channel.stats.revenue}</p>
                         </div>
                         <div>
                           <p className={`text-xs ${channel.textColor} font-semibold mb-2`}>Bookings</p>
-                          <p className="text-3xl font-black text-orange-600">{channel.stats.bookings}</p>
+                          <p className="text-3xl font-black text-[#FF8C42]">{channel.stats.bookings}</p>
                         </div>
                         <div>
                           <p className={`text-xs ${channel.textColor} font-semibold mb-2`}>Avg Rating</p>
-                          <p className="text-3xl font-black text-orange-600">{channel.stats.avgRating}</p>
+                          <p className="text-3xl font-black text-[#FF8C42]">{channel.stats.avgRating}</p>
                         </div>
                       </div>
                     </div>
@@ -244,7 +244,7 @@ const MultichannelIntegration = ({ onBack }) => {
       {/* Channel Details Modal */}
       {selectedChannel && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-3xl max-w-3xl w-full max-h-[90vh] overflow-auto shadow-2xl">
+          <div className="bg-[#1f2937] rounded-3xl max-w-3xl w-full max-h-[90vh] overflow-auto shadow-2xl">
             <div className={`sticky top-0 bg-gradient-to-r ${selectedChannel.gradient} p-6 rounded-t-3xl`}>
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
@@ -256,7 +256,7 @@ const MultichannelIntegration = ({ onBack }) => {
                 </div>
                 <button
                   onClick={() => setSelectedChannel(null)}
-                  className="w-10 h-10 bg-white/20 hover:bg-white/30 rounded-full flex items-center justify-center transition-all"
+                  className="w-10 h-10 bg-[#d85a2a]/10 hover:bg-white/30 rounded-full flex items-center justify-center transition-all"
                 >
                   <ChevronLeft className="w-6 h-6 text-white" />
                 </button>
@@ -266,19 +266,19 @@ const MultichannelIntegration = ({ onBack }) => {
             <div className="p-6 space-y-6">
               {/* Stats Summary */}
               <div className={`${selectedChannel.bgColor} rounded-2xl p-6 border-2 ${selectedChannel.bgColor.replace('bg-', 'border-').replace('-50', '-200')}`}>
-                <h4 className="text-lg font-black text-orange-600 mb-4">Performance Summary</h4>
+                <h4 className="text-lg font-black text-[#FF8C42] mb-4">Performance Summary</h4>
                 <div className="grid grid-cols-3 gap-4">
                   <div>
                     <p className="text-xs text-gray-600 font-semibold mb-1">Total Revenue</p>
-                    <p className="text-2xl font-black text-orange-600">${selectedChannel.stats.revenue}</p>
+                    <p className="text-2xl font-black text-[#FF8C42]">${selectedChannel.stats.revenue}</p>
                   </div>
                   <div>
                     <p className="text-xs text-gray-600 font-semibold mb-1">Total Bookings</p>
-                    <p className="text-2xl font-black text-orange-600">{selectedChannel.stats.bookings}</p>
+                    <p className="text-2xl font-black text-[#FF8C42]">{selectedChannel.stats.bookings}</p>
                   </div>
                   <div>
                     <p className="text-xs text-gray-600 font-semibold mb-1">Avg Rating</p>
-                    <p className="text-2xl font-black text-orange-600">{selectedChannel.stats.avgRating} ⭐</p>
+                    <p className="text-2xl font-black text-[#FF8C42]">{selectedChannel.stats.avgRating} ⭐</p>
                   </div>
                 </div>
               </div>
@@ -286,8 +286,8 @@ const MultichannelIntegration = ({ onBack }) => {
               {/* Sync History */}
               <div>
                 <div className="flex items-center gap-2 mb-4">
-                  <Calendar className="w-5 h-5 text-orange-600" />
-                  <h4 className="text-lg font-black text-orange-600">Recent Sync History</h4>
+                  <Calendar className="w-5 h-5 text-[#FF8C42]" />
+                  <h4 className="text-lg font-black text-[#FF8C42]">Recent Sync History</h4>
                 </div>
                 <div className="space-y-3">
                   {selectedChannel.syncHistory.map((sync, idx) => (

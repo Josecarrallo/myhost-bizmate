@@ -22,23 +22,23 @@ const WorkflowsAutomations = ({ onBack, onNavigate }) => {
   }, []);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-400 via-orange-500 to-orange-600 p-4 pb-24 relative overflow-hidden">
+    <div className="min-h-screen bg-[#2a2f3a] p-4 pb-24 relative overflow-hidden">
       {/* Animated background elements */}
       <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute w-96 h-96 bg-orange-300/20 rounded-full blur-3xl top-20 -left-48 animate-pulse"></div>
-        <div className="absolute w-96 h-96 bg-orange-300/20 rounded-full blur-3xl bottom-20 -right-48 animate-pulse" style={{ animationDelay: '1s' }}></div>
-        <div className="absolute w-72 h-72 bg-orange-200/30 rounded-full blur-2xl top-1/2 right-1/4 animate-pulse" style={{ animationDelay: '0.5s' }}></div>
+        <div className="absolute w-96 h-96 bg-[#d85a2a]/5 rounded-full blur-3xl top-20 -left-48 animate-pulse"></div>
+        <div className="absolute w-96 h-96 bg-[#d85a2a]/5 rounded-full blur-3xl bottom-20 -right-48 animate-pulse" style={{ animationDelay: '1s' }}></div>
+        <div className="absolute w-72 h-72 bg-[#d85a2a]/5 rounded-full blur-2xl top-1/2 right-1/4 animate-pulse" style={{ animationDelay: '0.5s' }}></div>
       </div>
 
       <div className="max-w-7xl mx-auto relative z-10">
         <div className="flex items-center justify-between mb-8">
-          <button onClick={onBack} className="p-3 bg-white/95 backdrop-blur-sm rounded-2xl hover:bg-white transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 border-2 border-white/50">
-            <ChevronLeft className="w-6 h-6 text-orange-600" />
+          <button onClick={onBack} className="p-3 bg-[#1f2937]/95 backdrop-blur-sm rounded-2xl hover:bg-[#1f2937] transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 border-2 border-[#d85a2a]/20">
+            <ChevronLeft className="w-6 h-6 text-[#FF8C42]" />
           </button>
           <div className="text-center">
             <h2 className="text-4xl md:text-5xl font-black text-white drop-shadow-2xl">Workflows</h2>
           </div>
-          <button className="px-6 py-3 bg-white/95 backdrop-blur-sm text-orange-600 rounded-2xl font-bold hover:bg-white transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 border-2 border-white/50">
+          <button className="px-6 py-3 bg-[#1f2937]/95 backdrop-blur-sm text-[#FF8C42] rounded-2xl font-bold hover:bg-[#1f2937] transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 border-2 border-[#d85a2a]/20">
             <Plus className="w-5 h-5 inline mr-2" /> New Workflow
           </button>
         </div>
@@ -53,12 +53,12 @@ const WorkflowsAutomations = ({ onBack, onNavigate }) => {
         {/* Workflow Tester Button */}
         <div
           onClick={() => onNavigate('workflow-tester')}
-          className="mb-8 cursor-pointer bg-gradient-to-r from-purple-500 via-purple-600 to-purple-700 rounded-3xl p-8 shadow-2xl hover:shadow-3xl transition-all duration-300 transform hover:scale-105 border-4 border-white/50"
+          className="mb-8 cursor-pointer bg-gradient-to-r from-purple-500 via-purple-600 to-purple-700 rounded-3xl p-8 shadow-2xl hover:shadow-3xl transition-all duration-300 transform hover:scale-105 border-4 border-[#d85a2a]/20"
         >
           <div className="flex items-center justify-between">
             <div>
               <div className="flex items-center gap-3 mb-3">
-                <div className="bg-white/20 backdrop-blur-sm p-3 rounded-2xl">
+                <div className="bg-[#d85a2a]/10 backdrop-blur-sm p-3 rounded-2xl">
                   <TestTube className="w-8 h-8 text-white" />
                 </div>
                 <h3 className="text-3xl font-black text-white">Workflow Tester</h3>

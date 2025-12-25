@@ -159,23 +159,23 @@ const GuestPortal = ({ onBack }) => {
   };
 
   return (
-    <div className="h-screen bg-gradient-to-br from-orange-400 via-orange-500 to-orange-600 flex flex-col relative overflow-hidden">
+    <div className="h-screen bg-[#2a2f3a] flex flex-col relative overflow-hidden">
       {/* Animated background elements */}
       <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute w-96 h-96 bg-orange-300/20 rounded-full blur-3xl top-20 -left-48 animate-pulse"></div>
-        <div className="absolute w-96 h-96 bg-orange-300/20 rounded-full blur-3xl bottom-20 -right-48 animate-pulse" style={{ animationDelay: '1s' }}></div>
-        <div className="absolute w-72 h-72 bg-orange-200/30 rounded-full blur-2xl top-1/2 right-1/4 animate-pulse" style={{ animationDelay: '0.5s' }}></div>
+        <div className="absolute w-96 h-96 bg-[#d85a2a]/5 rounded-full blur-3xl top-20 -left-48 animate-pulse"></div>
+        <div className="absolute w-96 h-96 bg-[#d85a2a]/5 rounded-full blur-3xl bottom-20 -right-48 animate-pulse" style={{ animationDelay: '1s' }}></div>
+        <div className="absolute w-72 h-72 bg-[#d85a2a]/5 rounded-full blur-2xl top-1/2 right-1/4 animate-pulse" style={{ animationDelay: '0.5s' }}></div>
       </div>
 
       {/* Header */}
-      <div className="bg-white/95 backdrop-blur-sm border-b-2 border-white/50 p-4 relative z-10 shadow-lg">
+      <div className="bg-[#1f2937]/95 backdrop-blur-sm border-b-2 border-[#d85a2a]/20 p-4 relative z-10 shadow-lg">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <button onClick={onBack} className="flex items-center gap-2 text-orange-600 hover:text-orange-500 transition-colors">
+          <button onClick={onBack} className="flex items-center gap-2 text-[#FF8C42] hover:text-orange-500 transition-colors">
             <ChevronLeft className="w-5 h-5" />
             <span className="font-semibold">Back</span>
           </button>
           <div className="text-center">
-            <h2 className="text-4xl md:text-5xl font-black text-orange-600">Guest Portal</h2>
+            <h2 className="text-4xl md:text-5xl font-black text-[#FF8C42]">Guest Portal</h2>
             <p className="text-sm md:text-base font-semibold text-orange-500">{bookingData.propertyName}</p>
           </div>
           <div className="w-20"></div>
@@ -183,7 +183,7 @@ const GuestPortal = ({ onBack }) => {
       </div>
 
       {/* Tabs */}
-      <div className="bg-white/95 backdrop-blur-sm border-b-2 border-white/50 relative z-10 shadow-lg overflow-x-auto">
+      <div className="bg-[#1f2937]/95 backdrop-blur-sm border-b-2 border-[#d85a2a]/20 relative z-10 shadow-lg overflow-x-auto">
         <div className="max-w-7xl mx-auto px-4">
           <div className="flex gap-2 py-2">
             {tabs.map((tab) => {
@@ -215,46 +215,46 @@ const GuestPortal = ({ onBack }) => {
           {activeTab === 'villa-info' && (
             <div className="space-y-6">
               {/* Property Image */}
-              <div className="bg-white/95 backdrop-blur-sm rounded-3xl overflow-hidden border-2 border-white/50 shadow-xl">
+              <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-3xl overflow-hidden border-2 border-[#d85a2a]/20 shadow-xl">
                 <img src={bookingData.propertyImage} alt={bookingData.propertyName} className="w-full h-64 md:h-96 object-cover" />
               </div>
 
               {/* Property Details */}
-              <div className="bg-white/95 backdrop-blur-sm rounded-3xl p-6 border-2 border-white/50 shadow-xl">
-                <h3 className="text-2xl font-black text-orange-600 mb-4">{bookingData.propertyName}</h3>
+              <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-3xl p-6 border-2 border-[#d85a2a]/20 shadow-xl">
+                <h3 className="text-2xl font-black text-[#FF8C42] mb-4">{bookingData.propertyName}</h3>
                 <p className="text-gray-700 mb-6">{bookingData.description}</p>
 
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
                   <div className="bg-orange-50 rounded-2xl p-4 text-center">
-                    <div className="text-2xl font-black text-orange-600">{bookingData.bedrooms}</div>
+                    <div className="text-2xl font-black text-[#FF8C42]">{bookingData.bedrooms}</div>
                     <div className="text-xs font-semibold text-gray-600">Bedrooms</div>
                   </div>
                   <div className="bg-orange-50 rounded-2xl p-4 text-center">
-                    <div className="text-2xl font-black text-orange-600">{bookingData.bathrooms}</div>
+                    <div className="text-2xl font-black text-[#FF8C42]">{bookingData.bathrooms}</div>
                     <div className="text-xs font-semibold text-gray-600">Bathrooms</div>
                   </div>
                   <div className="bg-orange-50 rounded-2xl p-4 text-center">
-                    <div className="text-2xl font-black text-orange-600">{bookingData.maxGuests}</div>
+                    <div className="text-2xl font-black text-[#FF8C42]">{bookingData.maxGuests}</div>
                     <div className="text-xs font-semibold text-gray-600">Max Guests</div>
                   </div>
                   <div className="bg-orange-50 rounded-2xl p-4 text-center">
-                    <div className="text-2xl font-black text-orange-600">{bookingData.area}</div>
+                    <div className="text-2xl font-black text-[#FF8C42]">{bookingData.area}</div>
                     <div className="text-xs font-semibold text-gray-600">Area</div>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2 text-orange-600 mb-6">
+                <div className="flex items-center gap-2 text-[#FF8C42] mb-6">
                   <MapPin className="w-5 h-5" />
                   <span className="font-semibold">{bookingData.location}</span>
                 </div>
 
-                <h4 className="text-xl font-black text-orange-600 mb-4">Amenities</h4>
+                <h4 className="text-xl font-black text-[#FF8C42] mb-4">Amenities</h4>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                   {bookingData.amenities.map((amenity, idx) => {
                     const Icon = amenity.icon;
                     return (
                       <div key={idx} className="flex items-center gap-3 bg-gray-50 rounded-xl p-3">
-                        <Icon className="w-5 h-5 text-orange-600" />
+                        <Icon className="w-5 h-5 text-[#FF8C42]" />
                         <span className="text-sm font-semibold text-gray-700">{amenity.name}</span>
                       </div>
                     );
@@ -263,8 +263,8 @@ const GuestPortal = ({ onBack }) => {
               </div>
 
               {/* House Rules */}
-              <div className="bg-white/95 backdrop-blur-sm rounded-3xl p-6 border-2 border-white/50 shadow-xl">
-                <h4 className="text-xl font-black text-orange-600 mb-4">House Rules</h4>
+              <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-3xl p-6 border-2 border-[#d85a2a]/20 shadow-xl">
+                <h4 className="text-xl font-black text-[#FF8C42] mb-4">House Rules</h4>
                 <div className="space-y-2">
                   {bookingData.houseRules.map((rule, idx) => (
                     <div key={idx} className="flex items-start gap-3">
@@ -280,43 +280,43 @@ const GuestPortal = ({ onBack }) => {
           {/* Booking Details Tab */}
           {activeTab === 'booking' && (
             <div className="space-y-6">
-              <div className="bg-white/95 backdrop-blur-sm rounded-3xl p-6 border-2 border-white/50 shadow-xl">
-                <h3 className="text-2xl font-black text-orange-600 mb-6">Your Booking Details</h3>
+              <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-3xl p-6 border-2 border-[#d85a2a]/20 shadow-xl">
+                <h3 className="text-2xl font-black text-[#FF8C42] mb-6">Your Booking Details</h3>
 
                 <div className="grid md:grid-cols-2 gap-6">
                   <div>
-                    <label className="text-sm font-bold text-orange-600 mb-2 block">Booking ID</label>
-                    <div className="bg-gray-50 rounded-xl p-4 font-mono text-lg font-black text-orange-600">
+                    <label className="text-sm font-bold text-[#FF8C42] mb-2 block">Booking ID</label>
+                    <div className="bg-gray-50 rounded-xl p-4 font-mono text-lg font-black text-[#FF8C42]">
                       {bookingData.bookingId}
                     </div>
                   </div>
                   <div>
-                    <label className="text-sm font-bold text-orange-600 mb-2 block">Guest Name</label>
+                    <label className="text-sm font-bold text-[#FF8C42] mb-2 block">Guest Name</label>
                     <div className="bg-gray-50 rounded-xl p-4 text-lg font-semibold text-gray-700">
                       {bookingData.guestName}
                     </div>
                   </div>
                   <div>
-                    <label className="text-sm font-bold text-orange-600 mb-2 block">Check-in Date</label>
-                    <div className="bg-orange-50 rounded-xl p-4 text-lg font-black text-orange-600">
+                    <label className="text-sm font-bold text-[#FF8C42] mb-2 block">Check-in Date</label>
+                    <div className="bg-orange-50 rounded-xl p-4 text-lg font-black text-[#FF8C42]">
                       {new Date(bookingData.checkIn).toLocaleDateString('en-US', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' })}
                     </div>
                   </div>
                   <div>
-                    <label className="text-sm font-bold text-orange-600 mb-2 block">Check-out Date</label>
-                    <div className="bg-orange-50 rounded-xl p-4 text-lg font-black text-orange-600">
+                    <label className="text-sm font-bold text-[#FF8C42] mb-2 block">Check-out Date</label>
+                    <div className="bg-orange-50 rounded-xl p-4 text-lg font-black text-[#FF8C42]">
                       {new Date(bookingData.checkOut).toLocaleDateString('en-US', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' })}
                     </div>
                   </div>
                   <div>
-                    <label className="text-sm font-bold text-orange-600 mb-2 block">Number of Nights</label>
-                    <div className="bg-gray-50 rounded-xl p-4 text-lg font-black text-orange-600">
+                    <label className="text-sm font-bold text-[#FF8C42] mb-2 block">Number of Nights</label>
+                    <div className="bg-gray-50 rounded-xl p-4 text-lg font-black text-[#FF8C42]">
                       {bookingData.nights} nights
                     </div>
                   </div>
                   <div>
-                    <label className="text-sm font-bold text-orange-600 mb-2 block">Number of Guests</label>
-                    <div className="bg-gray-50 rounded-xl p-4 text-lg font-black text-orange-600">
+                    <label className="text-sm font-bold text-[#FF8C42] mb-2 block">Number of Guests</label>
+                    <div className="bg-gray-50 rounded-xl p-4 text-lg font-black text-[#FF8C42]">
                       {bookingData.guests} guests
                     </div>
                   </div>
@@ -325,15 +325,15 @@ const GuestPortal = ({ onBack }) => {
                 <div className="mt-6 pt-6 border-t-2 border-gray-100">
                   <div className="flex items-center justify-between">
                     <span className="text-lg font-bold text-gray-700">Total Amount</span>
-                    <span className="text-3xl font-black text-orange-600">{bookingData.totalPrice}</span>
+                    <span className="text-3xl font-black text-[#FF8C42]">{bookingData.totalPrice}</span>
                   </div>
                 </div>
               </div>
 
-              <div className="bg-gradient-to-br from-orange-500 to-orange-600 rounded-3xl p-6 border-2 border-white/50 shadow-xl text-white">
+              <div className="bg-gradient-to-br from-orange-500 to-orange-600 rounded-3xl p-6 border-2 border-[#d85a2a]/20 shadow-xl text-white">
                 <h4 className="text-xl font-black mb-4">Access Code</h4>
                 <p className="text-sm opacity-90 mb-4">Use this code to access the villa:</p>
-                <div className="bg-white/20 backdrop-blur-sm rounded-2xl p-6 text-center">
+                <div className="bg-[#d85a2a]/10 backdrop-blur-sm rounded-2xl p-6 text-center">
                   <div className="text-5xl font-black tracking-wider">{bookingData.accessCode}</div>
                 </div>
                 <p className="text-xs opacity-75 mt-4 text-center">Keep this code safe and don't share it with anyone</p>
@@ -344,8 +344,8 @@ const GuestPortal = ({ onBack }) => {
           {/* Check-in/Out Tab */}
           {activeTab === 'check-in-out' && (
             <div className="space-y-6">
-              <div className="bg-white/95 backdrop-blur-sm rounded-3xl p-6 border-2 border-white/50 shadow-xl">
-                <h3 className="text-2xl font-black text-orange-600 mb-6">Check-in Instructions</h3>
+              <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-3xl p-6 border-2 border-[#d85a2a]/20 shadow-xl">
+                <h3 className="text-2xl font-black text-[#FF8C42] mb-6">Check-in Instructions</h3>
                 <div className="space-y-4">
                   {bookingData.checkInInstructions.map((instruction, idx) => (
                     <div key={idx} className="flex items-start gap-4">
@@ -358,8 +358,8 @@ const GuestPortal = ({ onBack }) => {
                 </div>
               </div>
 
-              <div className="bg-white/95 backdrop-blur-sm rounded-3xl p-6 border-2 border-white/50 shadow-xl">
-                <h3 className="text-2xl font-black text-orange-600 mb-6">Check-out Instructions</h3>
+              <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-3xl p-6 border-2 border-[#d85a2a]/20 shadow-xl">
+                <h3 className="text-2xl font-black text-[#FF8C42] mb-6">Check-out Instructions</h3>
                 <div className="space-y-4">
                   {bookingData.checkOutInstructions.map((instruction, idx) => (
                     <div key={idx} className="flex items-start gap-4">
@@ -374,14 +374,14 @@ const GuestPortal = ({ onBack }) => {
 
               <div className="grid md:grid-cols-2 gap-4">
                 <div className="bg-orange-50 rounded-3xl p-6 border-2 border-orange-200 shadow-lg">
-                  <Clock className="w-10 h-10 text-orange-600 mb-3" />
-                  <h4 className="text-xl font-black text-orange-600 mb-2">Check-in Time</h4>
-                  <p className="text-3xl font-black text-orange-600">2:00 PM</p>
+                  <Clock className="w-10 h-10 text-[#FF8C42] mb-3" />
+                  <h4 className="text-xl font-black text-[#FF8C42] mb-2">Check-in Time</h4>
+                  <p className="text-3xl font-black text-[#FF8C42]">2:00 PM</p>
                 </div>
                 <div className="bg-orange-50 rounded-3xl p-6 border-2 border-orange-200 shadow-lg">
-                  <Clock className="w-10 h-10 text-orange-600 mb-3" />
-                  <h4 className="text-xl font-black text-orange-600 mb-2">Check-out Time</h4>
-                  <p className="text-3xl font-black text-orange-600">12:00 PM</p>
+                  <Clock className="w-10 h-10 text-[#FF8C42] mb-3" />
+                  <h4 className="text-xl font-black text-[#FF8C42] mb-2">Check-out Time</h4>
+                  <p className="text-3xl font-black text-[#FF8C42]">12:00 PM</p>
                 </div>
               </div>
             </div>
@@ -391,14 +391,14 @@ const GuestPortal = ({ onBack }) => {
           {activeTab === 'recommendations' && (
             <div className="space-y-6">
               {bookingData.recommendations.map((category, catIdx) => (
-                <div key={catIdx} className="bg-white/95 backdrop-blur-sm rounded-3xl p-6 border-2 border-white/50 shadow-xl">
-                  <h3 className="text-2xl font-black text-orange-600 mb-6">{category.category}</h3>
+                <div key={catIdx} className="bg-[#1f2937]/95 backdrop-blur-sm rounded-3xl p-6 border-2 border-[#d85a2a]/20 shadow-xl">
+                  <h3 className="text-2xl font-black text-[#FF8C42] mb-6">{category.category}</h3>
                   <div className="grid md:grid-cols-2 gap-4">
                     {category.items.map((item, idx) => (
                       <div key={idx} className="bg-gray-50 rounded-2xl p-4 hover:shadow-lg transition-all">
                         <div className="flex items-start justify-between mb-3">
                           <div className="flex-1">
-                            <h4 className="text-lg font-black text-orange-600 mb-1">{item.name}</h4>
+                            <h4 className="text-lg font-black text-[#FF8C42] mb-1">{item.name}</h4>
                             <p className="text-sm text-gray-600 font-semibold">{item.type}</p>
                           </div>
                           <div className="flex gap-1">
@@ -406,7 +406,7 @@ const GuestPortal = ({ onBack }) => {
                           </div>
                         </div>
                         <div className="flex items-center justify-between">
-                          <span className="text-sm font-bold text-orange-600">{item.distance}</span>
+                          <span className="text-sm font-bold text-[#FF8C42]">{item.distance}</span>
                           <span className="text-sm font-bold text-gray-700">{item.price}</span>
                         </div>
                       </div>
@@ -415,7 +415,7 @@ const GuestPortal = ({ onBack }) => {
                 </div>
               ))}
 
-              <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-3xl p-6 border-2 border-white/50 shadow-xl text-white">
+              <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-3xl p-6 border-2 border-[#d85a2a]/20 shadow-xl text-white">
                 <h4 className="text-xl font-black mb-3">Need More Recommendations?</h4>
                 <p className="text-sm opacity-90 mb-4">Contact our concierge service for personalized recommendations and reservations.</p>
                 <button className="bg-white text-blue-600 px-6 py-3 rounded-xl font-bold hover:bg-blue-50 transition-all">
@@ -428,17 +428,17 @@ const GuestPortal = ({ onBack }) => {
           {/* Add-ons Tab */}
           {activeTab === 'add-ons' && (
             <div className="space-y-6">
-              <div className="bg-white/95 backdrop-blur-sm rounded-3xl p-6 border-2 border-white/50 shadow-xl">
-                <h3 className="text-2xl font-black text-orange-600 mb-6">Extra Services & Add-ons</h3>
+              <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-3xl p-6 border-2 border-[#d85a2a]/20 shadow-xl">
+                <h3 className="text-2xl font-black text-[#FF8C42] mb-6">Extra Services & Add-ons</h3>
                 <div className="space-y-4">
                   {bookingData.addOns.map((addon, idx) => (
                     <div key={idx} className={`bg-gray-50 rounded-2xl p-6 border-2 ${addon.available ? 'border-gray-200 hover:shadow-lg transition-all' : 'border-gray-100 opacity-60'}`}>
                       <div className="flex items-start justify-between mb-3">
                         <div className="flex-1">
-                          <h4 className="text-lg font-black text-orange-600 mb-2">{addon.name}</h4>
+                          <h4 className="text-lg font-black text-[#FF8C42] mb-2">{addon.name}</h4>
                           <p className="text-sm text-gray-600 mb-3">{addon.description}</p>
                           <div className="flex items-center gap-4">
-                            <span className="text-2xl font-black text-orange-600">{addon.price}</span>
+                            <span className="text-2xl font-black text-[#FF8C42]">{addon.price}</span>
                             <span className="text-sm font-semibold text-gray-500">{addon.duration}</span>
                           </div>
                         </div>
@@ -459,7 +459,7 @@ const GuestPortal = ({ onBack }) => {
                 </div>
               </div>
 
-              <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-3xl p-6 border-2 border-white/50 shadow-xl text-white">
+              <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-3xl p-6 border-2 border-[#d85a2a]/20 shadow-xl text-white">
                 <h4 className="text-xl font-black mb-3">Special Requests?</h4>
                 <p className="text-sm opacity-90 mb-4">Have a special request or need a custom service? Let us know and we'll do our best to accommodate!</p>
                 <button className="bg-white text-green-600 px-6 py-3 rounded-xl font-bold hover:bg-green-50 transition-all">
@@ -472,8 +472,8 @@ const GuestPortal = ({ onBack }) => {
           {/* Support Tab */}
           {activeTab === 'support' && (
             <div className="space-y-6">
-              <div className="bg-white/95 backdrop-blur-sm rounded-3xl p-6 border-2 border-white/50 shadow-xl">
-                <h3 className="text-2xl font-black text-orange-600 mb-6">Contact & Support</h3>
+              <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-3xl p-6 border-2 border-[#d85a2a]/20 shadow-xl">
+                <h3 className="text-2xl font-black text-[#FF8C42] mb-6">Contact & Support</h3>
                 <p className="text-gray-700 mb-6">We're here to help! Reach out to us anytime through any of these channels:</p>
 
                 <div className="grid md:grid-cols-2 gap-4">
@@ -486,7 +486,7 @@ const GuestPortal = ({ onBack }) => {
                             <Icon className="w-6 h-6 text-white" />
                           </div>
                           <div>
-                            <h4 className="text-lg font-black text-orange-600">{contact.name}</h4>
+                            <h4 className="text-lg font-black text-[#FF8C42]">{contact.name}</h4>
                             <p className="text-xs text-gray-500 font-semibold">{contact.available}</p>
                           </div>
                         </div>
@@ -499,31 +499,31 @@ const GuestPortal = ({ onBack }) => {
                 </div>
               </div>
 
-              <div className="bg-gradient-to-br from-red-500 to-red-600 rounded-3xl p-6 border-2 border-white/50 shadow-xl text-white">
+              <div className="bg-gradient-to-br from-red-500 to-red-600 rounded-3xl p-6 border-2 border-[#d85a2a]/20 shadow-xl text-white">
                 <h4 className="text-xl font-black mb-3 flex items-center gap-2">
                   <Phone className="w-6 h-6" />
                   Emergency Hotline
                 </h4>
                 <p className="text-sm opacity-90 mb-4">For urgent matters only (medical, security, property damage):</p>
-                <div className="bg-white/20 backdrop-blur-sm rounded-2xl p-4 text-center">
+                <div className="bg-[#d85a2a]/10 backdrop-blur-sm rounded-2xl p-4 text-center">
                   <div className="text-3xl font-black">+62 811 9876 5432</div>
                 </div>
               </div>
 
               <div className="grid md:grid-cols-3 gap-4">
-                <button className="bg-white/95 backdrop-blur-sm rounded-2xl p-6 border-2 border-white/50 shadow-xl hover:shadow-2xl transition-all">
+                <button className="bg-[#1f2937]/95 backdrop-blur-sm rounded-2xl p-6 border-2 border-[#d85a2a]/20 shadow-xl hover:shadow-2xl transition-all">
                   <MessageCircle className="w-10 h-10 text-green-600 mb-3 mx-auto" />
-                  <h4 className="text-lg font-black text-orange-600 mb-2">WhatsApp</h4>
+                  <h4 className="text-lg font-black text-[#FF8C42] mb-2">WhatsApp</h4>
                   <p className="text-sm text-gray-600">Instant messaging support</p>
                 </button>
-                <button className="bg-white/95 backdrop-blur-sm rounded-2xl p-6 border-2 border-white/50 shadow-xl hover:shadow-2xl transition-all">
+                <button className="bg-[#1f2937]/95 backdrop-blur-sm rounded-2xl p-6 border-2 border-[#d85a2a]/20 shadow-xl hover:shadow-2xl transition-all">
                   <Mail className="w-10 h-10 text-blue-600 mb-3 mx-auto" />
-                  <h4 className="text-lg font-black text-orange-600 mb-2">Email</h4>
+                  <h4 className="text-lg font-black text-[#FF8C42] mb-2">Email</h4>
                   <p className="text-sm text-gray-600">Response within 2 hours</p>
                 </button>
-                <button className="bg-white/95 backdrop-blur-sm rounded-2xl p-6 border-2 border-white/50 shadow-xl hover:shadow-2xl transition-all">
-                  <Phone className="w-10 h-10 text-orange-600 mb-3 mx-auto" />
-                  <h4 className="text-lg font-black text-orange-600 mb-2">Call</h4>
+                <button className="bg-[#1f2937]/95 backdrop-blur-sm rounded-2xl p-6 border-2 border-[#d85a2a]/20 shadow-xl hover:shadow-2xl transition-all">
+                  <Phone className="w-10 h-10 text-[#FF8C42] mb-3 mx-auto" />
+                  <h4 className="text-lg font-black text-[#FF8C42] mb-2">Call</h4>
                   <p className="text-sm text-gray-600">Speak directly with us</p>
                 </button>
               </div>

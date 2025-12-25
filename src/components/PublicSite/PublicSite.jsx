@@ -70,7 +70,7 @@ const PublicSite = () => {
           </p>
           <Button
             onClick={() => navigate('/')}
-            className="bg-orange-500 hover:bg-orange-600"
+            className="bg-gradient-to-r from-[#d85a2a] to-[#f5a524] hover:opacity-90"
           >
             Go to Homepage
           </Button>
@@ -123,7 +123,7 @@ const PublicSite = () => {
               {site.contact_phone && (
                 <a
                   href={`tel:${site.contact_phone}`}
-                  className="hidden sm:flex items-center gap-2 px-4 py-2 bg-white/20 hover:bg-white/30 text-white rounded-lg transition-colors"
+                  className="hidden sm:flex items-center gap-2 px-4 py-2 bg-[#d85a2a]/10 hover:bg-white/30 text-white rounded-lg transition-colors"
                 >
                   <Phone className="w-4 h-4" />
                   <span className="text-sm font-medium">Call</span>

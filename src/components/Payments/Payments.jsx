@@ -113,7 +113,7 @@ const Payments = ({ onBack }) => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-orange-400 via-orange-500 to-orange-600 p-4 flex items-center justify-center">
+      <div className="min-h-screen bg-[#2a2f3a] p-4 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-white mx-auto mb-4"></div>
           <p className="text-white text-xl font-bold">Loading payments...</p>
@@ -123,23 +123,23 @@ const Payments = ({ onBack }) => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-400 via-orange-500 to-orange-600 p-4 pb-24 relative overflow-hidden">
+    <div className="min-h-screen bg-[#2a2f3a] p-4 pb-24 relative overflow-hidden">
       {/* Animated background elements */}
       <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute w-96 h-96 bg-orange-300/20 rounded-full blur-3xl top-20 -left-48 animate-pulse"></div>
-        <div className="absolute w-96 h-96 bg-orange-300/20 rounded-full blur-3xl bottom-20 -right-48 animate-pulse" style={{ animationDelay: '1s' }}></div>
-        <div className="absolute w-72 h-72 bg-orange-200/30 rounded-full blur-2xl top-1/2 right-1/4 animate-pulse" style={{ animationDelay: '0.5s' }}></div>
+        <div className="absolute w-96 h-96 bg-[#d85a2a]/5 rounded-full blur-3xl top-20 -left-48 animate-pulse"></div>
+        <div className="absolute w-96 h-96 bg-[#d85a2a]/5 rounded-full blur-3xl bottom-20 -right-48 animate-pulse" style={{ animationDelay: '1s' }}></div>
+        <div className="absolute w-72 h-72 bg-[#d85a2a]/5 rounded-full blur-2xl top-1/2 right-1/4 animate-pulse" style={{ animationDelay: '0.5s' }}></div>
       </div>
 
       <div className="max-w-7xl mx-auto relative z-10">
         <div className="flex items-center justify-between mb-6">
-          <button onClick={onBack} className="p-3 bg-white/95 backdrop-blur-sm rounded-2xl hover:bg-white transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 border-2 border-white/50">
-            <ChevronLeft className="w-6 h-6 text-orange-600" />
+          <button onClick={onBack} className="p-3 bg-[#1f2937]/95 backdrop-blur-sm rounded-2xl hover:bg-[#1f2937] transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 border-2 border-[#d85a2a]/20">
+            <ChevronLeft className="w-6 h-6 text-[#FF8C42]" />
           </button>
           <div className="text-center">
             <h2 className="text-4xl md:text-5xl font-black text-white drop-shadow-2xl">Payments</h2>
           </div>
-          <button className="px-6 py-3 bg-white/95 backdrop-blur-sm text-orange-600 rounded-2xl font-bold hover:bg-white transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 border-2 border-white/50">
+          <button className="px-6 py-3 bg-[#1f2937]/95 backdrop-blur-sm text-[#FF8C42] rounded-2xl font-bold hover:bg-[#1f2937] transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 border-2 border-[#d85a2a]/20">
             <Plus className="w-5 h-5 inline mr-2" /> New Payment
           </button>
         </div>
@@ -154,7 +154,7 @@ const Payments = ({ onBack }) => {
         </div>
 
         {/* Search and Filters */}
-        <div className="bg-white/95 backdrop-blur-sm rounded-3xl p-4 shadow-xl border-2 border-white/50 mb-6">
+        <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-3xl p-4 shadow-xl border-2 border-[#d85a2a]/20 mb-6">
           <div className="flex flex-col md:flex-row gap-3">
             <div className="flex-1 relative">
               <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
@@ -194,7 +194,7 @@ const Payments = ({ onBack }) => {
         </div>
 
         {/* Transactions Table */}
-        <div className="bg-white/95 backdrop-blur-sm rounded-3xl shadow-2xl border-2 border-white/50 overflow-hidden">
+        <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-3xl shadow-2xl border-2 border-[#d85a2a]/20 overflow-hidden">
           <div className="bg-gradient-to-r from-orange-500 to-orange-600 px-6 py-4">
             <h3 className="text-2xl font-black text-white">Payment Transactions</h3>
             <p className="text-orange-100 text-sm font-semibold">All payment records and transaction history</p>
@@ -218,7 +218,7 @@ const Payments = ({ onBack }) => {
                 {filteredTransactions.map((txn) => (
                   <tr key={txn.id} className="hover:bg-orange-50 transition-colors">
                     <td className="px-6 py-4">
-                      <span className="font-bold text-orange-600">{txn.id}</span>
+                      <span className="font-bold text-[#FF8C42]">{txn.id}</span>
                     </td>
                     <td className="px-6 py-4">
                       <div>
@@ -236,7 +236,7 @@ const Payments = ({ onBack }) => {
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <span className="text-xl font-black text-orange-600">${txn.amount.toLocaleString()}</span>
+                      <span className="text-xl font-black text-[#FF8C42]">${txn.amount.toLocaleString()}</span>
                     </td>
                     <td className="px-6 py-4">
                       <span className="font-semibold text-gray-700">{txn.method}</span>
@@ -249,7 +249,7 @@ const Payments = ({ onBack }) => {
                     <td className="px-6 py-4">
                       <button
                         onClick={() => setSelectedPayment(txn)}
-                        className="text-orange-600 hover:text-orange-700 font-bold text-sm hover:underline"
+                        className="text-[#FF8C42] hover:text-orange-700 font-bold text-sm hover:underline"
                       >
                         View Details
                       </button>
@@ -271,13 +271,13 @@ const Payments = ({ onBack }) => {
       {/* Transaction Detail Modal */}
       {selectedPayment && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setSelectedPayment(null)}>
-          <div className="bg-white rounded-3xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+          <div className="bg-[#1f2937] rounded-3xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
             <div className="bg-gradient-to-r from-orange-500 to-orange-600 px-8 py-6 flex items-center justify-between sticky top-0 z-10">
               <div>
                 <h3 className="text-3xl font-black text-white mb-1">Transaction Details</h3>
                 <p className="text-orange-100 font-semibold">{selectedPayment.id}</p>
               </div>
-              <button onClick={() => setSelectedPayment(null)} className="p-2 hover:bg-white/20 rounded-xl transition-colors">
+              <button onClick={() => setSelectedPayment(null)} className="p-2 hover:bg-[#d85a2a]/10 rounded-xl transition-colors">
                 <X className="w-6 h-6 text-white" />
               </button>
             </div>
@@ -298,7 +298,7 @@ const Payments = ({ onBack }) => {
 
               {/* Guest Information */}
               <div className="bg-gray-50 rounded-2xl p-6 border-2 border-gray-200">
-                <h4 className="text-xl font-black text-orange-600 mb-4 flex items-center gap-2">
+                <h4 className="text-xl font-black text-[#FF8C42] mb-4 flex items-center gap-2">
                   <User className="w-6 h-6" /> Guest Information
                 </h4>
                 <div className="grid grid-cols-2 gap-4">
@@ -315,7 +315,7 @@ const Payments = ({ onBack }) => {
 
               {/* Booking Information */}
               <div className="bg-gray-50 rounded-2xl p-6 border-2 border-gray-200">
-                <h4 className="text-xl font-black text-orange-600 mb-4 flex items-center gap-2">
+                <h4 className="text-xl font-black text-[#FF8C42] mb-4 flex items-center gap-2">
                   <Home className="w-6 h-6" /> Booking Information
                 </h4>
                 <div className="grid grid-cols-2 gap-4">
@@ -325,7 +325,7 @@ const Payments = ({ onBack }) => {
                   </div>
                   <div>
                     <p className="text-sm text-gray-500 font-semibold mb-1">Booking Reference</p>
-                    <p className="font-bold text-orange-600">{selectedPayment.bookingRef}</p>
+                    <p className="font-bold text-[#FF8C42]">{selectedPayment.bookingRef}</p>
                   </div>
                   <div>
                     <p className="text-sm text-gray-500 font-semibold mb-1">Check-in</p>
@@ -348,7 +348,7 @@ const Payments = ({ onBack }) => {
 
               {/* Payment Information */}
               <div className="bg-gray-50 rounded-2xl p-6 border-2 border-gray-200">
-                <h4 className="text-xl font-black text-orange-600 mb-4 flex items-center gap-2">
+                <h4 className="text-xl font-black text-[#FF8C42] mb-4 flex items-center gap-2">
                   <FileText className="w-6 h-6" /> Payment Information
                 </h4>
                 <div className="grid grid-cols-2 gap-4">
@@ -366,7 +366,7 @@ const Payments = ({ onBack }) => {
                   </div>
                   <div>
                     <p className="text-sm text-gray-500 font-semibold mb-1">Transaction ID</p>
-                    <p className="font-bold text-orange-600">{selectedPayment.id}</p>
+                    <p className="font-bold text-[#FF8C42]">{selectedPayment.id}</p>
                   </div>
                 </div>
               </div>

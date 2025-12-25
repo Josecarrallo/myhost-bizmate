@@ -163,19 +163,19 @@ const AIAgentsMonitor = ({ onBack }) => {
   };
 
   return (
-    <div className="flex-1 h-screen bg-gradient-to-br from-orange-400 via-orange-500 to-orange-600 p-4 sm:p-6 lg:p-8 pb-24 relative overflow-auto">
+    <div className="flex-1 h-screen bg-[#2a2f3a] p-4 sm:p-6 lg:p-8 pb-24 relative overflow-auto">
       {/* Animated background */}
       <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute w-96 h-96 bg-orange-300/20 rounded-full blur-3xl top-20 -left-48 animate-pulse"></div>
-        <div className="absolute w-96 h-96 bg-orange-300/20 rounded-full blur-3xl bottom-20 -right-48 animate-pulse" style={{ animationDelay: '1s' }}></div>
-        <div className="absolute w-72 h-72 bg-orange-200/30 rounded-full blur-2xl top-1/2 right-1/4 animate-pulse" style={{ animationDelay: '0.5s' }}></div>
+        <div className="absolute w-96 h-96 bg-[#d85a2a]/5 rounded-full blur-3xl top-20 -left-48 animate-pulse"></div>
+        <div className="absolute w-96 h-96 bg-[#d85a2a]/5 rounded-full blur-3xl bottom-20 -right-48 animate-pulse" style={{ animationDelay: '1s' }}></div>
+        <div className="absolute w-72 h-72 bg-[#d85a2a]/5 rounded-full blur-2xl top-1/2 right-1/4 animate-pulse" style={{ animationDelay: '0.5s' }}></div>
       </div>
 
       <div className="max-w-7xl mx-auto relative z-10">
         {/* Header */}
         <div className="flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-4 mb-6 sm:mb-8">
-          <button onClick={onBack} className="lg:hidden self-start p-2 sm:p-3 bg-white/95 backdrop-blur-sm rounded-2xl hover:bg-white transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 border-2 border-white/50">
-            <ChevronLeft className="w-5 h-5 sm:w-6 sm:h-6 text-orange-600" />
+          <button onClick={onBack} className="lg:hidden self-start p-2 sm:p-3 bg-[#1f2937]/95 backdrop-blur-sm rounded-2xl hover:bg-[#1f2937] transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 border-2 border-[#d85a2a]/20">
+            <ChevronLeft className="w-5 h-5 sm:w-6 sm:h-6 text-[#FF8C42]" />
           </button>
           <div className="text-center flex-1">
             <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-black text-white drop-shadow-2xl">AI Agents Monitor</h2>
@@ -187,14 +187,14 @@ const AIAgentsMonitor = ({ onBack }) => {
         {/* Status Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
           {/* WhatsApp AI Agent Card */}
-          <div className="bg-white/95 backdrop-blur-sm rounded-3xl p-4 sm:p-6 shadow-2xl border-2 border-white/50">
+          <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-3xl p-4 sm:p-6 shadow-2xl border-2 border-[#d85a2a]/20">
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center gap-3">
                 <div className="bg-gradient-to-br from-orange-400 to-orange-600 p-3 sm:p-4 rounded-2xl shadow-lg">
                   <MessageCircle className="w-6 h-6 sm:w-8 sm:h-8 text-white" />
                 </div>
                 <div>
-                  <h3 className="text-lg sm:text-2xl font-bold text-orange-600">WhatsApp AI</h3>
+                  <h3 className="text-lg sm:text-2xl font-bold text-[#FF8C42]">WhatsApp AI</h3>
                   <p className="text-xs sm:text-sm text-gray-500">Workflow VIII</p>
                 </div>
               </div>
@@ -209,7 +209,7 @@ const AIAgentsMonitor = ({ onBack }) => {
             <div className="grid grid-cols-2 gap-3 sm:gap-4 mb-4">
               <div className="bg-gradient-to-br from-orange-50 to-orange-100 rounded-xl p-3 sm:p-4 border-2 border-orange-200">
                 <div className="flex items-center gap-2 mb-2">
-                  <Activity className="w-4 h-4 sm:w-5 sm:h-5 text-orange-600" />
+                  <Activity className="w-4 h-4 sm:w-5 sm:h-5 text-[#FF8C42]" />
                   <span className="text-xs sm:text-sm font-medium text-orange-700">Mensajes Hoy</span>
                 </div>
                 <p className="text-2xl sm:text-3xl font-black text-orange-900">{whatsappStats.todayMessages}</p>
@@ -217,7 +217,7 @@ const AIAgentsMonitor = ({ onBack }) => {
 
               <div className="bg-gradient-to-br from-orange-50 to-orange-100 rounded-xl p-3 sm:p-4 border-2 border-orange-200">
                 <div className="flex items-center gap-2 mb-2">
-                  <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-orange-600" />
+                  <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-[#FF8C42]" />
                   <span className="text-xs sm:text-sm font-medium text-orange-700">Resp. Media</span>
                 </div>
                 <p className="text-2xl sm:text-3xl font-black text-orange-900">{whatsappStats.avgResponseTime}</p>
@@ -229,7 +229,7 @@ const AIAgentsMonitor = ({ onBack }) => {
               className={`w-full py-3 rounded-2xl font-bold text-white transition-all shadow-md ${
                 whatsappStats.status === 'active'
                   ? 'bg-red-500 hover:bg-red-600'
-                  : 'bg-orange-500 hover:bg-orange-600'
+                  : 'bg-gradient-to-r from-[#d85a2a] to-[#f5a524] hover:opacity-90'
               }`}
             >
               {whatsappStats.status === 'active' ? 'Pause Agent' : 'Activate Agent'}
@@ -237,14 +237,14 @@ const AIAgentsMonitor = ({ onBack }) => {
           </div>
 
           {/* Vapi Voice AI Card */}
-          <div className="bg-white/95 backdrop-blur-sm rounded-3xl p-4 sm:p-6 shadow-2xl border-2 border-white/50">
+          <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-3xl p-4 sm:p-6 shadow-2xl border-2 border-[#d85a2a]/20">
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center gap-3">
                 <div className="bg-gradient-to-br from-orange-500 to-orange-700 p-3 sm:p-4 rounded-2xl shadow-lg">
                   <Phone className="w-6 h-6 sm:w-8 sm:h-8 text-white" />
                 </div>
                 <div>
-                  <h3 className="text-lg sm:text-2xl font-bold text-orange-600">Voice AI</h3>
+                  <h3 className="text-lg sm:text-2xl font-bold text-[#FF8C42]">Voice AI</h3>
                   <p className="text-xs sm:text-sm text-gray-500">Workflow IX</p>
                 </div>
               </div>
@@ -259,7 +259,7 @@ const AIAgentsMonitor = ({ onBack }) => {
             <div className="grid grid-cols-2 gap-3 sm:gap-4 mb-4">
               <div className="bg-gradient-to-br from-orange-50 to-orange-100 rounded-xl p-3 sm:p-4 border-2 border-orange-200">
                 <div className="flex items-center gap-2 mb-2">
-                  <Phone className="w-4 h-4 sm:w-5 sm:h-5 text-orange-600" />
+                  <Phone className="w-4 h-4 sm:w-5 sm:h-5 text-[#FF8C42]" />
                   <span className="text-xs sm:text-sm font-medium text-orange-700">Llamadas Hoy</span>
                 </div>
                 <p className="text-2xl sm:text-3xl font-black text-orange-900">{vapiStats.todayCalls}</p>
@@ -267,7 +267,7 @@ const AIAgentsMonitor = ({ onBack }) => {
 
               <div className="bg-gradient-to-br from-orange-50 to-orange-100 rounded-xl p-3 sm:p-4 border-2 border-orange-200">
                 <div className="flex items-center gap-2 mb-2">
-                  <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-orange-600" />
+                  <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-[#FF8C42]" />
                   <span className="text-xs sm:text-sm font-medium text-orange-700">Duración Media</span>
                 </div>
                 <p className="text-2xl sm:text-3xl font-black text-orange-900">{vapiStats.avgDuration}</p>
@@ -279,7 +279,7 @@ const AIAgentsMonitor = ({ onBack }) => {
               className={`w-full py-3 rounded-2xl font-bold text-white transition-all shadow-md ${
                 vapiStats.status === 'active'
                   ? 'bg-red-500 hover:bg-red-600'
-                  : 'bg-orange-500 hover:bg-orange-600'
+                  : 'bg-gradient-to-r from-[#d85a2a] to-[#f5a524] hover:opacity-90'
               }`}
             >
               {vapiStats.status === 'active' ? 'Pause Agent' : 'Activate Agent'}
@@ -288,16 +288,16 @@ const AIAgentsMonitor = ({ onBack }) => {
         </div>
 
         {/* Recent Conversations */}
-        <div className="bg-white/95 backdrop-blur-sm rounded-3xl p-4 sm:p-6 shadow-2xl border-2 border-white/50">
+        <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-3xl p-4 sm:p-6 shadow-2xl border-2 border-[#d85a2a]/20">
           <div className="flex items-center gap-3 mb-6">
-            <BarChart3 className="w-5 h-5 sm:w-6 sm:h-6 text-orange-600" />
-            <h3 className="text-xl sm:text-2xl font-bold text-orange-600">Recent Conversations</h3>
+            <BarChart3 className="w-5 h-5 sm:w-6 sm:h-6 text-[#FF8C42]" />
+            <h3 className="text-xl sm:text-2xl font-bold text-[#FF8C42]">Recent Conversations</h3>
           </div>
 
           {isLoading ? (
             <div className="text-center py-12">
               <div className="w-12 h-12 border-4 border-orange-200 border-t-orange-600 rounded-full animate-spin mx-auto"></div>
-              <p className="text-orange-600 font-medium mt-4">Loading conversations...</p>
+              <p className="text-[#FF8C42] font-medium mt-4">Loading conversations...</p>
             </div>
           ) : recentConversations.length === 0 ? (
             <div className="text-center py-12">
@@ -311,13 +311,13 @@ const AIAgentsMonitor = ({ onBack }) => {
                     <div className="flex items-center gap-2 sm:gap-3">
                       <div className={`p-2 rounded-lg ${conv.type === 'whatsapp' ? 'bg-orange-100 border-2 border-orange-300' : 'bg-orange-100 border-2 border-orange-400'}`}>
                         {conv.type === 'whatsapp' ? (
-                          <MessageCircle className="w-4 h-4 sm:w-5 sm:h-5 text-orange-600" />
+                          <MessageCircle className="w-4 h-4 sm:w-5 sm:h-5 text-[#FF8C42]" />
                         ) : (
                           <Phone className="w-4 h-4 sm:w-5 sm:h-5 text-orange-700" />
                         )}
                       </div>
                       <div>
-                        <p className="font-semibold text-sm sm:text-base text-orange-600">
+                        <p className="font-semibold text-sm sm:text-base text-[#FF8C42]">
                           {conv.type === 'whatsapp' ? 'WhatsApp' : 'Voice Call'}
                         </p>
                         <p className="text-xs sm:text-sm text-gray-500">

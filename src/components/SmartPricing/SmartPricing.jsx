@@ -150,24 +150,24 @@ const Pricing = ({ onBack }) => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-400 via-orange-500 to-orange-600 p-4 pb-24 relative overflow-hidden">
+    <div className="min-h-screen bg-[#2a2f3a] p-4 pb-24 relative overflow-hidden">
       {/* Animated background elements */}
       <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute w-96 h-96 bg-orange-300/20 rounded-full blur-3xl top-20 -left-48 animate-pulse"></div>
-        <div className="absolute w-96 h-96 bg-orange-300/20 rounded-full blur-3xl bottom-20 -right-48 animate-pulse" style={{ animationDelay: '1s' }}></div>
-        <div className="absolute w-72 h-72 bg-orange-200/30 rounded-full blur-2xl top-1/2 right-1/4 animate-pulse" style={{ animationDelay: '0.5s' }}></div>
+        <div className="absolute w-96 h-96 bg-[#d85a2a]/5 rounded-full blur-3xl top-20 -left-48 animate-pulse"></div>
+        <div className="absolute w-96 h-96 bg-[#d85a2a]/5 rounded-full blur-3xl bottom-20 -right-48 animate-pulse" style={{ animationDelay: '1s' }}></div>
+        <div className="absolute w-72 h-72 bg-[#d85a2a]/5 rounded-full blur-2xl top-1/2 right-1/4 animate-pulse" style={{ animationDelay: '0.5s' }}></div>
       </div>
 
       <div className="max-w-7xl mx-auto relative z-10">
         <div className="flex items-center justify-between mb-6">
-          <button onClick={onBack} className="p-3 bg-white/95 backdrop-blur-sm rounded-2xl hover:bg-white transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 border-2 border-white/50">
-            <ChevronLeft className="w-6 h-6 text-orange-600" />
+          <button onClick={onBack} className="p-3 bg-[#1f2937]/95 backdrop-blur-sm rounded-2xl hover:bg-[#1f2937] transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 border-2 border-[#d85a2a]/20">
+            <ChevronLeft className="w-6 h-6 text-[#FF8C42]" />
           </button>
           <div className="text-center">
             <h2 className="text-4xl md:text-5xl font-black text-white drop-shadow-2xl">Smart Pricing</h2>
           </div>
-          <button className="p-3 bg-white/95 backdrop-blur-sm rounded-2xl hover:bg-white transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 border-2 border-white/50">
-            <Settings className="w-6 h-6 text-orange-600" />
+          <button className="p-3 bg-[#1f2937]/95 backdrop-blur-sm rounded-2xl hover:bg-[#1f2937] transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 border-2 border-[#d85a2a]/20">
+            <Settings className="w-6 h-6 text-[#FF8C42]" />
           </button>
         </div>
 
@@ -175,7 +175,7 @@ const Pricing = ({ onBack }) => {
         <div className="bg-gradient-to-br from-orange-500 to-orange-600 text-white p-8 rounded-3xl mb-6 shadow-2xl">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <div className="p-4 bg-white/20 rounded-2xl backdrop-blur-sm">
+              <div className="p-4 bg-[#d85a2a]/10 rounded-2xl backdrop-blur-sm">
                 <Sparkles className="w-8 h-8" strokeWidth={2.5} />
               </div>
               <div>
@@ -193,34 +193,34 @@ const Pricing = ({ onBack }) => {
 
         {/* Overview Stats */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
-          <div className="bg-white/95 backdrop-blur-sm rounded-2xl p-5 shadow-xl border-2 border-white/50">
+          <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-2xl p-5 shadow-xl border-2 border-[#d85a2a]/20">
             <div className="flex items-center gap-3 mb-2">
               <div className="p-2 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl">
                 <Target className="w-5 h-5 text-white" />
               </div>
               <p className="text-sm font-bold text-gray-600">Avg Occupancy</p>
             </div>
-            <p className="text-3xl font-black text-orange-600">85%</p>
+            <p className="text-3xl font-black text-[#FF8C42]">85%</p>
           </div>
-          <div className="bg-white/95 backdrop-blur-sm rounded-2xl p-5 shadow-xl border-2 border-white/50">
+          <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-2xl p-5 shadow-xl border-2 border-[#d85a2a]/20">
             <div className="flex items-center gap-3 mb-2">
               <div className="p-2 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl">
                 <DollarSign className="w-5 h-5 text-white" />
               </div>
               <p className="text-sm font-bold text-gray-600">Avg Daily Rate</p>
             </div>
-            <p className="text-3xl font-black text-orange-600">$392</p>
+            <p className="text-3xl font-black text-[#FF8C42]">$392</p>
           </div>
-          <div className="bg-white/95 backdrop-blur-sm rounded-2xl p-5 shadow-xl border-2 border-white/50">
+          <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-2xl p-5 shadow-xl border-2 border-[#d85a2a]/20">
             <div className="flex items-center gap-3 mb-2">
               <div className="p-2 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl">
                 <BarChart3 className="w-5 h-5 text-white" />
               </div>
               <p className="text-sm font-bold text-gray-600">RevPAR</p>
             </div>
-            <p className="text-3xl font-black text-orange-600">$333</p>
+            <p className="text-3xl font-black text-[#FF8C42]">$333</p>
           </div>
-          <div className="bg-white/95 backdrop-blur-sm rounded-2xl p-5 shadow-xl border-2 border-white/50">
+          <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-2xl p-5 shadow-xl border-2 border-[#d85a2a]/20">
             <div className="flex items-center gap-3 mb-2">
               <div className="p-2 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl">
                 <TrendingUp className="w-5 h-5 text-white" />
@@ -239,11 +239,11 @@ const Pricing = ({ onBack }) => {
             const priceChangePercent = ((priceChange / property.basePrice) * 100).toFixed(0);
 
             return (
-              <div key={property.id} className="bg-white/95 backdrop-blur-sm rounded-3xl shadow-2xl border-2 border-white/50 overflow-hidden hover:shadow-3xl transition-shadow">
+              <div key={property.id} className="bg-[#1f2937]/95 backdrop-blur-sm rounded-3xl shadow-2xl border-2 border-[#d85a2a]/20 overflow-hidden hover:shadow-3xl transition-shadow">
                 <div className="p-6">
                   <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-4">
                     <div className="flex-1">
-                      <h3 className="text-2xl font-black text-orange-600 mb-2">{property.name}</h3>
+                      <h3 className="text-2xl font-black text-[#FF8C42] mb-2">{property.name}</h3>
                       <div className="flex items-center gap-2 text-sm text-gray-500">
                         <Calendar className="w-4 h-4" />
                         <span className="font-semibold">Next update in {property.nextUpdate}</span>
@@ -285,7 +285,7 @@ const Pricing = ({ onBack }) => {
                     <div className="bg-gray-50 rounded-2xl p-4 border-2 border-gray-200">
                       <p className="text-sm text-gray-500 font-semibold mb-1">Occupancy</p>
                       <div className="flex items-center gap-2">
-                        <Percent className="text-orange-600" size={20} />
+                        <Percent className="text-[#FF8C42]" size={20} />
                         <p className="text-2xl font-black text-gray-700">{property.occupancy}%</p>
                       </div>
                     </div>
@@ -293,7 +293,7 @@ const Pricing = ({ onBack }) => {
                     {/* RevPAR */}
                     <div className="bg-gray-50 rounded-2xl p-4 border-2 border-gray-200">
                       <p className="text-sm text-gray-500 font-semibold mb-1">RevPAR</p>
-                      <p className="text-2xl font-black text-orange-600">${Math.round(property.currentPrice * (property.occupancy / 100))}</p>
+                      <p className="text-2xl font-black text-[#FF8C42]">${Math.round(property.currentPrice * (property.occupancy / 100))}</p>
                     </div>
                   </div>
                 </div>
@@ -306,13 +306,13 @@ const Pricing = ({ onBack }) => {
       {/* Property Detail Modal */}
       {selectedProperty && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setSelectedProperty(null)}>
-          <div className="bg-white rounded-3xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+          <div className="bg-[#1f2937] rounded-3xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
             <div className="bg-gradient-to-r from-orange-500 to-orange-600 px-8 py-6 flex items-center justify-between sticky top-0 z-10">
               <div>
                 <h3 className="text-3xl font-black text-white mb-1">{selectedProperty.name}</h3>
                 <p className="text-orange-100 font-semibold">Dynamic Pricing Analysis</p>
               </div>
-              <button onClick={() => setSelectedProperty(null)} className="p-2 hover:bg-white/20 rounded-xl transition-colors">
+              <button onClick={() => setSelectedProperty(null)} className="p-2 hover:bg-[#d85a2a]/10 rounded-xl transition-colors">
                 <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>
@@ -336,7 +336,7 @@ const Pricing = ({ onBack }) => {
 
               {/* AI Factors */}
               <div className="bg-gray-50 rounded-2xl p-6 border-2 border-gray-200">
-                <h4 className="text-xl font-black text-orange-600 mb-4 flex items-center gap-2">
+                <h4 className="text-xl font-black text-[#FF8C42] mb-4 flex items-center gap-2">
                   <Sparkles className="w-6 h-6" /> AI Pricing Factors
                 </h4>
                 <div className="space-y-3">
@@ -360,7 +360,7 @@ const Pricing = ({ onBack }) => {
 
               {/* Pricing Rules */}
               <div className="bg-gray-50 rounded-2xl p-6 border-2 border-gray-200">
-                <h4 className="text-xl font-black text-orange-600 mb-4 flex items-center gap-2">
+                <h4 className="text-xl font-black text-[#FF8C42] mb-4 flex items-center gap-2">
                   <Settings className="w-6 h-6" /> Active Pricing Rules
                 </h4>
                 <div className="space-y-3">
@@ -384,7 +384,7 @@ const Pricing = ({ onBack }) => {
 
               {/* Price History */}
               <div className="bg-gray-50 rounded-2xl p-6 border-2 border-gray-200">
-                <h4 className="text-xl font-black text-orange-600 mb-4 flex items-center gap-2">
+                <h4 className="text-xl font-black text-[#FF8C42] mb-4 flex items-center gap-2">
                   <BarChart3 className="w-6 h-6" /> 5-Day Price History
                 </h4>
                 <div className="flex items-end justify-between gap-2 h-40">
@@ -394,7 +394,7 @@ const Pricing = ({ onBack }) => {
 
                     return (
                       <div key={idx} className="flex-1 flex flex-col items-center gap-2">
-                        <div className="text-xs font-bold text-orange-600">${day.price}</div>
+                        <div className="text-xs font-bold text-[#FF8C42]">${day.price}</div>
                         <div
                           className="w-full bg-gradient-to-t from-orange-500 to-orange-400 rounded-t-lg transition-all hover:from-orange-600 hover:to-orange-500"
                           style={{ height: `${height}%` }}

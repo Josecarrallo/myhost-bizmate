@@ -138,12 +138,12 @@ const PMSCalendar = ({ onBack }) => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-400 via-orange-500 to-orange-600 p-4 pb-24 relative overflow-hidden">
+    <div className="min-h-screen bg-[#2a2f3a] p-4 pb-24 relative overflow-hidden">
       {/* Animated background elements */}
       <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute w-96 h-96 bg-orange-300/20 rounded-full blur-3xl top-20 -left-48 animate-pulse"></div>
-        <div className="absolute w-96 h-96 bg-orange-300/20 rounded-full blur-3xl bottom-20 -right-48 animate-pulse" style={{ animationDelay: '1s' }}></div>
-        <div className="absolute w-72 h-72 bg-orange-200/30 rounded-full blur-2xl top-1/2 right-1/4 animate-pulse" style={{ animationDelay: '0.5s' }}></div>
+        <div className="absolute w-96 h-96 bg-[#d85a2a]/5 rounded-full blur-3xl top-20 -left-48 animate-pulse"></div>
+        <div className="absolute w-96 h-96 bg-[#d85a2a]/5 rounded-full blur-3xl bottom-20 -right-48 animate-pulse" style={{ animationDelay: '1s' }}></div>
+        <div className="absolute w-72 h-72 bg-[#d85a2a]/5 rounded-full blur-2xl top-1/2 right-1/4 animate-pulse" style={{ animationDelay: '0.5s' }}></div>
       </div>
 
       <div className="max-w-7xl mx-auto relative z-10">
@@ -151,20 +151,20 @@ const PMSCalendar = ({ onBack }) => {
         <div className="flex items-center justify-between mb-8">
           <button
             onClick={onBack}
-            className="p-3 bg-white/95 backdrop-blur-sm rounded-2xl hover:bg-white transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 border-2 border-white/50"
+            className="p-3 bg-[#1f2937]/95 backdrop-blur-sm rounded-2xl hover:bg-[#1f2937] transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 border-2 border-[#d85a2a]/20"
           >
-            <ChevronLeft className="w-6 h-6 text-orange-600" />
+            <ChevronLeft className="w-6 h-6 text-[#FF8C42]" />
           </button>
           <div className="text-center">
             <h2 className="text-4xl md:text-5xl font-black text-white drop-shadow-2xl">PMS Calendar</h2>
           </div>
-          <button className="px-6 py-3 bg-white/95 backdrop-blur-sm text-orange-600 rounded-2xl font-bold hover:bg-white transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 border-2 border-white/50">
+          <button className="px-6 py-3 bg-[#1f2937]/95 backdrop-blur-sm text-[#FF8C42] rounded-2xl font-bold hover:bg-[#1f2937] transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 border-2 border-[#d85a2a]/20">
             <Plus className="w-5 h-5 inline mr-2" /> New Booking
           </button>
         </div>
 
         {/* Controls */}
-        <div className="bg-white/95 backdrop-blur-sm rounded-3xl p-6 shadow-2xl border-2 border-white/50 mb-6">
+        <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-3xl p-6 shadow-2xl border-2 border-[#d85a2a]/20 mb-6">
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
             {/* View Selector */}
             <div className="flex gap-2">
@@ -173,7 +173,7 @@ const PMSCalendar = ({ onBack }) => {
                 className={`px-6 py-3 rounded-2xl font-bold transition-all shadow-md ${
                   view === 'month'
                     ? 'bg-gradient-to-r from-orange-500 to-orange-600 text-white'
-                    : 'bg-white text-orange-600 border-2 border-gray-200 hover:border-orange-300'
+                    : 'bg-white text-[#FF8C42] border-2 border-gray-200 hover:border-orange-300'
                 }`}
               >
                 Month View
@@ -183,7 +183,7 @@ const PMSCalendar = ({ onBack }) => {
                 className={`px-6 py-3 rounded-2xl font-bold transition-all shadow-md ${
                   view === 'week'
                     ? 'bg-gradient-to-r from-orange-500 to-orange-600 text-white'
-                    : 'bg-white text-orange-600 border-2 border-gray-200 hover:border-orange-300'
+                    : 'bg-white text-[#FF8C42] border-2 border-gray-200 hover:border-orange-300'
                 }`}
               >
                 Week View
@@ -198,11 +198,11 @@ const PMSCalendar = ({ onBack }) => {
                   newDate.setMonth(newDate.getMonth() - 1);
                   setSelectedDate(newDate);
                 }}
-                className="p-2 bg-white border-2 border-gray-200 hover:border-orange-300 rounded-xl transition-all"
+                className="p-2 bg-[#2a2f3a] border-2 border-[#d85a2a]/30-200 hover:border-orange-300 rounded-xl transition-all"
               >
-                <ChevronLeft className="w-5 h-5 text-orange-600" />
+                <ChevronLeft className="w-5 h-5 text-[#FF8C42]" />
               </button>
-              <span className="font-black text-xl text-orange-600 min-w-[180px] text-center">
+              <span className="font-black text-xl text-[#FF8C42] min-w-[180px] text-center">
                 {monthNames[selectedDate.getMonth()]} {selectedDate.getFullYear()}
               </span>
               <button
@@ -211,31 +211,31 @@ const PMSCalendar = ({ onBack }) => {
                   newDate.setMonth(newDate.getMonth() + 1);
                   setSelectedDate(newDate);
                 }}
-                className="p-2 bg-white border-2 border-gray-200 hover:border-orange-300 rounded-xl transition-all"
+                className="p-2 bg-[#2a2f3a] border-2 border-[#d85a2a]/30-200 hover:border-orange-300 rounded-xl transition-all"
               >
-                <ChevronRight className="w-5 h-5 text-orange-600" />
+                <ChevronRight className="w-5 h-5 text-[#FF8C42]" />
               </button>
             </div>
           </div>
         </div>
 
         {/* Calendar Views */}
-        <div className="bg-white/95 backdrop-blur-sm rounded-3xl shadow-2xl border-2 border-white/50 overflow-hidden">
+        <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-3xl shadow-2xl border-2 border-[#d85a2a]/20 overflow-hidden">
           {/* MONTH VIEW - Gantt Style */}
           {view === 'month' && (
             <div className="overflow-x-auto">
               <div className="p-6">
-                <h3 className="text-2xl font-black text-orange-600 mb-6">Property Availability - Gantt View</h3>
+                <h3 className="text-2xl font-black text-[#FF8C42] mb-6">Property Availability - Gantt View</h3>
               </div>
 
               <table className="w-full border-collapse">
                 <thead>
                   <tr className="bg-gradient-to-r from-orange-50 to-white">
-                    <th className="px-4 py-3 text-left text-xs font-black text-orange-600 uppercase border-r-2 border-gray-200 sticky left-0 bg-orange-50 z-10 min-w-[180px]">
+                    <th className="px-4 py-3 text-left text-xs font-black text-[#FF8C42] uppercase border-r-2 border-gray-200 sticky left-0 bg-orange-50 z-10 min-w-[180px]">
                       Property
                     </th>
                     {getDaysInMonth().map(day => (
-                      <th key={day} className="px-2 py-3 text-center text-xs font-bold text-orange-600 border-l border-gray-200 min-w-[60px]">
+                      <th key={day} className="px-2 py-3 text-center text-xs font-bold text-[#FF8C42] border-l border-gray-200 min-w-[60px]">
                         <div>{day}</div>
                         <div className="text-[10px] text-gray-500 font-normal">
                           {new Date(selectedDate.getFullYear(), selectedDate.getMonth(), day).toLocaleDateString('en-US', { weekday: 'short' })}
@@ -247,7 +247,7 @@ const PMSCalendar = ({ onBack }) => {
                 <tbody>
                   {mockProperties.map(property => (
                     <tr key={property.id} className="border-t-2 border-gray-200 hover:bg-orange-50/30 transition-colors">
-                      <td className="px-4 py-4 font-bold text-orange-600 border-r-2 border-gray-200 sticky left-0 bg-white z-10">
+                      <td className="px-4 py-4 font-bold text-[#FF8C42] border-r-2 border-gray-200 sticky left-0 bg-white z-10">
                         <div className="flex items-center gap-2">
                           <MapPin className="w-4 h-4" />
                           {property.name}
@@ -290,7 +290,7 @@ const PMSCalendar = ({ onBack }) => {
           {/* WEEK VIEW - Compact */}
           {view === 'week' && (
             <div className="p-6">
-              <h3 className="text-2xl font-black text-orange-600 mb-6">Weekly Overview</h3>
+              <h3 className="text-2xl font-black text-[#FF8C42] mb-6">Weekly Overview</h3>
               <div className="space-y-4">
                 {mockCalendarBookings
                   .filter(booking => {
@@ -304,7 +304,7 @@ const PMSCalendar = ({ onBack }) => {
                     <button
                       key={booking.id}
                       onClick={() => setSelectedBooking(booking)}
-                      className="w-full bg-white border-2 border-gray-200 rounded-2xl p-5 hover:border-orange-300 hover:shadow-xl transition-all text-left"
+                      className="w-full bg-[#2a2f3a] border-2 border-[#d85a2a]/30-200 rounded-2xl p-5 hover:border-orange-300 hover:shadow-xl transition-all text-left"
                     >
                       <div className="flex items-center justify-between">
                         <div className="flex-1">
@@ -312,25 +312,25 @@ const PMSCalendar = ({ onBack }) => {
                             <span className={`px-4 py-1 rounded-full text-xs font-bold border-2 ${getStatusBadgeColor(booking.status)}`}>
                               {booking.status.toUpperCase()}
                             </span>
-                            <h4 className="font-black text-xl text-orange-600">{booking.guestName}</h4>
+                            <h4 className="font-black text-xl text-[#FF8C42]">{booking.guestName}</h4>
                           </div>
                           <div className="grid grid-cols-3 gap-4 text-sm">
-                            <div className="flex items-center gap-2 text-orange-600 font-medium">
+                            <div className="flex items-center gap-2 text-[#FF8C42] font-medium">
                               <Home className="w-4 h-4" />
                               {getPropertyName(booking.propertyId)}
                             </div>
-                            <div className="flex items-center gap-2 text-orange-600 font-medium">
+                            <div className="flex items-center gap-2 text-[#FF8C42] font-medium">
                               <Calendar className="w-4 h-4" />
                               {booking.checkIn} → {booking.checkOut}
                             </div>
-                            <div className="flex items-center gap-2 text-orange-600 font-medium">
+                            <div className="flex items-center gap-2 text-[#FF8C42] font-medium">
                               <Users className="w-4 h-4" />
                               {booking.guests} guests
                             </div>
                           </div>
                         </div>
                         <div className="text-right ml-6">
-                          <div className="flex items-center gap-1 text-3xl font-black text-orange-600">
+                          <div className="flex items-center gap-1 text-3xl font-black text-[#FF8C42]">
                             <DollarSign className="w-6 h-6" />
                             {booking.revenue}
                           </div>
@@ -349,7 +349,7 @@ const PMSCalendar = ({ onBack }) => {
                 }).length === 0 && (
                   <div className="text-center py-12">
                     <Calendar className="w-16 h-16 mx-auto mb-4 text-gray-300" />
-                    <p className="text-orange-600 font-bold text-lg">No bookings this week</p>
+                    <p className="text-[#FF8C42] font-bold text-lg">No bookings this week</p>
                   </div>
                 )}
               </div>
@@ -358,24 +358,24 @@ const PMSCalendar = ({ onBack }) => {
         </div>
 
         {/* Legend */}
-        <div className="mt-6 bg-white/95 backdrop-blur-sm rounded-3xl p-6 shadow-2xl border-2 border-white/50">
-          <h4 className="text-lg font-black text-orange-600 mb-4">Status Legend</h4>
+        <div className="mt-6 bg-[#1f2937]/95 backdrop-blur-sm rounded-3xl p-6 shadow-2xl border-2 border-[#d85a2a]/20">
+          <h4 className="text-lg font-black text-[#FF8C42] mb-4">Status Legend</h4>
           <div className="flex flex-wrap gap-4">
             <div className="flex items-center gap-2">
               <div className="w-6 h-6 rounded bg-green-500"></div>
-              <span className="text-orange-600 font-medium">Confirmed</span>
+              <span className="text-[#FF8C42] font-medium">Confirmed</span>
             </div>
             <div className="flex items-center gap-2">
               <div className="w-6 h-6 rounded bg-blue-500"></div>
-              <span className="text-orange-600 font-medium">In Progress</span>
+              <span className="text-[#FF8C42] font-medium">In Progress</span>
             </div>
             <div className="flex items-center gap-2">
               <div className="w-6 h-6 rounded bg-yellow-500"></div>
-              <span className="text-orange-600 font-medium">Pending</span>
+              <span className="text-[#FF8C42] font-medium">Pending</span>
             </div>
             <div className="flex items-center gap-2">
               <div className="w-6 h-6 rounded bg-red-500"></div>
-              <span className="text-orange-600 font-medium">Cancelled</span>
+              <span className="text-[#FF8C42] font-medium">Cancelled</span>
             </div>
           </div>
         </div>
@@ -384,7 +384,7 @@ const PMSCalendar = ({ onBack }) => {
       {/* Booking Detail Modal */}
       {selectedBooking && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50" onClick={() => setSelectedBooking(null)}>
-          <div className="bg-white rounded-3xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+          <div className="bg-[#1f2937] rounded-3xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
             {/* Modal Header */}
             <div className="bg-gradient-to-r from-orange-500 to-orange-600 p-6 rounded-t-3xl">
               <div className="flex items-center justify-between">
@@ -394,7 +394,7 @@ const PMSCalendar = ({ onBack }) => {
                 </div>
                 <button
                   onClick={() => setSelectedBooking(null)}
-                  className="p-2 bg-white/20 hover:bg-white/30 rounded-xl transition-colors"
+                  className="p-2 bg-[#d85a2a]/10 hover:bg-white/30 rounded-xl transition-colors"
                 >
                   <X className="w-6 h-6 text-white" />
                 </button>
@@ -405,29 +405,29 @@ const PMSCalendar = ({ onBack }) => {
             <div className="p-6 space-y-6">
               {/* Guest Info */}
               <div className="border-2 border-gray-200 rounded-2xl p-4">
-                <h4 className="text-xl font-black text-orange-600 mb-4 flex items-center gap-2">
+                <h4 className="text-xl font-black text-[#FF8C42] mb-4 flex items-center gap-2">
                   <Users className="w-5 h-5" />
                   Guest Information
                 </h4>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <p className="text-xs font-bold text-gray-500 mb-1">Guest Name</p>
-                    <p className="text-orange-600 font-bold text-lg">{selectedBooking.guestName}</p>
+                    <p className="text-[#FF8C42] font-bold text-lg">{selectedBooking.guestName}</p>
                   </div>
                   <div>
                     <p className="text-xs font-bold text-gray-500 mb-1">Number of Guests</p>
-                    <p className="text-orange-600 font-bold text-lg">{selectedBooking.guests} people</p>
+                    <p className="text-[#FF8C42] font-bold text-lg">{selectedBooking.guests} people</p>
                   </div>
                   <div>
                     <p className="text-xs font-bold text-gray-500 mb-1">Email</p>
-                    <p className="text-orange-600 font-medium flex items-center gap-1">
+                    <p className="text-[#FF8C42] font-medium flex items-center gap-1">
                       <Mail className="w-4 h-4" />
                       {selectedBooking.email}
                     </p>
                   </div>
                   <div>
                     <p className="text-xs font-bold text-gray-500 mb-1">Phone</p>
-                    <p className="text-orange-600 font-medium flex items-center gap-1">
+                    <p className="text-[#FF8C42] font-medium flex items-center gap-1">
                       <Phone className="w-4 h-4" />
                       {selectedBooking.phone}
                     </p>
@@ -437,14 +437,14 @@ const PMSCalendar = ({ onBack }) => {
 
               {/* Booking Details */}
               <div className="border-2 border-gray-200 rounded-2xl p-4">
-                <h4 className="text-xl font-black text-orange-600 mb-4 flex items-center gap-2">
+                <h4 className="text-xl font-black text-[#FF8C42] mb-4 flex items-center gap-2">
                   <Calendar className="w-5 h-5" />
                   Booking Details
                 </h4>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <p className="text-xs font-bold text-gray-500 mb-1">Property</p>
-                    <p className="text-orange-600 font-bold">{getPropertyName(selectedBooking.propertyId)}</p>
+                    <p className="text-[#FF8C42] font-bold">{getPropertyName(selectedBooking.propertyId)}</p>
                   </div>
                   <div>
                     <p className="text-xs font-bold text-gray-500 mb-1">Status</p>
@@ -454,19 +454,19 @@ const PMSCalendar = ({ onBack }) => {
                   </div>
                   <div>
                     <p className="text-xs font-bold text-gray-500 mb-1">Check-in</p>
-                    <p className="text-orange-600 font-bold">{selectedBooking.checkIn}</p>
+                    <p className="text-[#FF8C42] font-bold">{selectedBooking.checkIn}</p>
                   </div>
                   <div>
                     <p className="text-xs font-bold text-gray-500 mb-1">Check-out</p>
-                    <p className="text-orange-600 font-bold">{selectedBooking.checkOut}</p>
+                    <p className="text-[#FF8C42] font-bold">{selectedBooking.checkOut}</p>
                   </div>
                 </div>
               </div>
 
               {/* Revenue */}
               <div className="bg-gradient-to-br from-orange-50 to-orange-100 border-2 border-orange-200 rounded-2xl p-6">
-                <p className="text-xs font-bold text-orange-600 mb-2">Total Revenue</p>
-                <p className="text-5xl font-black text-orange-600 flex items-center gap-2">
+                <p className="text-xs font-bold text-[#FF8C42] mb-2">Total Revenue</p>
+                <p className="text-5xl font-black text-[#FF8C42] flex items-center gap-2">
                   <DollarSign className="w-8 h-8" />
                   {selectedBooking.revenue}
                 </p>
@@ -478,12 +478,12 @@ const PMSCalendar = ({ onBack }) => {
               <button className="flex-1 px-6 py-3 bg-orange-500 text-white rounded-2xl font-bold hover:bg-orange-600 transition-colors shadow-md">
                 Edit Booking
               </button>
-              <button className="flex-1 px-6 py-3 bg-gray-200 text-orange-600 rounded-2xl font-bold hover:bg-gray-300 transition-colors">
+              <button className="flex-1 px-6 py-3 bg-gray-200 text-[#FF8C42] rounded-2xl font-bold hover:bg-gray-300 transition-colors">
                 Contact Guest
               </button>
               <button
                 onClick={() => setSelectedBooking(null)}
-                className="px-6 py-3 bg-white border-2 border-gray-300 text-orange-600 rounded-2xl font-bold hover:border-orange-300 transition-colors"
+                className="px-6 py-3 bg-[#2a2f3a] border-2 border-[#d85a2a]/30-300 text-[#FF8C42] rounded-2xl font-bold hover:border-orange-300 transition-colors"
               >
                 Close
               </button>

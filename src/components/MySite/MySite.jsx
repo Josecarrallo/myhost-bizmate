@@ -123,7 +123,7 @@ const MySite = ({ onBack }) => {
   // NO WEBSITE STATE - Show CTA
   if (!siteData) {
     return (
-      <div className="flex-1 h-screen bg-gradient-to-br from-orange-400 via-orange-500 to-orange-600 p-4 sm:p-6 overflow-auto">
+      <div className="flex-1 h-screen bg-[#2a2f3a] p-4 sm:p-6 overflow-auto">
         {/* Header */}
         <div className="mb-4">
           <button
@@ -218,7 +218,7 @@ const MySite = ({ onBack }) => {
 
   // HAS WEBSITE STATE - Show management panel
   return (
-    <div className="flex-1 h-screen bg-gradient-to-br from-orange-400 via-orange-500 to-orange-600 p-4 sm:p-6 lg:p-8 overflow-auto">
+    <div className="flex-1 h-screen bg-[#2a2f3a] p-4 sm:p-6 lg:p-8 overflow-auto">
       {/* Header */}
       <div className="mb-6">
         <button
@@ -313,7 +313,7 @@ const MySite = ({ onBack }) => {
                   setShowWizard(true);
                 }}
                 variant="default"
-                className="bg-orange-500 hover:bg-orange-600"
+                className="bg-gradient-to-r from-[#d85a2a] to-[#f5a524] hover:opacity-90"
               >
                 <Edit className="w-4 h-4 mr-2" />
                 Edit Site
@@ -363,7 +363,7 @@ const MySite = ({ onBack }) => {
           <Card>
             <CardContent className="pt-6">
               <div className="text-center">
-                <div className="text-3xl font-bold text-orange-600 mb-1">
+                <div className="text-3xl font-bold text-[#FF8C42] mb-1">
                   {siteData.properties?.length || 0}
                 </div>
                 <div className="text-sm text-gray-600">Properties Displayed</div>

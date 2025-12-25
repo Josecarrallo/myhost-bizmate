@@ -96,22 +96,22 @@ const ReviewsReputation = ({ onBack }) => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-400 via-orange-500 to-orange-600 flex flex-col relative overflow-hidden">
+    <div className="min-h-screen bg-[#2a2f3a] flex flex-col relative overflow-hidden">
       {/* Animated background elements */}
       <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute w-96 h-96 bg-orange-300/20 rounded-full blur-3xl top-20 -left-48 animate-pulse"></div>
-        <div className="absolute w-96 h-96 bg-orange-300/20 rounded-full blur-3xl bottom-20 -right-48 animate-pulse" style={{ animationDelay: '1s' }}></div>
-        <div className="absolute w-72 h-72 bg-orange-200/30 rounded-full blur-2xl top-1/2 right-1/4 animate-pulse" style={{ animationDelay: '0.5s' }}></div>
+        <div className="absolute w-96 h-96 bg-[#d85a2a]/5 rounded-full blur-3xl top-20 -left-48 animate-pulse"></div>
+        <div className="absolute w-96 h-96 bg-[#d85a2a]/5 rounded-full blur-3xl bottom-20 -right-48 animate-pulse" style={{ animationDelay: '1s' }}></div>
+        <div className="absolute w-72 h-72 bg-[#d85a2a]/5 rounded-full blur-2xl top-1/2 right-1/4 animate-pulse" style={{ animationDelay: '0.5s' }}></div>
       </div>
 
-      <div className="bg-white/95 backdrop-blur-sm border-b-2 border-white/50 p-4 relative z-10 shadow-lg">
+      <div className="bg-[#1f2937]/95 backdrop-blur-sm border-b-2 border-[#d85a2a]/20 p-4 relative z-10 shadow-lg">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <button onClick={onBack} className="flex items-center gap-2 text-orange-600 hover:text-orange-500 transition-colors">
+          <button onClick={onBack} className="flex items-center gap-2 text-[#FF8C42] hover:text-orange-500 transition-colors">
             <ChevronLeft className="w-5 h-5" />
             <span className="font-semibold">Back</span>
           </button>
           <div className="text-center">
-            <h2 className="text-4xl md:text-5xl font-black text-orange-600">Reviews</h2>
+            <h2 className="text-4xl md:text-5xl font-black text-[#FF8C42]">Reviews</h2>
           </div>
           <div className="w-20"></div>
         </div>
@@ -125,29 +125,29 @@ const ReviewsReputation = ({ onBack }) => {
               <div className="text-4xl font-black mb-1">{stats.overallRating}</div>
               <div className="text-sm font-semibold opacity-90">Overall Rating</div>
             </div>
-            <div className="bg-white/95 backdrop-blur-sm rounded-2xl p-6 border-2 border-white/50 shadow-lg">
-              <div className="text-3xl font-black text-orange-600 mb-1">{stats.totalReviews}</div>
+            <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-2xl p-6 border-2 border-[#d85a2a]/20 shadow-lg">
+              <div className="text-3xl font-black text-[#FF8C42] mb-1">{stats.totalReviews}</div>
               <div className="text-xs font-semibold text-gray-600">Total Reviews</div>
             </div>
-            <div className="bg-white/95 backdrop-blur-sm rounded-2xl p-6 border-2 border-white/50 shadow-lg">
+            <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-2xl p-6 border-2 border-[#d85a2a]/20 shadow-lg">
               <div className="text-3xl font-black text-pink-600 mb-1">{stats.airbnb}</div>
               <div className="text-xs font-semibold text-gray-600">Airbnb Rating</div>
             </div>
-            <div className="bg-white/95 backdrop-blur-sm rounded-2xl p-6 border-2 border-white/50 shadow-lg">
+            <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-2xl p-6 border-2 border-[#d85a2a]/20 shadow-lg">
               <div className="text-3xl font-black text-blue-600 mb-1">{stats.booking}</div>
               <div className="text-xs font-semibold text-gray-600">Booking.com</div>
             </div>
-            <div className="bg-white/95 backdrop-blur-sm rounded-2xl p-6 border-2 border-white/50 shadow-lg">
+            <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-2xl p-6 border-2 border-[#d85a2a]/20 shadow-lg">
               <div className="text-3xl font-black text-green-600 mb-1">{stats.responseRate}</div>
               <div className="text-xs font-semibold text-gray-600">Response Rate</div>
             </div>
           </div>
 
           {/* Sentiment Analytics */}
-          <div className="bg-white/95 backdrop-blur-sm rounded-2xl p-6 border-2 border-white/50 shadow-lg">
+          <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-2xl p-6 border-2 border-[#d85a2a]/20 shadow-lg">
             <div className="flex items-center gap-2 mb-4">
-              <TrendingUp className="w-6 h-6 text-orange-600" />
-              <h3 className="text-xl font-black text-orange-600">Sentiment Analytics</h3>
+              <TrendingUp className="w-6 h-6 text-[#FF8C42]" />
+              <h3 className="text-xl font-black text-[#FF8C42]">Sentiment Analytics</h3>
             </div>
             <div className="grid grid-cols-3 gap-4">
               <div className="bg-green-50 rounded-xl p-4 border-2 border-green-200">
@@ -175,7 +175,7 @@ const ReviewsReputation = ({ onBack }) => {
           </div>
 
           {/* Search and Filters */}
-          <div className="bg-white/95 backdrop-blur-sm rounded-2xl p-4 border-2 border-white/50 shadow-lg">
+          <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-2xl p-4 border-2 border-[#d85a2a]/20 shadow-lg">
             <div className="grid md:grid-cols-4 gap-3">
               {/* Search */}
               <div className="relative">
@@ -228,7 +228,7 @@ const ReviewsReputation = ({ onBack }) => {
             </div>
           </div>
 
-          <div className="bg-white/95 backdrop-blur-sm rounded-2xl p-4 border-2 border-white/50 shadow-lg">
+          <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-2xl p-4 border-2 border-[#d85a2a]/20 shadow-lg">
             <div className="flex gap-2 overflow-x-auto">
               {platforms.map((platform) => (
                 <button
@@ -251,11 +251,11 @@ const ReviewsReputation = ({ onBack }) => {
             <h2 className="text-2xl font-black text-white drop-shadow-lg">Recent Reviews</h2>
 
             {filteredReviews.map((review) => (
-              <div key={review.id} className="bg-white/95 backdrop-blur-sm rounded-3xl p-6 border-2 border-white/50 hover:shadow-2xl transition-all shadow-xl">
+              <div key={review.id} className="bg-[#1f2937]/95 backdrop-blur-sm rounded-3xl p-6 border-2 border-[#d85a2a]/20 hover:shadow-2xl transition-all shadow-xl">
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex-1">
                     <div className="flex items-center gap-3 mb-2">
-                      <h3 className="text-lg font-black text-orange-600">{review.guest}</h3>
+                      <h3 className="text-lg font-black text-[#FF8C42]">{review.guest}</h3>
                       <span className="px-3 py-1 bg-gray-100 rounded-lg text-xs font-bold text-gray-700">
                         {review.platform}
                       </span>
@@ -275,7 +275,7 @@ const ReviewsReputation = ({ onBack }) => {
                   <div className="mt-4 pt-4 border-t-2 border-gray-100">
                     <div className="flex items-center gap-2 mb-2">
                       <div className="w-2 h-2 bg-orange-600 rounded-full"></div>
-                      <span className="text-sm font-bold text-orange-600">Your Response</span>
+                      <span className="text-sm font-bold text-[#FF8C42]">Your Response</span>
                     </div>
                     <p className="text-gray-600 text-sm bg-orange-50 rounded-xl p-3">{review.response}</p>
                   </div>
@@ -305,8 +305,8 @@ const ReviewsReputation = ({ onBack }) => {
             ))}
           </div>
 
-          <div className="bg-white/95 backdrop-blur-sm rounded-3xl p-6 border-2 border-white/50 shadow-xl">
-            <h3 className="text-xl font-black text-orange-600 mb-4">Quick Response Templates</h3>
+          <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-3xl p-6 border-2 border-[#d85a2a]/20 shadow-xl">
+            <h3 className="text-xl font-black text-[#FF8C42] mb-4">Quick Response Templates</h3>
             <div className="grid md:grid-cols-3 gap-4">
               <button className="p-4 bg-green-50 border-2 border-green-200 rounded-xl hover:bg-green-100 transition-all text-left">
                 <div className="flex items-center gap-2 mb-2">
@@ -337,7 +337,7 @@ const ReviewsReputation = ({ onBack }) => {
       {/* Response Modal */}
       {selectedReview && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-3xl max-w-2xl w-full max-h-[90vh] overflow-auto shadow-2xl">
+          <div className="bg-[#1f2937] rounded-3xl max-w-2xl w-full max-h-[90vh] overflow-auto shadow-2xl">
             <div className="sticky top-0 bg-gradient-to-r from-orange-500 to-orange-600 p-6 rounded-t-3xl">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-2xl font-black text-white">Reply to Review</h3>
@@ -346,7 +346,7 @@ const ReviewsReputation = ({ onBack }) => {
                     setSelectedReview(null);
                     setResponseText('');
                   }}
-                  className="w-10 h-10 bg-white/20 hover:bg-white/30 rounded-full flex items-center justify-center transition-all"
+                  className="w-10 h-10 bg-[#d85a2a]/10 hover:bg-white/30 rounded-full flex items-center justify-center transition-all"
                 >
                   <X className="w-6 h-6 text-white" />
                 </button>
@@ -365,7 +365,7 @@ const ReviewsReputation = ({ onBack }) => {
             <div className="p-6 space-y-6">
               {/* Original Review */}
               <div>
-                <label className="text-sm font-bold text-orange-600 mb-2 block">Original Review</label>
+                <label className="text-sm font-bold text-[#FF8C42] mb-2 block">Original Review</label>
                 <div className="bg-gray-50 rounded-xl p-4">
                   <p className="text-gray-700">{selectedReview.comment}</p>
                 </div>
@@ -373,7 +373,7 @@ const ReviewsReputation = ({ onBack }) => {
 
               {/* Quick Templates */}
               <div>
-                <label className="text-sm font-bold text-orange-600 mb-2 block">Quick Templates</label>
+                <label className="text-sm font-bold text-[#FF8C42] mb-2 block">Quick Templates</label>
                 <div className="grid grid-cols-3 gap-2">
                   <button
                     onClick={() => getTemplateResponse('positive')}
@@ -401,7 +401,7 @@ const ReviewsReputation = ({ onBack }) => {
 
               {/* Response Textarea */}
               <div>
-                <label className="text-sm font-bold text-orange-600 mb-2 block">Your Response</label>
+                <label className="text-sm font-bold text-[#FF8C42] mb-2 block">Your Response</label>
                 <textarea
                   value={responseText}
                   onChange={(e) => setResponseText(e.target.value)}

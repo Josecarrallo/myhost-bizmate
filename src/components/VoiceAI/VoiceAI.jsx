@@ -84,22 +84,22 @@ const VoiceAIAgent = ({ onBack }) => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-400 via-orange-500 to-orange-600 flex flex-col relative overflow-hidden">
+    <div className="min-h-screen bg-[#2a2f3a] flex flex-col relative overflow-hidden">
       {/* Animated background elements */}
       <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute w-96 h-96 bg-orange-300/20 rounded-full blur-3xl top-20 -left-48 animate-pulse"></div>
-        <div className="absolute w-96 h-96 bg-orange-300/20 rounded-full blur-3xl bottom-20 -right-48 animate-pulse" style={{ animationDelay: '1s' }}></div>
-        <div className="absolute w-72 h-72 bg-orange-200/30 rounded-full blur-2xl top-1/2 right-1/4 animate-pulse" style={{ animationDelay: '0.5s' }}></div>
+        <div className="absolute w-96 h-96 bg-[#d85a2a]/5 rounded-full blur-3xl top-20 -left-48 animate-pulse"></div>
+        <div className="absolute w-96 h-96 bg-[#d85a2a]/5 rounded-full blur-3xl bottom-20 -right-48 animate-pulse" style={{ animationDelay: '1s' }}></div>
+        <div className="absolute w-72 h-72 bg-[#d85a2a]/5 rounded-full blur-2xl top-1/2 right-1/4 animate-pulse" style={{ animationDelay: '0.5s' }}></div>
       </div>
 
-      <div className="bg-white/95 backdrop-blur-sm border-b-2 border-white/50 p-4 relative z-10 shadow-lg">
+      <div className="bg-[#1f2937]/95 backdrop-blur-sm border-b-2 border-[#d85a2a]/20 p-4 relative z-10 shadow-lg">
         <div className="max-w-6xl mx-auto flex items-center justify-between">
-          <button onClick={onBack} className="flex items-center gap-2 text-orange-600 hover:text-orange-500 transition-colors">
+          <button onClick={onBack} className="flex items-center gap-2 text-[#FF8C42] hover:text-orange-500 transition-colors">
             <ChevronLeft className="w-5 h-5" />
             <span className="font-semibold">Back</span>
           </button>
           <div className="text-center">
-            <h2 className="text-4xl md:text-5xl font-black text-orange-600">Voice AI</h2>
+            <h2 className="text-4xl md:text-5xl font-black text-[#FF8C42]">Voice AI</h2>
           </div>
           <div className="w-20"></div>
         </div>
@@ -108,27 +108,27 @@ const VoiceAIAgent = ({ onBack }) => {
       <div className="flex-1 overflow-auto p-6 relative z-10">
         <div className="max-w-6xl mx-auto space-y-6">
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-            <div className="bg-white/95 backdrop-blur-sm rounded-2xl p-4 border-2 border-white/50 shadow-lg">
-              <div className="text-3xl font-black text-purple-600">{mockStats.totalCalls}</div>
+            <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-2xl p-4 border-2 border-[#d85a2a]/20 shadow-lg">
+              <div className="text-3xl font-black text-[#FF8C42]">{mockStats.totalCalls}</div>
               <div className="text-xs font-semibold text-gray-600 mt-1">Total Calls</div>
             </div>
-            <div className="bg-white/95 backdrop-blur-sm rounded-2xl p-4 border-2 border-white/50 shadow-lg">
+            <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-2xl p-4 border-2 border-[#d85a2a]/20 shadow-lg">
               <div className="text-3xl font-black text-blue-600">{mockStats.avgDuration}</div>
               <div className="text-xs font-semibold text-gray-600 mt-1">Avg Duration</div>
             </div>
-            <div className="bg-white/95 backdrop-blur-sm rounded-2xl p-4 border-2 border-white/50 shadow-lg">
+            <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-2xl p-4 border-2 border-[#d85a2a]/20 shadow-lg">
               <div className="text-3xl font-black text-green-600">{mockStats.satisfactionRate}</div>
               <div className="text-xs font-semibold text-gray-600 mt-1">Satisfaction</div>
             </div>
-            <div className="bg-white/95 backdrop-blur-sm rounded-2xl p-4 border-2 border-white/50 shadow-lg">
-              <div className="text-3xl font-black text-orange-600">{mockStats.autoResolved}</div>
+            <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-2xl p-4 border-2 border-[#d85a2a]/20 shadow-lg">
+              <div className="text-3xl font-black text-[#FF8C42]">{mockStats.autoResolved}</div>
               <div className="text-xs font-semibold text-gray-600 mt-1">Auto Resolved</div>
             </div>
-            <div className="bg-white/95 backdrop-blur-sm rounded-2xl p-4 border-2 border-white/50 shadow-lg">
-              <div className="text-3xl font-black text-pink-600">{mockStats.callsToday}</div>
+            <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-2xl p-4 border-2 border-[#d85a2a]/20 shadow-lg">
+              <div className="text-3xl font-black text-[#FF8C42]">{mockStats.callsToday}</div>
               <div className="text-xs font-semibold text-gray-600 mt-1">Calls Today</div>
             </div>
-            <div className="bg-white/95 backdrop-blur-sm rounded-2xl p-4 border-2 border-white/50 shadow-lg">
+            <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-2xl p-4 border-2 border-[#d85a2a]/20 shadow-lg">
               <div className="text-3xl font-black text-red-600">{mockStats.activeNow}</div>
               <div className="text-xs font-semibold text-gray-600 mt-1">Active Now</div>
             </div>
@@ -136,15 +136,15 @@ const VoiceAIAgent = ({ onBack }) => {
 
           <div className="grid lg:grid-cols-2 gap-6">
             <div className="space-y-6">
-              <div className="bg-white/95 backdrop-blur-sm rounded-3xl p-8 border-2 border-white/50 shadow-2xl">
-                <h2 className="text-2xl font-black mb-6 text-orange-600">Voice Agent Control</h2>
+              <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-3xl p-8 border-2 border-[#d85a2a]/20 shadow-2xl">
+                <h2 className="text-2xl font-black mb-6 text-[#FF8C42]">Voice Agent Control</h2>
 
                 {callStatus === 'idle' && (
                   <div className="text-center py-12">
                     <div className="w-32 h-32 mx-auto rounded-full bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center mb-6 shadow-2xl">
                       <MessageSquare className="w-16 h-16 text-white" />
                     </div>
-                    <h3 className="text-2xl font-black text-orange-600 mb-2">Agent Ready</h3>
+                    <h3 className="text-2xl font-black text-[#FF8C42] mb-2">Agent Ready</h3>
                     <p className="text-gray-600 mb-8">Start a demo call to test the AI voice agent</p>
                     <button
                       onClick={startCall}
@@ -160,7 +160,7 @@ const VoiceAIAgent = ({ onBack }) => {
                     <div className="w-32 h-32 mx-auto rounded-full bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center mb-6 shadow-2xl animate-pulse">
                       <Phone className="w-16 h-16 text-white" />
                     </div>
-                    <h3 className="text-2xl font-black text-orange-600 mb-2">Connecting...</h3>
+                    <h3 className="text-2xl font-black text-[#FF8C42] mb-2">Connecting...</h3>
                     <p className="text-gray-600">Establishing connection with AI agent</p>
                   </div>
                 )}
@@ -172,7 +172,7 @@ const VoiceAIAgent = ({ onBack }) => {
                       <div className="absolute inset-0 rounded-full border-4 border-green-400 animate-ping"></div>
                     </div>
                     <h3 className="text-2xl font-black text-green-600 mb-2">Call Active</h3>
-                    <p className="text-orange-600 font-bold text-lg mb-2">{currentCall?.guestName}</p>
+                    <p className="text-[#FF8C42] font-bold text-lg mb-2">{currentCall?.guestName}</p>
                     <p className="text-gray-600 mb-6">{currentCall?.topic}</p>
 
                     <div className="flex items-center justify-center gap-2 mb-8">
@@ -202,22 +202,22 @@ const VoiceAIAgent = ({ onBack }) => {
                     <div className="w-32 h-32 mx-auto rounded-full bg-gradient-to-br from-gray-500 to-gray-600 flex items-center justify-center mb-6 shadow-2xl">
                       <CheckCircle className="w-16 h-16 text-white" />
                     </div>
-                    <h3 className="text-2xl font-black text-orange-600 mb-2">Call Ended</h3>
+                    <h3 className="text-2xl font-black text-[#FF8C42] mb-2">Call Ended</h3>
                     <p className="text-gray-600">Saving call summary...</p>
                   </div>
                 )}
               </div>
 
-              <div className="bg-white/95 backdrop-blur-sm rounded-3xl p-6 border-2 border-white/50 shadow-2xl">
-                <h3 className="text-xl font-black mb-4 text-orange-600">Voice Settings</h3>
+              <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-3xl p-6 border-2 border-[#d85a2a]/20 shadow-2xl">
+                <h3 className="text-xl font-black mb-4 text-[#FF8C42]">Voice Settings</h3>
 
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-sm font-bold text-orange-600 mb-2">Language</label>
+                    <label className="block text-sm font-bold text-[#FF8C42] mb-2">Language</label>
                     <select
                       value={voiceSettings.language}
                       onChange={(e) => setVoiceSettings({...voiceSettings, language: e.target.value})}
-                      className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-orange-500 focus:outline-none font-semibold text-orange-600"
+                      className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-orange-500 focus:outline-none font-semibold text-[#FF8C42]"
                     >
                       <option value="en">English</option>
                       <option value="es">Español</option>
@@ -228,11 +228,11 @@ const VoiceAIAgent = ({ onBack }) => {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-bold text-orange-600 mb-2">Voice Type</label>
+                    <label className="block text-sm font-bold text-[#FF8C42] mb-2">Voice Type</label>
                     <select
                       value={voiceSettings.voice}
                       onChange={(e) => setVoiceSettings({...voiceSettings, voice: e.target.value})}
-                      className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-orange-500 focus:outline-none font-semibold text-orange-600"
+                      className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-orange-500 focus:outline-none font-semibold text-[#FF8C42]"
                     >
                       <option value="female">Female - Professional</option>
                       <option value="male">Male - Professional</option>
@@ -241,11 +241,11 @@ const VoiceAIAgent = ({ onBack }) => {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-bold text-orange-600 mb-2">Speaking Speed</label>
+                    <label className="block text-sm font-bold text-[#FF8C42] mb-2">Speaking Speed</label>
                     <select
                       value={voiceSettings.speed}
                       onChange={(e) => setVoiceSettings({...voiceSettings, speed: e.target.value})}
-                      className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-orange-500 focus:outline-none font-semibold text-orange-600"
+                      className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-orange-500 focus:outline-none font-semibold text-[#FF8C42]"
                     >
                       <option value="slow">Slow</option>
                       <option value="normal">Normal</option>
@@ -255,7 +255,7 @@ const VoiceAIAgent = ({ onBack }) => {
 
                   <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
                     <div>
-                      <div className="font-bold text-orange-600">Auto-answer Calls</div>
+                      <div className="font-bold text-[#FF8C42]">Auto-answer Calls</div>
                       <div className="text-xs text-gray-600">Agent answers automatically</div>
                     </div>
                     <button
@@ -273,9 +273,9 @@ const VoiceAIAgent = ({ onBack }) => {
               </div>
             </div>
 
-            <div className="bg-white/95 backdrop-blur-sm rounded-3xl p-6 border-2 border-white/50 shadow-2xl">
+            <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-3xl p-6 border-2 border-[#d85a2a]/20 shadow-2xl">
               <div className="flex items-center justify-between mb-6">
-                <h2 className="text-2xl font-black text-orange-600">Call History</h2>
+                <h2 className="text-2xl font-black text-[#FF8C42]">Call History</h2>
                 <button className="px-4 py-2 bg-gray-100 text-gray-700 rounded-xl font-bold hover:bg-gray-200 transition-all text-sm">
                   Export
                 </button>
@@ -286,12 +286,12 @@ const VoiceAIAgent = ({ onBack }) => {
                   <div key={call.id} className="border-2 border-gray-200 rounded-2xl p-4 hover:border-orange-300 hover:shadow-lg transition-all">
                     <div className="flex items-start justify-between mb-3">
                       <div>
-                        <h4 className="font-black text-lg text-orange-600">{call.guestName}</h4>
+                        <h4 className="font-black text-lg text-[#FF8C42]">{call.guestName}</h4>
                         <p className="text-sm text-gray-600">{call.timestamp}</p>
                       </div>
                       <div className="flex items-center gap-2">
                         <Clock className="w-4 h-4 text-gray-500" />
-                        <span className="font-bold text-sm text-orange-600">{call.duration}</span>
+                        <span className="font-bold text-sm text-[#FF8C42]">{call.duration}</span>
                       </div>
                     </div>
 
@@ -325,17 +325,17 @@ const VoiceAIAgent = ({ onBack }) => {
           <div className="grid md:grid-cols-3 gap-4">
             <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-2xl p-6 border-2 border-purple-200">
               <div className="text-4xl mb-3">🌍</div>
-              <h3 className="font-black text-lg text-orange-600 mb-2">Multi-language</h3>
+              <h3 className="font-black text-lg text-[#FF8C42] mb-2">Multi-language</h3>
               <p className="text-sm text-gray-700">Supports 50+ languages with natural accent</p>
             </div>
             <div className="bg-gradient-to-br from-pink-50 to-pink-100 rounded-2xl p-6 border-2 border-pink-200">
               <div className="text-4xl mb-3">🤖</div>
-              <h3 className="font-black text-lg text-orange-600 mb-2">24/7 Availability</h3>
+              <h3 className="font-black text-lg text-[#FF8C42] mb-2">24/7 Availability</h3>
               <p className="text-sm text-gray-700">Never miss a call, always available for guests</p>
             </div>
             <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-2xl p-6 border-2 border-blue-200">
               <div className="text-4xl mb-3">⚡</div>
-              <h3 className="font-black text-lg text-orange-600 mb-2">Instant Actions</h3>
+              <h3 className="font-black text-lg text-[#FF8C42] mb-2">Instant Actions</h3>
               <p className="text-sm text-gray-700">Creates bookings, sends info, updates calendar</p>
             </div>
           </div>
