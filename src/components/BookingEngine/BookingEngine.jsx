@@ -124,7 +124,7 @@ const BookingEngineWidget = ({ onBack }) => {
         <div className="max-w-4xl mx-auto flex items-center justify-between">
           <button
             onClick={onBack}
-            className="flex items-center gap-2 text-[#FF8C42] hover:text-orange-500 transition-colors"
+            className="flex items-center gap-2 text-[#FF8C42] hover:text-[#FF8C42] transition-colors"
           >
             <ChevronLeft className="w-5 h-5" />
             <span className="font-semibold">Back</span>
@@ -153,7 +153,7 @@ const BookingEngineWidget = ({ onBack }) => {
                   }`}>
                     {s.num}
                   </div>
-                  <span className={`text-xs mt-2 font-semibold ${step >= s.num ? 'text-orange-500' : 'text-gray-400'}`}>
+                  <span className={`text-xs mt-2 font-semibold ${step >= s.num ? 'text-[#FF8C42]' : 'text-white/60'}`}>
                     {s.label}
                   </span>
                 </div>
@@ -181,7 +181,7 @@ const BookingEngineWidget = ({ onBack }) => {
                     min={getTodayDate()}
                     value={bookingData.checkIn}
                     onChange={(e) => setBookingData({...bookingData, checkIn: e.target.value})}
-                    className="w-full px-6 py-4 border-2 border-gray-200 rounded-2xl focus:border-orange-500 focus:outline-none text-lg font-semibold text-[#FF8C42]"
+                    className="w-full px-6 py-4 border-2 border-gray-200 rounded-2xl focus:border-[#d85a2a] focus:outline-none text-lg font-semibold text-[#FF8C42]"
                   />
                 </div>
 
@@ -193,14 +193,14 @@ const BookingEngineWidget = ({ onBack }) => {
                     value={bookingData.checkOut}
                     onChange={(e) => setBookingData({...bookingData, checkOut: e.target.value})}
                     disabled={!bookingData.checkIn}
-                    className="w-full px-6 py-4 border-2 border-gray-200 rounded-2xl focus:border-orange-500 focus:outline-none text-lg font-semibold text-[#FF8C42] disabled:bg-gray-100"
+                    className="w-full px-6 py-4 border-2 border-gray-200 rounded-2xl focus:border-[#d85a2a] focus:outline-none text-lg font-semibold text-[#FF8C42] disabled:bg-gray-100"
                   />
                 </div>
 
                 {calculateNights() > 0 && (
                   <div className="bg-gradient-to-r from-orange-50 to-pink-50 rounded-2xl p-6">
                     <p className="text-center">
-                      <span className="text-5xl font-black text-orange-500">{calculateNights()}</span>
+                      <span className="text-5xl font-black text-[#FF8C42]">{calculateNights()}</span>
                       <span className="text-xl font-bold text-[#FF8C42] ml-3">
                         {calculateNights() === 1 ? 'Night' : 'Nights'}
                       </span>
@@ -242,7 +242,7 @@ const BookingEngineWidget = ({ onBack }) => {
                         onClick={() => setBookingData({...bookingData, property: property.id})}
                         className={`bg-white rounded-2xl p-6 border-2 transition-all text-left ${
                           propertyIsSelected
-                            ? 'border-orange-500 shadow-xl bg-orange-50'
+                            ? 'border-[#d85a2a] shadow-xl bg-[#1f2937]'
                             : 'border-gray-200 hover:border-orange-300 hover:shadow-lg'
                         }`}
                       >
@@ -264,11 +264,11 @@ const BookingEngineWidget = ({ onBack }) => {
 
                             <div className="flex items-center justify-between">
                               <div>
-                                <span className="text-3xl font-black text-orange-500">${property.base_price}</span>
+                                <span className="text-3xl font-black text-[#FF8C42]">${property.base_price}</span>
                                 <span className="text-gray-600 ml-2">/ night</span>
                               </div>
                               {propertyIsSelected && (
-                                <div className="px-4 py-2 bg-orange-500 text-white rounded-xl font-bold">
+                                <div className="px-4 py-2 bg-[#1f2937]0 text-white rounded-xl font-bold">
                                   Selected ✓
                                 </div>
                               )}
@@ -322,7 +322,7 @@ const BookingEngineWidget = ({ onBack }) => {
                     max="10"
                     value={bookingData.guests}
                     onChange={(e) => setBookingData({...bookingData, guests: parseInt(e.target.value)})}
-                    className="w-full px-6 py-4 border-2 border-gray-200 rounded-2xl focus:border-orange-500 focus:outline-none text-lg font-semibold text-[#FF8C42]"
+                    className="w-full px-6 py-4 border-2 border-gray-200 rounded-2xl focus:border-[#d85a2a] focus:outline-none text-lg font-semibold text-[#FF8C42]"
                   />
                 </div>
 
@@ -333,7 +333,7 @@ const BookingEngineWidget = ({ onBack }) => {
                     placeholder="John Doe"
                     value={bookingData.guestName}
                     onChange={(e) => setBookingData({...bookingData, guestName: e.target.value})}
-                    className="w-full px-6 py-4 border-2 border-gray-200 rounded-2xl focus:border-orange-500 focus:outline-none text-lg text-[#FF8C42] placeholder:text-gray-400"
+                    className="w-full px-6 py-4 border-2 border-gray-200 rounded-2xl focus:border-[#d85a2a] focus:outline-none text-lg text-[#FF8C42] placeholder:text-white/60"
                   />
                 </div>
 
@@ -344,7 +344,7 @@ const BookingEngineWidget = ({ onBack }) => {
                     placeholder="john@example.com"
                     value={bookingData.guestEmail}
                     onChange={(e) => setBookingData({...bookingData, guestEmail: e.target.value})}
-                    className="w-full px-6 py-4 border-2 border-gray-200 rounded-2xl focus:border-orange-500 focus:outline-none text-lg text-[#FF8C42] placeholder:text-gray-400"
+                    className="w-full px-6 py-4 border-2 border-gray-200 rounded-2xl focus:border-[#d85a2a] focus:outline-none text-lg text-[#FF8C42] placeholder:text-white/60"
                   />
                 </div>
 
@@ -355,7 +355,7 @@ const BookingEngineWidget = ({ onBack }) => {
                     placeholder="+1 555-0000"
                     value={bookingData.guestPhone}
                     onChange={(e) => setBookingData({...bookingData, guestPhone: e.target.value})}
-                    className="w-full px-6 py-4 border-2 border-gray-200 rounded-2xl focus:border-orange-500 focus:outline-none text-lg text-[#FF8C42] placeholder:text-gray-400"
+                    className="w-full px-6 py-4 border-2 border-gray-200 rounded-2xl focus:border-[#d85a2a] focus:outline-none text-lg text-[#FF8C42] placeholder:text-white/60"
                   />
                 </div>
 
@@ -366,7 +366,7 @@ const BookingEngineWidget = ({ onBack }) => {
                     value={bookingData.specialRequests}
                     onChange={(e) => setBookingData({...bookingData, specialRequests: e.target.value})}
                     rows="4"
-                    className="w-full px-6 py-4 border-2 border-gray-200 rounded-2xl focus:border-orange-500 focus:outline-none text-lg resize-none text-[#FF8C42] placeholder:text-gray-400"
+                    className="w-full px-6 py-4 border-2 border-gray-200 rounded-2xl focus:border-[#d85a2a] focus:outline-none text-lg resize-none text-[#FF8C42] placeholder:text-white/60"
                   />
                 </div>
               </div>
@@ -428,8 +428,8 @@ const BookingEngineWidget = ({ onBack }) => {
               <PricingBreakdown pricing={pricing} loading={loadingPricing} />
 
               <div className="bg-[#1f2937] rounded-3xl p-8 border-2 border-gray-200 shadow-xl">
-                <div className="bg-blue-50 rounded-2xl p-4 border-2 border-blue-200">
-                  <p className="text-sm text-blue-900 flex items-center gap-2">
+                <div className="bg-[#3b82f6]/10 rounded-2xl p-4 border-2 border-[#3b82f6]/30">
+                  <p className="text-sm text-[#3b82f6] flex items-center gap-2">
                     <AlertCircle className="w-5 h-5" />
                     <span>Payment integration will be implemented in next phase</span>
                   </p>

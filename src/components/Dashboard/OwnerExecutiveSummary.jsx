@@ -251,8 +251,8 @@ const OwnerExecutiveSummary = ({ userName = 'José' }) => {
                   return (
                     <div key={index} className="px-6 py-4 flex items-center justify-between hover:bg-[#d85a2a]/5 transition-colors">
                       <div className="flex items-center gap-4 flex-1">
-                        <div className={`p-2 rounded-lg ${action.alert ? 'bg-orange-100' : 'bg-blue-100'}`}>
-                          <Icon className={`w-5 h-5 ${action.alert ? 'text-orange-600' : 'text-blue-600'}`} />
+                        <div className={`p-2 rounded-lg ${action.alert ? 'bg-[#d85a2a]/20' : 'bg-[#3b82f6]/20'}`}>
+                          <Icon className={`w-5 h-5 ${action.alert ? 'text-[#FF8C42]' : 'text-[#3b82f6]'}`} />
                         </div>
                         <div className="flex-1">
                           <p className="font-medium text-white">{action.label}</p>
@@ -264,8 +264,8 @@ const OwnerExecutiveSummary = ({ userName = 'José' }) => {
                       </div>
                       <span className={`px-3 py-1 rounded-full text-xs font-medium ${
                         action.statusColor === 'orange'
-                          ? 'bg-orange-100 text-orange-700'
-                          : 'bg-blue-100 text-blue-700'
+                          ? 'bg-[#d85a2a]/20 text-orange-700'
+                          : 'bg-[#3b82f6]/20 text-[#3b82f6]'
                       }`}>
                         {action.status}
                       </span>
