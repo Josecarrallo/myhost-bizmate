@@ -255,7 +255,7 @@ const BookingEngineWidget = ({ onBack }) => {
                             {showAvailability && (
                               <div className={`mb-3 px-3 py-2 rounded-lg inline-block ${
                                 isAvailable
-                                  ? 'bg-green-100 text-green-800'
+                                  ? 'bg-[#10b981]/20 text-[#10b981]'
                                   : 'bg-red-100 text-red-800'
                               }`}>
                                 {isAvailable ? '✓ Available' : '✗ Not Available'}
@@ -460,7 +460,7 @@ const BookingEngineWidget = ({ onBack }) => {
                 <p className="text-gray-600 mb-8">Copy this code to embed the booking widget on your website</p>
 
                 <div className="bg-gray-900 rounded-2xl p-6 overflow-x-auto">
-                  <code className="text-green-400 font-mono text-sm">
+                  <code className="text-[#10b981] font-mono text-sm">
                     {`<iframe
   src="https://yourdomain.com/booking-widget"
   width="100%"

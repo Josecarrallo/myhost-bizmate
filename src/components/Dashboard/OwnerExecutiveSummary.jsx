@@ -223,7 +223,7 @@ const OwnerExecutiveSummary = ({ userName = 'José' }) => {
                           {checkin.guests} guest{checkin.guests > 1 ? 's' : ''} • {checkin.nights} night{checkin.nights > 1 ? 's' : ''}
                         </p>
                       </div>
-                      <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-bold">
+                      <span className="px-3 py-1 bg-[#10b981]/20 text-[#10b981] rounded-full text-xs font-bold">
                         Today
                       </span>
                     </div>
