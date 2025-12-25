@@ -101,7 +101,7 @@ const VoiceAssistant = () => {
         transcriber: {
           provider: "deepgram",
           model: "nova-2",
-          language: "es"
+          language: "en"
         },
         model: {
           provider: "openai",
@@ -109,7 +109,7 @@ const VoiceAssistant = () => {
           messages: [
             {
               role: "system",
-              content: "Eres Ayu, la recepcionista virtual de Izumi Hotel en Ubud, Bali. Eres amable, profesional y ayudas a los huéspedes con sus consultas sobre reservas, servicios del hotel y recomendaciones locales."
+              content: "You are Ayu from Izumi Hotel in Bali. Always respond in English only. When the user asks anything, use the send_to_n8n tool to get the answer. Always use the tool for every question."
             }
           ]
         },
@@ -117,7 +117,7 @@ const VoiceAssistant = () => {
           provider: "11labs",
           voiceId: "paula"
         },
-        firstMessage: "Hola, soy Ayu, la recepcionista virtual de Izumi Hotel. ¿En qué puedo ayudarte hoy?"
+        firstMessage: "Hello! I'm Ayu, the virtual receptionist at Izumi Hotel. How may I help you today?"
       });
     } catch (error) {
       console.error('Error al iniciar llamada:', error);
