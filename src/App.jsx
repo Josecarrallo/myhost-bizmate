@@ -158,9 +158,9 @@ export default function App() {
   // Show loading spinner while checking auth
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-orange-400 via-orange-500 to-orange-600 flex items-center justify-center">
+      <div className="min-h-screen bg-[#2a2f3a] flex items-center justify-center">
         <div className="text-center">
-          <div className="w-16 h-16 border-4 border-white/30 border-t-white rounded-full animate-spin mx-auto mb-4"></div>
+          <div className="w-16 h-16 border-4 border-[#d85a2a]/30 border-t-[#d85a2a] rounded-full animate-spin mx-auto mb-4"></div>
           <p className="text-white text-xl font-bold">Loading...</p>
         </div>
       </div>
@@ -245,9 +245,9 @@ export default function App() {
       case 'settings':
         // Placeholder for settings
         return (
-          <div className="flex-1 bg-gray-50 p-6">
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">Settings</h2>
-            <p className="text-gray-600">Settings page coming soon...</p>
+          <div className="flex-1 bg-[#2a2f3a] p-6">
+            <h2 className="text-2xl font-bold text-white mb-4">Settings</h2>
+            <p className="text-white/80">Settings page coming soon...</p>
           </div>
         );
 
@@ -258,7 +258,7 @@ export default function App() {
 
   // Main App Layout with Sidebar
   return (
-    <div className="flex h-screen overflow-hidden bg-gray-50">
+    <div className="flex h-screen overflow-hidden bg-[#2a2f3a]">
       {/* Sidebar */}
       <Sidebar
         currentView={currentView}
@@ -270,16 +270,16 @@ export default function App() {
       {/* Main Content Container */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Mobile Header with Hamburger */}
-        <div className="lg:hidden bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between">
+        <div className="lg:hidden bg-[#1f2937] border-b border-[#d85a2a]/20 px-4 py-3 flex items-center justify-between">
           <button
             onClick={() => setIsSidebarOpen(true)}
-            className="p-2 rounded-lg hover:bg-gray-100"
+            className="p-2 rounded-lg hover:bg-[#2a2f3a]"
           >
-            <Menu className="w-6 h-6 text-gray-700" />
+            <Menu className="w-6 h-6 text-white" />
           </button>
           <div className="flex items-center gap-2">
-            <h1 className="text-lg font-bold text-orange-500">MY HOST</h1>
-            <span className="text-sm text-gray-600">BizMate</span>
+            <h1 className="text-lg font-bold text-[#FF8C42]">MY HOST</h1>
+            <span className="text-sm text-white/80">BizMate</span>
           </div>
           <div className="w-10" /> {/* Spacer for centering */}
         </div>

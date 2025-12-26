@@ -64,7 +64,7 @@ const AIAssistant = ({ onBack }) => {
             <div className="text-2xl">💬</div>
             <div>
               <p className="text-sm font-semibold text-orange-600 mb-2">Example query:</p>
-              <p className="text-gray-600 italic leading-relaxed">{userQuery}</p>
+              <p className="text-white/80 italic leading-relaxed">{userQuery}</p>
             </div>
           </div>
         </div>
@@ -82,13 +82,13 @@ const AIAssistant = ({ onBack }) => {
             <h3 className="text-lg font-bold text-orange-600 mb-4 flex items-center gap-2">📊 OCCUPANCY ANALYSIS</h3>
             <div className="grid gap-4">
               {aiResponse.properties.map((property, index) => (
-                <div key={index} className="bg-[#2a2f3a] rounded-lg p-4 shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
+                <div key={index} className="bg-[#2a2f3a] rounded-lg p-4 shadow-sm border border-[#d85a2a]/20 hover:shadow-md transition-shadow">
                   <div className="flex items-start justify-between mb-3">
                     <div className="flex items-center gap-3">
                       <span className="text-xl">🏠</span>
                       <div>
                         <h4 className="font-bold text-orange-600">{property.name}</h4>
-                        <p className="text-sm text-gray-500">${property.currentPrice}/night</p>
+                        <p className="text-sm text-white/70">${property.currentPrice}/night</p>
                       </div>
                     </div>
                     <span className={`px-3 py-1 rounded-full text-sm font-semibold ${getStatusColor(property.status)}`}>
