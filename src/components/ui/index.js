@@ -30,3 +30,5 @@ export {
 export { Progress } from './progress';
 export { RadioGroup, RadioGroupItem } from './radio-group';
 export { Checkbox } from './checkbox';
+export { Avatar, AvatarImage, AvatarFallback } from './avatar';
+export { Badge, badgeVariants } from './badge';

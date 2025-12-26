@@ -123,12 +123,12 @@ const Dashboard = ({ onBack }) => {
   ];
 
   return (
-    <div className="flex-1 h-screen bg-gradient-to-br from-orange-400 via-orange-500 to-orange-600 p-4 pb-24 relative overflow-auto">
+    <div className="flex-1 h-screen bg-[#2a2f3a] p-4 pb-24 relative overflow-auto">
       {/* Animated background elements */}
       <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute w-96 h-96 bg-orange-300/20 rounded-full blur-3xl top-20 -left-48 animate-pulse"></div>
-        <div className="absolute w-96 h-96 bg-orange-300/20 rounded-full blur-3xl bottom-20 -right-48 animate-pulse" style={{ animationDelay: '1s' }}></div>
-        <div className="absolute w-72 h-72 bg-orange-200/30 rounded-full blur-2xl top-1/2 right-1/4 animate-pulse" style={{ animationDelay: '0.5s' }}></div>
+        <div className="absolute w-96 h-96 bg-[#d85a2a]/5 rounded-full blur-3xl top-20 -left-48 animate-pulse"></div>
+        <div className="absolute w-96 h-96 bg-[#d85a2a]/5 rounded-full blur-3xl bottom-20 -right-48 animate-pulse" style={{ animationDelay: '1s' }}></div>
+        <div className="absolute w-72 h-72 bg-[#d85a2a]/5 rounded-full blur-2xl top-1/2 right-1/4 animate-pulse" style={{ animationDelay: '0.5s' }}></div>
       </div>
 
       <div className="max-w-7xl mx-auto relative z-10">
@@ -136,9 +136,9 @@ const Dashboard = ({ onBack }) => {
         <div className="flex items-center justify-between mb-8">
           <button
             onClick={onBack}
-            className="p-3 bg-white/95 backdrop-blur-sm rounded-2xl hover:bg-white transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 border-2 border-white/50"
+            className="p-3 bg-[#1f2937] rounded-2xl hover:bg-[#374151] transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 border border-[#d85a2a]/20"
           >
-            <ChevronLeft className="w-6 h-6 text-orange-600" />
+            <ChevronLeft className="w-6 h-6 text-[#FF8C42]" />
           </button>
 
           <div className="text-center">
@@ -153,7 +153,7 @@ const Dashboard = ({ onBack }) => {
           {kpis.map((kpi, index) => (
             <div
               key={index}
-              className="bg-gradient-to-br from-orange-500 to-orange-600 rounded-2xl p-6 border-2 border-white/50 shadow-xl"
+              className="bg-gradient-to-br from-[#1f2937] to-[#374151] rounded-2xl p-6 border border-[#d85a2a]/20 shadow-xl"
             >
               <p className="text-sm text-white/80 mb-2">{kpi.label}</p>
               <div className="flex items-baseline gap-2 mb-1">
@@ -161,11 +161,11 @@ const Dashboard = ({ onBack }) => {
                 {kpi.change && (
                   <div className="flex items-center gap-1">
                     {kpi.trend === 'up' ? (
-                      <TrendingUp className="w-4 h-4 text-white" />
+                      <TrendingUp className="w-4 h-4 text-[#10b981]" />
                     ) : (
-                      <TrendingDown className="w-4 h-4 text-white" />
+                      <TrendingDown className="w-4 h-4 text-red-400" />
                     )}
-                    <span className="text-sm font-medium text-white">
+                    <span className={`text-sm font-medium ${kpi.trend === 'up' ? 'text-[#10b981]' : 'text-red-400'}`}>
                       {kpi.change}
                     </span>
                   </div>
@@ -184,17 +184,17 @@ const Dashboard = ({ onBack }) => {
         {/* Charts Row */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
           {/* Revenue & Occupancy Chart */}
-          <div className="bg-white/95 backdrop-blur-sm rounded-3xl p-6 border-2 border-white/50 shadow-2xl">
-            <h3 className="text-xl font-black text-orange-600 mb-4">Revenue & Occupancy</h3>
+          <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-3xl p-6 border border-[#d85a2a]/20 shadow-2xl">
+            <h3 className="text-xl font-black text-[#FF8C42] mb-4">Revenue & Occupancy</h3>
             <ResponsiveContainer width="100%" height={280}>
               <LineChart data={revenueOccupancyData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
                 <XAxis
                   dataKey="day"
-                  stroke="#6b7280"
+                  stroke="#9ca3af"
                   style={{ fontSize: '12px' }}
                 />
-                <YAxis stroke="#6b7280" style={{ fontSize: '12px' }} />
+                <YAxis stroke="#9ca3af" style={{ fontSize: '12px' }} />
                 <Tooltip
                   contentStyle={{
                     backgroundColor: '#fff',
@@ -224,8 +224,8 @@ const Dashboard = ({ onBack }) => {
           </div>
 
           {/* Bookings by Channel Pie Chart */}
-          <div className="bg-white/95 backdrop-blur-sm rounded-3xl p-6 border-2 border-white/50 shadow-2xl">
-            <h3 className="text-xl font-black text-orange-600 mb-4">Bookings by Channel</h3>
+          <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-3xl p-6 border border-[#d85a2a]/20 shadow-2xl">
+            <h3 className="text-xl font-black text-[#FF8C42] mb-4">Bookings by Channel</h3>
             <ResponsiveContainer width="100%" height={280}>
               <PieChart>
                 <Pie
@@ -251,10 +251,10 @@ const Dashboard = ({ onBack }) => {
         {/* Bottom Row: Availability, Alerts, AI Recommendation */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Availability Snapshot */}
-          <div className="bg-white/95 backdrop-blur-sm rounded-3xl p-6 border-2 border-white/50 shadow-2xl">
+          <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-3xl p-6 border border-[#d85a2a]/20 shadow-2xl">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-xl font-black text-orange-600">Availability Snapshot</h3>
-              <span className="text-sm font-medium text-orange-600">{availableCount} sid</span>
+              <h3 className="text-xl font-black text-[#FF8C42]">Availability Snapshot</h3>
+              <span className="text-sm font-medium text-[#FF8C42]">{availableCount} sid</span>
             </div>
             <div className="grid grid-cols-7 gap-2">
               {availabilityDays.map((day, index) => (
@@ -263,8 +263,8 @@ const Dashboard = ({ onBack }) => {
                   className={`
                     aspect-square rounded-lg flex items-center justify-center text-sm font-medium
                     ${day.status === 'available'
-                      ? 'bg-orange-100 text-orange-700 border border-orange-300'
-                      : 'bg-gray-100 text-gray-500 border border-gray-200'
+                      ? 'bg-[#10b981]/20 text-[#10b981] border border-[#10b981]/30'
+                      : 'bg-[#374151] text-white/60 border border-white/10'
                     }
                   `}
                 >
@@ -275,17 +275,17 @@ const Dashboard = ({ onBack }) => {
           </div>
 
           {/* Alerts */}
-          <div className="bg-white/95 backdrop-blur-sm rounded-3xl p-6 border-2 border-white/50 shadow-2xl">
-            <h3 className="text-xl font-black text-orange-600 mb-4">Alerts</h3>
+          <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-3xl p-6 border border-[#d85a2a]/20 shadow-2xl">
+            <h3 className="text-xl font-black text-[#FF8C42] mb-4">Alerts</h3>
             <div className="space-y-3">
               {alerts.map((alert, index) => (
-                <div key={index} className="flex items-start gap-3 p-3 bg-orange-50 rounded-lg border border-orange-200">
-                  <AlertCircle className="w-5 h-5 text-orange-600 flex-shrink-0 mt-0.5" />
+                <div key={index} className="flex items-start gap-3 p-3 bg-[#d85a2a]/10 rounded-lg border border-[#d85a2a]/20">
+                  <AlertCircle className="w-5 h-5 text-[#FF8C42] flex-shrink-0 mt-0.5" />
                   <div className="flex-1 min-w-0">
-                    <p className="font-medium text-gray-900 text-sm">{alert.label}</p>
+                    <p className="font-medium text-white text-sm">{alert.label}</p>
                     <div className="flex items-center gap-2 mt-1">
-                      <span className="text-xs text-gray-500">{alert.time}</span>
-                      <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-700">
+                      <span className="text-xs text-white/60">{alert.time}</span>
+                      <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-[#d85a2a]/20 text-[#FF8C42]">
                         {alert.status}
                       </span>
                     </div>
@@ -296,17 +296,17 @@ const Dashboard = ({ onBack }) => {
           </div>
 
           {/* AI Recommendation */}
-          <div className="bg-white/95 backdrop-blur-sm rounded-3xl p-6 border-2 border-white/50 shadow-2xl">
+          <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-3xl p-6 border border-[#d85a2a]/20 shadow-2xl">
             <div className="flex items-start gap-3 mb-4">
-              <div className="p-2 bg-orange-500 rounded-lg">
+              <div className="p-2 bg-gradient-to-r from-[#d85a2a] to-[#f5a524] rounded-lg">
                 <Lightbulb className="w-5 h-5 text-white" />
               </div>
-              <h3 className="text-xl font-black text-orange-600">AI Recommendation</h3>
+              <h3 className="text-xl font-black text-[#FF8C42]">AI Recommendation</h3>
             </div>
-            <p className="text-sm text-gray-700 leading-relaxed mb-4">
+            <p className="text-sm text-white/90 leading-relaxed mb-4">
               Consider offering a 5% discount for Airbnb bookings in the next 2 weeks to boost occupancy during the low season.
             </p>
-            <button className="w-full px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg font-medium text-sm transition-colors">
+            <button className="w-full px-4 py-2 bg-gradient-to-r from-[#d85a2a] to-[#f5a524] hover:opacity-90 text-white rounded-lg font-medium text-sm transition-opacity">
               View Details
             </button>
           </div>
