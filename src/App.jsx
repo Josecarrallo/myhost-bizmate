@@ -36,6 +36,7 @@ import GuestPortal from './components/GuestPortal/GuestPortal';
 import VoiceAssistant from './components/VoiceAssistant/VoiceAssistant';
 import AIAgentsMonitor from './components/AIAgentsMonitor/AIAgentsMonitor';
 import MySite from './components/MySite/MySite';
+import Guests from './components/Guests/Guests';
 
 // ==================== FLOATING ICON COMPONENT ====================
 const FloatingIcon = ({ icon: Icon, className, delay }) => (
@@ -148,12 +149,13 @@ export default function App() {
   const [currentView, setCurrentView] = useState('overview'); // 'overview' is the default after login
   const [isSidebarOpen, setIsSidebarOpen] = useState(false); // Sidebar state for mobile
 
+  // Only set initial view on mount, don't reset on every user change
   React.useEffect(() => {
-    // Reset to overview when user logs in
-    if (user) {
+    if (user && currentView === 'overview') {
+      // User is logged in and we're at default view, stay there
       setCurrentView('overview');
     }
-  }, [user]);
+  }, []); // Empty deps - only run once on mount
 
   // Show loading spinner while checking auth
   if (loading) {
@@ -191,7 +193,7 @@ export default function App() {
         return <PMSCalendar onBack={() => setCurrentView('overview')} />;
 
       case 'guests':
-        return <GuestPortal onBack={() => setCurrentView('overview')} />;
+        return <Guests key="guests" onBack={() => setCurrentView('overview')} />;
 
       case 'payments':
         return <Payments onBack={() => setCurrentView('overview')} />;
@@ -289,7 +291,7 @@ export default function App() {
       </div>
 
       {/* Voice Assistant - Botón flotante siempre visible */}
-      <VoiceAssistant />
+      {/* <VoiceAssistant /> */}
     </div>
   );
 }
