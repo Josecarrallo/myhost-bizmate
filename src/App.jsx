@@ -39,6 +39,7 @@ import MySite from './components/MySite/MySite';
 import Guests from './components/Guests/Guests';
 import GuestSegmentation from './components/GuestSegmentation/GuestSegmentation';
 import MetaAds from './components/MetaAds/MetaAds';
+import GuestAnalytics from './components/GuestAnalytics/GuestAnalytics';
 
 // ==================== FLOATING ICON COMPONENT ====================
 const FloatingIcon = ({ icon: Icon, className, delay }) => (
@@ -238,7 +239,7 @@ export default function App() {
         return <MetaAds key="meta-ads" onBack={() => setCurrentView('overview')} />;
 
       case 'guest-analytics':
-        return <Reports onBack={() => setCurrentView('overview')} />; // Using Reports as Guest Analytics for now
+        return <GuestAnalytics key="guest-analytics" onBack={() => setCurrentView('overview')} />;
 
       case 'workflows':
         return <Workflows onBack={() => setCurrentView('overview')} onNavigate={setCurrentView} />;
