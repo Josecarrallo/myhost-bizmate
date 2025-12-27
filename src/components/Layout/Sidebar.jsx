@@ -22,7 +22,8 @@ import {
   Megaphone,
   Monitor,
   LogOut,
-  Target
+  Target,
+  TrendingUp
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -110,6 +111,7 @@ const Sidebar = ({ currentView, onNavigate, isOpen, onClose }) => {
         { id: 'digital-checkin', label: 'Digital Check-in Setup', icon: CheckCircle },
         { id: 'reviews', label: 'Reviews Management', icon: Star },
         { id: 'marketing', label: 'Marketing Campaigns', icon: Megaphone },
+        { id: 'meta-ads', label: 'Meta Ads (Instagram + Facebook)', icon: TrendingUp },
         { id: 'guest-analytics', label: 'Guest Analytics', icon: BarChart3 }
       ]
     },

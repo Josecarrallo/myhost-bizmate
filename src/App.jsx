@@ -38,6 +38,7 @@ import AIAgentsMonitor from './components/AIAgentsMonitor/AIAgentsMonitor';
 import MySite from './components/MySite/MySite';
 import Guests from './components/Guests/Guests';
 import GuestSegmentation from './components/GuestSegmentation/GuestSegmentation';
+import MetaAds from './components/MetaAds/MetaAds';
 
 // ==================== FLOATING ICON COMPONENT ====================
 const FloatingIcon = ({ icon: Icon, className, delay }) => (
@@ -232,6 +233,9 @@ export default function App() {
 
       case 'marketing':
         return <Marketing onBack={() => setCurrentView('overview')} />;
+
+      case 'meta-ads':
+        return <MetaAds key="meta-ads" onBack={() => setCurrentView('overview')} />;
 
       case 'guest-analytics':
         return <Reports onBack={() => setCurrentView('overview')} />; // Using Reports as Guest Analytics for now
