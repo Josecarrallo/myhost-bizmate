@@ -1,0 +1,289 @@
+{
+  "name": "WF-COMM-01 - Send Email to Guest",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "communications/send-email",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-trigger",
+      "name": "Webhook - Send Email",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [250, 300],
+      "webhookId": "comm-send-email"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.body.channel }}",
+              "operation": "equals",
+              "value2": "email"
+            }
+          ]
+        }
+      },
+      "id": "validate-channel",
+      "name": "Validate Channel = Email",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "fromEmail": "noreply@myhost-bizmate.com",
+        "toEmail": "={{ $json.body.recipient }}",
+        "subject": "={{ $json.body.subject }}",
+        "emailType": "text",
+        "message": "={{ $json.body.message }}",
+        "options": {
+          "replyTo": "support@myhost-bizmate.com"
+        }
+      },
+      "id": "sendgrid-send",
+      "name": "SendGrid - Send Email",
+      "type": "n8n-nodes-base.sendGrid",
+      "typeVersion": 1,
+      "position": [650, 200],
+      "credentials": {
+        "sendGridApi": {
+          "id": "1",
+          "name": "SendGrid API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "https://jjpscimtxrudtepzwhag.supabase.co/rest/v1/communications_log?id=eq.={{ $json.body.communicationId }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $credentials.supabaseApiKey }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer {{ $credentials.supabaseApiKey }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=minimal"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "status",
+              "value": "sent"
+            },
+            {
+              "name": "provider_message_id",
+              "value": "={{ $json.id }}"
+            },
+            {
+              "name": "sent_at",
+              "value": "={{ $now.toISO() }}"
+            },
+            {
+              "name": "provider_response",
+              "value": "={{ JSON.stringify($json) }}"
+            },
+            {
+              "name": "updated_at",
+              "value": "={{ $now.toISO() }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "update-success",
+      "name": "Update Status - Sent",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [850, 200]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { \"success\": true, \"communicationId\": $json.body.communicationId, \"status\": \"sent\", \"provider\": \"SendGrid\", \"messageId\": $('SendGrid - Send Email').item.json.id } }}"
+      },
+      "id": "response-success",
+      "name": "Response - Success",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1050, 200]
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "https://jjpscimtxrudtepzwhag.supabase.co/rest/v1/communications_log?id=eq.={{ $json.body.communicationId }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $credentials.supabaseApiKey }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer {{ $credentials.supabaseApiKey }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=minimal"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "status",
+              "value": "failed"
+            },
+            {
+              "name": "error_message",
+              "value": "={{ $json.error?.message || 'Unknown error' }}"
+            },
+            {
+              "name": "retry_count",
+              "value": "={{ ($json.retry_count || 0) + 1 }}"
+            },
+            {
+              "name": "updated_at",
+              "value": "={{ $now.toISO() }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "update-failed",
+      "name": "Update Status - Failed",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [850, 400]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { \"success\": false, \"communicationId\": $json.body.communicationId, \"status\": \"failed\", \"error\": $json.error?.message || 'Email send failed' } }}"
+      },
+      "id": "response-error",
+      "name": "Response - Error",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1050, 400]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { \"success\": false, \"error\": \"Invalid channel. Expected 'email' but got '\" + $json.body.channel + \"'\" } }}"
+      },
+      "id": "response-invalid",
+      "name": "Response - Invalid Channel",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [650, 400]
+    }
+  ],
+  "connections": {
+    "Webhook - Send Email": {
+      "main": [
+        [
+          {
+            "node": "Validate Channel = Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Channel = Email": {
+      "main": [
+        [
+          {
+            "node": "SendGrid - Send Email",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Response - Invalid Channel",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SendGrid - Send Email": {
+      "main": [
+        [
+          {
+            "node": "Update Status - Sent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Status - Sent": {
+      "main": [
+        [
+          {
+            "node": "Response - Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SendGrid - Send Email": {
+      "error": [
+        [
+          {
+            "node": "Update Status - Failed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Status - Failed": {
+      "main": [
+        [
+          {
+            "node": "Response - Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {},
+  "versionId": "1",
+  "id": "wf-comm-01-send-email"
+}

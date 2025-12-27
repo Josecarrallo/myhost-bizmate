@@ -17,36 +17,83 @@ const Guests = ({ onBack }) => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedGuest, setSelectedGuest] = useState(null);
+  const [emailsSent, setEmailsSent] = useState(0);
 
   useEffect(() => {
     if (user?.id) {
       loadGuests();
+      loadEmailStats();
     }
   }, [user]);
 
+  const loadEmailStats = async () => {
+    try {
+      const SUPABASE_URL = 'https://jjpscimtxrudtepzwhag.supabase.co';
+      const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpqcHNjaW10eHJ1ZHRlcHp3aGFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzMwODczOTcsImV4cCI6MjA0ODY2MzM5N30.2DxnLWdw6oGhNMKQM4THnpQD23vhxFGhz6rBXbdZPc0';
+
+      const response = await fetch(
+        `${SUPABASE_URL}/rest/v1/communications_log?select=id&channel=eq.email`,
+        {
+          headers: {
+            'apikey': SUPABASE_ANON_KEY,
+            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+            'Content-Type': 'application/json',
+            'Prefer': 'count=exact'
+          }
+        }
+      );
+
+      if (response.ok) {
+        const count = response.headers.get('content-range');
+        if (count) {
+          const totalCount = parseInt(count.split('/')[1]);
+          setEmailsSent(totalCount);
+        }
+      }
+    } catch (error) {
+      console.error('Error loading email stats:', error);
+    }
+  };
+
   const loadGuests = async () => {
-    // For now, using mock data
-    // TODO: Fetch from Supabase
-    setGuests([
+    setLoading(true);
+
+    // TEMPORARY: Using mock data with José's real info
+    // TODO: Fix Supabase anon key permissions issue
+    const mockGuests = [
+      {
+        id: '98171a38-179e-421c-9568-a2b4a61f03fa',
+        name: 'José Carrallo',
+        email: 'josecarrallodelafuente@gmail.com',
+        phone: '+34 619 79 46 04',
+        lastBooking: new Date().toLocaleDateString(),
+        totalBookings: 0,
+        status: 'active',
+        nationality: 'Spain'
+      },
       {
         id: '1',
-        name: 'John Doe',
-        email: 'john.doe@email.com',
-        phone: '+62 813 1234 5678',
-        lastBooking: '2025-12-15',
-        totalBookings: 3,
-        status: 'active'
+        name: 'John Smith',
+        email: 'john.smith@email.com',
+        phone: '+1234567890',
+        lastBooking: '12/23/2025',
+        totalBookings: 2,
+        status: 'active',
+        nationality: 'United States'
       },
       {
         id: '2',
-        name: 'Jane Smith',
-        email: 'jane.smith@email.com',
-        phone: '+62 813 8765 4321',
-        lastBooking: '2025-11-20',
+        name: 'Emma Wilson',
+        email: 'emma.wilson@email.com',
+        phone: '+447123456789',
+        lastBooking: '12/20/2025',
         totalBookings: 1,
-        status: 'active'
+        status: 'active',
+        nationality: 'United Kingdom'
       }
-    ]);
+    ];
+
+    setGuests(mockGuests);
     setLoading(false);
   };
 
@@ -65,11 +112,11 @@ const Guests = ({ onBack }) => {
   }
 
   return (
-    <div className="flex-1 h-screen bg-gradient-to-br from-blue-400 via-blue-500 to-blue-600 p-4 relative overflow-auto">
+    <div className="flex-1 h-screen bg-gray-900 p-4 relative overflow-auto">
       {/* Animated background */}
       <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute w-96 h-96 bg-white/5 rounded-full blur-3xl top-20 -left-48 animate-pulse"></div>
-        <div className="absolute w-96 h-96 bg-white/5 rounded-full blur-3xl bottom-20 -right-48 animate-pulse" style={{ animationDelay: '1s' }}></div>
+        <div className="absolute w-96 h-96 bg-[#d85a2a]/5 rounded-full blur-3xl top-20 -left-48 animate-pulse"></div>
+        <div className="absolute w-96 h-96 bg-[#d85a2a]/5 rounded-full blur-3xl bottom-20 -right-48 animate-pulse" style={{ animationDelay: '1s' }}></div>
       </div>
 
       <div className="w-full relative z-10 max-w-7xl mx-auto">
@@ -77,7 +124,7 @@ const Guests = ({ onBack }) => {
         <div className="flex items-center justify-between mb-6">
           <button
             onClick={onBack}
-            className="p-3 bg-white/10 backdrop-blur-sm rounded-2xl hover:bg-white/20 transition-all duration-300 shadow-lg"
+            className="p-3 bg-[#1f2937] border border-[#d85a2a]/20 rounded-2xl hover:bg-[#374151] transition-all duration-300 shadow-lg"
           >
             <ChevronLeft className="w-6 h-6 text-white" />
           </button>
@@ -98,44 +145,50 @@ const Guests = ({ onBack }) => {
               placeholder="Search guests by name or email..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-12 pr-4 py-3 bg-white/10 backdrop-blur-sm border-2 border-white/20 rounded-2xl text-white placeholder-white/50 focus:outline-none focus:border-white/40 transition-all"
+              className="w-full pl-12 pr-4 py-3 bg-[#1f2937] border border-[#d85a2a]/20 rounded-2xl text-white placeholder-white/50 focus:outline-none focus:border-[#d85a2a]/40 transition-all"
             />
           </div>
         </div>
 
         {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-          <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-4 border-2 border-white/20">
+          <div className="bg-gradient-to-br from-[#1f2937] to-[#374151] rounded-xl p-4 border border-[#d85a2a]/20 shadow-xl">
             <div className="flex items-center gap-3">
-              <Users className="w-8 h-8 text-white" />
+              <div className="p-2 bg-gradient-to-r from-[#d85a2a] to-[#f5a524] rounded-lg">
+                <Users className="w-5 h-5 text-white" />
+              </div>
               <div>
-                <p className="text-white/70 text-sm">Total Guests</p>
+                <p className="text-white/80 text-sm font-medium">Total Guests</p>
                 <p className="text-2xl font-bold text-white">{guests.length}</p>
               </div>
             </div>
           </div>
-          <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-4 border-2 border-white/20">
+          <div className="bg-gradient-to-br from-[#1f2937] to-[#374151] rounded-xl p-4 border border-[#d85a2a]/20 shadow-xl">
             <div className="flex items-center gap-3">
-              <Calendar className="w-8 h-8 text-white" />
+              <div className="p-2 bg-gradient-to-r from-[#d85a2a] to-[#f5a524] rounded-lg">
+                <Calendar className="w-5 h-5 text-white" />
+              </div>
               <div>
-                <p className="text-white/70 text-sm">Active This Month</p>
+                <p className="text-white/80 text-sm font-medium">Active This Month</p>
                 <p className="text-2xl font-bold text-white">{guests.filter(g => g.status === 'active').length}</p>
               </div>
             </div>
           </div>
-          <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-4 border-2 border-white/20">
+          <div className="bg-gradient-to-br from-[#1f2937] to-[#374151] rounded-xl p-4 border border-[#d85a2a]/20 shadow-xl">
             <div className="flex items-center gap-3">
-              <Mail className="w-8 h-8 text-white" />
+              <div className="p-2 bg-gradient-to-r from-[#d85a2a] to-[#f5a524] rounded-lg">
+                <Mail className="w-5 h-5 text-white" />
+              </div>
               <div>
-                <p className="text-white/70 text-sm">Emails Sent</p>
-                <p className="text-2xl font-bold text-white">0</p>
+                <p className="text-white/80 text-sm font-medium">Emails Sent</p>
+                <p className="text-2xl font-bold text-white">{emailsSent}</p>
               </div>
             </div>
           </div>
         </div>
 
         {/* Guests List */}
-        <div className="bg-white/10 backdrop-blur-sm rounded-3xl shadow-2xl border-2 border-white/20 p-6">
+        <div className="bg-[#1f2937] border border-[#d85a2a]/20 rounded-xl p-6 shadow-xl">
           <h3 className="text-xl font-bold text-white mb-4">All Guests</h3>
 
           {loading ? (
@@ -147,7 +200,7 @@ const Guests = ({ onBack }) => {
               {filteredGuests.map((guest) => (
                 <div
                   key={guest.id}
-                  className="bg-white/5 rounded-xl p-4 hover:bg-white/10 transition-all cursor-pointer border border-white/10"
+                  className="bg-gradient-to-br from-[#1f2937] to-[#374151] rounded-xl p-4 hover:border-[#d85a2a]/40 transition-all cursor-pointer border border-[#d85a2a]/20"
                   onClick={() => setSelectedGuest(guest)}
                 >
                   <div className="flex items-center justify-between">
@@ -169,7 +222,7 @@ const Guests = ({ onBack }) => {
                       </div>
                     </div>
                     <button
-                      className="px-4 py-2 bg-white/20 hover:bg-white/30 text-white rounded-xl transition-all flex items-center gap-2"
+                      className="px-4 py-2 bg-gradient-to-r from-[#d85a2a] to-[#f5a524] hover:opacity-90 text-white rounded-xl transition-all flex items-center gap-2"
                       onClick={(e) => {
                         e.stopPropagation();
                         setSelectedGuest(guest);

@@ -175,28 +175,37 @@ export const communicationsService = {
       const savedComm = await response.json();
       const communicationId = savedComm[0].id;
 
-      // 2. Trigger n8n webhook
-      await this.triggerN8NWebhook({
-        communicationId,
-        tenantId,
-        propertyId,
-        guestId,
-        bookingId,
-        channel,
-        templateKey,
-        subject,
-        message,
-        recipient: channel === 'email' ? recipientEmail : recipientPhone
-      });
+      // 2. Trigger n8n webhook (only sends email, doesn't update Supabase)
+      try {
+        const webhookResponse = await this.triggerN8NWebhook({
+          communicationId,
+          tenantId,
+          propertyId,
+          guestId,
+          bookingId,
+          channel,
+          templateKey,
+          subject,
+          message,
+          recipient: channel === 'email' ? recipientEmail : recipientPhone
+        });
 
-      // 3. Update status to 'sent' (optimistic)
-      await this.updateCommunicationStatus(communicationId, 'sent');
+        // 3. Update status to 'sent' in Supabase (frontend handles this now)
+        await this.updateCommunicationStatus(communicationId, 'sent');
 
-      return {
-        success: true,
-        communicationId,
-        status: 'sent'
-      };
+        return {
+          success: true,
+          communicationId,
+          status: 'sent'
+        };
+      } catch (webhookError) {
+        console.error('Error sending via n8n webhook:', webhookError);
+
+        // Update status to 'failed' if webhook fails
+        await this.updateCommunicationStatus(communicationId, 'failed');
+
+        throw new Error('Failed to send communication: ' + webhookError.message);
+      }
     } catch (error) {
       console.error('Error sending communication:', error);
       throw error;
@@ -208,23 +217,34 @@ export const communicationsService = {
    * @param {object} payload - Webhook payload
    */
   async triggerN8NWebhook(payload) {
-    const N8N_WEBHOOK_URL = `${import.meta.env.VITE_N8N_BASE_URL}/webhook/send-communication`;
+    // Determine webhook URL based on channel
+    const webhookPath = payload.channel === 'email'
+      ? '/webhook/communications/send-email'
+      : '/webhook/communications/send-whatsapp';
+
+    const N8N_WEBHOOK_URL = `https://n8n-production-bb2d.up.railway.app${webhookPath}`;
+
+    console.log('Triggering n8n webhook:', N8N_WEBHOOK_URL);
+    console.log('Payload:', payload);
 
     try {
       const response = await fetch(N8N_WEBHOOK_URL, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          'X-API-Key': import.meta.env.VITE_N8N_API_KEY
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify(payload)
       });
 
       if (!response.ok) {
         console.warn('n8n webhook failed, but communication was logged');
+        console.error('Response status:', response.status);
+        console.error('Response text:', await response.text());
+      } else {
+        console.log('n8n webhook success!');
       }
 
-      return await response.json();
+      return await response.json().catch(() => null);
     } catch (error) {
       console.error('Error triggering n8n webhook:', error);
       // Don't throw - communication is saved even if webhook fails

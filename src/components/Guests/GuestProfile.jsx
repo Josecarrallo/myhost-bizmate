@@ -57,11 +57,11 @@ const GuestProfile = ({ guest, onBack }) => {
   ];
 
   return (
-    <div className="flex-1 h-screen bg-gradient-to-br from-blue-400 via-blue-500 to-blue-600 p-4 relative overflow-auto">
+    <div className="flex-1 h-screen bg-gray-900 p-4 relative overflow-auto">
       {/* Animated background */}
       <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute w-96 h-96 bg-white/5 rounded-full blur-3xl top-20 -left-48 animate-pulse"></div>
-        <div className="absolute w-96 h-96 bg-white/5 rounded-full blur-3xl bottom-20 -right-48 animate-pulse" style={{ animationDelay: '1s' }}></div>
+        <div className="absolute w-96 h-96 bg-[#d85a2a]/5 rounded-full blur-3xl top-20 -left-48 animate-pulse"></div>
+        <div className="absolute w-96 h-96 bg-[#d85a2a]/5 rounded-full blur-3xl bottom-20 -right-48 animate-pulse" style={{ animationDelay: '1s' }}></div>
       </div>
 
       <div className="w-full relative z-10 max-w-7xl mx-auto">
@@ -69,7 +69,7 @@ const GuestProfile = ({ guest, onBack }) => {
         <div className="flex items-center justify-between mb-6">
           <button
             onClick={onBack}
-            className="p-3 bg-white/10 backdrop-blur-sm rounded-2xl hover:bg-white/20 transition-all duration-300 shadow-lg"
+            className="p-3 bg-[#1f2937] border border-[#d85a2a]/20 rounded-2xl hover:bg-[#374151] transition-all duration-300 shadow-lg"
           >
             <ChevronLeft className="w-6 h-6 text-white" />
           </button>
@@ -82,7 +82,7 @@ const GuestProfile = ({ guest, onBack }) => {
         </div>
 
         {/* Guest Info Card */}
-        <div className="bg-white/10 backdrop-blur-sm rounded-3xl shadow-2xl border-2 border-white/20 p-6 mb-6">
+        <div className="bg-[#1f2937] border border-[#d85a2a]/20 rounded-xl shadow-xl p-6 mb-6">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="flex items-center gap-3">
               <Mail className="w-6 h-6 text-white" />
@@ -116,7 +116,7 @@ const GuestProfile = ({ guest, onBack }) => {
               onClick={() => setActiveTab(tab.id)}
               className={`px-6 py-3 rounded-xl font-medium transition-all ${
                 activeTab === tab.id
-                  ? 'bg-white text-blue-600'
+                  ? 'bg-white text-orange-600'
                   : 'bg-white/10 text-white hover:bg-white/20'
               }`}
             >
@@ -126,7 +126,7 @@ const GuestProfile = ({ guest, onBack }) => {
         </div>
 
         {/* Tab Content */}
-        <div className="bg-white/10 backdrop-blur-sm rounded-3xl shadow-2xl border-2 border-white/20 p-6">
+        <div className="bg-[#1f2937] border border-[#d85a2a]/20 rounded-xl shadow-xl p-6">
           {activeTab === 'info' && (
             <div className="text-white">
               <h3 className="text-xl font-bold mb-4">Basic Information</h3>
@@ -186,7 +186,7 @@ const GuestProfile = ({ guest, onBack }) => {
                 {loading ? (
                   <p className="text-white/70">Loading...</p>
                 ) : communications.length === 0 ? (
-                  <div className="bg-white/5 rounded-xl p-6 text-center">
+                  <div className="bg-gradient-to-br from-[#1f2937] to-[#374151] border border-[#d85a2a]/20 rounded-xl p-6 text-center">
                     <MessageSquare className="w-12 h-12 text-white/30 mx-auto mb-3" />
                     <p className="text-white/70">No communications sent yet</p>
                     <p className="text-white/50 text-sm mt-1">Start by sending an email or WhatsApp message</p>
@@ -196,7 +196,7 @@ const GuestProfile = ({ guest, onBack }) => {
                     {communications.map((comm) => (
                       <div
                         key={comm.id}
-                        className="bg-white/5 rounded-xl p-4 border border-white/10"
+                        className="bg-gradient-to-br from-[#1f2937] to-[#374151] rounded-xl p-4 border border-[#d85a2a]/20"
                       >
                         <div className="flex items-start justify-between mb-2">
                           <div className="flex items-center gap-2">
@@ -207,7 +207,7 @@ const GuestProfile = ({ guest, onBack }) => {
                             )}
                             <span className="text-white font-medium capitalize">{comm.channel}</span>
                             {comm.template_key && (
-                              <span className="px-2 py-1 bg-white/10 rounded text-xs text-white">
+                              <span className="px-2 py-1 bg-[#d85a2a]/20 text-[#f5a524] rounded text-xs font-medium">
                                 {comm.template_key.replace('_', ' ')}
                               </span>
                             )}
