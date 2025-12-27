@@ -227,10 +227,16 @@ export const guestSegmentationService = {
         { headers: supabaseHeaders }
       );
 
-      return await response.json();
+      if (!response.ok) {
+        console.warn('Failed to fetch segments, returning empty array');
+        return [];
+      }
+
+      const data = await response.json();
+      return Array.isArray(data) ? data : [];
     } catch (error) {
       console.error('Error fetching segments:', error);
-      throw error;
+      return []; // Return empty array instead of throwing
     }
   },
 
@@ -338,11 +344,23 @@ export const guestSegmentationService = {
         { headers: supabaseHeaders }
       );
 
+      if (!response.ok) {
+        console.warn('Failed to fetch tag statistics, returning empty object');
+        return {};
+      }
+
       const tags = await response.json();
+
+      if (!Array.isArray(tags)) {
+        console.warn('Tag statistics response is not an array, returning empty object');
+        return {};
+      }
 
       const tagCounts = {};
       tags.forEach(tag => {
-        tagCounts[tag.tag_type] = (tagCounts[tag.tag_type] || 0) + 1;
+        if (tag && tag.tag_type) {
+          tagCounts[tag.tag_type] = (tagCounts[tag.tag_type] || 0) + 1;
+        }
       });
 
       return tagCounts;

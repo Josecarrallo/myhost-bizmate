@@ -33,14 +33,19 @@ const GuestSegmentation = ({ onBack }) => {
     try {
       // Load tag statistics
       const stats = await guestSegmentationService.getTagStatistics();
+      console.log('Tag stats loaded:', stats);
       setTagStats(stats);
 
       // Load segments (hardcoded tenant for now)
       const tenantId = localStorage.getItem('user_id') || 'demo-tenant';
       const segs = await guestSegmentationService.getSegments(tenantId);
+      console.log('Segments loaded:', segs);
       setSegments(segs);
     } catch (error) {
       console.error('Error loading segmentation data:', error);
+      // Set empty data on error instead of leaving undefined
+      setTagStats({});
+      setSegments([]);
     } finally {
       setLoading(false);
     }
@@ -51,18 +56,23 @@ const GuestSegmentation = ({ onBack }) => {
     setAutoTagResult(null);
 
     try {
+      console.log('Starting auto-tag process...');
       const tenantId = localStorage.getItem('user_id') || 'demo-tenant';
+      console.log('Using tenant ID:', tenantId);
+
       const result = await guestSegmentationService.autoTagAllGuests(tenantId);
+      console.log('Auto-tag result:', result);
       setAutoTagResult(result);
 
       // Reload tag statistics
       const stats = await guestSegmentationService.getTagStatistics();
+      console.log('Tag stats after auto-tag:', stats);
       setTagStats(stats);
     } catch (error) {
       console.error('Error auto-tagging guests:', error);
       setAutoTagResult({
         success: false,
-        error: 'Failed to auto-tag guests'
+        error: error.message || 'Failed to auto-tag guests'
       });
     } finally {
       setIsAutoTagging(false);
@@ -291,7 +301,7 @@ const GuestSegmentation = ({ onBack }) => {
                   </button>
                 </div>
 
-                {segments.length === 0 ? (
+                {!segments || segments.length === 0 ? (
                   <div className="text-center py-12">
                     <Target className="w-16 h-16 text-gray-300 mx-auto mb-4" />
                     <p className="text-gray-500 font-semibold mb-2">No segments created yet</p>
@@ -299,7 +309,7 @@ const GuestSegmentation = ({ onBack }) => {
                   </div>
                 ) : (
                   <div className="space-y-3">
-                    {segments.map((segment) => (
+                    {(segments || []).map((segment) => (
                       <div
                         key={segment.id}
                         className="p-4 bg-orange-50 rounded-xl border-2 border-orange-200 hover:shadow-lg transition-all cursor-pointer"
