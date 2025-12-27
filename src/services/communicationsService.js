@@ -224,8 +224,14 @@ export const communicationsService = {
 
     const N8N_WEBHOOK_URL = `https://n8n-production-bb2d.up.railway.app${webhookPath}`;
 
+    // Escapar saltos de línea en el mensaje para evitar romper JSON en n8n
+    const escapedPayload = {
+      ...payload,
+      message: payload.message ? payload.message.replace(/\n/g, '\\n').replace(/\r/g, '\\r') : payload.message
+    };
+
     console.log('Triggering n8n webhook:', N8N_WEBHOOK_URL);
-    console.log('Payload:', payload);
+    console.log('Payload:', escapedPayload);
 
     try {
       const response = await fetch(N8N_WEBHOOK_URL, {
@@ -233,7 +239,7 @@ export const communicationsService = {
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify(payload)
+        body: JSON.stringify(escapedPayload)
       });
 
       if (!response.ok) {
