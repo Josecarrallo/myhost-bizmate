@@ -34,14 +34,27 @@ npm run preview
 
 ### Recent Refactors
 
-**December 21, 2025 - Authentication Stability Fix**:
-- Fixed infinite loading screen on login/logout
-- Resolved corrupted localStorage issues after logout
-- Reduced session check timeout from 5s to 2s for faster UX
-- Auto-clears corrupted localStorage on session timeout
-- Improved signOut() to clear localStorage before Supabase call
+**December 21, 2025 - Authentication Stability Fix + n8n Workflows**:
+- Fixed infinite loading screen on login/logout (Promise.race with 3s timeout)
+- Resolved corrupted localStorage issues after logout (sessionStorage migration)
+- Implemented visible Logout button in sidebar (red button at bottom)
+- Improved signOut() to clear state first, then Supabase (optimistic updates)
 - Added mounted flag to prevent state updates after unmount
+- Changed storage from localStorage → sessionStorage (more secure, clears on browser close)
+- Fixed Bookings component service import (dataService.getBookings)
+- Fixed Dashboard not refreshing after property creation (key prop)
+- Created n8n workflow for New Property notifications (Email + WhatsApp)
+- Created clear_session.html utility for debugging
 - Users can now login/logout seamlessly without manual localStorage.clear()
+
+**📁 Complete Documentation (Dec 21):**
+- `Claude AI and Code Update 21122025/RESUMEN_EJECUTIVO_21DIC2025.md` - Executive summary
+- `Claude AI and Code Update 21122025/TECHNICAL_DEEP_DIVE_AUTH_SESSION.md` - Technical deep dive
+- `Claude AI and Code Update 21122025/N8N_WORKFLOWS_DOCUMENTATION.md` - n8n workflows inventory
+- `Claude AI and Code Update 21122025/CHANGELOG_21DIC2025.md` - Complete changelog
+- `Claude AI and Code Update 21122025/SESSION_21DIC2025_AUTH_N8N.md` - Session log
+
+**Commits:** dd77f6f, 0a0e91f, e5e6359, 9cebd5c, f6746db
 
 **December 20, 2025 - Complete My Site Module + React Router**:
 - Implemented complete "My Site" module for creating direct booking websites

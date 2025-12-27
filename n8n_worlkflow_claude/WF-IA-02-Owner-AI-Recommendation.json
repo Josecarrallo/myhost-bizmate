@@ -1,0 +1,402 @@
+{
+  "name": "WF-IA-02 - Owner AI Recommendation",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 8
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [0, 0],
+      "id": "cron-daily",
+      "name": "Cron Daily 8AM"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [0, 200],
+      "id": "manual-trigger",
+      "name": "Manual Trigger"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Configuración del tenant (MVP: tenant fijo)\nconst tenant_id = '00000000-0000-0000-0000-000000000000';\nconst today = new Date().toISOString().split('T')[0];\n\nreturn [{ json: { tenant_id, today } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [250, 100],
+      "id": "set-tenant",
+      "name": "Set Tenant Config"
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "properties",
+        "returnAll": true
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [500, 100],
+      "id": "get-properties",
+      "name": "Get Properties",
+      "credentials": {
+        "supabaseApi": {
+          "id": "SJLQzwU9BVHEVAGc",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "bookings",
+        "returnAll": true
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [750, 100],
+      "id": "get-bookings",
+      "name": "Get Bookings",
+      "credentials": {
+        "supabaseApi": {
+          "id": "SJLQzwU9BVHEVAGc",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Rule Engine - Evalúa reglas de negocio y genera alertas\n\nconst tenantConfig = $('Set Tenant Config').first().json;\nconst tenant_id = tenantConfig.tenant_id;\nconst today = tenantConfig.today;\nconst todayDate = new Date(today);\n\n// Obtener datos\nconst properties = $('Get Properties').all().map(item => item.json);\nconst bookings = $('Get Bookings').all().map(item => item.json);\n\n// Fechas de referencia\nconst next7Days = new Date(todayDate);\nnext7Days.setDate(next7Days.getDate() + 7);\nconst next7DaysStr = next7Days.toISOString().split('T')[0];\n\nconst next14Days = new Date(todayDate);\nnext14Days.setDate(next14Days.getDate() + 14);\nconst next14DaysStr = next14Days.toISOString().split('T')[0];\n\n// Array para alertas\nconst alerts = [];\n\n// ========================================\n// REGLA 1: Ocupación < 40% próximos 7 días\n// ========================================\nconst bookingsNext7Days = bookings.filter(b => \n  b.check_in >= today && \n  b.check_in <= next7DaysStr && \n  b.status === 'confirmed'\n);\n\nconst totalProperties = properties.length || 1;\nconst occupancyNext7Days = (bookingsNext7Days.length / (totalProperties * 7)) * 100;\n\nif (occupancyNext7Days < 40) {\n  alerts.push({\n    tenant_id,\n    alert_type: 'low_occupancy',\n    severity: 'high',\n    title: 'Ocupación baja próximos 7 días',\n    description: `Ocupación actual: ${Math.round(occupancyNext7Days)}%. Solo ${bookingsNext7Days.length} reservas para ${totalProperties} propiedades.`,\n    status: 'open',\n    property_id: null\n  });\n}\n\n// ========================================\n// REGLA 2: Propiedad sin reservas 14 días\n// ========================================\nconst bookingsNext14Days = bookings.filter(b => \n  b.check_in >= today && \n  b.check_in <= next14DaysStr && \n  b.status === 'confirmed'\n);\n\nconst propertyIdsWithBookings = [...new Set(bookingsNext14Days.map(b => b.property_id))];\n\nproperties.forEach(prop => {\n  if (!propertyIdsWithBookings.includes(prop.id)) {\n    alerts.push({\n      tenant_id,\n      alert_type: 'no_bookings',\n      severity: 'medium',\n      title: `Sin reservas: ${prop.name || prop.id}`,\n      description: `La propiedad no tiene reservas en los próximos 14 días.`,\n      status: 'open',\n      property_id: prop.id\n    });\n  }\n});\n\n// ========================================\n// REGLA 3: Muchas cancelaciones recientes\n// ========================================\nconst last7Days = new Date(todayDate);\nlast7Days.setDate(last7Days.getDate() - 7);\nconst last7DaysStr = last7Days.toISOString().split('T')[0];\n\nconst recentCancellations = bookings.filter(b => \n  b.status === 'cancelled' && \n  b.updated_at && \n  b.updated_at.split('T')[0] >= last7DaysStr\n);\n\nif (recentCancellations.length >= 3) {\n  alerts.push({\n    tenant_id,\n    alert_type: 'high_cancellations',\n    severity: 'high',\n    title: 'Alto número de cancelaciones',\n    description: `${recentCancellations.length} cancelaciones en los últimos 7 días. Revisar política de cancelación.`,\n    status: 'open',\n    property_id: null\n  });\n}\n\n// ========================================\n// REGLA 4: Check-ins hoy sin confirmar\n// ========================================\nconst checkinsToday = bookings.filter(b => \n  b.check_in === today && \n  b.status !== 'confirmed' && \n  b.status !== 'cancelled'\n);\n\nif (checkinsToday.length > 0) {\n  alerts.push({\n    tenant_id,\n    alert_type: 'pending_checkins',\n    severity: 'high',\n    title: 'Check-ins pendientes de confirmar',\n    description: `${checkinsToday.length} check-in(s) hoy sin estado confirmado.`,\n    status: 'open',\n    property_id: null\n  });\n}\n\n// ========================================\n// OUTPUT\n// ========================================\nconst output = {\n  tenant_id,\n  date: today,\n  rules_evaluated: 4,\n  alerts_generated: alerts.length,\n  alerts,\n  summary: {\n    total_properties: totalProperties,\n    bookings_next_7d: bookingsNext7Days.length,\n    occupancy_next_7d: Math.round(occupancyNext7Days),\n    cancellations_last_7d: recentCancellations.length,\n    checkins_today_pending: checkinsToday.length\n  }\n};\n\nreturn [{ json: output }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1000, 100],
+      "id": "rule-engine",
+      "name": "Rule Engine"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "condition-alerts",
+              "leftValue": "={{ $json.alerts_generated }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1250, 100],
+      "id": "if-alerts",
+      "name": "Has Alerts?"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Preparar alertas para inserción individual\nconst input = $('Rule Engine').first().json;\nconst alerts = input.alerts || [];\n\nif (alerts.length === 0) {\n  return [{ json: { skip: true } }];\n}\n\n// Retornar cada alerta como item separado\nreturn alerts.map(alert => ({ json: alert }));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1500, 0],
+      "id": "prepare-alerts",
+      "name": "Prepare Alerts"
+    },
+    {
+      "parameters": {
+        "operation": "create",
+        "tableId": "alerts",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "tenant_id",
+              "fieldValue": "={{ $json.tenant_id }}"
+            },
+            {
+              "fieldId": "alert_type",
+              "fieldValue": "={{ $json.alert_type }}"
+            },
+            {
+              "fieldId": "severity",
+              "fieldValue": "={{ $json.severity }}"
+            },
+            {
+              "fieldId": "title",
+              "fieldValue": "={{ $json.title }}"
+            },
+            {
+              "fieldId": "description",
+              "fieldValue": "={{ $json.description }}"
+            },
+            {
+              "fieldId": "status",
+              "fieldValue": "={{ $json.status }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [1750, 0],
+      "id": "insert-alerts",
+      "name": "Insert Alerts",
+      "credentials": {
+        "supabaseApi": {
+          "id": "SJLQzwU9BVHEVAGc",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "create",
+        "tableId": "recommendation_logs",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "tenant_id",
+              "fieldValue": "={{ $('Rule Engine').first().json.tenant_id }}"
+            },
+            {
+              "fieldId": "rule_triggered",
+              "fieldValue": "daily_recommendation_scan"
+            },
+            {
+              "fieldId": "data_snapshot",
+              "fieldValue": "={{ JSON.stringify($('Rule Engine').first().json.summary) }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [2000, 0],
+      "id": "log-recommendation",
+      "name": "Log Recommendation",
+      "credentials": {
+        "supabaseApi": {
+          "id": "SJLQzwU9BVHEVAGc",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "create",
+        "tableId": "workflow_logs",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "tenant_id",
+              "fieldValue": "={{ $('Rule Engine').first().json.tenant_id }}"
+            },
+            {
+              "fieldId": "workflow_name",
+              "fieldValue": "WF-IA-02-Owner-AI-Recommendation"
+            },
+            {
+              "fieldId": "execution_status",
+              "fieldValue": "success"
+            },
+            {
+              "fieldId": "execution_data",
+              "fieldValue": "={{ JSON.stringify({ alerts_generated: $('Rule Engine').first().json.alerts_generated, summary: $('Rule Engine').first().json.summary }) }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [2250, 0],
+      "id": "log-workflow",
+      "name": "Log Workflow Execution",
+      "credentials": {
+        "supabaseApi": {
+          "id": "SJLQzwU9BVHEVAGc",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "create",
+        "tableId": "workflow_logs",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "tenant_id",
+              "fieldValue": "={{ $('Rule Engine').first().json.tenant_id }}"
+            },
+            {
+              "fieldId": "workflow_name",
+              "fieldValue": "WF-IA-02-Owner-AI-Recommendation"
+            },
+            {
+              "fieldId": "execution_status",
+              "fieldValue": "success_no_alerts"
+            },
+            {
+              "fieldId": "execution_data",
+              "fieldValue": "={{ JSON.stringify({ alerts_generated: 0, summary: $('Rule Engine').first().json.summary }) }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [1500, 200],
+      "id": "log-no-alerts",
+      "name": "Log No Alerts",
+      "credentials": {
+        "supabaseApi": {
+          "id": "SJLQzwU9BVHEVAGc",
+          "name": "Supabase account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Cron Daily 8AM": {
+      "main": [
+        [
+          {
+            "node": "Set Tenant Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "Set Tenant Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Tenant Config": {
+      "main": [
+        [
+          {
+            "node": "Get Properties",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Properties": {
+      "main": [
+        [
+          {
+            "node": "Get Bookings",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Bookings": {
+      "main": [
+        [
+          {
+            "node": "Rule Engine",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Rule Engine": {
+      "main": [
+        [
+          {
+            "node": "Has Alerts?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Alerts?": {
+      "main": [
+        [
+          {
+            "node": "Prepare Alerts",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Log No Alerts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Alerts": {
+      "main": [
+        [
+          {
+            "node": "Insert Alerts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert Alerts": {
+      "main": [
+        [
+          {
+            "node": "Log Recommendation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Recommendation": {
+      "main": [
+        [
+          {
+            "node": "Log Workflow Execution",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Asia/Singapore"
+  }
+}

@@ -95,30 +95,9 @@ const VoiceAssistant = () => {
     setError(null);
 
     try {
-      // Usar Transient Assistant (configuración inline)
-      await vapiRef.current.start({
-        name: "Ayu - Izumi Hotel Assistant",
-        transcriber: {
-          provider: "deepgram",
-          model: "nova-2",
-          language: "en"
-        },
-        model: {
-          provider: "openai",
-          model: "gpt-3.5-turbo",
-          messages: [
-            {
-              role: "system",
-              content: "You are Ayu from Izumi Hotel in Bali. Always respond in English only. When the user asks anything, use the send_to_n8n tool to get the answer. Always use the tool for every question."
-            }
-          ]
-        },
-        voice: {
-          provider: "11labs",
-          voiceId: "paula"
-        },
-        firstMessage: "Hello! I'm Ayu, the virtual receptionist at Izumi Hotel. How may I help you today?"
-      });
+      // Usar Assistant configurado en VAPI Dashboard
+      // ID: Ayu - Izumi Hotel (con tool send_to_n8n + n8n webhook)
+      await vapiRef.current.start('1fde9a8c-b473-4f2a-8b7a-0cb53bc8bb61');
     } catch (error) {
       console.error('Error al iniciar llamada:', error);
       setIsLoading(false);

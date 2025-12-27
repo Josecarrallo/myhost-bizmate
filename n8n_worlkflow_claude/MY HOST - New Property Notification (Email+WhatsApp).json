@@ -10,10 +10,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        -128,
+        0,
         0
       ],
-      "id": "webhook-new-property",
+      "id": "f473c94d-113c-4929-8bdb-399a01fc9cd7",
       "name": "Webhook",
       "webhookId": "new-property-webhook-id"
     },
@@ -30,10 +30,10 @@
       "type": "n8n-nodes-base.sendGrid",
       "typeVersion": 1,
       "position": [
-        64,
+        192,
         0
       ],
-      "id": "send-email-owner",
+      "id": "7d446b19-90c1-4885-89c2-99ada18233b1",
       "name": "Send Email to Owner",
       "credentials": {
         "sendGridApi": {
@@ -67,10 +67,10 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.3,
       "position": [
-        256,
+        384,
         0
       ],
-      "id": "whatsapp-owner",
+      "id": "39922d50-73c7-4a01-9e15-51ac41aafad1",
       "name": "WhatsApp to Owner"
     }
   ],
@@ -103,9 +103,10 @@
   "settings": {
     "executionOrder": "v1"
   },
+  "versionId": "8fb0177d-f0f5-4ba5-9cbd-8aadb7d14e5c",
   "meta": {
-    "templateCredsSetupCompleted": true
+    "instanceId": "ca7bc7f182c365457ea4a94a4dc2efe81c23590ab8904858ce5cabfbdd56e40f"
   },
-  "id": "6eqkTXvYQLdsazdC",
+  "id": "nugSQu7acB0cE939",
   "tags": []
 }

@@ -8,12 +8,12 @@
         "responseMode": "responseNode",
         "options": {}
       },
-      "id": "bd8e618a-848c-4ba6-aa7c-3366c5901d44",
+      "id": "2d2c9ee5-c730-4e35-a1cd-d6848a15599d",
       "name": "Webhook for vapi",
       "type": "n8n-nodes-base.webhook",
       "position": [
-        64,
-        -80
+        -576,
+        -64
       ],
       "webhookId": "vapi-izumi-fix",
       "typeVersion": 2.1
@@ -32,18 +32,18 @@
               "id": "question-field",
               "name": "question",
               "type": "string",
-              "value": "=={{ $json.body.message.toolCallList[0].function.arguments.user_query }}"
+              "value": "={{ $json.body.message.toolCallList[0].function.arguments.user_query }}"
             }
           ]
         },
         "options": {}
       },
-      "id": "28dd3551-8c5c-42e1-834a-db1f46cb8bb8",
+      "id": "8f3b5fff-7dcb-41de-a7fc-b72500864ce4",
       "name": "Keep Session id & Query",
       "type": "n8n-nodes-base.set",
       "position": [
-        368,
-        -80
+        -352,
+        -64
       ],
       "typeVersion": 3.4
     },
@@ -51,16 +51,17 @@
       "parameters": {
         "model": {
           "__rl": true,
+          "value": "gpt-4.1-mini",
           "mode": "list",
-          "value": "gpt-4.1-mini"
+          "cachedResultName": "gpt-4.1-mini"
         },
         "options": {}
       },
-      "id": "8352690d-2ecb-44ca-bba5-c4b419685abe",
+      "id": "54330ac0-02b4-4a0a-837c-2574b320ee63",
       "name": "OpenAI Chat Model",
       "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
       "position": [
-        496,
+        -352,
         160
       ],
       "typeVersion": 1.2,
@@ -76,33 +77,33 @@
         "sessionIdType": "customKey",
         "sessionKey": "=={{ $('Keep Session id & Query').item.json.id }}"
       },
-      "id": "f3a2c730-7816-49e9-a401-fd319ad25046",
+      "id": "40f37b06-af07-4978-ae9d-7d762652dd01",
       "name": "Simple Memory",
       "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
       "position": [
-        1136,
-        144
+        -176,
+        192
       ],
       "typeVersion": 1.3
     },
     {
       "parameters": {
         "respondWith": "json",
-        "responseBody": "={\n  \"results\": [\n    {\n      \"toolCallId\": \"{{ $('Keep Session id & Query').item.json.id }}\",\n      \"result\": \"{{ $json.output }}\"\n    }\n  ]\n}",
+        "responseBody": "={{ JSON.stringify({ \"results\": [{ \"toolCallId\": $('Keep Session id & Query').item.json.id, \"result\": $json.output }] }) }}",
         "options": {}
       },
-      "id": "1dd76398-33a6-4c8e-8580-2bb159874833",
+      "id": "864a5c1f-1d01-4e00-9891-330117003acf",
       "name": "Respond to Vapi",
       "type": "n8n-nodes-base.respondToWebhook",
       "position": [
-        1072,
-        -80
+        400,
+        -64
       ],
       "typeVersion": 1.4
     },
     {
       "parameters": {
-        "toolDescription": "Consulta la disponibilidad de habitaciones en Izumi Hotel para fechas específicas. Usa esta herramienta cuando el usuario pregunte si hay disponibilidad, si puede reservar, o quiera saber si hay habitaciones libres. Requiere fecha de check-in y check-out en formato YYYY-MM-DD.",
+        "toolDescription": "Check room availability at Izumi Hotel for specific dates. Use this tool when the user asks about availability, wants to book, or wants to know if rooms are free. Requires check-in and check-out dates in YYYY-MM-DD format.",
         "method": "POST",
         "url": "https://jjpscimtxrudtepzwhag.supabase.co/rest/v1/rpc/check_availability",
         "sendHeaders": true,
@@ -124,16 +125,16 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"p_property_id\": \"18711359-1378-4d12-9ea6-fb31c0b1bac2\",\n  \"p_check_in\": \"{{ $fromAI('check_in', 'fecha de llegada en formato YYYY-MM-DD') }}\",\n  \"p_check_out\": \"{{ $fromAI('check_out', 'fecha de salida en formato YYYY-MM-DD') }}\"\n}",
+        "jsonBody": "={\n  \"p_property_id\": \"18711359-1378-4d12-9ea6-fb31c0b1bac2\",\n  \"p_check_in\": \"{{ $fromAI('check_in', 'check-in date in YYYY-MM-DD format') }}\",\n  \"p_check_out\": \"{{ $fromAI('check_out', 'check-out date in YYYY-MM-DD format') }}\"\n}",
         "options": {}
       },
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.3,
       "position": [
-        688,
-        144
+        -16,
+        176
       ],
-      "id": "a2d943d6-b84f-4fe1-be66-39c7cdd460ce",
+      "id": "85dae2cf-6eb5-4d1d-bade-c75bb74f82db",
       "name": "Check availability"
     },
     {
@@ -141,21 +142,21 @@
         "promptType": "define",
         "text": "=={{ $json.question }}",
         "options": {
-          "systemMessage": "You are Ayu, the virtual receptionist at Izumi Hotel, a luxury 5-star boutique hotel in Ubud, Bali.\n\nHOTEL INFO:\n- Location: Jl Raya Andong N. 18, Ubud, Bali\n- Check-in: 2:00 PM | Check-out: 12:00 PM\n- Opening: Summer 2026\n\nROOMS AND PRICES:\n- Tropical Room: $450/night\n- River Villa: $500/night\n- Nest Villa: $525/night\n- Cave Villa: $550/night\n- Sky Villa: $550/night\n- Blossom Villa: $600/night\n- 5BR Villa: $2,500/night\n\nTOOLS - USE THEM:\n- Check Availability: Use when user asks about availability or wants to book. Requires check_in and check_out in YYYY-MM-DD format.\n- Calculate Price: Use to calculate total price. Requires check_in, check_out, number of guests.\n- Create Booking: Use when you have ALL data: guest name, email, phone, check-in, check-out, number of guests, and total_price. You MUST include the total_price from the Calculate Price result.\n\nRULES:\n1. Detect user language and respond in same language\n2. Keep responses short and friendly\n3. When user wants to book, ask for: dates, number of guests, room preference\n4. ALWAYS use Calculate Price first, then pass that exact price number to Create Booking as total_price\n5. Never use quotes (\") in your responses, use single quotes (') instead"
+          "systemMessage": "You are Ayu, the virtual receptionist at Izumi Hotel, a luxury 5-star boutique hotel in Ubud, Bali.\n\nLANGUAGE: Always respond in English. Speak numbers naturally (e.g., 'four hundred fifty dollars', 'January fifteenth').\n\nHOTEL INFO:\n- Location: Jl Raya Andong N. 18, Ubud, Bali\n- Check-in: 2:00 PM | Check-out: 12:00 PM\n- Opening: Summer 2026\n\nROOMS & RATES (per night):\n- Tropical Room: $450\n- River Villa: $500\n- Nest Villa: $525\n- Cave Villa: $550\n- Sky Villa: $550\n- Blossom Villa: $600\n- 5BR Villa: $2,500\n\nTOOLS:\n- Check Availability: Use when user asks about dates\n- Calculate Price: Use to calculate total cost\n- Create Booking: Use to create the reservation in the system\n\nCONVERSATION FLOW:\n1. AVAILABILITY CHECK - When user provides dates, use Check Availability tool, then summarize:\n   'Great news! We have availability from [check-in] to [check-out]. That is [X] nights. For [X] guests, I would recommend our [Room Type] at $[price] per night, totaling $[total]. Would you like to proceed?'\n\n2. COLLECT GUEST DETAILS - Ask for: Full name, Email, Phone (with country code)\n\n3. CONFIRM AND BOOK - Read back all details and ask for confirmation. When user says YES, immediately use Create Booking tool.\n\nCRITICAL RULE FOR BOOKING:\nWhen you receive a message containing \"CREATE BOOKING:\" followed by guest data, you MUST immediately execute the Create Booking tool using the provided values:\n- guest_name: the name provided\n- guest_email: the email provided\n- guest_phone: the phone provided\n- check_in: the check-in date in YYYY-MM-DD format\n- check_out: the check-out date in YYYY-MM-DD format\n- guests: the number of guests\n- total_price: the total amount as a number\n\nDo NOT ask for more information. Execute Create Booking immediately with the data provided.\n\nRULES:\n- Keep responses concise but complete\n- Never use double quotes in responses, use single quotes instead\n- All dates should use year 2025 or 2026, never 2023 or 2024"
         }
       },
       "type": "@n8n/n8n-nodes-langchain.agent",
       "typeVersion": 3,
       "position": [
-        624,
-        -80
+        -128,
+        -64
       ],
-      "id": "10fa1094-5201-4cf5-98ae-38a0820d0a90",
+      "id": "dbb00c56-6c08-4633-8385-f433643f2f87",
       "name": "AI Agent"
     },
     {
       "parameters": {
-        "toolDescription": "Crea una pre-reserva en Izumi Hotel. Usa esta herramienta cuando el usuario confirme que quiere reservar y hayas recopilado: nombre completo, email, teléfono, fechas de check-in/check-out y número de huéspedes.",
+        "toolDescription": "Create a pre-booking at Izumi Hotel. Use this tool ONLY after the guest has explicitly confirmed all details including name, email, phone, dates, and total price. NEVER use without guest confirmation.",
         "method": "POST",
         "url": "https://jjpscimtxrudtepzwhag.supabase.co/rest/v1/bookings",
         "sendHeaders": true,
@@ -181,21 +182,21 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"property_id\": \"18711359-1378-4d12-9ea6-fb31c0b1bac2\",\n  \"guest_name\": \"{{ $fromAI('guest_name', 'nombre completo del huésped') }}\",\n  \"guest_email\": \"{{ $fromAI('guest_email', 'email del huésped') }}\",\n  \"guest_phone\": \"{{ $fromAI('guest_phone', 'teléfono del huésped con código de país') }}\",\n  \"check_in\": \"{{ $fromAI('check_in', 'fecha de llegada en formato YYYY-MM-DD') }}\",\n  \"check_out\": \"{{ $fromAI('check_out', 'fecha de salida en formato YYYY-MM-DD') }}\",\n  \"guests\": {{ $fromAI('guests', 'número de huéspedes como número entero') }},\n  \"total_price\": {{ $fromAI('total_price', 'precio total en dólares como número sin símbolo, por ejemplo 1400') }},\n  \"status\": \"inquiry\",\n  \"channel\": \"direct\"\n}",
+        "jsonBody": "={\n  \"property_id\": \"18711359-1378-4d12-9ea6-fb31c0b1bac2\",\n  \"guest_name\": \"{{ $fromAI('guest_name', 'full name of the guest') }}\",\n  \"guest_email\": \"{{ $fromAI('guest_email', 'guest email address') }}\",\n  \"guest_phone\": \"{{ $fromAI('guest_phone', 'guest phone number with country code') }}\",\n  \"check_in\": \"{{ $fromAI('check_in', 'check-in date in YYYY-MM-DD format') }}\",\n  \"check_out\": \"{{ $fromAI('check_out', 'check-out date in YYYY-MM-DD format') }}\",\n  \"guests\": {{ $fromAI('guests', 'number of guests as integer') }},\n  \"total_price\": {{ $fromAI('total_price', 'total price in dollars as number without symbol, e.g. 1400') }},\n  \"status\": \"inquiry\",\n  \"channel\": \"direct\"\n}",
         "options": {}
       },
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.3,
       "position": [
-        992,
-        144
+        320,
+        176
       ],
-      "id": "fb576a93-f51b-42b5-8458-8b6425a49d06",
+      "id": "af4947a2-38b9-4021-9527-cb8d037a8f23",
       "name": "Create Booking1"
     },
     {
       "parameters": {
-        "toolDescription": "Calcula el precio total de una estancia en Izumi Hotel. Usa esta herramienta cuando el usuario pregunte cuánto cuesta, el precio total, o quiera una cotización.",
+        "toolDescription": "Calculate the total price for a stay at Izumi Hotel. Use this tool when the user asks about cost, total price, or wants a quote. Always use this before Create Booking.",
         "method": "POST",
         "url": "https://jjpscimtxrudtepzwhag.supabase.co/rest/v1/rpc/calculate_booking_price",
         "sendHeaders": true,
@@ -217,17 +218,30 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"p_property_id\": \"18711359-1378-4d12-9ea6-fb31c0b1bac2\",\n  \"p_check_in\": \"{{ $fromAI('check_in', 'fecha de llegada en formato YYYY-MM-DD') }}\",\n  \"p_check_out\": \"{{ $fromAI('check_out', 'fecha de salida en formato YYYY-MM-DD') }}\",\n  \"p_guests\": \"{{ $fromAI('guests', 'número de huéspedes') }}\"\n}",
+        "jsonBody": "={\n  \"p_property_id\": \"18711359-1378-4d12-9ea6-fb31c0b1bac2\",\n  \"p_check_in\": \"{{ $fromAI('check_in', 'check-in date in YYYY-MM-DD format') }}\",\n  \"p_check_out\": \"{{ $fromAI('check_out', 'check-out date in YYYY-MM-DD format') }}\",\n  \"p_guests\": \"{{ $fromAI('guests', 'number of guests') }}\"\n}",
         "options": {}
       },
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.3,
       "position": [
-        848,
-        144
+        160,
+        176
       ],
-      "id": "79a01610-8cc6-48ec-ba47-1b17636735d7",
+      "id": "b68cb2da-8fb2-4c22-9ec4-3ec1342a52ad",
       "name": "Calculate Price"
+    },
+    {
+      "parameters": {
+        "jsCode": "const output = $input.first().json.output || '';\nconst cleanOutput = output\n  .replace(/\"/g, \"'\")\n  .replace(/\\n/g, \" \")\n  .replace(/\\r/g, \"\")\n  .replace(/\\\\/g, \"\");\n\nreturn [{ json: { output: cleanOutput } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        192,
+        -64
+      ],
+      "id": "c8051e9d-fef4-490b-8d8c-f3a5e8f4e62e",
+      "name": "Clean Output"
     }
   ],
   "pinData": {},
@@ -280,7 +294,7 @@
       "main": [
         [
           {
-            "node": "Respond to Vapi",
+            "node": "Clean Output",
             "type": "main",
             "index": 0
           }
@@ -308,13 +322,35 @@
           }
         ]
       ]
+    },
+    "Clean Output": {
+      "main": [
+        [
+          {
+            "node": "Respond to Vapi",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "active": true,
   "settings": {
     "executionOrder": "v1"
   },
-  "versionId": "6547d200-e4da-42ba-9a14-10e147e87aef",
+  "versionId": "6695351b-e82f-4342-a9a2-b12830232f34",
   "meta": {
     "instanceId": "ca7bc7f182c365457ea4a94a4dc2efe81c23590ab8904858ce5cabfbdd56e40f"
   },
