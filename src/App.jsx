@@ -37,6 +37,7 @@ import VoiceAssistant from './components/VoiceAssistant/VoiceAssistant';
 import AIAgentsMonitor from './components/AIAgentsMonitor/AIAgentsMonitor';
 import MySite from './components/MySite/MySite';
 import Guests from './components/Guests/Guests';
+import GuestSegmentation from './components/GuestSegmentation/GuestSegmentation';
 
 // ==================== FLOATING ICON COMPONENT ====================
 const FloatingIcon = ({ icon: Icon, className, delay }) => (
@@ -194,6 +195,9 @@ export default function App() {
 
       case 'guests':
         return <Guests key="guests" onBack={() => setCurrentView('overview')} />;
+
+      case 'guest-segmentation':
+        return <GuestSegmentation key="guest-segmentation" onBack={() => setCurrentView('overview')} />;
 
       case 'payments':
         return <Payments onBack={() => setCurrentView('overview')} />;
