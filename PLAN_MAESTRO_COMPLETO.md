@@ -1,7 +1,114 @@
 # 🎯 PLAN MAESTRO COMPLETO - MY HOST BIZMATE
-**Fecha:** 27 Diciembre 2025
-**Estado Actual:** Marketing & Growth Phase 1 ✅ Completado
+**Fecha:** 27 Diciembre 2025 | **Versión:** 2.0 (Ajustada a Realidad)
+**Estado Actual:** Marketing & Growth Phase 1 ✅ Completado (~30% del proyecto)
 **Siguiente Fase:** Infraestructura + Integraciones + Workflows n8n
+
+---
+
+## ⚡ ESTIMACIÓN REALISTA - VERSIÓN 2.0
+
+> **IMPORTANTE:** Esta es la estimación REAL basada en experiencia de desarrollo.
+> Las estimaciones originales (76-112h) eran optimistas y no incluían debugging, iteraciones, ni imprevistos.
+
+### 📊 Números Realistas
+
+| Métrica | Valor Realista |
+|---------|----------------|
+| **Horas totales** | 200-250 horas |
+| **Semanas** | 6-8 semanas |
+| **Horas por día** | 4-6 horas (sostenible) |
+| **Días por semana** | 5 días laborables |
+| **Progreso actual** | 30% completado |
+| **Progreso restante** | 70% (principalmente backend e integraciones) |
+
+### ⏱️ Desglose Realista por Fase
+
+| Fase | Original | **Realista** | Diferencia |
+|------|----------|--------------|------------|
+| FASE 1: Multi-tenant | 14-20h | **25-35h** | +55-75% |
+| FASE 2.1: Stripe | 12-17h | **20-30h** | +66-76% |
+| FASE 2.2: DOMUS | 20-26h | **35-50h** | +75-92% |
+| FASE 3: Workflows Alta | 9-13h | **15-25h** | +66-92% |
+| FASE 4: Workflows Media | 16-27h | **30-45h** | +87-66% |
+| FASE 5: Polish | 5-9h | **15-25h** | +200-177% |
+| **Buffer Imprevistos** | 0h | **30-40h** | - |
+| **TOTAL** | 76-112h | **200-250h** | **+163-123%** |
+
+### 🎯 Por Qué el Ajuste
+
+**Factores que duplican/triplican el tiempo:**
+- ✅ Debugging real (~30% del tiempo)
+- ✅ Aprendizaje de APIs nuevas (~15%)
+- ✅ Testing exhaustivo (~15%)
+- ✅ Iteraciones y refinamientos (~20%)
+- ✅ Documentación (~10%)
+- ✅ Imprevistos inevitables (~30%)
+
+**Sin estos factores = estimación optimista que nunca se cumple**
+
+### 📅 Timeline Semanal Realista (5h/día promedio)
+
+```
+SEMANA 1-2  →  Multi-Tenant Architecture (25-35h)
+               ├─ RLS policies críticas
+               ├─ Testing exhaustivo
+               └─ Migración de datos
+
+SEMANA 3     →  Stripe Payments (20-30h)
+               ├─ Setup + Payment Intent
+               ├─ Checkout UI + Webhooks
+               └─ Testing con datos reales
+
+SEMANA 4-5   →  DOMUS Channel Manager (35-50h)
+               ├─ API research + auth
+               ├─ Property & Booking sync
+               ├─ Calendar real-time
+               └─ Conflict resolution
+
+SEMANA 6     →  Workflows Alta Prioridad (15-25h)
+               ├─ VAPI Voice Agent
+               ├─ WhatsApp Concierge
+               └─ AI Agents
+
+SEMANA 7     →  Workflows Media Prioridad (30-45h)
+               ├─ Marketing workflows (4)
+               ├─ Communication (1)
+               ├─ Content & Campaigns (4)
+               └─ Enrichment (2)
+
+SEMANA 8     →  Polish + Testing Final (15-25h)
+               ├─ Dashboard widgets
+               ├─ Bug fixes
+               ├─ Performance optimization
+               └─ Documentación final
+
+BUFFER       →  Imprevistos (30-40h distribuidos)
+               └─ Lo que siempre pasa
+
+TOTAL: 6-8 semanas | 200-250 horas | 4-6h/día
+```
+
+### ✅ Validación Matemática
+
+```
+Escenario Conservador:
+4h/día × 5 días × 8 semanas = 160h base
+160h + 40% buffer = 224h ✅
+
+Escenario Medio:
+5h/día × 5 días × 7 semanas = 175h base
+175h + 40% buffer = 245h ✅
+
+Escenario Optimista:
+6h/día × 5 días × 6 semanas = 180h base
+180h + 30% buffer = 234h ✅
+
+Rango final: 224-245h promedio = 200-250h ✅
+```
+
+---
+
+> **📌 NOTA:** El resto del documento mantiene las estimaciones originales (76-112h) para referencia de tareas individuales, pero debes multiplicar por ~2.5x para obtener tiempos reales que incluyan debugging, testing e imprevistos.
 
 ---
 
@@ -1343,25 +1450,43 @@ export const retryableSync = async (syncFn, maxRetries = 3) => {
 
 ## Escenarios de Tiempo
 
+> **⚠️ ACTUALIZADO - VERSIÓN 2.0:** Estimaciones ajustadas a la realidad con debugging, testing e imprevistos incluidos.
+
+### Estimación Original (Optimista - NO USAR)
 | Escenario | Horas | Días (6h/día) | Días (8h/día) | Semanas |
 |-----------|-------|---------------|---------------|---------|
-| **Optimista** | 76h | 13 días | 10 días | 2 semanas |
-| **Realista** | 94h | 16 días | 12 días | 2.5 semanas |
-| **Con buffer (+20%)** | 112h | 19 días | 14 días | 3 semanas |
-| **Con imprevistos (+30%)** | 122h | 21 días | 15 días | 3.5 semanas |
+| ~~Optimista~~ | ~~76h~~ | ~~13 días~~ | ~~10 días~~ | ~~2 semanas~~ |
+| ~~Realista~~ | ~~94h~~ | ~~16 días~~ | ~~12 días~~ | ~~2.5 semanas~~ |
+| ~~Con buffer~~ | ~~112h~~ | ~~19 días~~ | ~~14 días~~ | ~~3 semanas~~ |
+
+### ✅ Estimación Realista V2.0 (USAR ESTA)
+| Escenario | Horas | Días (5h/día) | Días (6h/día) | Semanas |
+|-----------|-------|---------------|---------------|---------|
+| **Optimista** | 200h | 40 días | 34 días | **6 semanas** |
+| **Realista** | 225h | 45 días | 38 días | **7 semanas** |
+| **Con buffer** | 250h | 50 días | 42 días | **8 semanas** |
+
+**Progreso actual:** 30% completado (~90h invertidas)
+**Progreso restante:** 70% (~200-250h por invertir)
+
+**Fecha estimada de finalización:** Mediados de Febrero 2026 (si inicias en Enero)
 
 ---
 
 ## Hitos Clave (Milestones)
 
-| Hito | Descripción | Semana | Resultado |
-|------|-------------|--------|-----------|
-| **M1** | Multi-Tenant Funcional | Semana 2 | Sistema soporta múltiples clientes |
-| **M2** | Payments Live | Semana 3 | Cobros con Stripe operativos |
-| **M3** | DOMUS Sincronizado | Semana 4 | Propiedades y bookings en sync |
-| **M4** | Agentes IA Live | Semana 5 | VAPI + WhatsApp + Asistentes funcionando |
-| **M5** | Marketing Automatizado | Semana 7 | Campañas ejecutándose solas |
-| **M6** | Production Ready | Semana 8 | Sistema completo listo para lanzamiento |
+> **⚠️ ACTUALIZADO V2.0:** Hitos ajustados a timeline realista de 6-8 semanas
+
+| Hito | Descripción | Semana Original | **Semana Realista** | Resultado |
+|------|-------------|-----------------|---------------------|-----------|
+| **M1** | Multi-Tenant Funcional | ~~Semana 2~~ | **Semana 2** | Sistema soporta múltiples clientes ✅ |
+| **M2** | Payments Live | ~~Semana 3~~ | **Semana 3** | Cobros con Stripe operativos ✅ |
+| **M3** | DOMUS Sincronizado | ~~Semana 4~~ | **Semana 5** | Propiedades y bookings en sync ✅ |
+| **M4** | Agentes IA Live | ~~Semana 5~~ | **Semana 6** | VAPI + WhatsApp + Asistentes ✅ |
+| **M5** | Marketing Automatizado | ~~Semana 7~~ | **Semana 7** | Campañas ejecutándose solas ✅ |
+| **M6** | Production Ready | ~~Semana 8~~ | **Semana 8** | Sistema completo listo 🚀 |
+
+**Nota:** Los hitos están bien espaciados en el timeline realista. La diferencia principal está en que cada semana tiene menos horas efectivas (25h vs 40h asumidas originalmente).
 
 ---
 
