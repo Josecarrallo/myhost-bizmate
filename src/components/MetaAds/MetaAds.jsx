@@ -152,32 +152,32 @@ const MetaAds = ({ onBack }) => {
   };
 
   const objectiveColors = {
-    awareness: 'bg-blue-100 text-blue-700 border-blue-300',
+    awareness: 'bg-orange-100 text-orange-700 border-orange-300',
     bookings: 'bg-green-100 text-green-700 border-green-300',
     reviews: 'bg-purple-100 text-purple-700 border-purple-300'
   };
 
   const statusColors = {
     active: 'bg-green-100 text-green-700',
-    scheduled: 'bg-blue-100 text-blue-700',
+    scheduled: 'bg-orange-100 text-orange-700',
     completed: 'bg-gray-100 text-gray-700',
     paused: 'bg-yellow-100 text-yellow-700'
   };
 
   return (
-    <div className="flex-1 h-screen bg-gradient-to-br from-pink-50 via-purple-50 to-blue-50 p-4 relative overflow-auto">
+    <div className="flex-1 h-screen bg-gradient-to-br from-orange-50 via-orange-100 to-orange-50 p-4 relative overflow-auto">
       {/* Header */}
-      <div className="bg-white/90 backdrop-blur-sm rounded-3xl p-6 mb-6 border-2 border-purple-200 shadow-xl">
+      <div className="bg-white/90 backdrop-blur-sm rounded-3xl p-6 mb-6 border-2 border-orange-200 shadow-xl">
         <div className="flex items-center justify-between mb-4">
           <button
             onClick={onBack}
-            className="flex items-center gap-2 text-purple-600 hover:text-purple-700 transition-colors"
+            className="flex items-center gap-2 text-[#d85a2a] hover:text-[#FF8C42] transition-colors"
           >
             <ChevronLeft className="w-5 h-5" />
             <span className="font-semibold">Back</span>
           </button>
           <div className="text-center flex-1">
-            <h2 className="text-3xl font-black text-purple-600 flex items-center justify-center gap-3">
+            <h2 className="text-3xl font-black text-[#d85a2a] flex items-center justify-center gap-3">
               <Instagram className="w-8 h-8" />
               Meta Ads Manager
               <Facebook className="w-8 h-8" />
@@ -186,7 +186,7 @@ const MetaAds = ({ onBack }) => {
           </div>
           <button
             onClick={() => setShowCreateModal(true)}
-            className="px-4 py-2 bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-xl font-bold hover:shadow-lg transition-all flex items-center gap-2"
+            className="px-4 py-2 bg-gradient-to-r from-[#d85a2a] to-[#FF8C42] text-white rounded-xl font-bold hover:shadow-lg transition-all flex items-center gap-2"
           >
             <Plus className="w-4 h-4" />
             New Campaign
@@ -199,7 +199,7 @@ const MetaAds = ({ onBack }) => {
             onClick={() => setActiveTab('all')}
             className={`px-6 py-3 rounded-xl font-bold transition-all ${
               activeTab === 'all'
-                ? 'bg-gradient-to-r from-pink-500 to-purple-600 text-white'
+                ? 'bg-gradient-to-r from-[#d85a2a] to-[#FF8C42] text-white'
                 : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
             }`}
           >
@@ -220,7 +220,7 @@ const MetaAds = ({ onBack }) => {
             onClick={() => setActiveTab('facebook')}
             className={`px-6 py-3 rounded-xl font-bold transition-all flex items-center gap-2 ${
               activeTab === 'facebook'
-                ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white'
+                ? 'bg-gradient-to-r from-[#d85a2a] to-[#FF8C42] text-white'
                 : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
             }`}
           >
@@ -232,7 +232,7 @@ const MetaAds = ({ onBack }) => {
 
       {/* Stats */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-        <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-2xl p-6 border-2 border-purple-200 shadow-lg text-white">
+        <div className="bg-gradient-to-br from-[#d85a2a] to-[#FF8C42] rounded-2xl p-6 border-2 border-orange-200 shadow-lg text-white">
           <div className="flex items-center gap-3 mb-2">
             <Play className="w-6 h-6" />
             <span className="text-sm font-bold opacity-90">Active Campaigns</span>
@@ -240,28 +240,28 @@ const MetaAds = ({ onBack }) => {
           <div className="text-3xl font-black">{stats.activeCampaigns}</div>
         </div>
 
-        <div className="bg-white/90 backdrop-blur-sm rounded-2xl p-6 border-2 border-purple-200 shadow-lg">
+        <div className="bg-white/90 backdrop-blur-sm rounded-2xl p-6 border-2 border-orange-200 shadow-lg">
           <div className="flex items-center gap-3 mb-2">
-            <Eye className="w-6 h-6 text-purple-600" />
+            <Eye className="w-6 h-6 text-[#d85a2a]" />
             <span className="text-sm font-bold text-gray-600">Total Reach</span>
           </div>
-          <div className="text-3xl font-black text-purple-600">{(stats.totalReach / 1000).toFixed(1)}K</div>
+          <div className="text-3xl font-black text-[#d85a2a]">{(stats.totalReach / 1000).toFixed(1)}K</div>
         </div>
 
-        <div className="bg-white/90 backdrop-blur-sm rounded-2xl p-6 border-2 border-purple-200 shadow-lg">
+        <div className="bg-white/90 backdrop-blur-sm rounded-2xl p-6 border-2 border-orange-200 shadow-lg">
           <div className="flex items-center gap-3 mb-2">
-            <DollarSign className="w-6 h-6 text-purple-600" />
+            <DollarSign className="w-6 h-6 text-[#d85a2a]" />
             <span className="text-sm font-bold text-gray-600">Total Budget</span>
           </div>
-          <div className="text-3xl font-black text-purple-600">${stats.totalBudget.toLocaleString()}</div>
+          <div className="text-3xl font-black text-[#d85a2a]">${stats.totalBudget.toLocaleString()}</div>
         </div>
 
-        <div className="bg-white/90 backdrop-blur-sm rounded-2xl p-6 border-2 border-purple-200 shadow-lg">
+        <div className="bg-white/90 backdrop-blur-sm rounded-2xl p-6 border-2 border-orange-200 shadow-lg">
           <div className="flex items-center gap-3 mb-2">
-            <TrendingUp className="w-6 h-6 text-purple-600" />
+            <TrendingUp className="w-6 h-6 text-[#d85a2a]" />
             <span className="text-sm font-bold text-gray-600">Spent</span>
           </div>
-          <div className="text-3xl font-black text-purple-600">${stats.totalSpent.toLocaleString()}</div>
+          <div className="text-3xl font-black text-[#d85a2a]">${stats.totalSpent.toLocaleString()}</div>
           <div className="text-xs text-gray-500 mt-1">
             {((stats.totalSpent / stats.totalBudget) * 100).toFixed(0)}% of budget
           </div>
@@ -269,13 +269,13 @@ const MetaAds = ({ onBack }) => {
       </div>
 
       {/* Filters */}
-      <div className="bg-white/90 backdrop-blur-sm rounded-2xl p-4 mb-6 border-2 border-purple-200 shadow-lg">
+      <div className="bg-white/90 backdrop-blur-sm rounded-2xl p-4 mb-6 border-2 border-orange-200 shadow-lg">
         <div className="flex gap-2">
           <button
             onClick={() => setFilter('all')}
             className={`px-4 py-2 rounded-xl font-bold transition-all ${
               filter === 'all'
-                ? 'bg-purple-600 text-white'
+                ? 'bg-[#d85a2a] text-white'
                 : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
             }`}
           >
@@ -295,7 +295,7 @@ const MetaAds = ({ onBack }) => {
             onClick={() => setFilter('scheduled')}
             className={`px-4 py-2 rounded-xl font-bold transition-all ${
               filter === 'scheduled'
-                ? 'bg-blue-600 text-white'
+                ? 'bg-[#d85a2a] text-white'
                 : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
             }`}
           >
@@ -317,7 +317,7 @@ const MetaAds = ({ onBack }) => {
       {/* Campaigns */}
       <div className="space-y-4">
         {filteredCampaigns.length === 0 ? (
-          <div className="bg-white/90 backdrop-blur-sm rounded-2xl p-12 border-2 border-purple-200 text-center">
+          <div className="bg-white/90 backdrop-blur-sm rounded-2xl p-12 border-2 border-orange-200 text-center">
             <Target className="w-16 h-16 text-gray-300 mx-auto mb-4" />
             <p className="text-gray-500 font-semibold">No campaigns found</p>
             <p className="text-sm text-gray-400 mt-2">Create your first campaign to start advertising</p>
@@ -326,7 +326,7 @@ const MetaAds = ({ onBack }) => {
           filteredCampaigns.map(campaign => (
             <div
               key={campaign.id}
-              className="bg-white/90 backdrop-blur-sm rounded-2xl p-6 border-2 border-purple-200 hover:shadow-xl transition-all"
+              className="bg-white/90 backdrop-blur-sm rounded-2xl p-6 border-2 border-orange-200 hover:shadow-xl transition-all"
             >
               <div className="flex items-start justify-between mb-4">
                 <div className="flex items-center gap-3">
@@ -335,7 +335,7 @@ const MetaAds = ({ onBack }) => {
                       <Instagram className="w-6 h-6 text-white" />
                     </div>
                   ) : (
-                    <div className="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center">
+                    <div className="w-12 h-12 bg-[#d85a2a] rounded-xl flex items-center justify-center">
                       <Facebook className="w-6 h-6 text-white" />
                     </div>
                   )}
@@ -353,46 +353,46 @@ const MetaAds = ({ onBack }) => {
                 </div>
                 <div className="text-right">
                   <p className="text-xs text-gray-500">Budget</p>
-                  <p className="text-2xl font-black text-purple-600">${campaign.budget.toLocaleString()}</p>
+                  <p className="text-2xl font-black text-[#d85a2a]">${campaign.budget.toLocaleString()}</p>
                   <p className="text-xs text-gray-500 mt-1">Spent: ${campaign.spent.toLocaleString()}</p>
                 </div>
               </div>
 
               <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-4">
-                <div className="bg-purple-50 rounded-xl p-3">
+                <div className="bg-orange-50 rounded-xl p-3">
                   <div className="flex items-center gap-2 mb-1">
-                    <Eye className="w-4 h-4 text-purple-600" />
+                    <Eye className="w-4 h-4 text-[#d85a2a]" />
                     <span className="text-xs font-bold text-gray-600">Reach</span>
                   </div>
-                  <p className="text-xl font-black text-purple-600">{(campaign.reach / 1000).toFixed(1)}K</p>
+                  <p className="text-xl font-black text-[#d85a2a]">{(campaign.reach / 1000).toFixed(1)}K</p>
                 </div>
-                <div className="bg-purple-50 rounded-xl p-3">
+                <div className="bg-orange-50 rounded-xl p-3">
                   <div className="flex items-center gap-2 mb-1">
-                    <MousePointer className="w-4 h-4 text-purple-600" />
+                    <MousePointer className="w-4 h-4 text-[#d85a2a]" />
                     <span className="text-xs font-bold text-gray-600">Clicks</span>
                   </div>
-                  <p className="text-xl font-black text-purple-600">{campaign.clicks.toLocaleString()}</p>
+                  <p className="text-xl font-black text-[#d85a2a]">{campaign.clicks.toLocaleString()}</p>
                 </div>
-                <div className="bg-purple-50 rounded-xl p-3">
+                <div className="bg-orange-50 rounded-xl p-3">
                   <div className="flex items-center gap-2 mb-1">
-                    <Target className="w-4 h-4 text-purple-600" />
+                    <Target className="w-4 h-4 text-[#d85a2a]" />
                     <span className="text-xs font-bold text-gray-600">Conversions</span>
                   </div>
-                  <p className="text-xl font-black text-purple-600">{campaign.conversions}</p>
+                  <p className="text-xl font-black text-[#d85a2a]">{campaign.conversions}</p>
                 </div>
-                <div className="bg-purple-50 rounded-xl p-3">
+                <div className="bg-orange-50 rounded-xl p-3">
                   <div className="flex items-center gap-2 mb-1">
-                    <TrendingUp className="w-4 h-4 text-purple-600" />
+                    <TrendingUp className="w-4 h-4 text-[#d85a2a]" />
                     <span className="text-xs font-bold text-gray-600">CTR</span>
                   </div>
-                  <p className="text-xl font-black text-purple-600">{campaign.ctr.toFixed(2)}%</p>
+                  <p className="text-xl font-black text-[#d85a2a]">{campaign.ctr.toFixed(2)}%</p>
                 </div>
-                <div className="bg-purple-50 rounded-xl p-3">
+                <div className="bg-orange-50 rounded-xl p-3">
                   <div className="flex items-center gap-2 mb-1">
-                    <DollarSign className="w-4 h-4 text-purple-600" />
+                    <DollarSign className="w-4 h-4 text-[#d85a2a]" />
                     <span className="text-xs font-bold text-gray-600">CPC</span>
                   </div>
-                  <p className="text-xl font-black text-purple-600">${campaign.cpc.toFixed(2)}</p>
+                  <p className="text-xl font-black text-[#d85a2a]">${campaign.cpc.toFixed(2)}</p>
                 </div>
               </div>
 
@@ -407,7 +407,7 @@ const MetaAds = ({ onBack }) => {
                     {campaign.startDate} - {campaign.endDate}
                   </span>
                 </div>
-                <button className="px-4 py-2 bg-purple-100 text-purple-700 rounded-lg font-bold hover:bg-purple-200 transition-all">
+                <button className="px-4 py-2 bg-orange-100 text-orange-700 rounded-lg font-bold hover:bg-orange-200 transition-all">
                   View Details
                 </button>
               </div>
@@ -420,7 +420,7 @@ const MetaAds = ({ onBack }) => {
       {showCreateModal && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-3xl max-w-2xl w-full max-h-[90vh] overflow-auto shadow-2xl">
-            <div className="sticky top-0 bg-gradient-to-r from-pink-500 to-purple-600 p-6 rounded-t-3xl">
+            <div className="sticky top-0 bg-gradient-to-r from-[#d85a2a] to-[#FF8C42] p-6 rounded-t-3xl">
               <div className="flex items-center justify-between">
                 <h3 className="text-2xl font-black text-white">Create Meta Ad Campaign</h3>
                 <button
@@ -433,14 +433,14 @@ const MetaAds = ({ onBack }) => {
             </div>
 
             <div className="p-6">
-              <div className="bg-blue-50 rounded-xl p-4 border-2 border-blue-200 mb-4">
-                <p className="text-sm text-blue-800 font-semibold">
+              <div className="bg-orange-50 rounded-xl p-4 border-2 border-orange-200 mb-4">
+                <p className="text-sm text-orange-800 font-semibold">
                   📱 <strong>Phase 1:</strong> Campaign creation UI ready. Full Meta API integration coming in Phase 2.
                 </p>
               </div>
 
               <div className="text-center py-12">
-                <CheckCircle className="w-16 h-16 text-purple-500 mx-auto mb-4" />
+                <CheckCircle className="w-16 h-16 text-[#d85a2a] mx-auto mb-4" />
                 <p className="text-xl font-bold text-gray-800 mb-2">Campaign Creation UI</p>
                 <p className="text-gray-600">
                   Platform selection, objectives, audience targeting,<br/>
