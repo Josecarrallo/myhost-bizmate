@@ -33,7 +33,7 @@ import BookingEngine from './components/BookingEngine/BookingEngine';
 import PMSCalendar from './components/PMSCalendar/PMSCalendar';
 import CulturalIntelligence from './components/CulturalIntelligence/CulturalIntelligence';
 import GuestPortal from './components/GuestPortal/GuestPortal';
-// import VoiceAssistant from './components/VoiceAssistant/VoiceAssistant';
+import VoiceAssistant from './components/VoiceAssistant/VoiceAssistant';
 import AIAgentsMonitor from './components/AIAgentsMonitor/AIAgentsMonitor';
 import MySite from './components/MySite/MySite';
 import Guests from './components/Guests/Guests';
@@ -339,8 +339,8 @@ export default function App() {
         {renderContent()}
       </div>
 
-      {/* Voice Assistant - Commented out to prevent clicking issues */}
-      {/* <VoiceAssistant /> */}
+      {/* Voice Assistant - Botón flotante siempre visible */}
+      <VoiceAssistant />
     </div>
   );
 }
