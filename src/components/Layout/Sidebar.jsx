@@ -23,7 +23,10 @@ import {
   Monitor,
   LogOut,
   Target,
-  TrendingUp
+  TrendingUp,
+  CalendarCheck,
+  Palette,
+  PieChart
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -34,7 +37,7 @@ const Sidebar = ({ currentView, onNavigate, isOpen, onClose }) => {
     'operations': false,
     'revenue': false,
     'pms-core': false,
-    'guest-management': false,
+    'guest-growth': false,
     'settings': false
   });
 
@@ -88,31 +91,46 @@ const Sidebar = ({ currentView, onNavigate, isOpen, onClose }) => {
       ]
     },
     {
+      sectionId: 'marketing-growth',
+      sectionLabel: 'MARKETING & GROWTH',
+      sectionIcon: Megaphone,
+      collapsible: true,
+      items: [
+        { id: 'marketing-overview', label: 'Overview', icon: PieChart },
+        { id: 'meta-ads', label: 'Meta Ads', icon: TrendingUp },
+        { id: 'content-planner', label: 'Content Planner', icon: CalendarCheck },
+        { id: 'creative-studio', label: 'Creative Studio (Soon)', icon: Palette },
+        { id: 'reviews', label: 'Reviews Management', icon: Star },
+        { id: 'insights', label: 'Insights', icon: BarChart3 }
+      ]
+    },
+    {
       sectionId: 'pms-core',
-      sectionLabel: 'PMS CORE (Internal Agent)',
+      sectionLabel: 'PMS CORE (INTERNAL AGENT)',
       sectionIcon: Bot,
       collapsible: true,
       items: [
-        { id: 'aiAssistant', label: 'AI Assistant', icon: Sparkles },
-        { id: 'ai-agents-monitor', label: 'AI Agents Monitor', icon: Activity },
+        { id: 'ai-assistant', label: 'AI Assistant', icon: Sparkles },
+        { id: 'agents-monitor', label: 'AI Agents Monitor', icon: Activity },
         { id: 'workflows', label: 'Workflows & Automations', icon: Workflow },
         { id: 'my-site', label: 'My Site', icon: Monitor }
       ]
     },
     {
-      sectionId: 'guest-management',
-      sectionLabel: 'GUEST MANAGEMENT (External Agent)',
+      sectionId: 'guest-growth',
+      sectionLabel: 'GUEST & GROWTH (EXTERNAL AGENT)',
       sectionIcon: Users,
       collapsible: true,
       items: [
-        { id: 'guests', label: 'Guest Database / CRM', icon: Users },
-        { id: 'guest-segmentation', label: 'Guest Segmentation', icon: Target },
+        { id: 'crm', label: 'Guest Database / CRM', icon: Users },
+        { id: 'segmentation', label: 'Guest Segmentation', icon: Target },
+        { id: 'my-website', label: 'Create My Website', icon: Globe },
         { id: 'booking-engine', label: 'Booking Engine Config', icon: Globe },
         { id: 'digital-checkin', label: 'Digital Check-in Setup', icon: CheckCircle },
         { id: 'reviews', label: 'Reviews Management', icon: Star },
-        { id: 'marketing', label: 'Marketing Campaigns', icon: Megaphone },
+        { id: 'campaigns', label: 'Marketing Campaigns', icon: Megaphone },
         { id: 'meta-ads', label: 'Meta Ads (Instagram + Facebook)', icon: TrendingUp },
-        { id: 'guest-analytics', label: 'Guest Analytics', icon: BarChart3 }
+        { id: 'analytics', label: 'Guest Analytics', icon: BarChart3 }
       ]
     },
     {

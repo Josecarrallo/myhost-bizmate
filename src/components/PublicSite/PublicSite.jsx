@@ -1,18 +1,72 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { getSiteBySlug } from '@/services/mySiteService';
-import { getTheme } from '@/components/MySite/themes';
-import { Phone, Mail, MessageCircle, MapPin, Users, Bed, Bath, DollarSign, Check, Star, Home } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { getSiteBySlug } from '../../services/mySiteService';
+import { getTheme } from '../MySite/themes';
+import {
+  MapPin, ShieldCheck, Star, Headphones, BadgePercent, Home, MessageCircle,
+  ArrowRight, Bed, Bath, Users, ChevronRight, Phone
+} from 'lucide-react';
+
+// Property Card Component
+const PropertyCard = ({ name, location, beds, baths, maxGuests, basePrice, image, themeColors }) => {
+  return (
+    <div className="group overflow-hidden transition-all duration-500 hover:-translate-y-2 hover:shadow-[0_20px_50px_rgba(16,185,129,0.1)] rounded-[16px] bg-white border border-gray-200">
+      <div className="relative aspect-[4/3] overflow-hidden">
+        <img
+          src={image || 'https://images.unsplash.com/photo-1582268611958-ebfd161ef9cf?w=800'}
+          alt={name}
+          className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110"
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+        <div className="absolute bottom-4 left-4 right-4">
+          <p className="text-white/80 text-sm font-medium tracking-wide uppercase">{location}</p>
+          <h3 className="text-white text-2xl font-serif mt-1">{name}</h3>
+        </div>
+      </div>
+      <div className="p-6">
+        <div className="flex items-center justify-between text-gray-600 text-sm mb-6">
+          <div className="flex items-center gap-2">
+            <Bed className="w-4 h-4" style={{ color: themeColors?.primary || '#10B981' }} />
+            <span>{beds} Beds</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Bath className="w-4 h-4" style={{ color: themeColors?.primary || '#10B981' }} />
+            <span>{baths} Baths</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Users className="w-4 h-4" style={{ color: themeColors?.primary || '#10B981' }} />
+            <span>{maxGuests} Guests</span>
+          </div>
+        </div>
+        <div className="flex items-baseline gap-1 mb-4">
+          <span className="text-3xl font-bold text-gray-900">${basePrice}</span>
+          <span className="text-gray-600 text-sm">/ night</span>
+        </div>
+        <button
+          className="w-full text-white rounded-full py-3 font-medium transition-all flex items-center justify-center gap-2"
+          style={{
+            backgroundColor: themeColors?.primary || '#10B981',
+            ':hover': { backgroundColor: themeColors?.secondary || '#059669' }
+          }}
+          onMouseEnter={(e) => e.target.style.backgroundColor = themeColors?.secondary || '#059669'}
+          onMouseLeave={(e) => e.target.style.backgroundColor = themeColors?.primary || '#10B981'}
+        >
+          View Details
+          <ChevronRight className="w-4 h-4" />
+        </button>
+      </div>
+    </div>
+  );
+};
 
 const PublicSite = () => {
   const { slug } = useParams();
   const navigate = useNavigate();
-  const [site, setSite] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [theme, setTheme] = useState(null);
+  const [site, setSite] = React.useState(null);
+  const [loading, setLoading] = React.useState(true);
+  const [theme, setTheme] = React.useState(null);
 
-  useEffect(() => {
+  React.useEffect(() => {
     const loadSite = () => {
       setLoading(true);
       const siteData = getSiteBySlug(slug);
@@ -23,36 +77,21 @@ const PublicSite = () => {
       }
 
       setSite(siteData);
-
-      // Load theme
+      console.log('🎨 Site theme ID:', siteData.theme);
       const themeData = getTheme(siteData.theme);
+      console.log('🎨 Theme data loaded:', themeData);
       setTheme(themeData);
-
       setLoading(false);
     };
 
     loadSite();
   }, [slug]);
 
-  const handleBooking = (property) => {
-    if (site.booking_mode === 'whatsapp' && site.whatsapp_number) {
-      const message = site.whatsapp_message_template
-        .replace('{{property}}', property.name)
-        .replace('{{date}}', 'your dates')
-        .replace('{{guests}}', 'your group size');
-
-      const whatsappUrl = `https://wa.me/${site.whatsapp_number.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(message)}`;
-      window.open(whatsappUrl, '_blank');
-    } else {
-      alert('Booking form coming soon! For now, please contact us directly.');
-    }
-  };
-
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-orange-50 to-orange-100 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-emerald-50 to-emerald-100 flex items-center justify-center">
         <div className="text-center">
-          <div className="w-16 h-16 border-4 border-orange-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <div className="w-16 h-16 border-4 border-emerald-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
           <p className="text-gray-600 text-lg">Loading website...</p>
         </div>
       </div>
@@ -68,12 +107,12 @@ const PublicSite = () => {
           <p className="text-gray-300 mb-6">
             The website you're looking for doesn't exist or has been removed.
           </p>
-          <Button
+          <button
             onClick={() => navigate('/')}
-            className="bg-gradient-to-r from-[#d85a2a] to-[#f5a524] hover:opacity-90"
+            className="bg-gradient-to-r from-emerald-600 to-emerald-700 hover:opacity-90 text-white px-6 py-3 rounded-full font-medium"
           >
             Go to Homepage
-          </Button>
+          </button>
         </div>
       </div>
     );
@@ -90,451 +129,295 @@ const PublicSite = () => {
           <p className="text-gray-600 mb-6">
             This website is currently in draft mode and not published yet.
           </p>
-          <Button
+          <button
             onClick={() => navigate('/')}
-            variant="outline"
+            className="px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
           >
             Go Back
-          </Button>
+          </button>
         </div>
       </div>
     );
   }
 
+  // Get theme colors (fallback to emerald green if no theme)
   const themeColors = theme?.colors || {
-    primary: '#f97316',
-    secondary: '#fb923c',
-    accent: '#fdba74'
+    primary: '#10B981',
+    secondary: '#F59E0B',
+    accent: '#34D399',
+    text: '#1F2937',
+    textLight: '#6B7280'
   };
 
+  const siteName = site.name || 'L\'ELEGANCE';
+  const siteTagline = site.about_title || 'Exquisite Living for the Discerning Traveler';
+  const location = site.location || 'Bali, Indonesia';
+  const description = site.about_text || 'A curated collection of luxury rentals';
+  const whatsappNumber = site.whatsapp_number || '';
+  const phoneNumber = site.contact_phone || '';
+  const properties = site.properties || [];
+
+  // VAPI Configuration (same as VoiceAssistant component)
+  const VAPI_PUBLIC_KEY = '3716bc62-40e8-4f3b-bfa2-9e934db6b51d';
+  const VAPI_ASSISTANT_ID = 'ae9ea22a-fc9a-49ba-b5b8-900ed69b7615'; // Izumi Hotel Receptionist
+
   return (
-    <div className="min-h-screen bg-white">
-      {/* Header */}
-      <header
-        className="sticky top-0 z-50 shadow-md"
-        style={{ backgroundColor: themeColors.primary }}
-      >
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center justify-between">
-            <h1 className="text-2xl sm:text-3xl font-bold text-white">
-              {site.name}
-            </h1>
-            <div className="flex gap-3">
-              {site.contact_phone && (
-                <a
-                  href={`tel:${site.contact_phone}`}
-                  className="hidden sm:flex items-center gap-2 px-4 py-2 bg-[#d85a2a]/10 hover:bg-white/30 text-white rounded-lg transition-colors"
-                >
-                  <Phone className="w-4 h-4" />
-                  <span className="text-sm font-medium">Call</span>
-                </a>
-              )}
-              {site.booking_mode === 'whatsapp' && site.whatsapp_number && (
-                <a
-                  href={`https://wa.me/${site.whatsapp_number.replace(/[^0-9]/g, '')}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-2 px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg transition-colors"
-                >
-                  <MessageCircle className="w-4 h-4" />
-                  <span className="text-sm font-medium">WhatsApp</span>
-                </a>
-              )}
-            </div>
-          </div>
-        </div>
-      </header>
-
+    <main className="relative">
       {/* Hero Section */}
-      <section
-        className="relative py-20 sm:py-32 overflow-hidden"
-        style={{
-          background: `linear-gradient(135deg, ${themeColors.primary}E6, ${themeColors.secondary}E6)`
-        }}
-      >
-        {/* Background Pattern */}
-        <div className="absolute inset-0 opacity-10">
-          <div className="absolute inset-0" style={{
-            backgroundImage: 'radial-gradient(circle at 2px 2px, white 1px, transparent 0)',
-            backgroundSize: '40px 40px'
-          }}></div>
+      <section className="relative h-screen w-full overflow-hidden flex flex-col justify-center items-center text-center px-4">
+        <div className="absolute inset-0 z-0">
+          <img
+            src="https://images.unsplash.com/photo-1566073771259-6a8506099945?w=1920"
+            alt="Luxury Villa"
+            className="h-full w-full object-cover"
+          />
+          <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/20 to-black/60" />
         </div>
 
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center">
-            <h2 className="text-4xl sm:text-6xl font-bold text-white mb-6 drop-shadow-lg">
-              {site.about_title || 'Welcome to Our Properties'}
-            </h2>
-            <p className="text-xl sm:text-2xl text-white/95 max-w-3xl mx-auto mb-8 leading-relaxed">
-              {site.about_text || 'Discover our beautiful properties in paradise'}
-            </p>
-
-            {/* CTA Buttons */}
-            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-              <Button
-                onClick={() => {
-                  const propertiesSection = document.getElementById('properties-section');
-                  propertiesSection?.scrollIntoView({ behavior: 'smooth' });
-                }}
-                size="lg"
-                className="bg-white hover:bg-gray-100 text-gray-900 px-8 py-6 text-lg font-semibold shadow-xl"
+        <div className="relative z-10 max-w-5xl mx-auto space-y-6 animate-fade-in">
+          <div className="flex items-center justify-center gap-2 text-white/90 font-medium tracking-[0.2em] uppercase text-sm mb-4">
+            <MapPin className="w-4 h-4" style={{ color: themeColors.secondary }} />
+            {location}
+          </div>
+          <h1 className="text-6xl md:text-8xl lg:text-9xl text-white leading-tight font-serif">{siteName}</h1>
+          <p className="text-lg md:text-xl text-white/80 max-w-2xl mx-auto font-light tracking-wide">{siteTagline}</p>
+          {whatsappNumber && (
+            <div className="pt-8">
+              <button
+                className="text-white rounded-full px-12 py-6 text-lg font-medium shadow-2xl transition-all hover:scale-105 active:scale-95 flex items-center gap-3 mx-auto"
+                style={{ backgroundColor: themeColors.primary }}
+                onMouseEnter={(e) => e.target.style.backgroundColor = themeColors.secondary}
+                onMouseLeave={(e) => e.target.style.backgroundColor = themeColors.primary}
+                onClick={() => window.open(`https://wa.me/${whatsappNumber.replace(/[^0-9]/g, '')}`, "_blank")}
               >
-                Explore Properties
-              </Button>
-              {site.booking_mode === 'whatsapp' && site.whatsapp_number && (
-                <Button
-                  onClick={() => window.open(`https://wa.me/${site.whatsapp_number.replace(/[^0-9]/g, '')}`, '_blank')}
-                  size="lg"
-                  className="bg-green-500 hover:bg-green-600 text-white px-8 py-6 text-lg font-semibold shadow-xl"
-                >
-                  <MessageCircle className="w-5 h-5 mr-2" />
-                  Contact Us
-                </Button>
-              )}
-            </div>
-
-            {/* Stats */}
-            <div className="mt-12 grid grid-cols-2 sm:grid-cols-4 gap-6 max-w-4xl mx-auto">
-              <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20">
-                <div className="text-3xl font-bold text-white mb-1">
-                  {site.properties?.length || 0}
-                </div>
-                <div className="text-sm text-white/80">Properties</div>
-              </div>
-              <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20">
-                <div className="text-3xl font-bold text-white mb-1">5★</div>
-                <div className="text-sm text-white/80">Rating</div>
-              </div>
-              <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20">
-                <div className="text-3xl font-bold text-white mb-1">24/7</div>
-                <div className="text-sm text-white/80">Support</div>
-              </div>
-              <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20">
-                <div className="text-3xl font-bold text-white mb-1">100%</div>
-                <div className="text-sm text-white/80">Verified</div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Properties Grid */}
-      <section id="properties-section" className="py-16 sm:py-20 bg-gray-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-12">
-            <h2 className="text-4xl sm:text-5xl font-bold text-gray-900 mb-4">
-              Our Properties
-            </h2>
-            <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-              Choose from our carefully selected collection of premium accommodations
-            </p>
-          </div>
-
-          {!site.properties || site.properties.length === 0 ? (
-            <div className="text-center py-12">
-              <p className="text-gray-600">No properties available at the moment.</p>
-            </div>
-          ) : (
-            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-8">
-              {site.properties.map((property) => (
-                <div
-                  key={property.id}
-                  className="bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow"
-                >
-                  {/* Property Image Placeholder */}
-                  <div
-                    className="h-64 flex items-center justify-center text-white font-bold text-2xl"
-                    style={{
-                      background: `linear-gradient(135deg, ${themeColors.secondary}, ${themeColors.accent})`
-                    }}
-                  >
-                    {property.name.split(' ').map(w => w[0]).join('').slice(0, 3)}
-                  </div>
-
-                  <div className="p-6">
-                    <h3 className="text-2xl font-bold text-gray-900 mb-2">
-                      {property.name}
-                    </h3>
-                    <p className="text-gray-600 text-base mb-4 flex items-center gap-1">
-                      <MapPin className="w-5 h-5" />
-                      {property.location}
-                    </p>
-
-                    <div className="grid grid-cols-3 gap-3 mb-6 text-base text-gray-700">
-                      <div className="flex flex-col items-center p-2 bg-gray-50 rounded-lg">
-                        <Bed className="w-5 h-5 mb-1" />
-                        <span className="font-semibold">{property.beds}</span>
-                        <span className="text-xs text-gray-500">Beds</span>
-                      </div>
-                      <div className="flex flex-col items-center p-2 bg-gray-50 rounded-lg">
-                        <Bath className="w-5 h-5 mb-1" />
-                        <span className="font-semibold">{property.baths}</span>
-                        <span className="text-xs text-gray-500">Baths</span>
-                      </div>
-                      <div className="flex flex-col items-center p-2 bg-gray-50 rounded-lg">
-                        <Users className="w-5 h-5 mb-1" />
-                        <span className="font-semibold">{property.maxGuests}</span>
-                        <span className="text-xs text-gray-500">Guests</span>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center justify-between">
-                      <div className="text-3xl font-bold" style={{ color: themeColors.primary }}>
-                        ${property.basePrice}
-                        <span className="text-base text-gray-600 font-normal">/night</span>
-                      </div>
-                      <Button
-                        onClick={() => handleBooking(property)}
-                        style={{ backgroundColor: themeColors.primary }}
-                        className="hover:opacity-90 text-base px-6 py-3"
-                      >
-                        Book Now
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              ))}
+                <MessageCircle className="w-6 h-6" />
+                Book Now
+              </button>
             </div>
           )}
+        </div>
+
+        {/* Stats Bar */}
+        <div className="absolute bottom-0 left-0 right-0 z-10 bg-white/5 backdrop-blur-xl border-t border-white/10 py-6">
+          <div className="max-w-7xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-4 px-4">
+            {[
+              { label: "Properties", value: properties.length + "+", icon: Home },
+              { label: "Guest Rating", value: "5.0 ★", icon: Star },
+              { label: "Support", value: "24/7", icon: Headphones },
+              { label: "Verified", value: "100%", icon: ShieldCheck },
+            ].map((stat, i) => (
+              <div
+                key={i}
+                className="flex flex-col items-center justify-center border-r border-white/10 last:border-none"
+              >
+                <div className="flex items-center gap-2 mb-1" style={{ color: themeColors.secondary }}>
+                  <stat.icon className="w-4 h-4" />
+                  <span className="text-xl font-bold text-white">{stat.value}</span>
+                </div>
+                <span className="text-[10px] uppercase tracking-widest text-white/60 font-medium">{stat.label}</span>
+              </div>
+            ))}
+          </div>
         </div>
       </section>
 
       {/* Why Choose Us Section */}
-      <section className="py-16 sm:py-20 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-12">
-            <h2 className="text-4xl sm:text-5xl font-bold text-gray-900 mb-4">
-              Why Choose Us
-            </h2>
-            <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-              Experience the perfect blend of comfort, service, and unforgettable moments
-            </p>
-          </div>
-
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-8">
-            <div className="text-center">
+      <section className="py-24 bg-gray-50">
+        <div className="max-w-7xl mx-auto px-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+            {[
+              {
+                title: "Best Price Guarantee",
+                desc: "Book directly and get the best rates, always.",
+                icon: BadgePercent,
+              },
+              {
+                title: "24/7 Support",
+                desc: "Our dedicated support team is available anytime you need assistance.",
+                icon: Headphones,
+              },
+              {
+                title: "Premium Quality",
+                desc: "Hand-picked properties with top-rated amenities and service.",
+                icon: ShieldCheck,
+              },
+              {
+                title: "Feel at Home",
+                desc: "Comfortable spaces designed for your perfect stay.",
+                icon: Home,
+              },
+            ].map((feature, i) => (
               <div
-                className="w-16 h-16 rounded-full mx-auto mb-4 flex items-center justify-center"
-                style={{ backgroundColor: `${themeColors.primary}20` }}
+                key={i}
+                className="p-8 rounded-[24px] bg-white border border-gray-200 shadow-sm transition-all duration-300 hover:shadow-xl group"
+                style={{ ':hover': { borderColor: `${themeColors.primary}33` } }}
               >
-                <Check className="w-8 h-8" style={{ color: themeColors.primary }} />
+                <div
+                  className="w-12 h-12 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform"
+                  style={{ backgroundColor: `${themeColors.primary}1A` }}
+                >
+                  <feature.icon className="w-6 h-6" style={{ color: themeColors.primary }} />
+                </div>
+                <h3 className="text-xl font-bold mb-3">{feature.title}</h3>
+                <p className="text-gray-600 leading-relaxed text-sm">{feature.desc}</p>
               </div>
-              <h3 className="text-xl font-bold text-gray-900 mb-2">Best Price Guarantee</h3>
-              <p className="text-gray-600">
-                Book directly and get the best rates, always
-              </p>
-            </div>
-
-            <div className="text-center">
-              <div
-                className="w-16 h-16 rounded-full mx-auto mb-4 flex items-center justify-center"
-                style={{ backgroundColor: `${themeColors.primary}20` }}
-              >
-                <MessageCircle className="w-8 h-8" style={{ color: themeColors.primary }} />
-              </div>
-              <h3 className="text-xl font-bold text-gray-900 mb-2">24/7 Support</h3>
-              <p className="text-gray-600">
-                Our team is available anytime you need assistance
-              </p>
-            </div>
-
-            <div className="text-center">
-              <div
-                className="w-16 h-16 rounded-full mx-auto mb-4 flex items-center justify-center"
-                style={{ backgroundColor: `${themeColors.primary}20` }}
-              >
-                <Star className="w-8 h-8" style={{ color: themeColors.primary }} />
-              </div>
-              <h3 className="text-xl font-bold text-gray-900 mb-2">Premium Quality</h3>
-              <p className="text-gray-600">
-                Hand-picked properties with top-rated amenities
-              </p>
-            </div>
-
-            <div className="text-center">
-              <div
-                className="w-16 h-16 rounded-full mx-auto mb-4 flex items-center justify-center"
-                style={{ backgroundColor: `${themeColors.primary}20` }}
-              >
-                <Home className="w-8 h-8" style={{ color: themeColors.primary }} />
-              </div>
-              <h3 className="text-xl font-bold text-gray-900 mb-2">Feel at Home</h3>
-              <p className="text-gray-600">
-                Comfortable spaces designed for your perfect stay
-              </p>
-            </div>
+            ))}
           </div>
         </div>
       </section>
 
-      {/* Contact Section */}
-      <section className="py-16 sm:py-20 bg-gray-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-12">
-            <h2 className="text-4xl sm:text-5xl font-bold text-gray-900 mb-4">
-              Get In Touch
-            </h2>
-            <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-              We're here to help make your stay unforgettable
-            </p>
+      {/* Properties Section */}
+      <section className="py-24 bg-gray-100/50" id="properties">
+        <div className="max-w-7xl mx-auto px-4">
+          <div className="text-center mb-16 space-y-4">
+            <h2 className="text-4xl md:text-5xl font-serif">Signature Collection</h2>
+            <p className="text-gray-600 max-w-xl mx-auto">{description}</p>
           </div>
 
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 max-w-4xl mx-auto">
-            {site.contact_email && (
-              <a
-                href={`mailto:${site.contact_email}`}
-                className="flex items-center gap-3 p-6 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors"
-              >
-                <div
-                  className="w-12 h-12 rounded-full flex items-center justify-center"
-                  style={{ backgroundColor: `${themeColors.primary}20` }}
-                >
-                  <Mail className="w-6 h-6" style={{ color: themeColors.primary }} />
-                </div>
-                <div>
-                  <div className="text-sm text-gray-600">Email</div>
-                  <div className="font-semibold text-gray-900">{site.contact_email}</div>
-                </div>
-              </a>
-            )}
+          {!properties || properties.length === 0 ? (
+            <div className="text-center py-12">
+              <p className="text-gray-600">No properties available at the moment.</p>
+            </div>
+          ) : (
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                {properties.slice(0, 3).map((property, i) => (
+                  <PropertyCard key={i} {...property} themeColors={themeColors} />
+                ))}
+              </div>
 
-            {site.contact_phone && (
-              <a
-                href={`tel:${site.contact_phone}`}
-                className="flex items-center gap-3 p-6 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors"
-              >
-                <div
-                  className="w-12 h-12 rounded-full flex items-center justify-center"
-                  style={{ backgroundColor: `${themeColors.primary}20` }}
-                >
-                  <Phone className="w-6 h-6" style={{ color: themeColors.primary }} />
+              {properties.length > 3 && (
+                <div className="mt-16 text-center">
+                  <button
+                    className="rounded-full px-8 py-4 border-2 transition-all bg-transparent"
+                    style={{ borderColor: themeColors.primary, color: themeColors.primary }}
+                    onMouseEnter={(e) => {
+                      e.target.style.backgroundColor = themeColors.primary;
+                      e.target.style.color = 'white';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.target.style.backgroundColor = 'transparent';
+                      e.target.style.color = themeColors.primary;
+                    }}
+                  >
+                    Explore All Properties
+                    <ArrowRight className="inline ml-2 w-4 h-4" />
+                  </button>
                 </div>
-                <div>
-                  <div className="text-sm text-gray-600">Phone</div>
-                  <div className="font-semibold text-gray-900">{site.contact_phone}</div>
-                </div>
-              </a>
-            )}
-
-            {site.booking_mode === 'whatsapp' && site.whatsapp_number && (
-              <a
-                href={`https://wa.me/${site.whatsapp_number.replace(/[^0-9]/g, '')}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-3 p-6 bg-green-50 rounded-xl hover:bg-green-100 transition-colors"
-              >
-                <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
-                  <MessageCircle className="w-6 h-6 text-green-600" />
-                </div>
-                <div>
-                  <div className="text-sm text-gray-600">WhatsApp</div>
-                  <div className="font-semibold text-gray-900">Message Us</div>
-                </div>
-              </a>
-            )}
-          </div>
+              )}
+            </>
+          )}
         </div>
       </section>
 
       {/* Footer */}
-      <footer
-        className="py-12 sm:py-16"
-        style={{ backgroundColor: themeColors.primary }}
-      >
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-8 mb-8">
-            {/* About */}
-            <div>
-              <h3 className="text-xl font-bold text-white mb-4">{site.name}</h3>
-              <p className="text-white/80 text-sm leading-relaxed">
-                {site.about_text?.slice(0, 120) || 'Your perfect stay awaits'}...
-              </p>
-            </div>
-
-            {/* Quick Links */}
-            <div>
-              <h4 className="text-lg font-semibold text-white mb-4">Quick Links</h4>
-              <ul className="space-y-2 text-sm">
-                <li>
-                  <a href="#properties-section" className="text-white/80 hover:text-white transition-colors">
-                    Properties
-                  </a>
-                </li>
-                <li>
-                  <a href="#contact" className="text-white/80 hover:text-white transition-colors">
-                    Contact
-                  </a>
-                </li>
-                {site.booking_mode === 'whatsapp' && (
-                  <li>
-                    <a
-                      href={`https://wa.me/${site.whatsapp_number?.replace(/[^0-9]/g, '')}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-white/80 hover:text-white transition-colors"
-                    >
-                      WhatsApp
-                    </a>
-                  </li>
-                )}
-              </ul>
-            </div>
-
-            {/* Contact Info */}
-            <div>
-              <h4 className="text-lg font-semibold text-white mb-4">Contact</h4>
-              <ul className="space-y-2 text-sm text-white/80">
-                {site.contact_email && (
-                  <li className="flex items-center gap-2">
-                    <Mail className="w-4 h-4" />
-                    <a href={`mailto:${site.contact_email}`} className="hover:text-white transition-colors">
-                      {site.contact_email}
-                    </a>
-                  </li>
-                )}
-                {site.contact_phone && (
-                  <li className="flex items-center gap-2">
-                    <Phone className="w-4 h-4" />
-                    <a href={`tel:${site.contact_phone}`} className="hover:text-white transition-colors">
-                      {site.contact_phone}
-                    </a>
-                  </li>
-                )}
-              </ul>
-            </div>
-
-            {/* CTA */}
-            <div>
-              <h4 className="text-lg font-semibold text-white mb-4">Book Now</h4>
-              <p className="text-white/80 text-sm mb-4">
-                Ready to experience paradise?
-              </p>
-              {site.booking_mode === 'whatsapp' && site.whatsapp_number && (
-                <Button
-                  onClick={() => window.open(`https://wa.me/${site.whatsapp_number.replace(/[^0-9]/g, '')}`, '_blank')}
-                  className="bg-white hover:bg-gray-100 text-gray-900 font-semibold"
-                >
-                  <MessageCircle className="w-4 h-4 mr-2" />
-                  Contact Us
-                </Button>
-              )}
-            </div>
+      <footer className="bg-[#051C14] text-white py-20">
+        <div className="max-w-7xl mx-auto px-4 grid grid-cols-1 md:grid-cols-4 gap-12">
+          <div className="md:col-span-2 space-y-6">
+            <h2 className="text-4xl font-serif tracking-tighter">{siteName}</h2>
+            <p className="text-white/60 max-w-sm leading-relaxed">
+              {site.footer_text || `Curating moments of pure elegance and tranquility across the most beautiful destinations in the world.`}
+            </p>
           </div>
 
-          {/* Bottom Bar */}
-          <div className="pt-8 border-t border-white/20">
-            <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
-              <p className="text-sm text-white/80">
-                {site.footer_text || `© ${new Date().getFullYear()} ${site.name}. All rights reserved.`}
-              </p>
-              <p className="text-xs text-white/60">
-                Powered by <span className="font-semibold">MY HOST BizMate</span>
-              </p>
+          <div className="space-y-6">
+            <h4 className="text-sm font-bold uppercase tracking-widest text-white/40">Quick Links</h4>
+            <nav className="flex flex-col gap-4">
+              <a href="#properties" className="text-white/60 hover:text-white transition-colors">
+                Properties
+              </a>
+              <a href="#" className="text-white/60 hover:text-white transition-colors">
+                Contact
+              </a>
+              {whatsappNumber && (
+                <a
+                  href={`https://wa.me/${whatsappNumber.replace(/[^0-9]/g, '')}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-white/60 hover:text-white transition-colors"
+                >
+                  WhatsApp
+                </a>
+              )}
+            </nav>
+          </div>
+
+          <div className="space-y-6">
+            <h4 className="text-sm font-bold uppercase tracking-widest text-white/40">Contact Us</h4>
+            <div className="space-y-4 text-white/60">
+              {site.contact_email && <p className="text-sm">{site.contact_email}</p>}
+
+              {/* Phone Number - Human Contact */}
+              {phoneNumber && (
+                <button
+                  className="w-full border border-white/20 text-white rounded-full py-3 bg-transparent transition-colors flex items-center justify-center gap-2"
+                  onMouseEnter={(e) => {
+                    e.target.style.backgroundColor = themeColors.primary;
+                    e.target.style.borderColor = themeColors.primary;
+                  }}
+                  onMouseLeave={(e) => {
+                    e.target.style.backgroundColor = 'transparent';
+                    e.target.style.borderColor = 'rgba(255, 255, 255, 0.2)';
+                  }}
+                  onClick={() => window.open(`tel:${phoneNumber}`, "_self")}
+                >
+                  <Phone className="w-4 h-4" />
+                  Call Us
+                </button>
+              )}
+
+              {/* WhatsApp - Chatbot */}
+              {whatsappNumber && (
+                <button
+                  className="w-full border border-white/20 text-white rounded-full py-3 bg-transparent transition-colors flex items-center justify-center gap-2"
+                  onMouseEnter={(e) => {
+                    e.target.style.backgroundColor = themeColors.primary;
+                    e.target.style.borderColor = themeColors.primary;
+                  }}
+                  onMouseLeave={(e) => {
+                    e.target.style.backgroundColor = 'transparent';
+                    e.target.style.borderColor = 'rgba(255, 255, 255, 0.2)';
+                  }}
+                  onClick={() => window.open(`https://wa.me/${whatsappNumber.replace(/[^0-9]/g, '')}`, "_blank")}
+                >
+                  <MessageCircle className="w-4 h-4" />
+                  WhatsApp Chat
+                </button>
+              )}
+
+              {/* VAPI Voice Assistant - Always available */}
+              <button
+                className="w-full border border-white/20 text-white rounded-full py-3 bg-transparent transition-colors flex items-center justify-center gap-2"
+                onMouseEnter={(e) => {
+                  e.target.style.backgroundColor = themeColors.primary;
+                  e.target.style.borderColor = themeColors.primary;
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.backgroundColor = 'transparent';
+                  e.target.style.borderColor = 'rgba(255, 255, 255, 0.2)';
+                }}
+                onClick={() => {
+                  // If phone is configured, call it. Otherwise show info about voice assistant
+                  if (phoneNumber) {
+                    window.open(`tel:${phoneNumber}`, "_self");
+                  } else {
+                    alert('Voice Assistant\n\nCall us to speak with our AI-powered voice assistant. Available 24/7 to answer your questions and help with bookings.');
+                  }
+                }}
+              >
+                <Headphones className="w-4 h-4" />
+                Talk to Us
+              </button>
             </div>
           </div>
         </div>
+
+        <div className="max-w-7xl mx-auto px-4 mt-20 pt-8 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-4 text-xs text-white/40">
+          <p>© {new Date().getFullYear()} {siteName}. All rights reserved.</p>
+          <p className="font-medium tracking-widest uppercase">Powered by MY HOST BizMate</p>
+        </div>
       </footer>
-    </div>
+    </main>
   );
 };
 

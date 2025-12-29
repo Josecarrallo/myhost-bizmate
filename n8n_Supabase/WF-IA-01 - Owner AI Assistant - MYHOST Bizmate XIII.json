@@ -1,0 +1,401 @@
+{
+  "name": "WF-IA-01 - Owner AI Assistant - MYHOST Bizmate XIII",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "owner-ai-assistant",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "8adcb0fb-842b-4c31-bb3f-17f30c1aeae1",
+      "name": "Webhook POST",
+      "webhookId": "owner-ai-assistant"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        208
+      ],
+      "id": "c1fa94ae-138c-4d7e-9420-85c091c17ddf",
+      "name": "Manual Trigger"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Configuración del input\n// Si viene del webhook, usar esos datos\n// Si es manual, usar datos de prueba\n\nlet input = $input.first()?.json || {};\n\n// Datos por defecto para pruebas manuales\nconst tenant_id = input.tenant_id || '00000000-0000-0000-0000-000000000000';\nconst user_id = input.user_id || '00000000-0000-0000-0000-000000000001';\nconst message = input.message || '¿Cómo va mi negocio esta semana?';\n\nconst today = new Date().toISOString().split('T')[0];\n\nreturn [{ \n  json: { \n    tenant_id, \n    user_id, \n    message,\n    today \n  } \n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        256,
+        112
+      ],
+      "id": "88500da7-0a4c-4852-bc70-f779b95a7891",
+      "name": "Normalize Input"
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "properties",
+        "returnAll": true
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        512,
+        112
+      ],
+      "id": "72d9d09f-7db7-4306-acf3-277705b3c238",
+      "name": "Get Properties",
+      "credentials": {
+        "supabaseApi": {
+          "id": "SJLQzwU9BVHEVAGc",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "bookings",
+        "returnAll": true
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        752,
+        112
+      ],
+      "id": "143c9775-4b67-46fb-9be5-46620b674a0d",
+      "name": "Get Bookings",
+      "executeOnce": true,
+      "credentials": {
+        "supabaseApi": {
+          "id": "SJLQzwU9BVHEVAGc",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "alerts",
+        "limit": 10,
+        "filterType": "string",
+        "filterString": "status=eq.open"
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        944,
+        112
+      ],
+      "id": "4d3def0c-9651-4f4f-938e-994540d724d0",
+      "name": "Get Open Alerts",
+      "executeOnce": true,
+      "alwaysOutputData": true,
+      "credentials": {
+        "supabaseApi": {
+          "id": "SJLQzwU9BVHEVAGc",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// KPI Calculator - Calcula métricas del negocio\n\nconst inputData = $('Normalize Input').first().json;\nconst tenant_id = inputData.tenant_id;\nconst user_id = inputData.user_id;\nconst message = inputData.message;\nconst today = inputData.today;\nconst todayDate = new Date(today);\n\n// Obtener datos\nconst properties = $('Get Properties').all().map(item => item.json);\nconst bookings = $('Get Bookings').all().map(item => item.json);\nconst alerts = $('Get Open Alerts').all().map(item => item.json);\n\n// Fechas de referencia\nconst last30Days = new Date(todayDate);\nlast30Days.setDate(last30Days.getDate() - 30);\nconst last30DaysStr = last30Days.toISOString().split('T')[0];\n\nconst next7Days = new Date(todayDate);\nnext7Days.setDate(next7Days.getDate() + 7);\nconst next7DaysStr = next7Days.toISOString().split('T')[0];\n\nconst next30Days = new Date(todayDate);\nnext30Days.setDate(next30Days.getDate() + 30);\nconst next30DaysStr = next30Days.toISOString().split('T')[0];\n\n// ========================================\n// CALCULAR KPIs\n// ========================================\n\n// Bookings últimos 30 días\nconst bookingsLast30Days = bookings.filter(b => \n  b.check_in >= last30DaysStr && \n  b.check_in <= today && \n  b.status === 'confirmed'\n);\n\n// Revenue últimos 30 días\nconst revenueLast30Days = bookingsLast30Days.reduce((sum, b) => {\n  return sum + (parseFloat(b.total_price) || 0);\n}, 0);\n\n// Noches reservadas últimos 30 días\nconst nightsBookedLast30Days = bookingsLast30Days.reduce((sum, b) => {\n  const checkIn = new Date(b.check_in);\n  const checkOut = new Date(b.check_out);\n  const nights = Math.ceil((checkOut - checkIn) / (1000 * 60 * 60 * 24));\n  return sum + (nights > 0 ? nights : 0);\n}, 0);\n\n// Ocupación promedio (aproximada)\nconst totalNightsAvailable = properties.length * 30;\nconst occupancyAvg = totalNightsAvailable > 0 \n  ? Math.round((nightsBookedLast30Days / totalNightsAvailable) * 100) \n  : 0;\n\n// ADR (Average Daily Rate)\nconst adr = nightsBookedLast30Days > 0 \n  ? Math.round(revenueLast30Days / nightsBookedLast30Days) \n  : 0;\n\n// RevPAR\nconst revpar = Math.round(adr * (occupancyAvg / 100));\n\n// Check-ins hoy\nconst checkinsToday = bookings.filter(b => b.check_in === today && b.status === 'confirmed');\n\n// Check-outs hoy\nconst checkoutsToday = bookings.filter(b => b.check_out === today && b.status === 'confirmed');\n\n// Huéspedes in-house\nconst inHouse = bookings.filter(b => \n  b.check_in <= today && \n  b.check_out > today && \n  b.status === 'confirmed'\n);\n\n// Bookings próximos 7 días\nconst bookingsNext7Days = bookings.filter(b => \n  b.check_in >= today && \n  b.check_in <= next7DaysStr && \n  b.status === 'confirmed'\n);\n\n// Bookings próximos 30 días\nconst bookingsNext30Days = bookings.filter(b => \n  b.check_in >= today && \n  b.check_in <= next30DaysStr && \n  b.status === 'confirmed'\n);\n\n// Revenue próximos 7 días\nconst revenueNext7Days = bookingsNext7Days.reduce((sum, b) => {\n  return sum + (parseFloat(b.total_price) || 0);\n}, 0);\n\n// Propiedades sin reservas próximos 14 días\nconst next14Days = new Date(todayDate);\nnext14Days.setDate(next14Days.getDate() + 14);\nconst next14DaysStr = next14Days.toISOString().split('T')[0];\n\nconst bookingsNext14Days = bookings.filter(b => \n  b.check_in >= today && \n  b.check_in <= next14DaysStr && \n  b.status === 'confirmed'\n);\nconst propertyIdsWithBookings = [...new Set(bookingsNext14Days.map(b => b.property_id))];\nconst propertiesWithoutBookings = properties.filter(p => !propertyIdsWithBookings.includes(p.id));\n\n// ========================================\n// RESUMEN DE PROPIEDADES\n// ========================================\nconst propertySummary = properties.slice(0, 5).map(prop => {\n  const propBookings = bookingsLast30Days.filter(b => b.property_id === prop.id);\n  const propRevenue = propBookings.reduce((sum, b) => sum + (parseFloat(b.total_price) || 0), 0);\n  const propNights = propBookings.reduce((sum, b) => {\n    const nights = Math.ceil((new Date(b.check_out) - new Date(b.check_in)) / (1000 * 60 * 60 * 24));\n    return sum + (nights > 0 ? nights : 0);\n  }, 0);\n  \n  return {\n    id: prop.id,\n    name: prop.name || 'Sin nombre',\n    revenue_30d: propRevenue,\n    nights_30d: propNights,\n    occupancy_30d: Math.round((propNights / 30) * 100)\n  };\n});\n\n// ========================================\n// OUTPUT\n// ========================================\nconst kpis = {\n  // Últimos 30 días\n  revenue_last_30d: revenueLast30Days,\n  nights_booked_30d: nightsBookedLast30Days,\n  occupancy_avg: occupancyAvg,\n  adr: adr,\n  revpar: revpar,\n  \n  // Hoy\n  checkins_today: checkinsToday.length,\n  checkouts_today: checkoutsToday.length,\n  in_house: inHouse.length,\n  \n  // Próximos días\n  bookings_next_7d: bookingsNext7Days.length,\n  bookings_next_30d: bookingsNext30Days.length,\n  revenue_next_7d: revenueNext7Days,\n  \n  // Propiedades\n  total_properties: properties.length,\n  properties_without_bookings_14d: propertiesWithoutBookings.length,\n  \n  // Alertas\n  open_alerts: alerts.length\n};\n\nconst context = {\n  tenant_id,\n  user_id,\n  message,\n  today,\n  kpis,\n  properties_summary: propertySummary,\n  open_alerts: alerts.slice(0, 10).map(a => ({\n    type: a.alert_type,\n    title: a.title,\n    severity: a.severity\n  })),\n  properties_without_bookings: propertiesWithoutBookings.slice(0, 5).map(p => p.name || p.id)\n};\n\nreturn [{ json: context }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1120,
+        112
+      ],
+      "id": "152e45be-7fed-4021-82c5-1fd92427af17",
+      "name": "KPI Calculator"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-api-key",
+              "value": "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"
+            },
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            },
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"claude-sonnet-4-20250514\",\n  \"max_tokens\": 1000,\n  \"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": \"Eres un asistente de negocio experto en gestión hotelera y villas vacacionales en Bali. Responde en español de forma clara, ejecutiva y accionable.\\n\\nPREGUNTA DEL PROPIETARIO:\\n{{ $json.message }}\\n\\nDATOS DEL NEGOCIO (hoy: {{ $json.today }}):\\n\\nKPIs ÚLTIMOS 30 DÍAS:\\n- Revenue: ${{ $json.kpis.revenue_last_30d }}\\n- Noches reservadas: {{ $json.kpis.nights_booked_30d }}\\n- Ocupación promedio: {{ $json.kpis.occupancy_avg }}%\\n- ADR: ${{ $json.kpis.adr }}\\n- RevPAR: ${{ $json.kpis.revpar }}\\n\\nHOY:\\n- Check-ins: {{ $json.kpis.checkins_today }}\\n- Check-outs: {{ $json.kpis.checkouts_today }}\\n- Huéspedes in-house: {{ $json.kpis.in_house }}\\n\\nPRÓXIMOS DÍAS:\\n- Reservas próximos 7 días: {{ $json.kpis.bookings_next_7d }}\\n- Reservas próximos 30 días: {{ $json.kpis.bookings_next_30d }}\\n- Revenue esperado 7 días: ${{ $json.kpis.revenue_next_7d }}\\n\\nPROPIEDADES:\\n- Total: {{ $json.kpis.total_properties }}\\n- Sin reservas próximos 14 días: {{ $json.kpis.properties_without_bookings_14d }}\\n\\nALERTAS ABIERTAS: {{ $json.kpis.open_alerts }}\\n\\nRESPONDE:\\n1. Respuesta directa a la pregunta con datos concretos\\n2. Si es relevante, menciona 1-2 insights importantes\\n3. Sugiere 1 acción concreta si aplica\\n\\nSé conciso (max 300 palabras). No inventes datos.\"\n    }\n  ]\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        1312,
+        112
+      ],
+      "id": "56c67c4c-c758-4248-97ef-4050585d314b",
+      "name": "Claude AI Response"
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "={\n  \"tenant_id\": \"{{ $('KPI Calculator').item.json.tenant_id }}\",\n  \"user_id\": \"{{ $('KPI Calculator').item.json.user_id }}\",\n  \"message\": {{ JSON.stringify($('KPI Calculator').item.json.message) }},\n  \"answer\": {{ JSON.stringify($json.content[0].text) }},\n  \"suggested_actions\": [],\n  \"kpis\": {{ JSON.stringify($('KPI Calculator').item.json.kpis) }}\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1520,
+        112
+      ],
+      "id": "8fd22392-1c0d-483d-bd79-d7c8d0923b8f",
+      "name": "Format Response"
+    },
+    {
+      "parameters": {
+        "tableId": "ai_chat_history",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "tenant_id",
+              "fieldValue": "={{ $json.tenant_id }}"
+            },
+            {
+              "fieldId": "user_id",
+              "fieldValue": "={{ $json.user_id }}"
+            },
+            {
+              "fieldId": "message",
+              "fieldValue": "={{ $json.message }}"
+            },
+            {
+              "fieldId": "answer",
+              "fieldValue": "={{ $json.answer }}"
+            },
+            {
+              "fieldId": "suggested_actions",
+              "fieldValue": "={{ JSON.stringify($json.suggested_actions) }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        1744,
+        112
+      ],
+      "id": "03a27f1c-eee4-4e5a-988b-ee491d7432fb",
+      "name": "Save Chat History",
+      "credentials": {
+        "supabaseApi": {
+          "id": "SJLQzwU9BVHEVAGc",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ answer: $json.answer, suggested_actions: $json.suggested_actions }) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        1920,
+        112
+      ],
+      "id": "786e23a8-336d-4304-8cfa-689a7ddb6d5e",
+      "name": "Respond to Webhook"
+    },
+    {
+      "parameters": {
+        "tableId": "audit_logs",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "tenant_id",
+              "fieldValue": "={{ $('Save Chat History').item.json.tenant_id }}"
+            },
+            {
+              "fieldId": "action_type",
+              "fieldValue": "owner_ai_assistant"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        2112,
+        112
+      ],
+      "id": "018b46c3-89e1-4a57-abcf-81cf11e38844",
+      "name": "Log audit",
+      "credentials": {
+        "supabaseApi": {
+          "id": "SJLQzwU9BVHEVAGc",
+          "name": "Supabase account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook POST": {
+      "main": [
+        [
+          {
+            "node": "Normalize Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "Normalize Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Input": {
+      "main": [
+        [
+          {
+            "node": "Get Properties",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Properties": {
+      "main": [
+        [
+          {
+            "node": "Get Bookings",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Bookings": {
+      "main": [
+        [
+          {
+            "node": "Get Open Alerts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Open Alerts": {
+      "main": [
+        [
+          {
+            "node": "KPI Calculator",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "KPI Calculator": {
+      "main": [
+        [
+          {
+            "node": "Claude AI Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Claude AI Response": {
+      "main": [
+        [
+          {
+            "node": "Format Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Response": {
+      "main": [
+        [
+          {
+            "node": "Save Chat History",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save Chat History": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Respond to Webhook": {
+      "main": [
+        [
+          {
+            "node": "Log audit",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "759a3b73-bb59-4369-b4ad-2c2352065edc",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "ca7bc7f182c365457ea4a94a4dc2efe81c23590ab8904858ce5cabfbdd56e40f"
+  },
+  "id": "iAMo7NdzYkJxJUkP",
+  "tags": []
+}

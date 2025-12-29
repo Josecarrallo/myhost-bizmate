@@ -1,0 +1,386 @@
+{
+  "name": "WhatsApp AI Concierge - Izumi Hotel MYHOST Bizmate XXI",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "894ed1af-89a5-44c9-a340-6e571eacbd53",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -800,
+        0
+      ],
+      "id": "webhook-wa",
+      "name": "Webhook",
+      "webhookId": "whatsapp-concierge-izumi-002"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "filter-msg",
+              "leftValue": "={{ $json.body.entry[0].changes[0].value.messages ? 'mensaje' : 'status' }}",
+              "rightValue": "mensaje",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.2,
+      "position": [
+        -608,
+        0
+      ],
+      "id": "filter-messages",
+      "name": "Filter"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "text-msg",
+              "name": "text",
+              "value": "={{ $json.body.entry[0].changes[0].value.messages[0].text.body }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -400,
+        0
+      ],
+      "id": "extract-text",
+      "name": "Extract Text"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.text }}",
+        "options": {
+          "systemMessage": "Eres Ayu, la recepcionista virtual de Izumi Hotel, un hotel boutique de lujo 5 estrellas en Ubud, Bali.\n\nINFO DEL HOTEL:\n- Ubicacion: Jl Raya Andong N. 18, Ubud, Bali\n- Check-in: 14:00 | Check-out: 12:00\n- Apertura: Verano 2026\n\nNUESTRAS VILLAS (presenta con entusiasmo):\n🌴 *Tropical Room* - $450/noche\n   Habitacion acogedora con vista al jardin tropical\n\n🌊 *River Villa* - $500/noche\n   Villa con vistas al rio y sonidos de la naturaleza\n\n🪺 *Nest Villa* - $525/noche\n   Diseno unico inspirado en nidos, experiencia inmersiva\n\n🗿 *Cave Villa* - $550/noche\n   Ambiente intimo estilo cueva con iluminacion natural\n\n☁️ *Sky Villa* - $550/noche\n   Vistas panoramicas al cielo y terrazas de arroz\n\n🌸 *Blossom Villa* - $600/noche\n   Rodeada de jardines florales, la mas romantica\n\n🏡 *5BR Villa* - $2,500/noche\n   Villa completa de 5 habitaciones, perfecta para grupos\n\nHERRAMIENTAS - USALAS SIEMPRE:\n1. Check Availability: Cuando pregunten disponibilidad\n2. Calculate Price: Para calcular precio total\n3. Create Booking: SOLO cuando tengas todos los datos del huesped\n\nREGLAS DE CONVERSACION:\n1. Detecta idioma del usuario y responde igual\n2. Respuestas amables pero concisas (3-5 lineas max)\n3. Cuando presentes villas, usa emojis y destaca lo especial de cada una\n4. Para reservar necesitas: fechas, huespedes, villa preferida\n5. Luego pide: nombre completo, email, telefono\n6. Usa *asteriscos* para enfasis\n7. Se calida y entusiasta, estas vendiendo una experiencia de lujo\n8. Nunca uses comillas dobles en tus respuestas"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        -96,
+        0
+      ],
+      "id": "ai-agent",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4.1-mini"
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        0,
+        224
+      ],
+      "id": "openai-model",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "hlVVk9ThwmKbr4yS",
+          "name": "OpenAi account 4"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $('Webhook').item.json.body.entry[0].changes[0].value.messages[0].from }}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        160,
+        224
+      ],
+      "id": "memory",
+      "name": "Simple Memory"
+    },
+    {
+      "parameters": {
+        "toolDescription": "Consulta la disponibilidad de villas en Izumi Hotel para fechas especificas. Usa esta herramienta cuando el usuario pregunte si hay disponibilidad o quiera saber que habitaciones hay libres.",
+        "method": "POST",
+        "url": "https://jjpscimtxrudtepzwhag.supabase.co/rest/v1/rpc/check_availability",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpqcHNjaW10eHJ1ZHRlcHp3aGFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI5NDMyMzIsImV4cCI6MjA3ODUxOTIzMn0._U_HwdF5-yT8-prJLzkdO_rGbNuu7Z3gpUQW0Q8zxa0"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpqcHNjaW10eHJ1ZHRlcHp3aGFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI5NDMyMzIsImV4cCI6MjA3ODUxOTIzMn0._U_HwdF5-yT8-prJLzkdO_rGbNuu7Z3gpUQW0Q8zxa0"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"p_property_id\": \"18711359-1378-4d12-9ea6-fb31c0b1bac2\",\n  \"p_check_in\": \"{{ $fromAI('check_in', 'fecha de llegada en formato YYYY-MM-DD') }}\",\n  \"p_check_out\": \"{{ $fromAI('check_out', 'fecha de salida en formato YYYY-MM-DD') }}\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.3,
+      "position": [
+        320,
+        224
+      ],
+      "id": "tool-availability",
+      "name": "Check Availability"
+    },
+    {
+      "parameters": {
+        "toolDescription": "Calcula el precio total de una estancia en Izumi Hotel. Usa esta herramienta cuando el usuario pregunte cuanto cuesta o quiera una cotizacion.",
+        "method": "POST",
+        "url": "https://jjpscimtxrudtepzwhag.supabase.co/rest/v1/rpc/calculate_booking_price",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpqcHNjaW10eHJ1ZHRlcHp3aGFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI5NDMyMzIsImV4cCI6MjA3ODUxOTIzMn0._U_HwdF5-yT8-prJLzkdO_rGbNuu7Z3gpUQW0Q8zxa0"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpqcHNjaW10eHJ1ZHRlcHp3aGFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI5NDMyMzIsImV4cCI6MjA3ODUxOTIzMn0._U_HwdF5-yT8-prJLzkdO_rGbNuu7Z3gpUQW0Q8zxa0"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"p_property_id\": \"18711359-1378-4d12-9ea6-fb31c0b1bac2\",\n  \"p_check_in\": \"{{ $fromAI('check_in', 'fecha de llegada en formato YYYY-MM-DD') }}\",\n  \"p_check_out\": \"{{ $fromAI('check_out', 'fecha de salida en formato YYYY-MM-DD') }}\",\n  \"p_guests\": \"{{ $fromAI('guests', 'numero de huespedes') }}\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.3,
+      "position": [
+        480,
+        224
+      ],
+      "id": "tool-price",
+      "name": "Calculate Price"
+    },
+    {
+      "parameters": {
+        "toolDescription": "Crea una reserva en Izumi Hotel. Usa esta herramienta SOLO cuando tengas todos los datos del huesped: nombre, email, telefono, fechas y numero de huespedes.",
+        "method": "POST",
+        "url": "https://jjpscimtxrudtepzwhag.supabase.co/rest/v1/bookings",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpqcHNjaW10eHJ1ZHRlcHp3aGFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI5NDMyMzIsImV4cCI6MjA3ODUxOTIzMn0._U_HwdF5-yT8-prJLzkdO_rGbNuu7Z3gpUQW0Q8zxa0"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpqcHNjaW10eHJ1ZHRlcHp3aGFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI5NDMyMzIsImV4cCI6MjA3ODUxOTIzMn0._U_HwdF5-yT8-prJLzkdO_rGbNuu7Z3gpUQW0Q8zxa0"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=representation"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"property_id\": \"18711359-1378-4d12-9ea6-fb31c0b1bac2\",\n  \"guest_name\": \"{{ $fromAI('guest_name', 'nombre completo del huesped') }}\",\n  \"guest_email\": \"{{ $fromAI('guest_email', 'email del huesped') }}\",\n  \"guest_phone\": \"{{ $fromAI('guest_phone', 'telefono del huesped con codigo de pais') }}\",\n  \"check_in\": \"{{ $fromAI('check_in', 'fecha de llegada en formato YYYY-MM-DD') }}\",\n  \"check_out\": \"{{ $fromAI('check_out', 'fecha de salida en formato YYYY-MM-DD') }}\",\n  \"guests\": {{ $fromAI('guests', 'numero de huespedes como numero entero') }},\n  \"total_price\": {{ $fromAI('total_price', 'precio total en dolares como numero entero sin simbolo') }},\n  \"status\": \"inquiry\",\n  \"channel\": \"direct\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.3,
+      "position": [
+        640,
+        224
+      ],
+      "id": "tool-booking",
+      "name": "Create Booking"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.chakrahq.com/v1/ext/plugin/whatsapp/2e45a0bd-8600-41b4-ac92-599d59d6221c/api/v19.0/944855278702577/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer qiu1Z9eA3i2hhNjVM3Dm7QEK1Ey6iKQUE5IDWJlsFSAqXk5OlmQoD6DhqEwv9TOdgOVRWSYLWGxm6HfCs2LeCuwiU8Poqrw2Rgmvih0iEawZhoL6TTmMjVjvDUw2WuygAQgQ1vIeLCreDAKOGymGQCuR5bUYDHrRQQrvoMZLYwHw0LaGhFUuf4GxLpQbV3AQj8JDjhP2MzsCUYT4EVCARX6cODl1d1udr4pITGOmHQ793MUBtptq4XCvC8OGD3g"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({\n  \"messaging_product\": \"whatsapp\",\n  \"to\": $('Webhook').item.json.body.entry[0].changes[0].value.messages[0].from,\n  \"type\": \"text\",\n  \"text\": {\n    \"body\": $('AI Agent').item.json.output\n  }\n}) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        208,
+        0
+      ],
+      "id": "send-whatsapp",
+      "name": "Send WhatsApp"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Filter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter": {
+      "main": [
+        [
+          {
+            "node": "Extract Text",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Text": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Send WhatsApp",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Availability": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calculate Price": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Booking": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
+  },
+  "versionId": "43650c70-d851-4b6b-bebd-10273f4e2ef3",
+  "meta": {
+    "instanceId": "ca7bc7f182c365457ea4a94a4dc2efe81c23590ab8904858ce5cabfbdd56e40f"
+  },
+  "id": "ORTMMLk6qVKFhELp",
+  "tags": []
+}

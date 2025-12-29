@@ -33,13 +33,18 @@ import BookingEngine from './components/BookingEngine/BookingEngine';
 import PMSCalendar from './components/PMSCalendar/PMSCalendar';
 import CulturalIntelligence from './components/CulturalIntelligence/CulturalIntelligence';
 import GuestPortal from './components/GuestPortal/GuestPortal';
-import VoiceAssistant from './components/VoiceAssistant/VoiceAssistant';
+// import VoiceAssistant from './components/VoiceAssistant/VoiceAssistant';
 import AIAgentsMonitor from './components/AIAgentsMonitor/AIAgentsMonitor';
 import MySite from './components/MySite/MySite';
 import Guests from './components/Guests/Guests';
 import GuestSegmentation from './components/GuestSegmentation/GuestSegmentation';
 import MetaAds from './components/MetaAds/MetaAds';
 import GuestAnalytics from './components/GuestAnalytics/GuestAnalytics';
+import AIOperatorDemo from './components/ai-operator/AIOperatorDemo';
+import MarketingOverview from './components/Marketing/MarketingOverview';
+import ContentPlanner from './components/Marketing/ContentPlanner';
+import ReviewsManagement from './components/Reviews/ReviewsManagement';
+import CreateMyWebsite from './components/MySite/CreateMyWebsite';
 
 // ==================== FLOATING ICON COMPONENT ====================
 const FloatingIcon = ({ icon: Icon, className, delay }) => (
@@ -198,8 +203,15 @@ export default function App() {
       case 'guests':
         return <Guests key="guests" onBack={() => setCurrentView('overview')} />;
 
-      case 'guest-segmentation':
-        return <GuestSegmentation key="guest-segmentation" onBack={() => setCurrentView('overview')} />;
+      // Guest & Growth (External Agent)
+      case 'crm':
+        return <Guests key="crm" onBack={() => setCurrentView('overview')} />;
+
+      case 'segmentation':
+        return <GuestSegmentation key="segmentation" onBack={() => setCurrentView('overview')} />;
+
+      case 'my-website':
+        return <CreateMyWebsite key="my-website" onBack={() => setCurrentView('overview')} />;
 
       case 'payments':
         return <Payments onBack={() => setCurrentView('overview')} />;
@@ -213,10 +225,14 @@ export default function App() {
       case 'channelIntegration':
         return <Multichannel onBack={() => setCurrentView('overview')} />;
 
-      case 'aiAssistant':
+      // PMS Core (Internal Agent)
+      case 'ai-assistant':
         return <AIAssistant onBack={() => setCurrentView('overview')} />;
 
-      case 'ai-agents-monitor':
+      case 'ai-operator-demo':
+        return <AIOperatorDemo onBack={() => setCurrentView('overview')} />;
+
+      case 'agents-monitor':
         return <AIAgentsMonitor onBack={() => setCurrentView('overview')} />;
 
       case 'my-site':
@@ -229,17 +245,41 @@ export default function App() {
       case 'digital-checkin':
         return <DigitalCheckIn onBack={() => setCurrentView('overview')} />;
 
-      case 'reviews':
-        return <Reviews onBack={() => setCurrentView('overview')} />;
-
-      case 'marketing':
-        return <Marketing onBack={() => setCurrentView('overview')} />;
+      // Marketing & Growth
+      case 'marketing-overview':
+        return <MarketingOverview key="marketing-overview" onBack={() => setCurrentView('overview')} />;
 
       case 'meta-ads':
         return <MetaAds key="meta-ads" onBack={() => setCurrentView('overview')} />;
 
-      case 'guest-analytics':
-        return <GuestAnalytics key="guest-analytics" onBack={() => setCurrentView('overview')} />;
+      case 'content-planner':
+        return <ContentPlanner key="content-planner" onBack={() => setCurrentView('overview')} />;
+
+      case 'creative-studio':
+        return (
+          <div className="flex-1 bg-[#2a2f3a] p-6">
+            <h2 className="text-2xl font-bold text-white mb-4">Creative Studio (Coming Soon)</h2>
+            <p className="text-white/80">AI-powered content creation coming soon...</p>
+          </div>
+        );
+
+      case 'reviews':
+        return <ReviewsManagement key="reviews" onBack={() => setCurrentView('overview')} />;
+
+      case 'insights':
+        return (
+          <div className="flex-1 bg-[#2a2f3a] p-6">
+            <h2 className="text-2xl font-bold text-white mb-4">Marketing Insights (Coming Soon)</h2>
+            <p className="text-white/80">Marketing analytics and insights coming soon...</p>
+          </div>
+        );
+
+      // Guest & Growth (External Agent) - Legacy routes
+      case 'campaigns':
+        return <Marketing onBack={() => setCurrentView('overview')} />;
+
+      case 'analytics':
+        return <GuestAnalytics key="analytics" onBack={() => setCurrentView('overview')} />;
 
       case 'workflows':
         return <Workflows onBack={() => setCurrentView('overview')} onNavigate={setCurrentView} />;
@@ -299,7 +339,7 @@ export default function App() {
         {renderContent()}
       </div>
 
-      {/* Voice Assistant - Botón flotante siempre visible */}
+      {/* Voice Assistant - Commented out to prevent clicking issues */}
       {/* <VoiceAssistant /> */}
     </div>
   );

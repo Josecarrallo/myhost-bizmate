@@ -95,9 +95,10 @@ const VoiceAssistant = () => {
     setError(null);
 
     try {
-      // Usar Assistant configurado en VAPI Dashboard
-      // ID: Ayu - Izumi Hotel (con tool send_to_n8n + n8n webhook)
-      await vapiRef.current.start('1fde9a8c-b473-4f2a-8b7a-0cb53bc8bb61');
+      // Usar Assistant MCP configurado en VAPI Dashboard
+      // ID: Izumi Hotel Receptionist (MCP) - ae9ea22a-fc9a-49ba-b5b8-900ed69b7615
+      // Con MCP Server: https://n8n-production-bb2d.up.railway.app/mcp/izumi-hotel
+      await vapiRef.current.start('ae9ea22a-fc9a-49ba-b5b8-900ed69b7615');
     } catch (error) {
       console.error('Error al iniciar llamada:', error);
       setIsLoading(false);

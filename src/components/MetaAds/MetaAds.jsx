@@ -17,30 +17,55 @@ import {
   Pause,
   Play
 } from 'lucide-react';
-import { guestSegmentationService } from '../../services/guestSegmentationService';
+import marketingService from '../../services/marketingService';
 
 const MetaAds = ({ onBack }) => {
-  const [activeTab, setActiveTab] = useState('all'); // all, instagram, facebook
+  const [activeTab, setActiveTab] = useState('all'); // all, meta (for now, Instagram + Facebook = Meta)
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [segments, setSegments] = useState([]);
+  const [campaigns, setCampaigns] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all'); // all, active, scheduled, completed
 
   useEffect(() => {
-    loadSegments();
+    loadCampaigns();
   }, []);
 
-  const loadSegments = async () => {
+  const loadCampaigns = async () => {
     try {
-      const tenantId = localStorage.getItem('user_id') || 'demo-tenant';
-      const segs = await guestSegmentationService.getSegments(tenantId);
-      setSegments(segs);
+      setLoading(true);
+      const data = await marketingService.getCampaigns();
+
+      // Transform Supabase data to match component format
+      const transformedCampaigns = data.map(c => ({
+        id: c.id,
+        name: c.name,
+        platform: c.platform === 'meta' ? 'instagram' : c.platform, // Show as Instagram for Meta campaigns
+        objective: c.objective,
+        status: c.status,
+        budget: parseFloat(c.daily_budget || 0) * 30, // Convert daily to monthly estimate
+        spent: parseFloat(c.total_spend_mtd || 0),
+        reach: 0, // Will be calculated from impressions
+        impressions: parseInt(c.impressions || 0),
+        clicks: parseInt(c.clicks || 0),
+        conversions: parseInt(c.leads_count || 0),
+        ctr: parseFloat(c.ctr || 0),
+        cpc: c.clicks > 0 ? parseFloat(c.total_spend_mtd || 0) / c.clicks : 0,
+        startDate: c.created_at ? new Date(c.created_at).toISOString().split('T')[0] : 'N/A',
+        endDate: 'Ongoing',
+        audience: 'All Guests', // Placeholder
+        creative: 'Campaign Creative'
+      }));
+
+      setCampaigns(transformedCampaigns);
     } catch (error) {
-      console.error('Error loading segments:', error);
+      console.error('Error loading campaigns:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
-  // Demo campaigns data
-  const campaigns = [
+  // Fallback demo campaigns if Supabase is empty
+  const demoCampaigns = [
     {
       id: 1,
       name: "Luxury Villa Summer Special",
@@ -138,17 +163,20 @@ const MetaAds = ({ onBack }) => {
     }
   ];
 
-  const filteredCampaigns = campaigns.filter(c => {
+  // Use real campaigns if available, otherwise fallback to demo
+  const displayCampaigns = campaigns.length > 0 ? campaigns : demoCampaigns;
+
+  const filteredCampaigns = displayCampaigns.filter(c => {
     const matchesPlatform = activeTab === 'all' || c.platform === activeTab;
     const matchesStatus = filter === 'all' || c.status === filter;
     return matchesPlatform && matchesStatus;
   });
 
   const stats = {
-    activeCampaigns: campaigns.filter(c => c.status === 'active').length,
-    totalBudget: campaigns.reduce((sum, c) => sum + c.budget, 0),
-    totalSpent: campaigns.reduce((sum, c) => sum + c.spent, 0),
-    totalReach: campaigns.reduce((sum, c) => sum + c.reach, 0)
+    activeCampaigns: displayCampaigns.filter(c => c.status === 'active').length,
+    totalBudget: displayCampaigns.reduce((sum, c) => sum + c.budget, 0),
+    totalSpent: displayCampaigns.reduce((sum, c) => sum + c.spent, 0),
+    totalReach: displayCampaigns.reduce((sum, c) => sum + c.reach, 0)
   };
 
   const objectiveColors = {
@@ -163,6 +191,18 @@ const MetaAds = ({ onBack }) => {
     completed: 'bg-gray-100 text-gray-700',
     paused: 'bg-yellow-100 text-yellow-700'
   };
+
+  // Loading state
+  if (loading) {
+    return (
+      <div className="flex-1 h-screen bg-gradient-to-br from-orange-50 via-orange-100 to-orange-50 p-4 relative overflow-auto flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-[#d85a2a]/30 border-t-[#d85a2a] rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-[#d85a2a] text-xl font-bold">Loading campaigns...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex-1 h-screen bg-gradient-to-br from-orange-50 via-orange-100 to-orange-50 p-4 relative overflow-auto">
@@ -203,7 +243,7 @@ const MetaAds = ({ onBack }) => {
                 : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
             }`}
           >
-            All Campaigns ({campaigns.length})
+            All Campaigns ({displayCampaigns.length})
           </button>
           <button
             onClick={() => setActiveTab('instagram')}
@@ -214,7 +254,7 @@ const MetaAds = ({ onBack }) => {
             }`}
           >
             <Instagram className="w-4 h-4" />
-            Instagram ({campaigns.filter(c => c.platform === 'instagram').length})
+            Instagram ({displayCampaigns.filter(c => c.platform === 'instagram').length})
           </button>
           <button
             onClick={() => setActiveTab('facebook')}
@@ -225,7 +265,7 @@ const MetaAds = ({ onBack }) => {
             }`}
           >
             <Facebook className="w-4 h-4" />
-            Facebook ({campaigns.filter(c => c.platform === 'facebook').length})
+            Facebook ({displayCampaigns.filter(c => c.platform === 'facebook').length})
           </button>
         </div>
       </div>
