@@ -107,7 +107,7 @@ ChakraHQ → Webhook → Filter → Extract Text → AI Agent (GPT-4.1-mini) →
 - Calculate Price (Supabase RPC)
 - Create Booking (Supabase INSERT)
 
-**Webhook URL:** 
+**Webhook URL:**
 ```
 https://n8n-production-bb2d.up.railway.app/webhook/894ed1af-89a5-44c9-a340-6e571eacbd53
 ```
@@ -163,6 +163,66 @@ REGLAS DE CONVERSACION:
 
 ---
 
+### 3. Guest Communications Module - NUEVO ✨
+
+**Commit:** `823504c` - feat: Add Guest Communications module with WhatsApp and Email
+**Ubicación:** GUEST & GROWTH (EXTERNAL AGENT) - 2da posición del menú
+
+**Componentes creados:**
+- `src/components/GuestCommunications/GuestCommunications.jsx` - Contenedor principal
+- `src/components/GuestCommunications/WhatsAppCoexistence.jsx` - Setup WhatsApp Business
+- `src/components/GuestCommunications/EmailCommunication.jsx` - Composer de email AI
+
+**Características implementadas:**
+
+**KPIs Dashboard:**
+- Total Guests: 1,247
+- Reachable by Email: 1,180
+- Reachable by WhatsApp: 856
+- Messages Drafted: 342
+
+**Tab 1: WhatsApp Coexistence (Human + AI)**
+- Info banner explicando que se requiere WhatsApp Business en modo coexistencia
+- Botón "Setup WhatsApp Coexistence" con guía modal paso a paso
+- Secciones "What AI Will Do" y "What AI Won't Do"
+- Advertencia sobre costos de WhatsApp Business API
+- Guía de setup en 5 pasos:
+  1. Crear WhatsApp Business Account (Meta Business Suite)
+  2. Habilitar Coexistence Mode
+  3. Obtener API Credentials (Phone Number ID + Access Token)
+  4. Conectar a MY HOST BizMate
+  5. Test & Launch
+
+**Tab 2: Email Communication**
+- Info banner explicando que se requiere SendGrid
+- Botón "Setup SendGrid" con guía modal paso a paso
+- AI Email Composer con:
+  - Selección de segmento (All Guests, Recent, VIP, Long Stay)
+  - Selector de tono (Formal, Friendly, Promo)
+  - Botón "Generate AI Draft" con generación automática
+  - Editor de subject y body
+  - Botones "Send" y "Save Draft"
+- Guía de setup SendGrid en 5 pasos:
+  1. Crear cuenta SendGrid (free tier: 100 emails/day)
+  2. Verificar Sender Identity
+  3. Generar API Key
+  4. Conectar a MY HOST BizMate
+  5. Test & Send
+
+**Diseño:**
+- Tema oscuro consistente (`bg-[#1a1f2e]`, `bg-[#252b3b]`)
+- Acentos naranja corporativos (`#d85a2a`, `#FF8C42`)
+- Modales full-screen con guías paso a paso
+- Responsive design
+
+**Archivos modificados:**
+- `src/App.jsx` - Import y routing añadido
+- `src/components/Layout/Sidebar.jsx` - MenuItem añadido (MessageSquare icon)
+
+**Estado:** ✅ Completamente funcional en localhost:5174
+
+---
+
 ## 📋 WORKFLOWS ACTIVOS
 
 | Workflow | ID | Función | Estado |
@@ -173,26 +233,117 @@ REGLAS DE CONVERSACION:
 
 ---
 
-## 🔜 WORKFLOWS PENDIENTES
+## 🔜 PRIORIDADES PARA MAÑANA
 
-### Alta Prioridad
-| Workflow | Descripción |
-|----------|-------------|
-| WhatsApp Funnel Tracking | Rastrea etapa del lead (nuevo → interesado → cotización → reserva) |
-| Internal Agent | Asistente IA para staff (consultar reservas, ocupación, datos huéspedes) |
+### 🔴 ALTA PRIORIDAD
 
-### Media Prioridad
-| Workflow | Descripción |
-|----------|-------------|
-| Instagram Monitoring | Respuesta automática a comentarios y DMs |
-| Social Media Publisher | Publicación automática en redes |
-| Review Response | Genera respuestas a reseñas Google/TripAdvisor |
+#### 1. Backend para Guest Communications
+**Descripción:** Conectar Guest Communications a backend real
+- Supabase table: `guest_contacts` (email, whatsapp, segments)
+- SendGrid API integration para envío real de emails
+- WhatsApp Business API integration (ChakraHQ o CloudAPI)
+- Guardar drafts en Supabase
 
-### Baja Prioridad
-| Workflow | Descripción |
-|----------|-------------|
-| Meta Ads Analysis | Reportes de rendimiento de campañas |
-| External Agent | Chatbot para web widget y Facebook Messenger |
+**Archivos a modificar:**
+- Crear `src/services/guestCommunicationsService.js`
+- Actualizar `EmailCommunication.jsx` para usar servicio real
+- Crear tabla Supabase con migration
+
+**Tiempo estimado:** 2-3 horas
+
+---
+
+#### 2. Reviews Management - Completar funcionalidad
+**Descripción:** El módulo ReviewsManagement existe pero está incompleto
+- Conectar a Google Business Profile API
+- Conectar a TripAdvisor API
+- AI auto-respuesta a reviews (workflow n8n)
+- Dashboard de sentiment analysis
+
+**Archivos a modificar:**
+- `src/components/Reviews/ReviewsManagement.jsx`
+- Crear workflow n8n "Review Response AI"
+- Crear `src/services/reviewsService.js`
+
+**Tiempo estimado:** 3-4 horas
+
+---
+
+#### 3. WhatsApp Funnel Tracking Workflow
+**Descripción:** Rastrear etapa del lead en WhatsApp
+- Etapas: nuevo → interesado → cotización → reserva confirmada
+- Guardar en Supabase tabla `whatsapp_leads`
+- Dashboard visual en app
+
+**Archivos a crear:**
+- Workflow n8n "WhatsApp Funnel Tracking"
+- `src/components/WhatsAppFunnel/WhatsAppFunnel.jsx`
+- Supabase migration para `whatsapp_leads`
+
+**Tiempo estimado:** 2-3 horas
+
+---
+
+### 🟡 MEDIA PRIORIDAD
+
+#### 4. Internal Agent (AI Assistant para staff)
+**Descripción:** Chatbot interno para que el staff consulte datos
+- "¿Cuántas reservas tenemos en enero?"
+- "¿Qué huéspedes llegan mañana?"
+- "¿Cuál es la ocupación de esta semana?"
+
+**Implementación:**
+- Workflow n8n con AI Agent
+- UI en `src/components/AIAssistant/AIAssistant.jsx`
+- Tools: query_bookings, query_guests, calculate_occupancy
+
+**Tiempo estimado:** 3-4 horas
+
+---
+
+#### 5. Instagram Monitoring Workflow
+**Descripción:** Respuesta automática a comentarios y DMs
+- Webhook desde Instagram
+- AI genera respuesta
+- Human approval antes de enviar
+- Dashboard de interacciones
+
+**Implementación:**
+- Workflow n8n "Instagram Auto-Reply"
+- Meta Graph API integration
+- UI en Marketing section
+
+**Tiempo estimado:** 4-5 horas
+
+---
+
+### 🟢 BAJA PRIORIDAD
+
+#### 6. Meta Ads Analysis Dashboard
+**Descripción:** Reportes automáticos de rendimiento de campañas
+- Conectar a Meta Ads API
+- Dashboard con métricas: CTR, CPC, conversiones
+- Gráficos con Recharts
+
+**Implementación:**
+- `src/components/MetaAds/MetaAdsAnalytics.jsx`
+- Workflow n8n "Meta Ads Daily Report"
+
+**Tiempo estimado:** 3-4 horas
+
+---
+
+#### 7. Social Media Publisher
+**Descripción:** Publicación automática en redes sociales
+- Crear post una vez, publicar en Instagram + Facebook
+- Scheduler de contenido
+- Preview antes de publicar
+
+**Implementación:**
+- `src/components/SocialPublisher/ContentScheduler.jsx`
+- Meta Graph API para publicación
+
+**Tiempo estimado:** 4-5 horas
 
 ---
 
@@ -202,6 +353,7 @@ REGLAS DE CONVERSACION:
 - **n8n:** https://n8n-production-bb2d.up.railway.app
 - **MCP Central:** https://n8n-production-bb2d.up.railway.app/mcp/izumi-hotel
 - **Supabase:** https://jjpscimtxrudtepzwhag.supabase.co
+- **App Live:** https://my-host-bizmate.vercel.app
 
 ### IDs Fijos
 - **Izumi Hotel Property ID:** `18711359-1378-4d12-9ea6-fb31c0b1bac2`
@@ -215,21 +367,23 @@ REGLAS DE CONVERSACION:
 
 ---
 
-## 📝 NOTAS TÉCNICAS
+## 📝 COMMITS DE HOY
 
-### Constraint de Supabase
-El campo `channel` en la tabla `bookings` tiene un constraint que solo acepta ciertos valores. Usar `"direct"` para WhatsApp Concierge.
-
-### Webhook de WhatsApp
-ChakraHQ envía webhooks al path `894ed1af-89a5-44c9-a340-6e571eacbd53`. El nuevo workflow v2 usa este mismo path para no cambiar configuración de ChakraHQ.
-
-### Memory por teléfono
-El WhatsApp Concierge usa `Simple Memory` con session key basada en el número de teléfono del usuario, manteniendo contexto de la conversación.
+```bash
+823504c feat: Add Guest Communications module with WhatsApp and Email (Dec 29, 21:24)
+3cf9a33 fix: Restore VoiceAssistant button to main app (Dec 29, 21:23)
+ac7b4ea feat: Marketing & Growth reorganization + new components (Dec 29, 11:54)
+```
 
 ---
 
 ## ✅ SESIÓN COMPLETADA
 
 **Fecha:** 29 Diciembre 2025
-**Duración:** ~2 horas
-**Resultado:** VAPI optimizado + WhatsApp Concierge funcionando
+**Duración:** ~4 horas (con incidentes de reset resueltos)
+**Resultado:**
+- ✅ VAPI optimizado para voz natural
+- ✅ WhatsApp Concierge funcionando
+- ✅ Guest Communications module completo y guardado
+
+**Lección aprendida:** Hacer commit frecuente después de cada feature completada para evitar pérdida de trabajo.
