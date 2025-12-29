@@ -45,6 +45,7 @@ import MarketingOverview from './components/Marketing/MarketingOverview';
 import ContentPlanner from './components/Marketing/ContentPlanner';
 import ReviewsManagement from './components/Reviews/ReviewsManagement';
 import CreateMyWebsite from './components/MySite/CreateMyWebsite';
+import GuestCommunications from './components/GuestCommunications/GuestCommunications';
 
 // ==================== FLOATING ICON COMPONENT ====================
 const FloatingIcon = ({ icon: Icon, className, delay }) => (
@@ -206,6 +207,9 @@ export default function App() {
       // Guest & Growth (External Agent)
       case 'crm':
         return <Guests key="crm" onBack={() => setCurrentView('overview')} />;
+
+      case 'guest-communications':
+        return <GuestCommunications key="guest-communications" onBack={() => setCurrentView('overview')} />;
 
       case 'segmentation':
         return <GuestSegmentation key="segmentation" onBack={() => setCurrentView('overview')} />;

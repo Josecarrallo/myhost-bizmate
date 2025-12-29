@@ -26,7 +26,8 @@ import {
   TrendingUp,
   CalendarCheck,
   Palette,
-  PieChart
+  PieChart,
+  MessageSquare
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -123,6 +124,7 @@ const Sidebar = ({ currentView, onNavigate, isOpen, onClose }) => {
       collapsible: true,
       items: [
         { id: 'crm', label: 'Guest Database / CRM', icon: Users },
+        { id: 'guest-communications', label: 'Guest Communications', icon: MessageSquare },
         { id: 'segmentation', label: 'Guest Segmentation', icon: Target },
         { id: 'my-website', label: 'Create My Website', icon: Globe },
         { id: 'booking-engine', label: 'Booking Engine Config', icon: Globe },
