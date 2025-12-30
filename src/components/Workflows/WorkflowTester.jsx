@@ -7,23 +7,15 @@ import {
   Loader2,
   Bot,
   User,
-  Play,
-  Square
+  CheckCircle,
+  AlertCircle
 } from 'lucide-react';
 
 const WorkflowTester = ({ onBack }) => {
-  const [activeTab, setActiveTab] = useState('whatsapp'); // 'whatsapp' or 'vapi'
-
   // WhatsApp Chat State
   const [whatsappMessages, setWhatsappMessages] = useState([]);
   const [whatsappInput, setWhatsappInput] = useState('');
   const [whatsappLoading, setWhatsappLoading] = useState(false);
-
-  // Vapi State
-  const [vapiMessages, setVapiMessages] = useState([]);
-  const [vapiInput, setVapiInput] = useState('');
-  const [vapiLoading, setVapiLoading] = useState(false);
-  const [vapiActive, setVapiActive] = useState(false);
 
   // Workflow VIII - WhatsApp AI Agent
   const sendWhatsAppMessage = async () => {
@@ -33,7 +25,7 @@ const WorkflowTester = ({ onBack }) => {
       id: Date.now(),
       text: whatsappInput,
       sender: 'user',
-      timestamp: new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })
+      timestamp: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
     };
 
     setWhatsappMessages(prev => [...prev, userMessage]);
@@ -41,7 +33,6 @@ const WorkflowTester = ({ onBack }) => {
     setWhatsappLoading(true);
 
     try {
-      // Enviar en formato WhatsApp completo (como lo hace WhatsApp Business)
       const response = await fetch('https://n8n-production-bb2d.up.railway.app/webhook/894ed1af-89a5-44c9-a340-6e571eacbd53', {
         method: 'POST',
         headers: {
@@ -56,7 +47,7 @@ const WorkflowTester = ({ onBack }) => {
                     value: {
                       messages: [
                         {
-                          from: "34619794604", // Simula tu número
+                          from: "34619794604",
                           text: {
                             body: userMessage.text
                           },
@@ -72,15 +63,12 @@ const WorkflowTester = ({ onBack }) => {
         })
       });
 
-      // El workflow no retorna respuesta directa, solo procesa el mensaje
-      // En producción, la respuesta va a WhatsApp vía ChakraHQ
-
       if (response.ok) {
         const botMessage = {
           id: Date.now() + 1,
-          text: '✅ Mensaje procesado por el workflow.\n\nℹ️ En producción, la respuesta se enviaría a WhatsApp vía ChakraHQ.\n\nPara ver la respuesta real del AI, usa WhatsApp desde tu móvil o revisa las ejecuciones en n8n.',
+          text: '✅ Message processed successfully.\n\nℹ️ In production, the AI response is sent to WhatsApp via ChakraHQ.\n\nTo see the real AI response, use WhatsApp from your mobile or check n8n executions.',
           sender: 'system',
-          timestamp: new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })
+          timestamp: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
         };
 
         setWhatsappMessages(prev => [...prev, botMessage]);
@@ -91,9 +79,9 @@ const WorkflowTester = ({ onBack }) => {
       console.error('Error:', error);
       const errorMessage = {
         id: Date.now() + 1,
-        text: 'Error al conectar con el workflow. Verifica que esté activo.',
-        sender: 'system',
-        timestamp: new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })
+        text: 'Error connecting to workflow. Verify that it is active in n8n.',
+        sender: 'error',
+        timestamp: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
       };
       setWhatsappMessages(prev => [...prev, errorMessage]);
     } finally {
@@ -101,359 +89,240 @@ const WorkflowTester = ({ onBack }) => {
     }
   };
 
-  // Workflow IX - Vapi Voice AI
-  const sendVapiMessage = async () => {
-    if (!vapiInput.trim()) return;
-
-    const userMessage = {
-      id: Date.now(),
-      text: vapiInput,
-      sender: 'user',
-      timestamp: new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })
-    };
-
-    setVapiMessages(prev => [...prev, userMessage]);
-    setVapiInput('');
-    setVapiLoading(true);
-
-    try {
-      const response = await fetch('https://n8n-production-bb2d.up.railway.app/webhook/vapi-izumi-fix', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          message: {
-            type: 'function-call',
-            functionCall: {
-              name: 'chat',
-              parameters: {
-                query: userMessage.text
-              }
-            }
-          }
-        })
-      });
-
-      const data = await response.json();
-
-      const botMessage = {
-        id: Date.now() + 1,
-        text: data.output || data.result || 'Respuesta recibida',
-        sender: 'bot',
-        timestamp: new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })
-      };
-
-      setVapiMessages(prev => [...prev, botMessage]);
-    } catch (error) {
-      console.error('Error:', error);
-      const errorMessage = {
-        id: Date.now() + 1,
-        text: 'Error al conectar con Vapi. Verifica que el workflow esté activo.',
-        sender: 'system',
-        timestamp: new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })
-      };
-      setVapiMessages(prev => [...prev, errorMessage]);
-    } finally {
-      setVapiLoading(false);
-    }
-  };
-
-  const handleKeyPress = (e, type) => {
+  const handleKeyPress = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      if (type === 'whatsapp') {
-        sendWhatsAppMessage();
-      } else {
-        sendVapiMessage();
-      }
+      sendWhatsAppMessage();
     }
   };
 
   return (
-    <div className="flex-1 h-screen bg-gradient-to-br from-purple-400 via-purple-500 to-purple-600 p-4 relative overflow-auto">
-      {/* Animated background */}
-      <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute w-96 h-96 bg-purple-300/20 rounded-full blur-3xl top-20 -left-48 animate-pulse"></div>
-        <div className="absolute w-96 h-96 bg-purple-300/20 rounded-full blur-3xl bottom-20 -right-48 animate-pulse" style={{ animationDelay: '1s' }}></div>
+    <div className="flex-1 h-screen bg-[#1a1f2e] overflow-auto">
+      {/* Header */}
+      <div className="bg-[#252b3b] border-b border-white/10 sticky top-0 z-10">
+        <div className="max-w-7xl mx-auto px-6 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <button
+                onClick={onBack}
+                className="p-2 hover:bg-white/5 rounded-lg transition-colors"
+              >
+                <ChevronLeft className="w-5 h-5 text-white/60" />
+              </button>
+              <div>
+                <h1 className="text-white text-2xl font-bold">WhatsApp AI Tester</h1>
+                <p className="text-white/60 text-sm">Test your WhatsApp AI workflow from your mobile phone</p>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
-      <div className="max-w-7xl mx-auto relative z-10">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-8">
-          <button onClick={onBack} className="p-3 bg-white/95 backdrop-blur-sm rounded-2xl hover:bg-white transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105">
-            <ChevronLeft className="w-6 h-6 text-purple-600" />
-          </button>
-          <div className="text-center">
-            <h2 className="text-4xl md:text-5xl font-black text-white drop-shadow-2xl">Workflow Tester</h2>
-            <p className="text-white/90 text-lg mt-2">Test workflows VIII & IX</p>
+      {/* Content */}
+      <div className="max-w-7xl mx-auto px-6 py-6">
+        {/* Info Banner */}
+        <div className="bg-gradient-to-r from-green-500/10 to-green-600/10 border border-green-500/30 rounded-xl p-4 mb-6">
+          <div className="flex items-start gap-3">
+            <MessageCircle className="w-6 h-6 text-green-400 flex-shrink-0 mt-0.5" />
+            <div>
+              <h3 className="text-white font-semibold mb-1">Test from Your Mobile Phone</h3>
+              <p className="text-white/80 text-sm">
+                Send a WhatsApp message to your hotel's number to test the AI assistant.
+                The AI will respond automatically via WhatsApp Business API.
+              </p>
+            </div>
           </div>
-          <div className="w-12"></div>
-        </div>
-
-        {/* Tabs */}
-        <div className="flex gap-4 mb-6">
-          <button
-            onClick={() => setActiveTab('whatsapp')}
-            className={`flex-1 py-4 px-6 rounded-2xl font-bold text-lg transition-all duration-300 shadow-lg ${
-              activeTab === 'whatsapp'
-                ? 'bg-white text-purple-600 shadow-xl scale-105'
-                : 'bg-white/20 text-white hover:bg-white/30'
-            }`}
-          >
-            <MessageCircle className="w-6 h-6 inline mr-2" />
-            WhatsApp AI Agent (VIII)
-          </button>
-          <button
-            onClick={() => setActiveTab('vapi')}
-            className={`flex-1 py-4 px-6 rounded-2xl font-bold text-lg transition-all duration-300 shadow-lg ${
-              activeTab === 'vapi'
-                ? 'bg-white text-purple-600 shadow-xl scale-105'
-                : 'bg-white/20 text-white hover:bg-white/30'
-            }`}
-          >
-            <Phone className="w-6 h-6 inline mr-2" />
-            Vapi Voice AI (IX)
-          </button>
         </div>
 
         {/* WhatsApp Simulator */}
-        {activeTab === 'whatsapp' && (
-          <div className="bg-white/95 backdrop-blur-sm rounded-3xl shadow-2xl overflow-hidden">
-            {/* Chat Header */}
-            <div className="bg-gradient-to-r from-green-500 to-green-600 p-4 text-white">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center">
-                  <Bot className="w-7 h-7 text-green-600" />
+        <div>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Chat Area - Takes 2 columns */}
+            <div className="lg:col-span-2">
+              <div className="bg-[#252b3b] rounded-xl border border-white/10 overflow-hidden">
+                {/* Chat Header */}
+                <div className="bg-gradient-to-r from-green-600 to-green-700 p-4 border-b border-green-800/30">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center">
+                      <Bot className="w-7 h-7 text-green-600" />
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-lg text-white">Izumi Hotel AI Assistant</h3>
+                      <div className="flex items-center gap-2">
+                        <span className="w-2 h-2 bg-green-300 rounded-full animate-pulse"></span>
+                        <p className="text-sm text-green-100">Active</p>
+                      </div>
+                    </div>
+                  </div>
                 </div>
-                <div>
-                  <h3 className="font-bold text-lg">Izumi Hotel AI Assistant</h3>
-                  <p className="text-sm text-green-100">Workflow VIII - Active</p>
-                </div>
-              </div>
-            </div>
 
-            {/* Chat Messages */}
-            <div className="h-[500px] overflow-y-auto p-6 bg-gray-50">
-              {whatsappMessages.length === 0 && (
-                <div className="text-center text-gray-400 mt-20">
-                  <MessageCircle className="w-16 h-16 mx-auto mb-4 opacity-50" />
-                  <p className="text-lg">Envía un mensaje para comenzar</p>
-                  <p className="text-sm mt-2">Prueba preguntar sobre disponibilidad, precios o hacer una reserva</p>
-                </div>
-              )}
+                {/* Chat Messages */}
+                <div className="h-[350px] overflow-y-auto p-6 bg-[#1a1f2e]">
+                  {whatsappMessages.length === 0 && (
+                    <div className="text-center text-white/40 mt-20">
+                      <MessageCircle className="w-16 h-16 mx-auto mb-4 opacity-50" />
+                      <p className="text-lg">Send a message to start testing</p>
+                      <p className="text-sm mt-2">Try asking about availability, prices, or making a reservation</p>
+                    </div>
+                  )}
 
-              {whatsappMessages.map((msg) => (
-                <div
-                  key={msg.id}
-                  className={`mb-4 flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}
-                >
-                  <div className={`max-w-[70%] ${msg.sender === 'user' ? 'order-2' : 'order-1'}`}>
+                  {whatsappMessages.map((msg) => (
                     <div
-                      className={`rounded-2xl p-4 shadow-md ${
-                        msg.sender === 'user'
-                          ? 'bg-green-500 text-white rounded-br-sm'
-                          : msg.sender === 'system'
-                          ? 'bg-red-100 text-red-700'
-                          : 'bg-white text-gray-800 rounded-bl-sm'
-                      }`}
+                      key={msg.id}
+                      className={`mb-4 flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}
                     >
-                      <p className="whitespace-pre-wrap">{msg.text}</p>
-                      <p className={`text-xs mt-2 ${msg.sender === 'user' ? 'text-green-100' : 'text-gray-400'}`}>
-                        {msg.timestamp}
-                      </p>
+                      {msg.sender !== 'user' && (
+                        <div className="w-8 h-8 bg-green-500/20 rounded-full flex items-center justify-center mr-2 flex-shrink-0">
+                          {msg.sender === 'system' ? (
+                            <CheckCircle className="w-5 h-5 text-green-400" />
+                          ) : msg.sender === 'error' ? (
+                            <AlertCircle className="w-5 h-5 text-red-400" />
+                          ) : (
+                            <Bot className="w-5 h-5 text-green-400" />
+                          )}
+                        </div>
+                      )}
+
+                      <div className={`max-w-[70%]`}>
+                        <div
+                          className={`rounded-xl p-4 ${
+                            msg.sender === 'user'
+                              ? 'bg-[#d85a2a] text-white'
+                              : msg.sender === 'error'
+                              ? 'bg-red-500/10 text-red-300 border border-red-500/30'
+                              : 'bg-[#252b3b] text-white border border-white/10'
+                          }`}
+                        >
+                          <p className="whitespace-pre-wrap text-sm leading-relaxed">{msg.text}</p>
+                          <p className={`text-xs mt-2 ${msg.sender === 'user' ? 'text-white/60' : 'text-white/40'}`}>
+                            {msg.timestamp}
+                          </p>
+                        </div>
+                      </div>
+
+                      {msg.sender === 'user' && (
+                        <div className="w-8 h-8 bg-[#d85a2a]/20 rounded-full flex items-center justify-center ml-2 flex-shrink-0">
+                          <User className="w-5 h-5 text-[#d85a2a]" />
+                        </div>
+                      )}
                     </div>
-                  </div>
-                  {msg.sender !== 'user' && msg.sender !== 'system' && (
-                    <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center mr-2 order-1">
-                      <Bot className="w-5 h-5 text-green-600" />
+                  ))}
+
+                  {whatsappLoading && (
+                    <div className="flex items-center gap-2 text-white/60">
+                      <div className="w-8 h-8 bg-green-500/20 rounded-full flex items-center justify-center">
+                        <Bot className="w-5 h-5 text-green-400" />
+                      </div>
+                      <div className="bg-[#252b3b] rounded-xl p-4 border border-white/10">
+                        <Loader2 className="w-5 h-5 animate-spin text-green-400" />
+                      </div>
                     </div>
                   )}
-                  {msg.sender === 'user' && (
-                    <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center ml-2 order-1">
-                      <User className="w-5 h-5 text-gray-600" />
-                    </div>
-                  )}
                 </div>
-              ))}
 
-              {whatsappLoading && (
-                <div className="flex items-center gap-2 text-gray-500">
-                  <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
-                    <Bot className="w-5 h-5 text-green-600" />
-                  </div>
-                  <div className="bg-white rounded-2xl p-4 shadow-md">
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Input */}
-            <div className="p-4 bg-white border-t border-gray-200">
-              <div className="flex gap-3">
-                <input
-                  type="text"
-                  value={whatsappInput}
-                  onChange={(e) => setWhatsappInput(e.target.value)}
-                  onKeyPress={(e) => handleKeyPress(e, 'whatsapp')}
-                  placeholder="Escribe tu mensaje..."
-                  className="flex-1 px-4 py-3 rounded-full border-2 border-gray-200 focus:border-green-500 focus:outline-none text-gray-800"
-                  disabled={whatsappLoading}
-                />
-                <button
-                  onClick={sendWhatsAppMessage}
-                  disabled={whatsappLoading || !whatsappInput.trim()}
-                  className="px-6 py-3 bg-green-500 text-white rounded-full font-bold hover:bg-green-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl"
-                >
-                  <Send className="w-5 h-5" />
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Vapi Simulator */}
-        {activeTab === 'vapi' && (
-          <div className="bg-white/95 backdrop-blur-sm rounded-3xl shadow-2xl overflow-hidden">
-            {/* Vapi Header */}
-            <div className="bg-gradient-to-r from-blue-500 to-blue-600 p-4 text-white">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center">
-                    <Phone className="w-7 h-7 text-blue-600" />
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-lg">Izumi Hotel Reception</h3>
-                    <p className="text-sm text-blue-100">Workflow IX - Voice AI</p>
-                  </div>
-                </div>
-                <button
-                  onClick={() => setVapiActive(!vapiActive)}
-                  className={`px-6 py-2 rounded-full font-bold transition-all ${
-                    vapiActive
-                      ? 'bg-red-500 hover:bg-red-600'
-                      : 'bg-white text-blue-600 hover:bg-blue-50'
-                  }`}
-                >
-                  {vapiActive ? (
-                    <>
-                      <Square className="w-4 h-4 inline mr-2" />
-                      End Call
-                    </>
-                  ) : (
-                    <>
-                      <Play className="w-4 h-4 inline mr-2" />
-                      Start Call
-                    </>
-                  )}
-                </button>
-              </div>
-            </div>
-
-            {/* Vapi Messages */}
-            <div className="h-[500px] overflow-y-auto p-6 bg-gray-50">
-              {!vapiActive && vapiMessages.length === 0 && (
-                <div className="text-center text-gray-400 mt-20">
-                  <Phone className="w-16 h-16 mx-auto mb-4 opacity-50" />
-                  <p className="text-lg">Inicia una llamada para comenzar</p>
-                  <p className="text-sm mt-2">Simula una conversación de voz con el recepcionista del hotel</p>
-                </div>
-              )}
-
-              {vapiMessages.map((msg) => (
-                <div
-                  key={msg.id}
-                  className={`mb-4 flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}
-                >
-                  <div className={`max-w-[70%] ${msg.sender === 'user' ? 'order-2' : 'order-1'}`}>
-                    <div
-                      className={`rounded-2xl p-4 shadow-md ${
-                        msg.sender === 'user'
-                          ? 'bg-blue-500 text-white rounded-br-sm'
-                          : msg.sender === 'system'
-                          ? 'bg-red-100 text-red-700'
-                          : 'bg-white text-gray-800 rounded-bl-sm'
-                      }`}
+                {/* Input */}
+                <div className="p-4 bg-[#252b3b] border-t border-white/10">
+                  <div className="flex gap-3">
+                    <input
+                      type="text"
+                      value={whatsappInput}
+                      onChange={(e) => setWhatsappInput(e.target.value)}
+                      onKeyPress={handleKeyPress}
+                      placeholder="Type your message..."
+                      className="flex-1 px-4 py-3 rounded-lg bg-[#1a1f2e] border border-white/10 focus:border-[#d85a2a] focus:outline-none text-white placeholder-white/40"
+                      disabled={whatsappLoading}
+                    />
+                    <button
+                      onClick={sendWhatsAppMessage}
+                      disabled={whatsappLoading || !whatsappInput.trim()}
+                      className="px-6 py-3 bg-[#d85a2a] text-white rounded-lg font-semibold hover:bg-[#c14d1f] transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
                     >
-                      <p className="whitespace-pre-wrap">{msg.text}</p>
-                      <p className={`text-xs mt-2 ${msg.sender === 'user' ? 'text-blue-100' : 'text-gray-400'}`}>
-                        {msg.timestamp}
-                      </p>
-                    </div>
+                      <Send className="w-5 h-5" />
+                    </button>
                   </div>
-                  {msg.sender !== 'user' && msg.sender !== 'system' && (
-                    <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center mr-2 order-1">
-                      <Phone className="w-5 h-5 text-blue-600" />
-                    </div>
-                  )}
-                  {msg.sender === 'user' && (
-                    <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center ml-2 order-1">
-                      <User className="w-5 h-5 text-gray-600" />
-                    </div>
-                  )}
-                </div>
-              ))}
-
-              {vapiLoading && (
-                <div className="flex items-center gap-2 text-gray-500">
-                  <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                    <Phone className="w-5 h-5 text-blue-600" />
-                  </div>
-                  <div className="bg-white rounded-2xl p-4 shadow-md">
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Input */}
-            {vapiActive && (
-              <div className="p-4 bg-white border-t border-gray-200">
-                <div className="flex gap-3">
-                  <input
-                    type="text"
-                    value={vapiInput}
-                    onChange={(e) => setVapiInput(e.target.value)}
-                    onKeyPress={(e) => handleKeyPress(e, 'vapi')}
-                    placeholder="Escribe lo que dirías por voz..."
-                    className="flex-1 px-4 py-3 rounded-full border-2 border-gray-200 focus:border-blue-500 focus:outline-none text-gray-800"
-                    disabled={vapiLoading}
-                  />
-                  <button
-                    onClick={sendVapiMessage}
-                    disabled={vapiLoading || !vapiInput.trim()}
-                    className="px-6 py-3 bg-blue-500 text-white rounded-full font-bold hover:bg-blue-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl"
-                  >
-                    <Send className="w-5 h-5" />
-                  </button>
                 </div>
               </div>
-            )}
-          </div>
-        )}
+            </div>
 
-        {/* Info Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
-          <div className="bg-white/95 backdrop-blur-sm rounded-2xl p-6 shadow-lg">
-            <h3 className="font-bold text-xl text-purple-600 mb-4">Workflow VIII - WhatsApp AI</h3>
-            <ul className="space-y-2 text-gray-700">
-              <li>✅ AI Agent con herramientas de reserva</li>
-              <li>✅ Check Availability</li>
-              <li>✅ Calculate Price</li>
-              <li>✅ Create Booking</li>
-              <li>✅ Memoria conversacional (20 mensajes)</li>
-            </ul>
-          </div>
-          <div className="bg-white/95 backdrop-blur-sm rounded-2xl p-6 shadow-lg">
-            <h3 className="font-bold text-xl text-purple-600 mb-4">Workflow IX - Vapi Voice AI</h3>
-            <ul className="space-y-2 text-gray-700">
-              <li>✅ AI Voice Assistant para llamadas</li>
-              <li>✅ Mismas herramientas que WhatsApp</li>
-              <li>✅ Conversación natural por voz</li>
-              <li>✅ Integración con sistema de reservas</li>
-              <li>✅ Respuesta en tiempo real</li>
-            </ul>
+            {/* Info Panel - Takes 1 column */}
+            <div className="space-y-6">
+              {/* Workflow Info */}
+              <div className="bg-[#252b3b] rounded-xl p-6 border border-white/10">
+                <h3 className="font-bold text-lg text-white mb-4 flex items-center gap-2">
+                  <MessageCircle className="w-5 h-5 text-green-400" />
+                  WhatsApp AI Features
+                </h3>
+                <ul className="space-y-3 text-white/80 text-sm">
+                  <li className="flex items-start gap-2">
+                    <CheckCircle className="w-4 h-4 text-green-400 flex-shrink-0 mt-0.5" />
+                    <span>AI Agent with booking tools</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <CheckCircle className="w-4 h-4 text-green-400 flex-shrink-0 mt-0.5" />
+                    <span>Check availability</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <CheckCircle className="w-4 h-4 text-green-400 flex-shrink-0 mt-0.5" />
+                    <span>Calculate prices</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <CheckCircle className="w-4 h-4 text-green-400 flex-shrink-0 mt-0.5" />
+                    <span>Create bookings</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <CheckCircle className="w-4 h-4 text-green-400 flex-shrink-0 mt-0.5" />
+                    <span>Conversational memory (20 messages)</span>
+                  </li>
+                </ul>
+              </div>
+
+              {/* How it Works */}
+              <div className="bg-gradient-to-br from-[#d85a2a]/10 to-purple-500/10 rounded-xl p-6 border border-[#d85a2a]/30">
+                <h3 className="font-bold text-lg text-white mb-4">How it Works</h3>
+                <div className="space-y-3 text-white/80 text-sm">
+                  <div className="flex items-start gap-3">
+                    <div className="w-6 h-6 rounded-full bg-[#d85a2a] text-white flex items-center justify-center flex-shrink-0 text-xs font-bold">1</div>
+                    <p>Your message is sent to the n8n workflow</p>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <div className="w-6 h-6 rounded-full bg-[#d85a2a] text-white flex items-center justify-center flex-shrink-0 text-xs font-bold">2</div>
+                    <p>AI processes the request using Claude</p>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <div className="w-6 h-6 rounded-full bg-[#d85a2a] text-white flex items-center justify-center flex-shrink-0 text-xs font-bold">3</div>
+                    <p>Response sent via WhatsApp Business API</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Status */}
+              <div className="bg-[#252b3b] rounded-xl p-6 border border-white/10">
+                <h3 className="font-bold text-lg text-white mb-4">Workflow Status</h3>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-white/60 text-sm">n8n Workflow</span>
+                    <div className="flex items-center gap-2">
+                      <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
+                      <span className="text-green-400 text-sm font-semibold">Active</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-white/60 text-sm">WhatsApp API</span>
+                    <div className="flex items-center gap-2">
+                      <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
+                      <span className="text-green-400 text-sm font-semibold">Connected</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-white/60 text-sm">Claude AI</span>
+                    <div className="flex items-center gap-2">
+                      <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
+                      <span className="text-green-400 text-sm font-semibold">Ready</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>

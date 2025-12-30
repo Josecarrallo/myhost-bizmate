@@ -1,213 +1,192 @@
-import React, { useEffect } from 'react';
-import {
-  ChevronLeft,
-  Plus,
-  Workflow,
-  Zap,
-  Clock,
-  CheckCircle,
-  CalendarCheck,
-  BellRing,
-  Compass,
-  Calendar,
-  Percent,
-  Star,
-  TestTube
-} from 'lucide-react';
-import { StatCard, WorkflowCard } from '../common';
+import React, { useState, useEffect } from 'react';
+import { ChevronLeft } from 'lucide-react';
+import StatsCards from './StatsCards';
+import QuickActionsGrid from './QuickActionsGrid';
+import AutomatedWorkflows from './AutomatedWorkflows';
+import ScheduledTasks from './ScheduledTasks';
+import RecentActivity from './RecentActivity';
+import { automatedWorkflows, quickActions, scheduledTasks } from '../../lib/workflowsConfig';
+import workflowsService from '../../services/workflowsService';
 
-const WorkflowsAutomations = ({ onBack, onNavigate }) => {
+const Workflows = ({ onBack, onNavigate }) => {
+  const [stats, setStats] = useState(null);
+  const [workflowSettings, setWorkflowSettings] = useState([]);
+  const [recentActivity, setRecentActivity] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [message, setMessage] = useState(null);
+
   useEffect(() => {
-    window.scrollTo(0, 0);
+    loadData();
   }, []);
 
-  return (
-    <div className="min-h-screen bg-[#2a2f3a] p-4 pb-24 relative overflow-hidden">
-      {/* Animated background elements */}
-      <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute w-96 h-96 bg-[#d85a2a]/5 rounded-full blur-3xl top-20 -left-48 animate-pulse"></div>
-        <div className="absolute w-96 h-96 bg-[#d85a2a]/5 rounded-full blur-3xl bottom-20 -right-48 animate-pulse" style={{ animationDelay: '1s' }}></div>
-        <div className="absolute w-72 h-72 bg-[#d85a2a]/5 rounded-full blur-2xl top-1/2 right-1/4 animate-pulse" style={{ animationDelay: '0.5s' }}></div>
+  const loadData = async () => {
+    setLoading(true);
+
+    // Load stats
+    const statsResult = await workflowsService.getStats();
+    if (statsResult.success) {
+      setStats(statsResult.data);
+    }
+
+    // Load workflow settings
+    const settingsResult = await workflowsService.getWorkflowSettings();
+    if (settingsResult.success) {
+      setWorkflowSettings(settingsResult.data);
+    }
+
+    // Load recent activity
+    const activityResult = await workflowsService.getRecentActivity();
+    if (activityResult.success) {
+      setRecentActivity(activityResult.data);
+    }
+
+    setLoading(false);
+  };
+
+  const handleToggleWorkflow = async (workflowKey, isActive) => {
+    const result = await workflowsService.toggleWorkflow(undefined, workflowKey, isActive);
+
+    if (result.success) {
+      // Update local state
+      setWorkflowSettings(prev => {
+        const existing = prev.find(s => s.workflow_key === workflowKey);
+        if (existing) {
+          return prev.map(s =>
+            s.workflow_key === workflowKey ? { ...s, is_active: isActive } : s
+          );
+        } else {
+          return [...prev, { workflow_key: workflowKey, is_active: isActive }];
+        }
+      });
+
+      // Show success message
+      setMessage({
+        type: 'success',
+        text: result.message
+      });
+
+      // Reload stats
+      const statsResult = await workflowsService.getStats();
+      if (statsResult.success) {
+        setStats(statsResult.data);
+      }
+    } else {
+      setMessage({
+        type: 'error',
+        text: result.error || 'Failed to update workflow'
+      });
+    }
+
+    // Clear message after 3 seconds
+    setTimeout(() => setMessage(null), 3000);
+  };
+
+  const handleExecuteQuickAction = (action) => {
+    // WhatsApp AI Agent -> Navigate to Workflow Tester
+    if (action.key === 'whatsapp_ai_agent') {
+      onNavigate && onNavigate('workflow-tester');
+      return;
+    }
+
+    // All other actions do nothing (Phase 2)
+    // No message shown
+  };
+
+  const handleViewAllActivity = () => {
+    // Phase 2: Navigate to full activity history
+    setMessage({
+      type: 'info',
+      text: 'Full activity history - Coming in Phase 2'
+    });
+    setTimeout(() => setMessage(null), 3000);
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[#1a1f2e] flex items-center justify-center">
+        <div className="text-white/60">Loading workflows...</div>
       </div>
+    );
+  }
 
-      <div className="max-w-7xl mx-auto relative z-10">
-        <div className="flex items-center justify-between mb-8">
-          <button onClick={onBack} className="p-3 bg-[#1f2937]/95 backdrop-blur-sm rounded-2xl hover:bg-[#1f2937] transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 border-2 border-[#d85a2a]/20">
-            <ChevronLeft className="w-6 h-6 text-[#FF8C42]" />
-          </button>
-          <div className="text-center">
-            <h2 className="text-4xl md:text-5xl font-black text-white drop-shadow-2xl">Workflows</h2>
-          </div>
-          <button className="px-6 py-3 bg-[#1f2937]/95 backdrop-blur-sm text-[#FF8C42] rounded-2xl font-bold hover:bg-[#1f2937] transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 border-2 border-[#d85a2a]/20">
-            <Plus className="w-5 h-5 inline mr-2" /> New Workflow
-          </button>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-          <StatCard icon={Workflow} label="Active Workflows" value="12" gradient="from-orange-500 to-orange-600" />
-          <StatCard icon={Zap} label="Tasks Automated" value="348" trend="+45%" gradient="from-orange-500 to-orange-600" />
-          <StatCard icon={Clock} label="Time Saved" value="24h" trend="+18%" gradient="from-orange-500 to-orange-600" />
-          <StatCard icon={CheckCircle} label="Success Rate" value="98%" gradient="from-orange-500 to-orange-600" />
-        </div>
-
-        {/* Workflow Tester Button */}
-        <div
-          onClick={() => onNavigate('workflow-tester')}
-          className="mb-8 cursor-pointer bg-gradient-to-r from-purple-500 via-purple-600 to-purple-700 rounded-3xl p-8 shadow-2xl hover:shadow-3xl transition-all duration-300 transform hover:scale-105 border-4 border-[#d85a2a]/20"
-        >
+  return (
+    <div className="flex-1 h-screen bg-[#1a1f2e] overflow-auto">
+      {/* Header */}
+      <div className="bg-[#252b3b] border-b border-white/10 sticky top-0 z-10">
+        <div className="max-w-7xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
-            <div>
-              <div className="flex items-center gap-3 mb-3">
-                <div className="bg-[#d85a2a]/10 backdrop-blur-sm p-3 rounded-2xl">
-                  <TestTube className="w-8 h-8 text-white" />
-                </div>
-                <h3 className="text-3xl font-black text-white">Workflow Tester</h3>
-                <span className="px-4 py-1 bg-green-400 text-green-900 rounded-full text-sm font-bold">LIVE</span>
-              </div>
-              <p className="text-white/90 text-lg ml-14">
-                Test WhatsApp AI Agent (VIII) and Vapi Voice AI (IX) directly from the app
-              </p>
-              <div className="flex gap-4 mt-4 ml-14">
-                <div className="flex items-center gap-2 bg-white/10 backdrop-blur-sm px-4 py-2 rounded-full">
-                  <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
-                  <span className="text-white text-sm font-medium">WhatsApp AI Ready</span>
-                </div>
-                <div className="flex items-center gap-2 bg-white/10 backdrop-blur-sm px-4 py-2 rounded-full">
-                  <span className="w-2 h-2 bg-blue-400 rounded-full animate-pulse"></span>
-                  <span className="text-white text-sm font-medium">Vapi Voice Ready</span>
-                </div>
+            <div className="flex items-center gap-4">
+              <button
+                onClick={onBack}
+                className="p-2 hover:bg-white/5 rounded-lg transition-colors"
+              >
+                <ChevronLeft className="w-5 h-5 text-white/60" />
+              </button>
+              <div>
+                <h1 className="text-white text-2xl font-bold">Workflows & Automations</h1>
+                <p className="text-white/60 text-sm">Manage your hotel's automated processes</p>
               </div>
             </div>
-            <div className="text-white text-6xl font-black opacity-20">→</div>
           </div>
         </div>
+      </div>
 
-        <div className="space-y-4">
-          <WorkflowCard
-            name="New Booking Welcome"
-            trigger="When new booking is confirmed"
-            actions={[
-              "Send welcome email with property details",
-              "Share check-in instructions and house rules",
-              "Add guest to property calendar"
-            ]}
-            status="active"
-            lastRun="15 min ago"
-            runsToday={8}
-            icon={CalendarCheck}
-          />
-
-          <WorkflowCard
-            name="Guest Communication"
-            trigger="24 hours before check-in"
-            actions={[
-              "Send reminder message to guest",
-              "Verify arrival time",
-              "Notify property manager"
-            ]}
-            status="active"
-            lastRun="2 hours ago"
-            runsToday={5}
-            icon={BellRing}
-          />
-
-          <div
-            onClick={() => onNavigate('trip-planner')}
-            className="cursor-pointer"
-          >
-            <WorkflowCard
-              name="AI Trip Planner"
-              trigger="When guest requests local recommendations"
-              actions={[
-                "Analyze guest preferences and interests",
-                "Generate personalized itinerary",
-                "Share curated recommendations"
-              ]}
-              status="active"
-              lastRun="45 min ago"
-              runsToday={12}
-              icon={Compass}
-            />
+      {/* Content */}
+      <div className="max-w-7xl mx-auto px-6 py-6 space-y-6">
+        {/* Success/Error Message */}
+        {message && (
+          <div className={`p-4 rounded-lg border ${
+            message.type === 'success'
+              ? 'bg-green-500/10 border-green-500/30 text-green-300'
+              : message.type === 'error'
+              ? 'bg-red-500/10 border-red-500/30 text-red-300'
+              : 'bg-blue-500/10 border-blue-500/30 text-blue-300'
+          }`}>
+            {message.text}
           </div>
+        )}
 
-          <div
-            onClick={() => onNavigate('bookings-workflow')}
-            className="cursor-pointer"
-          >
-            <WorkflowCard
-              name="Smart Booking Management"
-              trigger="Continuous monitoring"
-              actions={[
-                "Track booking status changes",
-                "Automate payment processing",
-                "Sync calendar across platforms"
-              ]}
-              status="active"
-              lastRun="5 min ago"
-              runsToday={24}
-              icon={Calendar}
-            />
-          </div>
+        {/* Stats Cards */}
+        <StatsCards stats={stats} />
 
-          <WorkflowCard
-            name="Dynamic Pricing Updates"
-            trigger="Every 4 hours"
-            actions={[
-              "Analyze market demand",
-              "Adjust property rates",
-              "Update listings on all platforms"
-            ]}
-            status="active"
-            lastRun="3 hours ago"
-            runsToday={6}
-            icon={Percent}
+        {/* Quick Actions */}
+        <div>
+          <h2 className="text-white text-lg font-semibold mb-4 flex items-center gap-2">
+            ⚡ Quick Actions
+          </h2>
+          <QuickActionsGrid actions={quickActions} onExecute={handleExecuteQuickAction} />
+        </div>
+
+        {/* Automated Workflows */}
+        <div>
+          <h2 className="text-white text-lg font-semibold mb-4 flex items-center gap-2">
+            🤖 Automated Workflows
+          </h2>
+          <AutomatedWorkflows
+            workflows={automatedWorkflows}
+            workflowSettings={workflowSettings}
+            onToggle={handleToggleWorkflow}
           />
+        </div>
 
-          <WorkflowCard
-            name="Review Collection & Response"
-            trigger="After check-out"
-            actions={[
-              "Send review request email",
-              "Monitor review submission",
-              "Auto-respond with thank you message"
-            ]}
-            status="active"
-            lastRun="1 hour ago"
-            runsToday={3}
-            icon={Star}
-          />
+        {/* Scheduled Tasks */}
+        <div>
+          <h2 className="text-white text-lg font-semibold mb-4 flex items-center gap-2">
+            📅 Scheduled Tasks
+          </h2>
+          <ScheduledTasks tasks={scheduledTasks} />
+        </div>
 
-          <WorkflowCard
-            name="Maintenance Scheduling"
-            trigger="After guest check-out"
-            actions={[
-              "Schedule professional cleaning",
-              "Perform property inspection",
-              "Restock amenities and supplies"
-            ]}
-            status="active"
-            lastRun="30 min ago"
-            runsToday={4}
-            icon={CheckCircle}
-          />
-
-          <WorkflowCard
-            name="Guest Follow-up & Upsell"
-            trigger="7 days after check-out"
-            actions={[
-              "Send personalized thank you message",
-              "Offer discount for next booking",
-              "Request social media shares"
-            ]}
-            status="active"
-            lastRun="4 hours ago"
-            runsToday={2}
-            icon={BellRing}
-          />
+        {/* Recent Activity */}
+        <div>
+          <h2 className="text-white text-lg font-semibold mb-4 flex items-center gap-2">
+            📜 Recent Activity
+          </h2>
+          <RecentActivity activity={recentActivity} onViewAll={handleViewAllActivity} />
         </div>
       </div>
     </div>
   );
 };
 
-export default WorkflowsAutomations;
+export default Workflows;
