@@ -1,0 +1,571 @@
+# Guest Communications / Customer Communication Module
+## MY HOST BizMate – Bali Smart Hospitality Hub (v2025.3)
+
+---
+
+## 1. Visión General
+
+SaaS multi‑tenant para villas, guest houses y hoteles pequeños/medianos en Bali que centraliza la comunicación con huéspedes mediante:
+
+- **WhatsApp Business (Meta Cloud API)**  
+- **Email (SendGrid/Amazon SES)**  
+
+Bajo un modelo **BYOK (Bring Your Own Key)**: cada propiedad usa sus propios números de WhatsApp y cuentas de email; el SaaS solo ofrece la capa de orquestación e IA.
+
+El módulo “Guest / Customer Communication” permite:
+
+- Coexistencia **Humano + IA** en WhatsApp.  
+- Campañas y emails transaccionales.  
+- Automatizaciones a lo largo del **viaje del huésped** (Guest Journey).
+
+---
+
+## 2. Stack Tecnológico
+
+- **Frontend**
+  - React + Chakra UI v3 (o sistema UI actual del SaaS).
+  - Reutilizar el diseño, formato y colores ya definidos (sidebar, cards, tipografía, esquema oscuro con acentos naranjas).
+
+- **Estado**
+  - Zustand (gestión de configuración por hotel y estado de pantallas).
+
+- **Backend**
+  - Node.js / TypeScript.
+  - Endpoints para:
+    - Webhooks de Meta Cloud API (WhatsApp).
+    - Webhooks de SendGrid o Amazon SES.
+    - Gestión de Guest Journey y plantillas.
+    - Gestión de configuración BYOK por `hotel_id`.
+
+- **Seguridad**
+  - Cifrado AES‑256 para almacenar:
+    - Meta Access Token.
+    - WABA ID / Phone Number ID.
+    - Claves SendGrid/SES.
+  - Multi‑tenant por `hotel_id` en base de datos.
+
+- **APIs externas**
+  - Meta Cloud API (WhatsApp Business).  
+  - SendGrid o Amazon SES (email).
+
+---
+
+## 3. Arquitectura Global & “Coexistence AI Mode”
+
+### 3.1 BYOK – Bring Your Own Key
+
+- Cada hotel/proprietario aporta:
+  - Sus credenciales de WhatsApp Business (Meta).
+  - Su cuenta de email transaccional (SendGrid o SES).
+- Todas las llamadas a las APIs externas se hacen **con las claves de ese hotel**, usando `hotel_id` para resolver las credenciales correctas.
+- Los costes de mensajes y emails se facturan directamente al hotel por Meta/AWS/SendGrid.
+
+### 3.2 Coexistence AI Mode (WhatsApp)
+
+Tres niveles configurables por hotel (y ajustables por chat):
+
+- **Nivel 1 – Auto**
+  - La IA responde de forma automática preguntas frecuentes y de bajo riesgo:
+    - Wi‑Fi, horarios, ubicación, cómo llegar.
+    - Información básica de habitaciones y servicios.
+  - El hotel puede limitar horarios y tipos de preguntas permitidas.
+
+- **Nivel 2 – Assist**
+  - La IA sugiere respuestas en el panel (“AI Suggestions”).
+  - El recepcionista humano revisa, modifica si quiere y envía.
+  - Útil cuando el hotel aún no confía en la automatización total.
+
+- **Nivel 3 – Human**
+  - Solo el humano responde.
+  - La IA solo “escucha” para analíticas y entrenamiento, sin enviar nada.
+
+### 3.3 Omnicanalidad y multi‑tenant
+
+- Una **línea de tiempo por huésped** combina:
+  - Mensajes de WhatsApp.
+  - Emails transaccionales y de campaña.
+- Todas las tablas clave (`guests`, `messages`, `campaigns`, `journey_rules`) tienen columna `hotel_id` para aislamiento de datos.
+
+---
+
+## 4. Proceso de Onboarding del Cliente (Hotel / Propietario)
+
+El objetivo es que un propietario no técnico pueda activar el módulo en 10–15 minutos.
+
+### Paso 1 – Datos del hotel
+
+- Recoger:
+  - Nombre del hotel.
+  - Idioma principal (en/es).
+  - Zona horaria.
+  - `hotel_id` interno.
+
+### Paso 2 – Conectar WhatsApp Business
+
+- Explicación simple:
+  - “Usaremos tu número oficial de WhatsApp Business. Tus huéspedes seguirán viendo el mismo número.”
+- El wizard pide:
+  - Número de teléfono de WhatsApp Business.
+  - WABA ID.
+  - Phone Number ID.
+  - Meta Access Token.
+- Backend:
+  - Valida las credenciales con una llamada de prueba.
+  - Guarda todo cifrado AES‑256 asociado a `hotel_id`.
+- En el frontend:
+  - Mostrar estado: Connected / Not connected.
+
+### Paso 3 – Conectar Email (SendGrid/SES)
+
+- Explicación:
+  - “Usaremos tu correo del hotel para enviar confirmaciones y campañas.”
+- El wizard pide:
+  - Email remitente.
+  - Dominio.
+  - API Key (SendGrid) o Access/Secret Key (SES).
+- Backend:
+  - Valida claves enviando un email de prueba al propietario.
+- En frontend:
+  - Estado: Connected / Not connected.
+
+### Paso 4 – Entrenar la IA (Hotel Knowledge Base)
+
+- Permitir subir:
+  - PDF o texto con servicios, políticas, FAQs, horarios.
+- Backend:
+  - Almacenar el contenido asociado a `hotel_id`.
+  - Usar como contexto en las respuestas de IA.
+
+### Paso 5 – Activación y test
+
+- Desde el wizard:
+  - Botón para enviar mensaje de WhatsApp de prueba al propietario.
+  - Botón para enviar email de prueba.
+- Si ambos tests pasan:
+  - Marcar módulo como “Active” para ese `hotel_id`.
+
+---
+
+## 5. Frontend – Módulo Guest / Customer Communications
+
+Usa el layout y tema existentes del SaaS (sidebar izquierda, cards con fondo oscuro y acentos naranjas). Añadir/ajustar las siguientes pantallas:
+
+### 5.1 Pantalla 1 – Customer Communication Overview
+
+**Ruta:** `/guest-communications`  
+**Objetivo:** Pantalla principal de entrada. Muestra de forma sencilla **todo lo que puede hacer** el propietario.
+
+Elementos:
+
+- Header:
+  - Título: “Guest / Customer Communication”.
+  - Subtítulo: “Manage how you talk to your guests via WhatsApp and Email.”
+  - Box de estado (arriba derecha):
+    - WhatsApp: Connected / Not connected.
+    - Email: Connected / Not connected.
+
+- Faja de KPIs (3–4 cards):
+  - “Guests in database”.
+  - “Reachable via Email”.
+  - “Reachable via WhatsApp”.
+  - “AI‑assisted conversations this month”.
+
+- Zona central con 3 bloques grandes:
+
+1) **WhatsApp Coexistence (Human + AI)**  
+   - Icono de WhatsApp.  
+   - Bullets:
+     - “Send welcome messages before arrival.”
+     - “Offer airport pickup and drivers.”
+     - “Answer common questions with AI help.”
+     - “Send reminders during the stay and thank‑you messages after check‑out.”
+   - Botones:
+     - Principal: **Setup WhatsApp Coexistence** → abre pantalla WhatsAppCoexistence.  
+     - Link: **View WhatsApp message examples** → abre WhatsAppExamples.
+
+2) **Email Communication & Campaigns**  
+   - Icono de email.  
+   - Bullets:
+     - “Send booking confirmations with all details.”
+     - “Run seasonal and promotion campaigns.”
+     - “Fill low‑occupancy dates with targeted emails.”
+     - “Send post‑stay emails to ask for reviews and invite guests back.”
+   - Botones:
+     - Principal: **Setup Email Communication** → abre EmailCommunication.  
+     - Link: **View email campaign examples** → abre EmailExamples.
+
+3) **Guest Journey Automations (WhatsApp + Email)**  
+   - Mini timeline (Booking → 7d before → 48h before → Arrival → During stay → After stay).  
+   - Para cada punto, breve texto del tipo de mensaje tí
+Te envío solo las partes que faltan, bien separadas, para que las pegues detrás de lo que ya tienes.
+
+5.1 (continuación) – Guest Journey Automations (bloque 3 de la pantalla Overview)
+En la pantalla principal Customer Communication Overview (ruta /guest-communications):
+
+Guest Journey Automations (WhatsApp + Email)
+
+Mini‑timeline dentro de la card, con estos puntos visibles:
+
+Booking – “Send booking confirmation (email).”
+
+7 days before arrival – “Share Bali tips & how to get here (email).”
+
+48 hours before – “Offer airport pickup (WhatsApp).”
+
+Check‑in day – “Send welcome message + Wi‑Fi & breakfast times (WhatsApp).”
+
+During stay – “Promote spa / tours / late check‑out (WhatsApp).”
+
+After check‑out – “Thank you & review request (email/WhatsApp).”
+
+Visualmente: una pequeña línea vertical u horizontal con iconos de calendario y de canales (WA / Email) en cada hito.
+
+Botón principal en la card:
+
+Configure full guest journey → abre la pantalla GuestJourneyConfig.
+
+5.2 – Pantalla WhatsApp Coexistence (detallada)
+Ruta: /guest-communications/whatsapp-setup (o vista interna).
+
+Objetivo: Explicar la solución de WhatsApp Coexistence y guiar al cliente por el setup.
+
+Elementos:
+
+Header interno:
+
+Título: “WhatsApp Coexistence (Human + AI)”.
+
+Subtítulo: “Use your existing WhatsApp Business number with automation and AI assistance.”
+
+Info banner (azul):
+
+Explica, en una frase, qué es Coexistence:
+“Keep using your WhatsApp Business App while our platform connects via official Cloud API on the same number.”
+
+Sección “What you can do with WhatsApp”
+
+Lista de bullets no técnicos:
+
+Send automatic welcome messages before arrival.
+
+Offer airport pickup and local drivers.
+
+Answer simple questions (Wi‑Fi, hours, directions) automatically.
+
+Send reminders during the stay and follow‑ups after check‑out.
+
+Sección “AI Coexistence Mode (3 levels)”
+
+Tres cards explicando Auto / Assist / Human con textos cortos.
+
+Sección “Setup WhatsApp Coexistence”
+
+Botón grande: “Setup WhatsApp Coexistence” que abre un wizard/modal de 5 pasos:
+
+Create or use your WhatsApp Business Account.
+
+Enable Coexistence mode in Meta settings.
+
+Get Phone Number ID and Access Token.
+
+Paste credentials in MY HOST BizMate (form seguro) o contactar soporte.
+
+Send a test message to your own phone.
+
+Sección “What AI will do / won’t do”
+
+Mantener la lista del documento original:
+
+Will do: FAQs, reminders, drafts, recomendaciones.
+
+Won’t do: cambios complejos de reserva, pagos/refunds, temas sensibles.
+
+Warning banner (ámbar):
+
+Indica que todos los costes de mensajes los factura Meta directamente al hotel.
+
+5.3 – Pantalla Email Communication (detallada)
+Ruta: /guest-communications/email-setup
+
+Objetivo: Mostrar claramente qué puede hacer con emails y permitir configurar el proveedor.
+
+Elementos:
+
+Header:
+
+Título: “Email Communication & Campaigns”.
+
+Subtítulo: “Send confirmations, seasonal campaigns and follow‑up emails from your hotel address.”
+
+Info banner:
+
+Asunto BYOK:
+“Emails are always sent from your own hotel email address using your SendGrid or SES account.”
+
+Sección “What you can do with Email”
+
+Bullets:
+
+Booking confirmations automatically sent after each reservation.
+
+Season opening & special offer campaigns to all previous guests.
+
+Low‑season campaigns to fill empty dates.
+
+Post‑stay emails to ask for reviews and offer a discount to come back.
+
+Sección “Setup your provider”
+
+Botón: “Setup Email Provider” → abre wizard/modal con pasos:
+
+Create/choose SendGrid or SES account.
+
+Verify sender email/domain.
+
+Generate API key.
+
+Paste key in MY HOST BizMate (form seguro).
+
+Send a test email to hotel owner.
+
+Sección “AI‑powered email composer”
+
+Segment selector (All / Recent / VIP / Long stay).
+
+Tone selector (Formal / Friendly / Promo).
+
+Botón “Generate AI Draft” que rellena Subject + Body con mocks.
+
+Botones: “Send” (no real API aún) y “Save as draft”.
+
+5.4 – Pantalla Guest Journey (detallada)
+Ruta: /guest-communications/journey
+
+Objetivo: Permitir configurar mensajes automáticos a lo largo del viaje del huésped.
+
+Elementos:
+
+Header:
+
+Título: “Guest Journey Automations”.
+
+Subtítulo: “Choose when to send WhatsApp and Email messages during the guest journey.”
+
+Timeline principal (vertical o horizontal):
+
+Para cada hito:
+
+Booking
+
+Switch ON/OFF.
+
+Default canales: Email.
+
+Descripción: “Send booking confirmation with all details.”
+
+7 days before arrival
+
+Switch.
+
+Canal: Email.
+
+“Share Bali tips & how to get here.”
+
+48 hours before
+
+Switch.
+
+Canal: WhatsApp.
+
+“Offer airport pickup and confirm arrival time.”
+
+Check‑in day
+
+Switch.
+
+Canal: WhatsApp.
+
+“Welcome message + Wi‑Fi + breakfast times.”
+
+During stay
+
+Switch.
+
+Canal: WhatsApp.
+
+“Optional: promote spa, tours, and late check‑out.”
+
+Check‑out
+
+Switch.
+
+Canal: WhatsApp or Email.
+
+“Check‑out reminder and thanks for staying.”
+
+3 days after
+
+Switch.
+
+Canal: Email.
+
+“Thank you + ask for review.”
+
+30 days after
+
+Switch.
+
+Canal: Email.
+
+“Invite to come back with a special offer.”
+
+Cada nodo del timeline puede mostrar iconos de canal, un pequeño resumen y quizás un icono de lápiz para, en el futuro, editar la plantilla.
+
+Botón al final: “Save journey settings” (por ahora solo guarda en estado local o mock).
+
+6 – Base de datos (tablas principales, nivel conceptual)
+No hace falta que Claude Code implemente la base de datos, pero sí que entienda la estructura para el frontend.
+
+Tablas principales (todas con hotel_id para multi‑tenant):
+
+hotels
+
+id (PK)
+
+name
+
+locale
+
+timezone
+
+…
+
+hotel_integrations
+
+id
+
+hotel_id
+
+whatsapp_connected (bool)
+
+whatsapp_waba_id (encrypted)
+
+whatsapp_phone_number_id (encrypted)
+
+whatsapp_access_token (encrypted)
+
+email_provider (sendgrid | ses)
+
+email_sender
+
+email_api_key (encrypted)
+
+whatsapp_status (unknown | ok | warning | error)
+
+email_status (igual)
+
+guests
+
+id
+
+hotel_id
+
+name
+
+email
+
+phone
+
+tags (VIP, long_stay, etc.)
+
+messages
+
+id
+
+hotel_id
+
+guest_id
+
+channel (whatsapp | email)
+
+direction (inbound | outbound)
+
+content
+
+sent_at
+
+ai_assisted (bool)
+
+journey_stage (booking, pre_arrival, etc.)
+
+journey_rules
+
+id
+
+hotel_id
+
+stage (booking, seven_days_before, forty_eight_hours_before, etc.)
+
+enabled (bool)
+
+channels (array de whatsapp/email)
+
+template_id (opcional, referencia a tabla de plantillas)
+
+templates
+
+id
+
+hotel_id
+
+channel
+
+stage
+
+name
+
+content
+
+Esto sirve solo de referencia; el frontend trabajará con estructuras análogas en JSON.
+
+7 – Backend / APIs (alto nivel)
+De nuevo, no hace falta que Claude Code las implemente ahora, pero conviene que sepa qué endpoints existirán.
+
+Endpoints HTTP típicos:
+
+GET /api/hotels/:hotelId/guest-communications/config
+
+PUT /api/hotels/:hotelId/guest-communications/config
+→ Lee/actualiza hotel_integrations (estado WhatsApp/Email) y journey_rules.
+
+POST /api/hotels/:hotelId/guest-communications/test-whatsapp
+
+POST /api/hotels/:hotelId/guest-communications/test-email
+→ Envían mensajes de prueba usando las credenciales BYOK.
+
+POST /api/hotels/:hotelId/email-drafts/generate
+→ Llama a IA para generar borradores (solo planning; aún no necesario en frontend).
+
+Webhooks:
+
+POST /webhooks/meta/whatsapp
+
+POST /webhooks/sendgrid o /webhooks/ses
+
+El frontend, por ahora, solo necesita stubs que simulen éxito o error.
+
+8 – Nota final para Claude Code
+Al final del documento puedes añadir algo así:
+
+Implementa o ajusta el frontend siguiendo todas las secciones 5.1 a 5.7.
+Usa el diseño existente del SaaS (no cambies los estilos globales).
+Usa mocks para datos y simula respuestas de los futuros endpoints descritos en la sección 7.
+Asegúrate de que el flujo completo desde /guest-communications permite al usuario:
+
+Ver la pantalla Overview.
+
+Ir a WhatsApp setup, Email setup, ejemplos y Guest Journey.
+
+Leer la pantalla “How this works & how to start”.
+
+Con estas secciones ya tienes el documento completo y coherente para volver a pegarlo en tu Documento Maestro.
