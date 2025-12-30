@@ -1,4 +1,11 @@
 import { supabase } from './supabase';
+import {
+  mockConnectionStatus,
+  mockJourneyRules,
+  mockWhatsAppExamples,
+  mockEmailExamples,
+  mockCoexistenceModes
+} from './guestCommunicationsMocks';
 
 /**
  * Guest Communications Service
@@ -6,6 +13,9 @@ import { supabase } from './supabase';
  */
 
 const PROPERTY_ID = '18711359-1378-4d12-9ea6-fb31c0b1bac2'; // Izumi Hotel (hardcoded for now)
+
+// Simulate network delay for realism
+const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
 export const guestCommunicationsService = {
 
@@ -387,6 +397,152 @@ Jl Raya Andong N. 18, Ubud, Bali`
       console.error('Error deleting draft:', error);
       return { success: false, error: error.message };
     }
+  },
+
+  // =====================================================
+  // NEW METHODS FOR GUEST COMMUNICATIONS MODULE V2
+  // =====================================================
+
+  /**
+   * Get connection status for WhatsApp and Email
+   */
+  async getConnectionStatus(hotelId = PROPERTY_ID) {
+    await delay(300);
+    // TODO: Replace with actual Supabase query when table exists
+    // const { data } = await supabase
+    //   .from('hotel_integrations')
+    //   .select('*')
+    //   .eq('hotel_id', hotelId)
+    //   .single();
+    return { success: true, data: { ...mockConnectionStatus } };
+  },
+
+  /**
+   * Save WhatsApp configuration
+   */
+  async saveWhatsAppConfig(hotelId = PROPERTY_ID, config) {
+    await delay(800);
+    console.log('Saving WhatsApp config:', config);
+    // TODO: Encrypt and save to Supabase
+    return {
+      success: true,
+      message: 'WhatsApp configuration saved successfully',
+      data: {
+        whatsapp_connected: true,
+        whatsapp_status: 'ok'
+      }
+    };
+  },
+
+  /**
+   * Save Email configuration
+   */
+  async saveEmailConfig(hotelId = PROPERTY_ID, config) {
+    await delay(800);
+    console.log('Saving Email config:', config);
+    // TODO: Encrypt and save to Supabase
+    return {
+      success: true,
+      message: 'Email configuration saved successfully',
+      data: {
+        email_connected: true,
+        email_status: 'ok'
+      }
+    };
+  },
+
+  /**
+   * Test WhatsApp connection
+   */
+  async testWhatsApp(hotelId = PROPERTY_ID, phoneNumber) {
+    await delay(1500);
+    console.log('Testing WhatsApp to:', phoneNumber);
+    // TODO: Call Meta API to send test message
+    return {
+      success: true,
+      message: `Test message sent to ${phoneNumber}`,
+      timestamp: new Date().toISOString()
+    };
+  },
+
+  /**
+   * Test Email connection
+   */
+  async testEmail(hotelId = PROPERTY_ID, emailAddress) {
+    await delay(1500);
+    console.log('Testing Email to:', emailAddress);
+    // TODO: Call SendGrid/SES to send test email
+    return {
+      success: true,
+      message: `Test email sent to ${emailAddress}`,
+      timestamp: new Date().toISOString()
+    };
+  },
+
+  /**
+   * Get Guest Journey rules
+   */
+  async getJourneyRules(hotelId = PROPERTY_ID) {
+    await delay(400);
+    // TODO: Replace with actual Supabase query
+    // const { data } = await supabase
+    //   .from('journey_rules')
+    //   .select('*')
+    //   .eq('hotel_id', hotelId)
+    //   .order('trigger_offset');
+    return { success: true, data: [...mockJourneyRules] };
+  },
+
+  /**
+   * Save Guest Journey rules
+   */
+  async saveJourneyRules(hotelId = PROPERTY_ID, rules) {
+    await delay(600);
+    console.log('Saving journey rules:', rules);
+    // TODO: Upsert to Supabase
+    return {
+      success: true,
+      message: 'Journey automation settings saved',
+      data: rules
+    };
+  },
+
+  /**
+   * Get WhatsApp message examples
+   */
+  async getWhatsAppExamples() {
+    await delay(200);
+    return { success: true, data: [...mockWhatsAppExamples] };
+  },
+
+  /**
+   * Get Email campaign examples
+   */
+  async getEmailExamples() {
+    await delay(200);
+    return { success: true, data: [...mockEmailExamples] };
+  },
+
+  /**
+   * Get AI Coexistence mode explanations
+   */
+  async getCoexistenceModes() {
+    await delay(100);
+    return { success: true, data: [...mockCoexistenceModes] };
+  },
+
+  /**
+   * Update AI Coexistence mode
+   */
+  async updateCoexistenceMode(hotelId = PROPERTY_ID, mode) {
+    await delay(500);
+    console.log('Updating coexistence mode to:', mode);
+    // TODO: Save to Supabase
+    return {
+      success: true,
+      message: `AI mode updated to ${mode}`,
+      data: { whatsapp_coexistence_mode: mode }
+    };
   }
 };
 

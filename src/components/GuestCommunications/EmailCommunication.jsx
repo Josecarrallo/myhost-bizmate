@@ -3,7 +3,7 @@ import { Info, ExternalLink, Mail, Sparkles, Send, Users, Loader2, CheckCircle, 
 import guestCommunicationsService from '../../services/guestCommunicationsService';
 
 const EmailCommunication = () => {
-  const [showSendGridGuide, setShowSendGridGuide] = useState(false);
+  const [showSESGuide, setShowSESGuide] = useState(false);
   const [selectedSegment, setSelectedSegment] = useState('all');
   const [emailTone, setEmailTone] = useState('friendly');
   const [emailSubject, setEmailSubject] = useState('');
@@ -133,25 +133,25 @@ const EmailCommunication = () => {
         <div className="flex items-start gap-3">
           <Info className="w-5 h-5 text-blue-400 flex-shrink-0 mt-0.5" />
           <div className="text-white/90 text-sm">
-            <strong>Email automation requires SendGrid configuration.</strong>
+            <strong>Email automation requires Amazon SES configuration.</strong>
             <br />
-            MY HOST BizMate uses SendGrid to send emails on your behalf. You'll need a SendGrid account (free tier available).
+            MY HOST BizMate uses Amazon SES to send emails on your behalf. You'll need an AWS account (very low cost, pay-as-you-go).
           </div>
         </div>
       </div>
 
-      {/* SendGrid Setup Button */}
+      {/* Amazon SES Setup Button */}
       <div className="bg-[#252b3b] rounded-xl p-6 border border-white/10">
         <h3 className="text-white text-lg font-semibold mb-2">Get Started with Email</h3>
         <p className="text-white/70 text-sm mb-4">
-          We'll help you connect SendGrid to send automated emails to your guests. SendGrid offers a free tier (100 emails/day).
+          We'll help you connect Amazon SES to send automated emails to your guests. Very low cost (~$0.10 per 1,000 emails).
         </p>
         <button
-          onClick={() => setShowSendGridGuide(true)}
+          onClick={() => setShowSESGuide(true)}
           className="bg-[#d85a2a] text-white px-6 py-3 rounded-lg font-medium hover:bg-[#c14d1f] transition-colors flex items-center gap-2"
         >
           <Mail className="w-5 h-5" />
-          Setup SendGrid
+          Setup Amazon SES
         </button>
       </div>
 
@@ -297,13 +297,13 @@ const EmailCommunication = () => {
         </div>
       </div>
 
-      {/* SendGrid Setup Modal */}
-      {showSendGridGuide && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setShowSendGridGuide(false)}>
+      {/* Amazon SES Setup Modal */}
+      {showSESGuide && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setShowSESGuide(false)}>
           <div className="bg-[#1a1f2e] rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto border border-white/10" onClick={(e) => e.stopPropagation()}>
             <div className="sticky top-0 bg-gradient-to-r from-[#d85a2a] to-[#f5a524] p-6 rounded-t-2xl">
-              <h2 className="text-2xl font-bold text-white mb-2">SendGrid Setup Guide</h2>
-              <p className="text-white/90 text-sm">Follow these steps to connect SendGrid for email automation</p>
+              <h2 className="text-2xl font-bold text-white mb-2">Amazon SES Setup Guide</h2>
+              <p className="text-white/90 text-sm">Follow these steps to connect Amazon SES for email automation</p>
             </div>
 
             <div className="p-6 space-y-6">
@@ -314,17 +314,17 @@ const EmailCommunication = () => {
                     1
                   </div>
                   <div className="flex-1">
-                    <h3 className="text-white font-semibold mb-2">Create a SendGrid Account</h3>
+                    <h3 className="text-white font-semibold mb-2">Create an AWS Account</h3>
                     <p className="text-white/70 text-sm mb-3">
-                      Sign up for a free SendGrid account. The free tier allows 100 emails/day, perfect for small properties.
+                      Sign up for an AWS account. Amazon SES is very affordable: ~$0.10 per 1,000 emails (100x cheaper than SendGrid).
                     </p>
                     <a
-                      href="https://signup.sendgrid.com"
+                      href="https://aws.amazon.com/ses/"
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-[#FF8C42] hover:text-[#d85a2a] text-sm flex items-center gap-1"
                     >
-                      Create SendGrid Account <ExternalLink className="w-4 h-4" />
+                      Learn about Amazon SES <ExternalLink className="w-4 h-4" />
                     </a>
                   </div>
                 </div>
@@ -337,9 +337,12 @@ const EmailCommunication = () => {
                     2
                   </div>
                   <div className="flex-1">
-                    <h3 className="text-white font-semibold mb-2">Verify Your Sender Identity</h3>
+                    <h3 className="text-white font-semibold mb-2">Verify Your Email Domain</h3>
                     <p className="text-white/70 text-sm mb-3">
-                      In SendGrid, go to Settings → Sender Authentication → Verify a Single Sender. Use your business email address.
+                      In AWS SES Console, go to Verified Identities → Create Identity → Domain. Add DNS records to verify your domain (e.g., izumihotel.com).
+                    </p>
+                    <p className="text-white/60 text-xs">
+                      💡 You can also verify a single email address if you don't have a domain.
                     </p>
                   </div>
                 </div>
@@ -352,9 +355,12 @@ const EmailCommunication = () => {
                     3
                   </div>
                   <div className="flex-1">
-                    <h3 className="text-white font-semibold mb-2">Generate API Key</h3>
+                    <h3 className="text-white font-semibold mb-2">Request Production Access</h3>
                     <p className="text-white/70 text-sm mb-3">
-                      Go to Settings → API Keys → Create API Key. Choose "Restricted Access" and enable "Mail Send" permission only.
+                      By default, SES is in "sandbox mode" (can only send to verified emails). Request production access to send to any email address.
+                    </p>
+                    <p className="text-white/60 text-xs">
+                      ⏱️ Production access is usually approved within 24 hours.
                     </p>
                   </div>
                 </div>
@@ -367,12 +373,12 @@ const EmailCommunication = () => {
                     4
                   </div>
                   <div className="flex-1">
-                    <h3 className="text-white font-semibold mb-2">Connect to MY HOST BizMate</h3>
+                    <h3 className="text-white font-semibold mb-2">Create IAM Credentials</h3>
                     <p className="text-white/70 text-sm mb-3">
-                      Contact our support team with your SendGrid API Key. We'll configure your email integration securely.
+                      In AWS IAM Console, create a new user with "AmazonSESFullAccess" policy. Generate Access Key ID and Secret Access Key.
                     </p>
-                    <p className="text-white/60 text-xs italic">
-                      Support: support@myhostbizmate.com
+                    <p className="text-white/60 text-xs">
+                      🔐 Keep these credentials safe - you'll need them for MY HOST BizMate.
                     </p>
                   </div>
                 </div>
@@ -385,16 +391,56 @@ const EmailCommunication = () => {
                     5
                   </div>
                   <div className="flex-1">
-                    <h3 className="text-white font-semibold mb-2">Test & Send</h3>
-                    <p className="text-white/70 text-sm">
-                      Our team will help you send a test email. Once verified, you can start sending emails to your guests!
+                    <h3 className="text-white font-semibold mb-2">Choose Your Region</h3>
+                    <p className="text-white/70 text-sm mb-3">
+                      Select the AWS region closest to your guests. For Bali properties, we recommend:
+                    </p>
+                    <div className="bg-[#1a1f2e] p-3 rounded-lg text-sm text-white/80">
+                      <strong>ap-southeast-1</strong> (Singapore) - Closest to Bali
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Step 6 */}
+              <div className="bg-[#252b3b] rounded-xl p-6 border border-white/10">
+                <div className="flex items-start gap-4">
+                  <div className="bg-[#d85a2a] text-white w-8 h-8 rounded-full flex items-center justify-center font-bold flex-shrink-0">
+                    6
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="text-white font-semibold mb-2">Connect to MY HOST BizMate</h3>
+                    <p className="text-white/70 text-sm mb-3">
+                      Contact our support team with your AWS credentials:
+                    </p>
+                    <ul className="text-white/60 text-xs space-y-1 list-disc list-inside">
+                      <li>Access Key ID</li>
+                      <li>Secret Access Key</li>
+                      <li>SES Region (e.g., ap-southeast-1)</li>
+                      <li>Verified sender email/domain</li>
+                    </ul>
+                    <p className="text-white/60 text-xs italic mt-3">
+                      Support: support@myhostbizmate.com
                     </p>
                   </div>
                 </div>
               </div>
 
+              {/* Pricing Info */}
+              <div className="bg-green-500/10 border border-green-500/30 rounded-xl p-4">
+                <h4 className="text-white font-semibold mb-2 flex items-center gap-2">
+                  💰 Why Amazon SES?
+                </h4>
+                <ul className="text-white/70 text-sm space-y-1">
+                  <li>✓ $0.10 per 1,000 emails (vs $15-100/month for SendGrid)</li>
+                  <li>✓ Pay only for what you use (no monthly fees)</li>
+                  <li>✓ 99.9% delivery rate</li>
+                  <li>✓ No daily sending limits in production mode</li>
+                </ul>
+              </div>
+
               <button
-                onClick={() => setShowSendGridGuide(false)}
+                onClick={() => setShowSESGuide(false)}
                 className="w-full bg-[#d85a2a] text-white px-6 py-3 rounded-lg font-medium hover:bg-[#c14d1f] transition-colors"
               >
                 Got it, close guide
