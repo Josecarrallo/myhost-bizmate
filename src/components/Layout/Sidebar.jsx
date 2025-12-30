@@ -125,14 +125,13 @@ const Sidebar = ({ currentView, onNavigate, isOpen, onClose }) => {
       items: [
         { id: 'crm', label: 'Guest Database / CRM', icon: Users },
         { id: 'guest-communications', label: 'Guest Communications', icon: MessageSquare },
-        { id: 'segmentation', label: 'Guest Segmentation', icon: Target },
-        { id: 'my-website', label: 'Create My Website', icon: Globe },
-        { id: 'booking-engine', label: 'Booking Engine Config', icon: Globe },
-        { id: 'digital-checkin', label: 'Digital Check-in Setup', icon: CheckCircle },
-        { id: 'reviews', label: 'Reviews Management', icon: Star },
+        { id: 'analytics', label: 'Guest Analytics', icon: BarChart3 },
         { id: 'campaigns', label: 'Marketing Campaigns', icon: Megaphone },
         { id: 'meta-ads', label: 'Meta Ads (Instagram + Facebook)', icon: TrendingUp },
-        { id: 'analytics', label: 'Guest Analytics', icon: BarChart3 }
+        { id: 'reviews', label: 'Reviews Management', icon: Star },
+        { id: 'my-website', label: 'Create My Website', icon: Globe },
+        { id: 'booking-engine', label: 'Booking Engine Config', icon: Globe },
+        { id: 'digital-checkin', label: 'Digital Check-in Setup', icon: CheckCircle }
       ]
     },
     {

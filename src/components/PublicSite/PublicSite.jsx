@@ -343,71 +343,56 @@ const PublicSite = () => {
           </div>
 
           <div className="space-y-6">
-            <h4 className="text-sm font-bold uppercase tracking-widest text-white/40">Contact Us</h4>
-            <div className="space-y-4 text-white/60">
-              {site.contact_email && <p className="text-sm">{site.contact_email}</p>}
+            <h4 className="text-sm font-bold uppercase tracking-widest text-white/40">📞 CONTACTO IZUMI HOTEL</h4>
+            <div className="space-y-4">
+              {/* WhatsApp - 24/7 */}
+              <div className="flex items-start gap-3 text-white/80">
+                <MessageCircle className="w-5 h-5 mt-0.5 flex-shrink-0" style={{ color: themeColors.primary }} />
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-white">WhatsApp (24/7)</p>
+                  <a
+                    href="https://wa.me/6281325764867"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-sm hover:opacity-80 transition-opacity"
+                    style={{ color: themeColors.primary }}
+                  >
+                    +62 813 2576 4867
+                  </a>
+                </div>
+              </div>
 
-              {/* Phone Number - Human Contact */}
-              {phoneNumber && (
-                <button
-                  className="w-full border border-white/20 text-white rounded-full py-3 bg-transparent transition-colors flex items-center justify-center gap-2"
-                  onMouseEnter={(e) => {
-                    e.target.style.backgroundColor = themeColors.primary;
-                    e.target.style.borderColor = themeColors.primary;
-                  }}
-                  onMouseLeave={(e) => {
-                    e.target.style.backgroundColor = 'transparent';
-                    e.target.style.borderColor = 'rgba(255, 255, 255, 0.2)';
-                  }}
-                  onClick={() => window.open(`tel:${phoneNumber}`, "_self")}
-                >
-                  <Phone className="w-4 h-4" />
-                  Call Us
-                </button>
-              )}
+              {/* Phone - Business Hours */}
+              <div className="flex items-start gap-3 text-white/80">
+                <Phone className="w-5 h-5 mt-0.5 flex-shrink-0" style={{ color: themeColors.primary }} />
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-white">Teléfono (8:00-22:00)</p>
+                  <a
+                    href="tel:+6281325764867"
+                    className="text-sm hover:opacity-80 transition-opacity"
+                    style={{ color: themeColors.primary }}
+                  >
+                    +62 813 2576 4867
+                  </a>
+                </div>
+              </div>
 
-              {/* WhatsApp - Chatbot */}
-              {whatsappNumber && (
-                <button
-                  className="w-full border border-white/20 text-white rounded-full py-3 bg-transparent transition-colors flex items-center justify-center gap-2"
-                  onMouseEnter={(e) => {
-                    e.target.style.backgroundColor = themeColors.primary;
-                    e.target.style.borderColor = themeColors.primary;
-                  }}
-                  onMouseLeave={(e) => {
-                    e.target.style.backgroundColor = 'transparent';
-                    e.target.style.borderColor = 'rgba(255, 255, 255, 0.2)';
-                  }}
-                  onClick={() => window.open(`https://wa.me/${whatsappNumber.replace(/[^0-9]/g, '')}`, "_blank")}
-                >
-                  <MessageCircle className="w-4 h-4" />
-                  WhatsApp Chat
-                </button>
-              )}
-
-              {/* VAPI Voice Assistant - Always available */}
-              <button
-                className="w-full border border-white/20 text-white rounded-full py-3 bg-transparent transition-colors flex items-center justify-center gap-2"
-                onMouseEnter={(e) => {
-                  e.target.style.backgroundColor = themeColors.primary;
-                  e.target.style.borderColor = themeColors.primary;
-                }}
-                onMouseLeave={(e) => {
-                  e.target.style.backgroundColor = 'transparent';
-                  e.target.style.borderColor = 'rgba(255, 255, 255, 0.2)';
-                }}
-                onClick={() => {
-                  // If phone is configured, call it. Otherwise show info about voice assistant
-                  if (phoneNumber) {
-                    window.open(`tel:${phoneNumber}`, "_self");
-                  } else {
-                    alert('Voice Assistant\n\nCall us to speak with our AI-powered voice assistant. Available 24/7 to answer your questions and help with bookings.');
-                  }
-                }}
-              >
-                <Headphones className="w-4 h-4" />
-                Talk to Us
-              </button>
+              {/* Voice Assistant - 24/7 */}
+              <div className="flex items-start gap-3 text-white/80">
+                <Headphones className="w-5 h-5 mt-0.5 flex-shrink-0" style={{ color: themeColors.primary }} />
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-white">Web - Asistente de voz (24/7)</p>
+                  <a
+                    href="https://www.my-host-bizmate.com"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-sm hover:opacity-80 transition-opacity"
+                    style={{ color: themeColors.primary }}
+                  >
+                    www.my-host-bizmate.com
+                  </a>
+                </div>
+              </div>
             </div>
           </div>
         </div>
