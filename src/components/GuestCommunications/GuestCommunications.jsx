@@ -1,17 +1,26 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ArrowLeft, MessageSquare, Mail, Users, Send } from 'lucide-react';
 import WhatsAppCoexistence from './WhatsAppCoexistence';
 import EmailCommunication from './EmailCommunication';
+import guestCommunicationsService from '../../services/guestCommunicationsService';
 
 const GuestCommunications = ({ onBack }) => {
   const [activeTab, setActiveTab] = useState('whatsapp');
+  const [kpis, setKpis] = useState({
+    totalGuests: 0,
+    reachableEmail: 0,
+    reachableWhatsApp: 0,
+    messagesDrafted: 0
+  });
 
-  // Mock KPIs
-  const kpis = {
-    totalGuests: 1247,
-    reachableEmail: 1180,
-    reachableWhatsApp: 856,
-    messagesDrafted: 342
+  // Load KPIs on mount
+  useEffect(() => {
+    loadKPIs();
+  }, []);
+
+  const loadKPIs = async () => {
+    const stats = await guestCommunicationsService.getGuestStats();
+    setKpis(stats);
   };
 
   return (

@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
-import { Info, ExternalLink, Mail, Sparkles, Send, Users } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Info, ExternalLink, Mail, Sparkles, Send, Users, Loader2, CheckCircle, AlertCircle } from 'lucide-react';
+import guestCommunicationsService from '../../services/guestCommunicationsService';
 
 const EmailCommunication = () => {
   const [showSendGridGuide, setShowSendGridGuide] = useState(false);
@@ -7,34 +8,122 @@ const EmailCommunication = () => {
   const [emailTone, setEmailTone] = useState('friendly');
   const [emailSubject, setEmailSubject] = useState('');
   const [emailBody, setEmailBody] = useState('');
+  const [segments, setSegments] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [sending, setSending] = useState(false);
+  const [message, setMessage] = useState(null); // { type: 'success' | 'error', text: string }
 
-  // Mock guest segments
-  const segments = [
-    { id: 'all', label: 'All Guests', count: 1180 },
-    { id: 'recent', label: 'Recent Guests (Last 30 days)', count: 127 },
-    { id: 'vip', label: 'VIP Guests (3+ stays)', count: 89 },
-    { id: 'longstay', label: 'Long Stay (7+ nights)', count: 156 }
-  ];
+  // Load segments on mount
+  useEffect(() => {
+    loadSegments();
+  }, []);
 
-  const handleGenerateDraft = () => {
-    const drafts = {
-      formal: {
-        subject: 'Important Update from Your Host',
-        body: 'Dear Valued Guest,\n\nWe hope this message finds you well. We are writing to inform you about an important update regarding your upcoming stay with us.\n\n[Your message here]\n\nShould you have any questions, please do not hesitate to contact us.\n\nWarm regards,\nYour Host Team'
-      },
-      friendly: {
-        subject: 'Hey! Quick update from us',
-        body: 'Hi there!\n\nWe hope you\'re doing great! We wanted to reach out with a quick update about your stay with us.\n\n[Your message here]\n\nFeel free to message us anytime if you have questions!\n\nCheers,\nYour Host Team'
-      },
-      promo: {
-        subject: '🎉 Special Offer Just for You!',
-        body: 'Hello!\n\nWe have something special for you! As a valued guest, we\'re offering you an exclusive deal for your next stay.\n\n[Your offer details here]\n\nBook now and save! This offer is available for a limited time only.\n\nBest,\nYour Host Team'
+  const loadSegments = async () => {
+    const data = await guestCommunicationsService.getGuestSegments();
+    setSegments(data);
+  };
+
+  const handleGenerateDraft = async () => {
+    setLoading(true);
+    setMessage(null);
+
+    try {
+      const result = await guestCommunicationsService.generateEmailDraft(
+        selectedSegment,
+        emailTone
+      );
+
+      if (result.success) {
+        setEmailSubject(result.subject);
+        setEmailBody(result.body);
+        setMessage({ type: 'success', text: 'AI draft generated successfully!' });
+      } else {
+        setMessage({ type: 'error', text: result.error || 'Failed to generate draft' });
       }
-    };
+    } catch (error) {
+      setMessage({ type: 'error', text: 'Error generating draft' });
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    const draft = drafts[emailTone];
-    setEmailSubject(draft.subject);
-    setEmailBody(draft.body);
+  const handleSaveDraft = async () => {
+    if (!emailSubject || !emailBody) {
+      setMessage({ type: 'error', text: 'Please enter subject and message' });
+      return;
+    }
+
+    setLoading(true);
+    setMessage(null);
+
+    try {
+      const result = await guestCommunicationsService.saveDraft(
+        selectedSegment,
+        emailSubject,
+        emailBody,
+        emailTone
+      );
+
+      if (result.success) {
+        setMessage({ type: 'success', text: 'Draft saved successfully!' });
+      } else {
+        setMessage({ type: 'error', text: result.error || 'Failed to save draft' });
+      }
+    } catch (error) {
+      setMessage({ type: 'error', text: 'Error saving draft' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSendEmail = async () => {
+    if (!emailSubject || !emailBody) {
+      setMessage({ type: 'error', text: 'Please enter subject and message' });
+      return;
+    }
+
+    const segment = segments.find(s => s.id === selectedSegment);
+    const recipientCount = segment ? segment.count : 0;
+
+    if (recipientCount === 0) {
+      setMessage({ type: 'error', text: 'No recipients found for this segment' });
+      return;
+    }
+
+    // Confirm before sending
+    const confirmed = window.confirm(
+      `Are you sure you want to send this email to ${recipientCount} guests?\n\nThis action cannot be undone.`
+    );
+
+    if (!confirmed) return;
+
+    setSending(true);
+    setMessage(null);
+
+    try {
+      const result = await guestCommunicationsService.sendEmail(
+        selectedSegment,
+        emailSubject,
+        emailBody,
+        emailTone
+      );
+
+      if (result.success) {
+        setMessage({
+          type: 'success',
+          text: `Email sent successfully to ${result.recipientsCount} guests!`
+        });
+        // Clear form
+        setEmailSubject('');
+        setEmailBody('');
+      } else {
+        setMessage({ type: 'error', text: result.error || 'Failed to send email' });
+      }
+    } catch (error) {
+      setMessage({ type: 'error', text: 'Error sending email' });
+    } finally {
+      setSending(false);
+    }
   };
 
   return (
@@ -116,13 +205,43 @@ const EmailCommunication = () => {
           </div>
         </div>
 
+        {/* Message Banner */}
+        {message && (
+          <div className={`mb-4 p-4 rounded-lg border flex items-start gap-3 ${
+            message.type === 'success'
+              ? 'bg-green-500/10 border-green-500/30'
+              : 'bg-red-500/10 border-red-500/30'
+          }`}>
+            {message.type === 'success' ? (
+              <CheckCircle className="w-5 h-5 text-green-400 flex-shrink-0 mt-0.5" />
+            ) : (
+              <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
+            )}
+            <p className={`text-sm ${
+              message.type === 'success' ? 'text-green-300' : 'text-red-300'
+            }`}>
+              {message.text}
+            </p>
+          </div>
+        )}
+
         {/* Generate Draft Button */}
         <button
           onClick={handleGenerateDraft}
-          className="w-full bg-gradient-to-r from-purple-500 to-pink-500 text-white px-6 py-3 rounded-lg font-medium hover:from-purple-600 hover:to-pink-600 transition-all flex items-center justify-center gap-2 mb-4"
+          disabled={loading}
+          className="w-full bg-gradient-to-r from-purple-500 to-pink-500 text-white px-6 py-3 rounded-lg font-medium hover:from-purple-600 hover:to-pink-600 transition-all flex items-center justify-center gap-2 mb-4 disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          <Sparkles className="w-5 h-5" />
-          Generate AI Draft
+          {loading ? (
+            <>
+              <Loader2 className="w-5 h-5 animate-spin" />
+              Generating...
+            </>
+          ) : (
+            <>
+              <Sparkles className="w-5 h-5" />
+              Generate AI Draft
+            </>
+          )}
         </button>
 
         {/* Email Subject */}
@@ -151,11 +270,28 @@ const EmailCommunication = () => {
 
         {/* Send Button */}
         <div className="flex gap-3">
-          <button className="flex-1 bg-[#d85a2a] text-white px-6 py-3 rounded-lg font-medium hover:bg-[#c14d1f] transition-colors flex items-center justify-center gap-2">
-            <Send className="w-5 h-5" />
-            Send to {segments.find(s => s.id === selectedSegment)?.count || 0} Guests
+          <button
+            onClick={handleSendEmail}
+            disabled={sending || loading}
+            className="flex-1 bg-[#d85a2a] text-white px-6 py-3 rounded-lg font-medium hover:bg-[#c14d1f] transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {sending ? (
+              <>
+                <Loader2 className="w-5 h-5 animate-spin" />
+                Sending...
+              </>
+            ) : (
+              <>
+                <Send className="w-5 h-5" />
+                Send to {segments.find(s => s.id === selectedSegment)?.count || 0} Guests
+              </>
+            )}
           </button>
-          <button className="bg-[#1a1f2e] text-white/80 px-6 py-3 rounded-lg font-medium hover:bg-[#252b3b] transition-colors border border-white/10">
+          <button
+            onClick={handleSaveDraft}
+            disabled={loading || sending}
+            className="bg-[#1a1f2e] text-white/80 px-6 py-3 rounded-lg font-medium hover:bg-[#252b3b] transition-colors border border-white/10 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
             Save Draft
           </button>
         </div>
