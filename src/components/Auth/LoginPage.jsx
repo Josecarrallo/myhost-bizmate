@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Mail, Lock, AlertCircle, ArrowRight } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 
-const LoginPageV2 = () => {
+const LoginPage = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -164,4 +164,4 @@ const LoginPageV2 = () => {
   );
 };
 
-export default LoginPageV2;
+export default LoginPage;
