@@ -46,6 +46,7 @@ const LoginPage = () => {
           <span className="text-4xl md:text-5xl lg:text-7xl font-extrabold tracking-tighter text-[#FF8C42] drop-shadow-2xl">
             MY HOST BizMate
           </span>
+          <p className="text-white/40 text-xs mt-2">v2.0-mobile-dec31</p>
         </div>
 
         <div className="w-full flex flex-col md:flex-row items-center justify-between gap-6 md:gap-8">
