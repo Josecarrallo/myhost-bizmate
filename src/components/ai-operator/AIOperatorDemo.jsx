@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import PageShell from '../layout/PageShell';
+import PageShell from '../Layout/PageShell';
 import {
   CheckCircle,
   Clock,
