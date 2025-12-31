@@ -28,7 +28,7 @@ const LoginPage = () => {
     <div className="relative min-h-screen w-full flex flex-col items-center overflow-hidden font-sans">
       {/* Background Image */}
       <div
-        className="absolute inset-0 z-0"
+        className="absolute inset-0 z-0 bg-gradient-to-br from-slate-800 via-slate-700 to-slate-900"
         style={{
           backgroundImage: 'url(/images/modern-bali-architecture-luxury-villa.jpg)',
           backgroundSize: 'cover',
