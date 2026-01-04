@@ -30,7 +30,10 @@ import {
   MessageSquare,
   Inbox,
   Clock,
-  FileText
+  FileText,
+  Brain,
+  Bell,
+  Lightbulb
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -41,6 +44,7 @@ const Sidebar = ({ currentView, onNavigate, isOpen, onClose }) => {
     'operations': false,
     'revenue': false,
     'sales-leads': false,
+    'market-intelligence': false,
     'marketing-growth': false,
     'osiris-ai': false,
     'banyu-ai': false,
@@ -121,6 +125,18 @@ const Sidebar = ({ currentView, onNavigate, isOpen, onClose }) => {
         { id: 'creative-studio', label: 'Creative Studio (Soon)', icon: Palette },
         { id: 'reviews', label: 'Reviews Management', icon: Star },
         { id: 'insights', label: 'Insights', icon: BarChart3 }
+      ]
+    },
+    {
+      sectionId: 'market-intelligence',
+      sectionLabel: 'MARKET INTELLIGENCE',
+      sectionIcon: Brain,
+      collapsible: true,
+      items: [
+        { id: 'competitors-snapshot', label: 'Competitors Snapshot', icon: Target },
+        { id: 'bali-market-trends', label: 'Bali Market Trends', icon: TrendingUp },
+        { id: 'intelligence-alerts', label: 'Alerts', icon: Bell },
+        { id: 'ai-recommendations', label: 'AI Recommendations', icon: Lightbulb }
       ]
     },
     {

@@ -51,6 +51,10 @@ import LeadsPipeline from './components/SalesLeads/LeadsPipeline';
 import LeadsFollowups from './components/SalesLeads/LeadsFollowups';
 import LeadsConversations from './components/SalesLeads/LeadsConversations';
 import LeadsTemplates from './components/SalesLeads/LeadsTemplates';
+import CompetitorsSnapshot from './components/MarketIntelligence/CompetitorsSnapshot';
+import BaliMarketTrends from './components/MarketIntelligence/BaliMarketTrends';
+import IntelligenceAlerts from './components/MarketIntelligence/IntelligenceAlerts';
+import AIRecommendations from './components/MarketIntelligence/AIRecommendations';
 
 // ==================== FLOATING ICON COMPONENT ====================
 const FloatingIcon = ({ icon: Icon, className, delay }) => (
@@ -249,6 +253,19 @@ export default function App() {
 
       case 'leads-templates':
         return <LeadsTemplates key="leads-templates" onBack={() => setCurrentView('overview')} />;
+
+      // Market Intelligence
+      case 'competitors-snapshot':
+        return <CompetitorsSnapshot key="competitors-snapshot" onBack={() => setCurrentView('overview')} />;
+
+      case 'bali-market-trends':
+        return <BaliMarketTrends key="bali-market-trends" onBack={() => setCurrentView('overview')} />;
+
+      case 'intelligence-alerts':
+        return <IntelligenceAlerts key="intelligence-alerts" onBack={() => setCurrentView('overview')} />;
+
+      case 'ai-recommendations':
+        return <AIRecommendations key="ai-recommendations" onBack={() => setCurrentView('overview')} />;
 
       // PMS Core (Internal Agent)
       case 'ai-assistant':
