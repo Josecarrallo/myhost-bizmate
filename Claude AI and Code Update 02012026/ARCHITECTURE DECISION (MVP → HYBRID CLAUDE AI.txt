@@ -1,0 +1,28 @@
+ARCHITECTURE DECISION (MVP → HYBRID)
+
+For MVP we KEEP “GuestJourney-Scheduler” as an INDEPENDENT n8n workflow:
+- Cron trigger → fetch data → filter → execute actions (WhatsApp / email / Supabase updates).
+Goal: keep it working and ship fast. No refactor that breaks it.
+
+TARGET ARCHITECTURE (HYBRID, GRADUAL MIGRATION)
+Long-term we move to a HYBRID model:
+- Workflows detect events + decide what needs to happen
+- Then they CALL the existing MCP Central workflow:
+  “MCP-Central-Izumi-Hotel-MyHost-BizMate-20”
+- MCP Central exposes reusable “tools” (sub-workflows) for actions, e.g.:
+  - send_whatsapp
+  - send_email
+  - update_journey_state
+  - write_log / audit_log
+  - upsert_guest / upsert_booking (if needed)
+
+WHY
+- Avoid duplicated logic across workflows
+- Improve auditability + consistent logging
+- Make multi-tenant safer and standardized
+- Centralize cost controls and autonomy rules
+
+PLAN
+Phase 1 (now): Keep Scheduler working as-is.
+Phase 2: Replace its internal action steps one-by-one with MCP tool calls (no big bang).
+Each migration step must preserve outputs + logs and be reversible.

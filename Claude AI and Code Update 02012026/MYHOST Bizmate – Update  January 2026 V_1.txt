@@ -1,0 +1,286 @@
+
+MYHOST Bizmate – Update 
+
+Para llevar al mercado algo completamente nuevo e innovador en 2026, debemos romper el paradigma del "chatbot pasivo". La mayoría de las empresas venden una herramienta; nosotros vamos a vender una Fuerza de Trabajo Autónoma.
+Lo que nos hace diferentes es que no estamos creando un asistente, sino un Sistema de Operación Dual que piensa, vende y ejecuta. Aquí tienes el manifiesto de lo que vamos a construir para dominar el mercado:
+
+🚀 La Propuesta de Valor Disruptiva
+No vendemos un software donde el dueño tiene que trabajar; vendemos un sistema donde el dueño solo supervisa. La innovación radica en la colaboración entre dos inteligencias especializadas que eliminan el 90% de la carga operativa.
+
+Los nombres de tus agentes han sido elegidos para proyectar identidad balinesa, exclusividad tecnológica y autoridad operativa. Aquí tienes el significado estratégico de cada uno para que puedas transmitirlo con fuerza a tu equipo y clientes:
+
+Sistema de Operación Dual (BANYU / OSIRIS)
+•	BANYU.AI – Agente Externo (Revenue)
+Concierge 24/7 que habla con los huéspedes, cierra reservas y hace upselling por WhatsApp y voz.
+•	OSIRIS.AI – Agente Interno (Operaciones)
+
+1. BANYU.AI (Agente Externo / Customer Facing)
+•	Origen: El nombre proviene del javanés y balinés, donde significa "Agua".
+•	Simbolismo: En Bali, el agua es un elemento sagrado (Agama Tirta o religión del agua). Representa la fluidez, la purificación y la adaptabilidad.
+•	Por qué este nombre:
+o	Fluidez: Como el agua, este agente fluye entre canales (de WhatsApp a voz con Vapi) sin fricciones.
+o	Vitalidad: Es el encargado de traer el flujo de dinero y nuevos clientes al negocio.
+o	Cercanía: Al igual que el agua que conecta toda la isla, Banyu conecta al turista con la experiencia ideal en el momento justo.
+
+2. OSIRIS.AI (Agente Interno / Owner Facing)
+•	Origen: Proviene de la mitología egipcia, el dios de la resurrección, el orden y la justicia.
+•	Simbolismo: Osiris es el arquitecto de la civilización, el que establece las leyes y el que todo lo ve en el inframundo (en tu caso, el "underground" o la operativa interna del negocio).
+•	Por qué este nombre:
+o	Orden y Estructura: Es el agente que pone orden en el caos de la logística, el staff y los precios.
+o	Protección: Como un dios guardián, Osiris protege los márgenes de beneficio y audita que todo se cumpla según las reglas del dueño.
+o	Autoridad: Osiris no sugiere, él ejecuta y supervisa. Es la voz de mando dentro del SaaS.
+________________________________________
+La Narrativa para el Mercado
+Cuando presentes el SaaS, puedes decir:
+"Nuestro sistema funciona bajo dos fuerzas: Banyu, que fluye con el cliente para ofrecerle la experiencia perfecta, y Osiris, que impone el orden y la eficiencia en la operación interna. Juntos, crean un equilibrio perfecto que permite que tu negocio en Bali crezca de forma autónoma."
+Esta combinación de tradición espiritual (Banyu) y autoridad analítica (Osiris) crea una marca única que se siente localmente integrada pero tecnológicamente superior a cualquier PMS del mercado. ChakraHQ y Vapi.ai son las herramientas que permiten que estos nombres cobren vida con acciones reales en 2026.
+
+1. BANYU.AI: El "Generador de Ingresos" (Externo)
+Lo que lo hace nuevo: No espera a que le compren, persigue la venta.
+•	Omnicanalidad Líquida: Si un cliente duda por WhatsApp, Banyu salta a una llamada de voz por Vapi en milisegundos con el contexto total. Esto no existe en los PMS actuales.
+•	Venta Contextual: Usa el clima, el tráfico y los eventos de Bali en tiempo real para "curar" la oferta. No es un catálogo, es un asesor experto que vende soluciones, no solo tours.
+•	Autonomía Documental: Gestiona pasaportes y pagos mediante visión artificial (OCR), eliminando la fricción del "envíame el documento por email".
+
+2. OSIRIS.AI: El "Protector del Negocio" (Interno)
+Lo que lo hace innovador: Es una IA que gestiona humanos y recursos.
+•	Logística Predictiva: Osiris detecta que un guía se va a retrasar por el tráfico y ya está buscando un reemplazo o avisando al cliente antes de que el problema ocurra.
+•	Yield Management Real: Ajusta precios no por temporadas, sino por minutos. Si hay sol y quedan 2 plazas en el barco, el precio sube. Si hay tormenta, baja y ofrece un plan B.
+•	Auditoría Invisible: Vigila la rentabilidad y el staff mediante GPS y datos financieros, actuando como un socio que nunca duerme y que no tiene sesgos.
+________________________________________
+3. El SaaS: Un "Centro de Mando" (No una App de gestión)
+Nuestra interfaz será diferente porque será reactiva:
+•	Modo Coexistencia: El dueño puede entrar y salir del chat de WhatsApp sin romper la IA. Es el primer SaaS que permite que el humano y la IA colaboren en el mismo hilo de conversación de forma oficial y segura con ChakraHQ.
+•	Dashboard por Excepción: El dueño no entra a "rellenar datos", entra a "aprobar soluciones" que los agentes ya han preparado.
+
+🎯 Por qué vamos a ganar
+Mientras los competidores (como WeSpeakPro o PMS tradicionales) ofrecen "facilidades para que tú trabajes", nosotros ofrecemos agentes que trabajan por ti.
+El mensaje para el mercado es:
+"Deja de gestionar tu agencia de Bali y empieza a dirigirla. Banyu.ai te trae el dinero, Osiris.ai cuida tu operativa. Tú solo disfruta de la libertad mientras tu negocio crece de forma autónoma con tecnología de 2026."
+________________________________________
+Vision General: Sistema de Operación Autónoma mediante Agentes Duales
+
+1. El Concepto: Más allá del Chatbot
+El objetivo de este proyecto es trascender la asistencia básica de IA. Estamos construyendo un Sistema de Acción Autónoma para el sector turístico en Bali. A diferencia de las soluciones actuales, este SaaS no solo responde preguntas; ejecuta procesos de negocio, gestiona logística física y optimiza la rentabilidad sin intervención humana constante.
+La arquitectura se fundamenta en la Dualidad de Agentes, separando la lógica de interacción con el cliente de la lógica de gestión operativa.
+________________________________________
+2. La Arquitectura de Agentes Duales
+Para garantizar escalabilidad y orden, el sistema se divide en dos entidades de IA independientes que comparten una misma base de datos (Supabase) y un orquestador (n8n):
+A. Banyu.ai (Agente Externo / Front-Office)
+•	Misión: Actuar como un Concierge de Lujo 24/7.
+•	Responsabilidades: Ventas proactivas, atención al cliente omnicanal (WhatsApp/Voz), gestión de pagos y soporte post-venta.
+•	Capacidad Diferencial: Capacidad de Escalación de Voz. Si el chat de WhatsApp (vía ChakraHQ) no es suficiente para cerrar una venta de alto valor, Banyu activa automáticamente una llamada de voz (Vapi) con latencia ultra-baja para negociar y cerrar el trato.
+B. Osiris.ai (Agente Interno / Back-Office)
+•	Misión: Actuar como el Director de Operaciones (COO) Virtual del dueño de la agencia.
+•	Responsabilidades: Gestión de inventario, asignación de staff (guías/drivers), liquidación de pagos y auditoría de calidad.
+•	Capacidad Diferencial: Gestión de Crisis Autónoma. Osiris monitoriza el mundo real (clima, tráfico, disponibilidad de staff). Si un recurso falla, Osiris encuentra una solución en la base de datos y la ejecuta antes de notificar al dueño.
+________________________________________
+3. El Stack Tecnológico: "La Columna Vertebral"
+El equipo técnico trabajará sobre cuatro pilares de integración:
+1.	Orquestación con n8n: El "sistema nervioso" que conecta los webhooks de mensajería con los modelos de lenguaje y las bases de datos.
+2.	Persistencia y Memoria con Supabase: No solo como DB relacional (PostgreSQL), sino como Vector Store para proporcionar memoria a largo plazo a los agentes (RAG) y seguridad a nivel de fila (RLS) para el modelo SaaS multi-tenant.
+3.	Omnicanalidad con ChakraHQ y Vapi: Implementación de WhatsApp Coexistence, permitiendo que la IA trabaje sobre el mismo número que el dueño usa manualmente, y sincronización de contexto total para las llamadas de voz.
+4.	Modelos de IA de Vanguardia: Uso de Claude 3.5 Sonnet para el razonamiento lógico complejo y GPT-4o-mini para tareas de procesamiento rápido y visión (OCR de documentos).
+________________________________________
+4. Objetivo del Roadmap Técnico
+El equipo debe enfocarse en crear un sistema "Gestor por Excepción". Esto significa que el software debe ser capaz de manejar el 95% de las interacciones y problemas operativos. El Dashboard que desarrollaremos servirá para que el dueño (Owner) supervise las decisiones tomadas por los agentes y solo intervenga cuando el sistema detecte una situación fuera de sus parámetros de seguridad.
+________________________________________
+
+________________________________________
+A. Banyu.ai (El Concierge de Experiencias)
+Banyu.ai no es un bot de preguntas y respuestas; es un agente de persuasión y asistencia con acceso total al inventario.
+•	Identidad y Psicología: Su tono debe ser "Local Premium". Conoce los mejores spots de Bali (Uluwatu, Ubud, Sidemen) y se comunica con elegancia.
+•	Misión Expandida:
+o	Venta Consultiva Hiper-Local: Gracias a la integración con APIs de clima y tráfico de Bali en 2026, Banyu no vende lo que "hay", vende lo que "conviene". Si hay tormenta en las Islas Gili, automáticamente redirige al cliente a un tour de templos o spas en el interior.
+o	Cierre de Ventas de Alto Valor (Vapi Call): Cuando el sistema detecta un carrito abandonado de más de $300 USD, Banyu no envía un texto; genera una llamada saliente. La voz (vía Cartesia) suena empática: "Hola, soy Banyu. Noté que estabas viendo la Villa en Seminyak pero el pago no se completó. ¿Tienes alguna duda sobre el transfer desde el aeropuerto?".
+o	Gestión de Documentación con OCR: Banyu utiliza GPT-4o-mini para leer fotos de pasaportes. Si la foto está borrosa, solicita otra de inmediato. Si es correcta, extrae nombre, fecha de nacimiento y número de pasaporte, los inyecta en Supabase y genera el permiso de embarque para el fast-boat.
+________________________________________
+B. Osiris.ai (El Cerebro de Operaciones)
+Osiris.ai es el "socio silencioso" del dueño. Su objetivo es que el negocio funcione sin errores humanos y con el máximo margen posible.
+•	Identidad y Psicología: Es un ejecutivo de datos. Sus mensajes al dueño son cortos, basados en KPIs y soluciones, no en problemas.
+•	Misión Expandida:
+o	Gestión de Crisis Autónoma: Si un guía marca en el sistema que tiene un pinchazo o está enfermo, Osiris consulta la tabla de staff en Supabase, identifica al conductor más cercano con el vehículo adecuado y le envía un mensaje: "Asignación urgente: Recogida en Hotel X a las 9:00 AM. Bonus de $10 aplicado por urgencia". Solo avisa al dueño cuando la solución ya está en marcha.
+o	Yield Management (Precios Dinámicos): Osiris analiza la demanda histórica y el calendario balinés. Si detecta que es "Nyepi" o un día festivo local donde la oferta baja, sube los precios un 20%. Si detecta baja ocupación para el día siguiente, crea una oferta flash que Banyu promociona a los leads fríos.
+o	Auditoría Forense de Staff: Osiris cruza la ubicación en tiempo real del GPS del coche con el ticket de combustible reportado. Si hay una discrepancia de más del 15%, notifica al dueño: "Posible anomalía en gasto de combustible del guía Made. Desvío de ruta detectado de 20km".
+________________________________________
+4. Workflows Maestros en n8n (Detalle Técnico)
+Estos son los flujos que debes configurar paso a paso:
+1. Router de Identidad y Coexistence
+•	Funcionamiento: n8n recibe el mensaje de ChakraHQ. Antes de procesar, verifica un "State" en Supabase.
+•	Lógica de Pausa: Si el dueño ha enviado un mensaje manualmente en los últimos 20 minutos, n8n detiene la respuesta de la IA. Esto evita que el bot interrumpa una negociación humana real.
+•	Bifurcación: Si el mensaje contiene comandos como /reporte o /status, n8n activa la rama de Osiris. Si es lenguaje natural del cliente, activa a Banyu.
+2. Capa de Memoria Vectorial (RAG)
+•	Funcionamiento: n8n toma la pregunta del cliente y usa OpenAI Embeddings para buscar en la base de conocimientos de la agencia (PDFs de políticas, descripciones de tours, contratos).
+•	Precisión: Banyu nunca inventa un precio. Si no encuentra el dato en los vectores o en la tabla de inventario, el flujo escala a Osiris para que este le pregunte al dueño.
+3. Continuidad Omnicanal (WhatsApp ↔ Vapi)
+•	Funcionamiento: n8n guarda cada mensaje de WhatsApp en la tabla conversations.
+•	Inyección de Contexto: Cuando se dispara la llamada de Vapi, n8n envía un JSON con el resumen de la charla previa.
+•	Resultado: El asistente de voz empieza la llamada diciendo: "Hola Juan, seguimos con el tema de tu reserva para el templo de Tanah Lot que hablábamos por WhatsApp...". El cliente siente que es la misma persona.
+4. Centinela de Operaciones (Cron Job)
+•	Funcionamiento: Se ejecuta cada 15 minutos.
+•	Acción: Escanea la tabla bookings de Supabase buscando registros con estado paid pero con staff_id = null.
+•	Trigger: Si faltan menos de 12 horas para el tour y no hay staff, Osiris inicia una secuencia de contacto automática con los guías disponibles hasta que uno acepte.
+________________________________________
+Banyu.ai (Agente Externo - Customer Facing)
+Su prioridad es la conversión inmediata y la experiencia del turista.
+1.	Prioridad Máxima: Recuperación de Ventas de Alto Valor vía Vapi
+1.	Caso: Un cliente abandona el proceso de pago de una reserva de villa o tour privado (> $400 USD).
+2.	Acción: n8n detecta el abandono y Banyu.ai dispara una llamada de voz saliente para resolver dudas técnicas o de pago en tiempo real.
+2.	Venta Consultiva basada en Contexto (Clima/Tráfico)
+1.	Caso: El cliente pide un tour de playa, pero hay previsión de lluvia o alerta de tráfico extremo en Canggu.
+2.	Acción: Banyu propone alternativas (clase de cocina, spa) consultando la API de clima, evitando cancelaciones futuras y asegurando la venta hoy.
+3.	Gestión y Validación de Documentación (OCR)
+1.	Caso: El turista debe enviar pasaportes para el fast-boat a las Islas Gili.
+2.	Acción: Banyu recibe las fotos, usa GPT-4o-mini para extraer datos y valida que no estén caducados antes de confirmar la reserva.
+4.	Soporte de Emergencia "On-Trip"
+1.	Caso: El turista no encuentra a su conductor en el aeropuerto o tiene un problema médico.
+2.	Acción: Banyu rastrea la ubicación del staff en Supabase y coordina la solución inmediata sin que el dueño intervenga.
+5.	Upselling de Último Minuto (Gap Filling)
+1.	Caso: El turista ya está en Bali y tiene una tarde libre según su itinerario.
+2.	Acción: Banyu ofrece una actividad corta (ej. masaje o cena) basada en su ubicación GPS actual y disponibilidad sobrante.
+________________________________________
+🏛️ Osiris.ai (Agente Interno - Owner Facing)
+Su prioridad es proteger el margen de beneficio y la logística invisible.
+1.	Prioridad Máxima: Gestión de Crisis y Sustitución de Staff
+1.	Caso: Un guía o conductor asignado se reporta enfermo o tiene una avería 2 horas antes del servicio.
+2.	Acción: Osiris escanea Supabase, encuentra un reemplazo disponible, le asigna el servicio y notifica al dueño solo cuando el problema está resuelto.
+2.	Optimización de Precios Dinámicos (Yield Management)
+1.	Caso: Baja ocupación para el fin de semana o alta demanda por un festival local.
+2.	Acción: Osiris ajusta las tarifas en la base de datos automáticamente para maximizar el ingreso por cada plaza disponible.
+3.	Liquidación y Auditoría Financiera Automática
+1.	Caso: Final del día operativo. Hay que pagar a 10 conductores diferentes sus comisiones y gastos.
+2.	Acción: Osiris cruza los kilómetros recorridos (GPS) con los cobros en Stripe y autoriza las transferencias de pago al staff de forma masiva.
+4.	Control de Calidad y Alerta de Reputación
+1.	Caso: Un cliente deja un comentario negativo o expresa frustración en un chat de WhatsApp.
+2.	Acción: Osiris detecta el sentimiento negativo, alerta al dueño por el canal de Coexistencia y sugiere una compensación inmediata para evitar una mala reseña en Google/TripAdvisor.
+5.	Previsión de Inventario y Mantenimiento
+1.	Caso: El SaaS gestiona una flota de motos o equipos de buceo.
+2.	Acción: Osiris analiza el uso acumulado y programa bloqueos de inventario para mantenimiento preventivo, evitando fallos durante el servicio al cliente.
+________________________________________
+🔄 Resumen de Prioridad de Implementación para Claude Code
+Para que tu SaaS sea viable desde el día 1, sugiero programar los flujos en este orden:
+1.	Flujo 1 (Osiris): Asignación de Staff y gestión de inventario (Sin esto no hay servicio).
+2.	Flujo 2 (Banyu): Venta por WhatsApp y pasarela de pago (Para generar ingresos).
+3.	Flujo 3 (Banyu): Recuperación de ventas vía Vapi (Para maximizar el ROI).
+4.	Flujo 4 (Osiris): Precios dinámicos (Para escalar la rentabilidad).
+¿Quieres que le pidamos a Claude Code que genere el esquema de tablas en Supabase necesario para soportar estos 10 casos de uso?
+
+Aquí tienes el esquema de navegación para el Dashboard de tu SaaS:
+1. Módulo BANYU.AI (El Front-Office / Ventas)
+Este menú es para supervisar qué está haciendo la IA con los clientes. No es para trabajar, es para monitorear la conversión.
+•	Submenú: Inbox Inteligente (Coexistence)
+o	Visualización de chats activos en WhatsApp.
+o	Indicador de "IA Activa" o "Control Humano".
+o	Botón de "Intervenir" (pausa a Banyu para que el dueño escriba).
+•	Submenú: Centro de Llamadas Vapi
+o	Logs de llamadas realizadas por la IA.
+o	Transcripciones de voz a texto en tiempo real.
+o	Tasa de éxito de recuperación de carritos abandonados.
+•	Submenú: Embudo de Conversión
+o	Métricas de cuántos leads Banyu ha pasado de "pregunta" a "reserva pagada".
+•	Submenú: Base de Conocimientos (RAG)
+o	Carga de PDFs/Documentos donde el Owner entrena a Banyu (Precios, FAQs, descripciones de Bali).
+________________________________________
+2. Módulo OSIRIS.AI (El Back-Office / Operaciones)
+Este menú es donde el Owner configura las reglas de negocio y ve cómo se optimiza la logística.
+•	Submenú: Despacho de Staff (Logística)
+o	Mapa en tiempo real con la ubicación de los conductores/guías.
+o	Estado de asignaciones (quién está en tour, quién está libre).
+o	Historial de "Crisis Resueltas" (ej: "Osiris sustituyó a Wayan por Made a las 06:00 AM").
+•	Submenú: Gestor de Inventario
+o	Control de slots disponibles de tours, villas o motos.
+o	Configuración de Precios Dinámicos (Reglas: "Si llueve, baja 10%", "Si queda 1 slot, sube 20%").
+•	Submenú: Finanzas y Liquidaciones
+o	Cálculo automático de comisiones para el staff.
+o	Botón para "Autorizar Pagos Masivos" a conductores.
+•	Submenú: Auditoría de Calidad
+o	Alertas de "Sentimiento Negativo" detectadas por Osiris en los chats de Banyu.
+o	Reportes de discrepancias de combustible/tiempo de los guías.
+________________________________________
+3. El Menú de Configuración "Core"
+Donde conectas el "hardware" de tu SaaS:
+•	Conectividad: API Keys de ChakraHQ (WhatsApp), Vapi, Supabase y n8n.
+•	Prompts del Sistema: Donde el Owner puede ajustar la "personalidad" de Banyu (ej: hacerlo más informal o más corporativo).
+________________________________________
+¿Cómo lo vería el Owner en el día a día?
+1.	Notificación Push: Osiris envía un mensaje al móvil del dueño: "Dueño, Banyu acaba de cerrar una venta de $500. He asignado al guía Ketut. ¿Quieres ver el resumen?".
+2.	Dashboard: El dueño entra al SaaS y ve un Widget Central llamado "Actividad de Agentes":
+1.	Banyu: Chateando con 5 personas, 1 llamada de Vapi en curso.
+2.	Osiris: 12 guías confirmados para mañana, precios ajustados por alta demanda en Ubud.
+Ventaja de este diseño:
+A diferencia de un PMS aburrido donde el dueño tiene que rellenar tablas, aquí el dueño valida lo que la IA propone. El SaaS se convierte en una herramienta de gestión por excepción: solo trabajas cuando la IA te avisa de que algo requiere tu toque humano.
+
+
+
+
+MVP 2026 – Alcance Exacto (BANYU v1 / OSIRIS v1)
+Para garantizar foco y velocidad de ejecución, la primera versión de MYHOST Bizmate se centrará en un conjunto reducido pero muy potente de capacidades.
+BANYU.AI v1 – Front Office / Revenue
+En la primera fase, BANYU se enfocará en:
+1.	Asistente de reservas por WhatsApp
+•	Responder FAQs clave (disponibilidad, precios, servicios básicos).
+•	Crear reservas simples (sin modificaciones complejas) en el sistema.
+2.	Upselling de transporte aeropuerto
+•	Detectar reservas entrantes y, 48h antes de la llegada, ofrecer recogida en aeropuerto.
+•	Gestionar la confirmación de hora, vuelo y número de pasajeros.
+3.	Recuperación simple de carritos / leads fríos
+•	Detectar conversaciones donde el huésped mostró interés pero no reservó.
+•	Enviar uno o dos seguimientos amigables para intentar cerrar la venta.
+OSIRIS.AI v1 – Back Office / Operaciones
+En la primera fase, OSIRIS se centrará en:
+1.	Asignación automática de drivers / guías
+•	Asignar conductores a transfers confirmados siguiendo reglas simples (proximidad, disponibilidad).
+•	Avisar al driver y al huésped con los detalles del servicio.
+2.	Gestión de crisis básica
+•	Detectar alertas críticas: retrasos de driver, overbooking, cancelaciones de última hora.
+•	Proponer y, cuando esté permitido, ejecutar soluciones (reemplazar driver, reprogramar horario, avisar al huésped).
+3.	Panel de supervisión diaria
+•	Mostrar al dueño un resumen claro de:
+•	Transfers y tours confirmados para hoy/mañana.
+•	Incidencias detectadas y cómo se han resuelto.
+•	Drivers sin asignación o con carga excesiva.
+Todo lo que vaya más allá (auditoría avanzada de combustible, yield pricing minuto a minuto, liquidaciones masivas complejas) se tratará como v2+, para no frenar el lanzamiento de MVP.
+________________________________________
+Límites y Controles del Owner
+Para que los propietarios confíen en que el sistema no “se les escapa de las manos”, el SaaS define claramente qué puede hacer la IA sola y qué requiere intervención humana.
+Acciones siempre supervisadas
+Las siguientes acciones requieren aprobación explícita del Owner (o de un rol autorizado) desde el dashboard:
+•	Cambios de precio por encima de un rango configurado (ej. ±20% del precio base).
+•	Reasignación de reservas que suponga mover al huésped de una propiedad a otra.
+•	Cualquier transferencia de dinero hacia fuera (pagos a staff, proveedores), salvo reglas de pago masivo previamente aprobadas.
+El dashboard mostrará estas acciones en una cola de “Pendiente de aprobación” con un botón de Approve / Reject.
+Parámetros de seguridad configurables
+Cada hotel podrá configurar:
+•	Rango de precios permitido por tipo de producto (tour, transfer, habitación).
+•	Horario de acción de la IA (por ejemplo, no hacer llamadas de Vapi después de las 22:00).
+•	Canales permitidos para cada tipo de mensaje (WhatsApp solo, email solo, ambos).
+•	Grado de autonomía:
+•	Modo estricto: BANYU/OSIRIS solo sugieren, el humano confirma.
+•	Modo mixto: IA ejecuta acciones de bajo riesgo sin aprobación (ej. recordatorios), solicita aprobación en acciones de impacto.
+•	Modo libre (para clientes avanzados): mayor autonomía dentro de los rangos definidos.
+Todas las acciones relevantes quedarán registradas en un log auditable, visible por fecha, agente (BANYU/OSIRIS) y tipo de decisión.
+________________________________________
+Modelo de Negocio y Métricas Clave
+Modelo de ingresos (visión inicial)
+El producto se posiciona como una fuerza de trabajo autónoma, por lo que el pricing debe reflejar valor generado, no solo “número de usuarios”.
+Propuesta inicial:
+1.	Cuota base mensual por propiedad
+•	Incluye acceso a BANYU y OSIRIS v1, hasta un cierto volumen de conversaciones/mensajes.
+2.	Tramo variable ligado a rendimiento
+•	% simbólico sobre ingresos adicionales atribuibles a BANYU (upsells de transporte, tours, etc.), calculado a partir de reservas marcadas como “originadas por IA”.
+•	Alternativa: paquetes de “IA minutes” o “IA actions” para simplificar la facturación al inicio.
+3.	Servicios premium (opcional)
+•	Configuración inicial “done for you” (onboarding asistido con Meta/Amazon).
+•	Playbooks avanzados personalizados por tipo de negocio.
+Métricas que el Dashboard debe mostrar desde el día 1
+1.	Automatización operativa
+•	% de consultas atendidas íntegramente por BANYU sin intervención humana.
+•	nº de crisis resueltas automáticamente por OSIRIS este mes.
+2.	Impacto en ingresos
+•	Revenue generado por upsells (transfers, tours, extras) donde la IA intervino.
+•	Tasa de conversión de leads a reservas cuando interviene BANYU vs cuando no interviene.
+3.	Calidad de experiencia
+•	Tiempo medio de respuesta al huésped.
+•	Nº de alertas de “sentimiento negativo” detectadas en chats.
+Estas métricas no solo sirven para el dueño; también alimentan tu marketing (“Nuestros clientes delegan el 70% de las conversaciones a BANYU y aumentan un 25% el revenue de extras en 3 meses”).
+Thread is getting long. Start a ne
+

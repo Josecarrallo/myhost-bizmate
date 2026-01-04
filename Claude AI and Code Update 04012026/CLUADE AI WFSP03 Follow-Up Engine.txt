@@ -1,0 +1,57 @@
+[ ] CONTEXTO GENERAL
+Este prompt corresponde al flujo:
+WF-SP-03 — Follow-Up Engine.
+
+Este es el motor de CONVERSIÓN.
+Sin este flujo, se pierden ventas.
+
+[ ] ESTADO ACTUAL
+- Ya existen cron jobs.
+- Ya existen reglas y alertas.
+- Ya existe Owner Alerts Engine.
+MUY BUEN AVANCE.
+
+[ ] OBJETIVO DEL FLUJO
+Diseñar un motor de seguimiento automático para leads que:
+- preguntaron
+- mostraron interés
+- no cerraron aún
+
+[ ] FUNCIONES DEL FOLLOW-UP ENGINE
+1. Escuchar eventos:
+   - lead_created
+   - ai_hot_lead_detected
+   - no_response_24h
+   - no_response_72h
+2. Aplicar reglas de follow-up:
+   - mensaje suave (24h)
+   - recordatorio valor (48h)
+   - última llamada a acción (72h)
+3. Personalizar mensajes:
+   - nombre
+   - fechas consultadas
+   - tipo de habitación
+4. Actualizar estado del lead:
+   - FOLLOWING_UP
+   - COLD
+   - WON
+   - LOST
+5. Notificar al owner si:
+   - lead muy caliente
+   - alto valor
+   - bloqueo detectado
+
+[ ] CANALES
+- WhatsApp
+- Email (opcional)
+- Notificación owner
+
+[ ] REGLA CLAVE
+Este flujo NO capta leads (eso es WF-SP-01)
+Este flujo NO responde en tiempo real (eso es WF-SP-02)
+Este flujo CIERRA.
+
+[ ] OUTPUT ESPERADO
+- Follow-up claro, elegante, no agresivo.
+- Totalmente auditable.
+- Preparado para métricas de conversión.

@@ -1,0 +1,24 @@
+ARCHITECTURE DECISION (MVP → HYBRID)
+
+MVP: We will KEEP “GuestJourney-Scheduler” as an independent n8n workflow.
+No changes required from the app to make it work right now.
+
+Target (Hybrid): Over time, workflows will detect events and call the existing MCP Central:
+“MCP-Central-Izumi-Hotel-MyHost-BizMate-20”
+to execute reusable actions as standardized tools (send_whatsapp, send_email,
+update_journey_state, logging).
+
+What I need from you (Cloud Code):
+1) Ensure Supabase schema supports hybrid execution + auditing:
+   - journeys / journey_state
+   - conversations/messages (channel + direction + metadata)
+   - actions_log / audit_log (execution_id, tenant_id, agent=BANYU/OSIRIS, tool, payload hashes)
+2) Multi-tenant enforcement (tenant_id everywhere, RLS-ready).
+3) The dashboard should be able to display:
+   - Journey status per guest
+   - “Actions executed” (from audit_log)
+   - Errors / retries count (if available)
+
+We start by keeping Scheduler working, then we gradually migrate its action steps
+to MCP Central tool calls to reduce duplication and improve audit, multi-tenant,
+and cost control.

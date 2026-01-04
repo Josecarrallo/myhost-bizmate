@@ -1,0 +1,58 @@
+[ ] CONTEXTO GENERAL
+Estás trabajando en MYHOST BizMate (Izumi Hotel como caso real).
+Ya existen múltiples workflows en n8n (Guest Journey, Owner Intelligence, AI Concierge, MCP Central).
+Este prompt corresponde EXCLUSIVAMENTE al flujo:
+WF-SP-01 — Inbound Lead Handler.
+
+[ ] OBJETIVO DEL FLUJO
+Diseñar y/o completar el workflow WF-SP-01 para capturar, normalizar y registrar TODOS los leads entrantes
+procedentes de:
+- WhatsApp
+- Instagram
+- YouTube
+- TikTok
+- Email
+- Web / manual
+
+El objetivo es convertir cualquier contacto en un LEAD estructurado y trazable.
+
+[ ] ESTADO ACTUAL (IMPORTANTE)
+- Ya existen workflows de WhatsApp AI Concierge.
+- Ya existen Webhooks funcionales.
+- NO romper nada existente.
+- Este flujo actúa como CAPA DE ENTRADA, no como reemplazo.
+
+[ ] FUNCIONES DEL WF-SP-01
+1. Recibir lead desde cualquier canal (webhook unificado o múltiples webhooks).
+2. Normalizar datos:
+   - nombre
+   - contacto (tel / email / handle)
+   - canal
+   - mensaje original
+   - fecha
+3. Detectar si el lead ya existe:
+   - si existe → actualizar último contacto
+   - si no existe → crear lead nuevo
+4. Clasificar intención inicial:
+   - información
+   - precio
+   - disponibilidad
+   - booking intent
+5. Guardar estado inicial del lead (NEW / QUALIFIED).
+6. Emitir evento interno:
+   EVENT: lead_created o lead_updated
+7. NO responder al cliente (eso lo gestiona WF-SP-02).
+
+[ ] INTEGRACIONES
+- Supabase (tabla leads / contacts)
+- Logging interno
+- Preparado para que otros workflows reaccionen
+
+[ ] OUTPUT ESPERADO
+- Workflow claro, modular, documentado.
+- Naming consistente: WF-SP-01.*
+- Preparado para multi-tenant.
+
+[ ] REGLA CLAVE
+Este flujo NO vende, NO responde, NO decide.
+Solo CAPTURA y CLASIFICA.

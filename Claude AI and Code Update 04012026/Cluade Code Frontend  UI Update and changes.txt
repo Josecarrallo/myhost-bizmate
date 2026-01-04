@@ -1,0 +1,96 @@
+You are CloudCode working on MY HOST BizMate.
+
+TASK TYPE
+Frontend / UI / Navigation update ONLY.
+NO backend logic. NO workflows. NO Supabase. NO n8n changes.
+
+OBJECTIVE
+Update the LEFT SIDEBAR MENU, page labels, and information architecture
+to align with the new product strategy and agent naming.
+
+This task is ONLY about:
+- Menu structure
+- Naming
+- Page grouping
+- Dashboard sections
+- Visual hierarchy
+
+==================================================
+KEY CONCEPT (VERY IMPORTANT)
+
+MY HOST BizMate uses TWO AI AGENTS:
+
+1) BANJU.ai
+   - External Agent
+   - Sales, Leads, Follow-ups, Guest conversations
+   - Revenue generation
+
+2) OSIRIS.ai
+   - Internal Agent
+   - Operations, control, reports, market intelligence
+   - Owner-facing decision support
+
+These names MUST appear in the menu and UI.
+
+==================================================
+MENU CHANGES REQUIRED
+
+1) ADD a new main menu block:
+
+[Sales & Leads — powered by BANJU.ai]
+Subpages:
+- Inbox (New Leads)
+- Pipeline
+- Follow-ups
+- Conversations (WhatsApp / Email / IG)
+- Templates
+
+2) RENAME existing agent sections:
+
+- "PMS Core (Internal Agent)"  →  "OSIRIS.ai — Operations AI"
+- "Guest & Growth (External Agent)" → "BANJU.ai — Sales & Growth AI"
+
+3) ADD a new section visible to the owner:
+
+[Market Intelligence — powered by OSIRIS.ai]
+Subpages (UI placeholders only):
+- Competitors Snapshot
+- Bali Market Trends
+- Alerts
+- AI Recommendations
+
+4) KEEP existing sections but ensure naming consistency:
+- Operations & Guests
+- Revenue & Pricing
+- Marketing & Growth
+- Workflows & Automations
+- Settings
+
+==================================================
+WORKFLOWS & AUTOMATIONS (UI ONLY)
+
+Update the UI so workflows are:
+- Grouped by BUSINESS PROCESS (Sales / Guest Journey / Operations / Marketing)
+- Show simple status labels (ON / OFF / Last Run / Errors)
+- Include a placeholder button: “Open in n8n”
+
+NO real connection needed.
+
+==================================================
+IMPORTANT CONSTRAINTS
+
+- Do NOT change backend logic
+- Do NOT touch existing workflows
+- Do NOT create new APIs
+- Do NOT change database
+- This is UI + navigation + labels ONLY
+
+==================================================
+DELIVERABLE
+
+- Updated sidebar menu
+- Updated page titles and labels
+- Placeholder pages for new sections
+- Consistent use of BANJU.ai and OSIRIS.ai across the UI
+
+Nothing else.
