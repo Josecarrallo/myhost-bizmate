@@ -46,6 +46,11 @@ import ContentPlanner from './components/Marketing/ContentPlanner';
 import ReviewsManagement from './components/Reviews/ReviewsManagement';
 import CreateMyWebsite from './components/MySite/CreateMyWebsite';
 import GuestCommunications from './components/GuestCommunications/GuestCommunications';
+import LeadsInbox from './components/SalesLeads/LeadsInbox';
+import LeadsPipeline from './components/SalesLeads/LeadsPipeline';
+import LeadsFollowups from './components/SalesLeads/LeadsFollowups';
+import LeadsConversations from './components/SalesLeads/LeadsConversations';
+import LeadsTemplates from './components/SalesLeads/LeadsTemplates';
 
 // ==================== FLOATING ICON COMPONENT ====================
 const FloatingIcon = ({ icon: Icon, className, delay }) => (
@@ -228,6 +233,22 @@ export default function App() {
 
       case 'channelIntegration':
         return <Multichannel onBack={() => setCurrentView('overview')} />;
+
+      // Sales & Leads
+      case 'leads-inbox':
+        return <LeadsInbox key="leads-inbox" onBack={() => setCurrentView('overview')} />;
+
+      case 'leads-pipeline':
+        return <LeadsPipeline key="leads-pipeline" onBack={() => setCurrentView('overview')} />;
+
+      case 'leads-followups':
+        return <LeadsFollowups key="leads-followups" onBack={() => setCurrentView('overview')} />;
+
+      case 'leads-conversations':
+        return <LeadsConversations key="leads-conversations" onBack={() => setCurrentView('overview')} />;
+
+      case 'leads-templates':
+        return <LeadsTemplates key="leads-templates" onBack={() => setCurrentView('overview')} />;
 
       // PMS Core (Internal Agent)
       case 'ai-assistant':

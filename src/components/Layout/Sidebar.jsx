@@ -27,7 +27,10 @@ import {
   CalendarCheck,
   Palette,
   PieChart,
-  MessageSquare
+  MessageSquare,
+  Inbox,
+  Clock,
+  FileText
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -37,6 +40,7 @@ const Sidebar = ({ currentView, onNavigate, isOpen, onClose }) => {
     'overview': true,
     'operations': false,
     'revenue': false,
+    'sales-leads': false,
     'marketing-growth': false,
     'osiris-ai': false,
     'banyu-ai': false,
@@ -90,6 +94,19 @@ const Sidebar = ({ currentView, onNavigate, isOpen, onClose }) => {
         { id: 'smartPricing', label: 'Smart Pricing', icon: DollarSign },
         { id: 'reports', label: 'Reports', icon: BarChart3 },
         { id: 'channelIntegration', label: 'Channel Integration', icon: Repeat }
+      ]
+    },
+    {
+      sectionId: 'sales-leads',
+      sectionLabel: 'SALES & LEADS',
+      sectionIcon: Target,
+      collapsible: true,
+      items: [
+        { id: 'leads-inbox', label: 'Inbox (New Leads)', icon: Inbox },
+        { id: 'leads-pipeline', label: 'Pipeline', icon: TrendingUp },
+        { id: 'leads-followups', label: 'Follow-ups', icon: Clock },
+        { id: 'leads-conversations', label: 'Conversations', icon: MessageSquare },
+        { id: 'leads-templates', label: 'Templates', icon: FileText }
       ]
     },
     {
