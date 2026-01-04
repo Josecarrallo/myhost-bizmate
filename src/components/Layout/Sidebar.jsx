@@ -37,8 +37,9 @@ const Sidebar = ({ currentView, onNavigate, isOpen, onClose }) => {
     'overview': true,
     'operations': false,
     'revenue': false,
-    'pms-core': false,
-    'guest-growth': false,
+    'marketing-growth': false,
+    'osiris-ai': false,
+    'banyu-ai': false,
     'settings': false
   });
 
@@ -106,8 +107,8 @@ const Sidebar = ({ currentView, onNavigate, isOpen, onClose }) => {
       ]
     },
     {
-      sectionId: 'pms-core',
-      sectionLabel: 'PMS CORE (INTERNAL AGENT)',
+      sectionId: 'osiris-ai',
+      sectionLabel: 'OSIRIS.AI (Owner & Operations Agent)',
       sectionIcon: Bot,
       collapsible: true,
       items: [
@@ -118,8 +119,8 @@ const Sidebar = ({ currentView, onNavigate, isOpen, onClose }) => {
       ]
     },
     {
-      sectionId: 'guest-growth',
-      sectionLabel: 'GUEST & GROWTH (EXTERNAL AGENT)',
+      sectionId: 'banyu-ai',
+      sectionLabel: 'BANYU.AI (Guest & Marketing Agent)',
       sectionIcon: Users,
       collapsible: true,
       items: [
