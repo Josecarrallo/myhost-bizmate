@@ -1,0 +1,695 @@
+{
+  "name": "WF-02 Follow-Up Engine v8 MYHOST Bizmate XXV",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours"
+            }
+          ]
+        }
+      },
+      "id": "node-cron",
+      "name": "CRON Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "position": [
+        -1008,
+        0
+      ],
+      "typeVersion": 1.2
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://jjpscimtxrudtepzwhag.supabase.co/rest/v1/rpc/get_due_followup_leads",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpqcHNjaW10eHJ1ZHRlcHp3aGFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI5NDMyMzIsImV4cCI6MjA3ODUxOTIzMn0._U_HwdF5-yT8-prJLzkdO_rGbNuu7Z3gpUQW0Q8zxa0"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpqcHNjaW10eHJ1ZHRlcHp3aGFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI5NDMyMzIsImV4cCI6MjA3ODUxOTIzMn0._U_HwdF5-yT8-prJLzkdO_rGbNuu7Z3gpUQW0Q8zxa0"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\"p_limit\": 100}",
+        "options": {}
+      },
+      "id": "node-query",
+      "name": "Query Due Leads",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        -768,
+        0
+      ],
+      "typeVersion": 4.3
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "has-leads",
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              },
+              "leftValue": "={{ Array.isArray($json) && $json.length > 0 }}",
+              "rightValue": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "node-check-empty",
+      "name": "Has Leads?",
+      "type": "n8n-nodes-base.if",
+      "position": [
+        -528,
+        0
+      ],
+      "typeVersion": 2.2
+    },
+    {
+      "parameters": {
+        "jsCode": "const leads = $input.all().flatMap(item => {\n  const data = item.json;\n  return Array.isArray(data) ? data : [data];\n}).filter(lead => lead && lead.lead_id);\n\nconst results = leads.map(lead => {\n  const step = lead.followup_step || 1;\n  const intents = {1: 'SOFT_CHECK', 2: 'VALUE_REMINDER', 3: 'LAST_DIRECT', 4: 'REENGAGEMENT', 5: 'INCENTIVE', 6: 'CLOSURE'};\n  const intent = intents[step] || 'SOFT_CHECK';\n  const high_value = (lead.stay_nights > 5) || (lead.villas_count > 2);\n  const notify_owner = high_value || lead.requested_discount || lead.state === 'HOT';\n  \n  let next_followup_hours;\n  switch(step) {\n    case 1: next_followup_hours = 24; break;\n    case 2: next_followup_hours = 48; break;\n    case 3: next_followup_hours = 72; break;\n    case 4: next_followup_hours = 168; break;\n    case 5: next_followup_hours = 336; break;\n    case 6: next_followup_hours = null; break;\n    default: next_followup_hours = 24;\n  }\n  const next_followup_at = step < 6 ? new Date(Date.now() + next_followup_hours * 60 * 60 * 1000).toISOString() : null;\n  \n  let new_state = lead.state;\n  if (step < 6) {\n    if (lead.state === 'NEW' || lead.state === 'ENGAGED') new_state = 'FOLLOWING_UP';\n  } else {\n    new_state = 'LOST';\n  }\n  \n  const last_notified = lead.last_owner_notified_at ? new Date(lead.last_owner_notified_at) : null;\n  const hours_since = last_notified ? (Date.now() - last_notified.getTime()) / 3600000 : 999;\n  const can_notify = (notify_owner && hours_since > 24) || step === 6;\n  \n  const fallbacks = {\n    'SOFT_CHECK': 'Hello ' + (lead.name || 'there') + ', I wanted to check in and see if you have any questions. Please feel free to reach out.',\n    'VALUE_REMINDER': 'Hello ' + (lead.name || 'there') + ', I wanted to remind you of the wonderful experience awaiting at our property.',\n    'LAST_DIRECT': 'Hello ' + (lead.name || 'there') + ', I wanted to reach out one more time to see if you would like to proceed.',\n    'REENGAGEMENT': 'Hello ' + (lead.name || 'there') + ', it has been a while. We are still here if you need assistance.',\n    'INCENTIVE': 'Hello ' + (lead.name || 'there') + ', we would be happy to discuss options for your visit.',\n    'CLOSURE': 'Hello ' + (lead.name || 'there') + ', thank you for considering us. We hope to welcome you in the future.'\n  };\n  \n  return {json: {...lead, step, intent, high_value, notify_owner: can_notify, next_followup_at, new_state, new_step: step + 1, is_closure: step === 6, fallback_message: fallbacks[intent]}};\n});\nreturn results;"
+      },
+      "id": "node-compute",
+      "name": "Compute Decision",
+      "type": "n8n-nodes-base.code",
+      "position": [
+        -288,
+        -80
+      ],
+      "typeVersion": 2
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Generate a personalized follow-up message.\n\nINTENT: {{ $json.intent }}\nLEAD NAME: {{ $json.name || 'Guest' }}\nSTAY NIGHTS: {{ $json.stay_nights || 'not specified' }}\nVILLAS REQUESTED: {{ $json.villas_count || '1' }}\nDISCOUNT REQUESTED: {{ $json.requested_discount ? 'Yes' : 'No' }}\nLEAD STATE: {{ $json.state }}\nHIGH VALUE: {{ $json.high_value ? 'Yes - VIP treatment' : 'No' }}\nLANGUAGE: {{ $json.language || 'en' }}\n\nIMPORTANT:\n- Use the lead's NAME in the greeting\n- If stay_nights > 1, mention their planned stay duration\n- If villas > 1, mention their interest in multiple villas\n- If HIGH VALUE, make the message extra warm and attentive\n- If DISCOUNT REQUESTED, acknowledge flexibility without specifics\n\nOutput ONLY the message text, no explanations.",
+        "options": {
+          "systemMessage": "You are an AI Follow-Up Concierge for Izumi Hotel, a luxury 5-star boutique hotel with 7 private villas in Ubud, Bali.\n\nYour sole responsibility is to WRITE follow-up messages.\n\nSTRICT RULES:\n- Output TEXT ONLY (no markdown)\n- Maximum 2-3 sentences\n- No emojis, no links, no prices\n- No aggressive CTA\n- Luxury, human, concierge tone\n\nINTENT GUIDELINES:\n- SOFT_CHECK: Gentle check-in, ask if they have questions\n- VALUE_REMINDER: Remind unique experience (rice terraces, private pool, spa)\n- LAST_DIRECT: Last personal attempt to proceed\n- REENGAGEMENT: Warm re-engagement after silence\n- INCENTIVE: Mention flexibility without specific offers\n- CLOSURE: Graceful goodbye, leave door open\n\nPROPERTY: 7 luxury villas, infinity pools, rice terrace views, in-villa spa, yoga, butler service, farm-to-table dining."
+        }
+      },
+      "id": "node-ai-agent",
+      "name": "AI Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "position": [
+        -48,
+        -80
+      ],
+      "typeVersion": 3
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4.1-mini"
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "id": "node-openai",
+      "name": "OpenAI Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "position": [
+        -48,
+        144
+      ],
+      "typeVersion": 1.3,
+      "credentials": {
+        "openAiApi": {
+          "id": "hlVVk9ThwmKbr4yS",
+          "name": "OpenAi account 4"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const aiMsg = $json.output || $('Compute Decision').item.json.fallback_message;\nconst signature = '\\n\\n---\\nIzumi Hotel, Ubud\\nWhatsApp: +62 813 2576 4867\\nwww.izumi-ubud.com';\nreturn {json: {...$('Compute Decision').item.json, final_message: aiMsg + signature}};"
+      },
+      "id": "node-build-message",
+      "name": "Build Final Message",
+      "type": "n8n-nodes-base.code",
+      "position": [
+        208,
+        -80
+      ],
+      "typeVersion": 2
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "ch",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              },
+              "leftValue": "={{ $json.channel }}",
+              "rightValue": "whatsapp"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "node-is-whatsapp",
+      "name": "Is WhatsApp?",
+      "type": "n8n-nodes-base.if",
+      "position": [
+        448,
+        -80
+      ],
+      "typeVersion": 2.2
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "return {json: {wa_body: JSON.stringify({messaging_product: 'whatsapp', to: $json.phone, type: 'text', text: {body: $json.final_message}}), lead_data: $json}};"
+      },
+      "id": "node-build-wa",
+      "name": "Build WA Body",
+      "type": "n8n-nodes-base.code",
+      "position": [
+        688,
+        -160
+      ],
+      "typeVersion": 2
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.chakrahq.com/v1/ext/plugin/whatsapp/2e45a0bd-8600-41b4-ac92-599d59d6221c/api/v19.0/944855278702577/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer qiu1Z9eA3i2hhNjVM3Dm7QEK1Ey6iKQUE5IDWJlsFSAqXk5OlmQoD6DhqEwv9TOdgOVRWSYLWGxm6HfCs2LeCuwiU8Poqrw2Rgmvih0iEawZhoL6TTmMjVjvDUw2WuygAQgQ1vIeLCreDAKOGymGQCuR5bUYDHrRQQrvoMZLYwHw0LaGhFUuf4GxLpQbV3AQj8JDjhP2MzsCUYT4EVCARX6cODl1d1udr4pITGOmHQ793MUBtptq4XCvC8OGD3g"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.wa_body }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "node-send-wa",
+      "name": "Send WhatsApp",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        928,
+        -160
+      ],
+      "typeVersion": 4.3
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "s",
+              "name": "skipped",
+              "type": "boolean",
+              "value": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "node-skip",
+      "name": "Log Skip",
+      "type": "n8n-nodes-base.set",
+      "position": [
+        688,
+        0
+      ],
+      "typeVersion": 3.4
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "ok",
+              "operator": {
+                "type": "string",
+                "operation": "exists"
+              },
+              "leftValue": "={{ $json.messages }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "node-send-ok",
+      "name": "Send OK?",
+      "type": "n8n-nodes-base.if",
+      "position": [
+        1168,
+        -160
+      ],
+      "typeVersion": 2.2
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://jjpscimtxrudtepzwhag.supabase.co/rest/v1/rpc/update_lead_after_followup",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpqcHNjaW10eHJ1ZHRlcHp3aGFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI5NDMyMzIsImV4cCI6MjA3ODUxOTIzMn0._U_HwdF5-yT8-prJLzkdO_rGbNuu7Z3gpUQW0Q8zxa0"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpqcHNjaW10eHJ1ZHRlcHp3aGFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI5NDMyMzIsImV4cCI6MjA3ODUxOTIzMn0._U_HwdF5-yT8-prJLzkdO_rGbNuu7Z3gpUQW0Q8zxa0"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({p_lead_id: $('Build WA Body').item.json.lead_data.lead_id, p_new_step: $('Build WA Body').item.json.lead_data.new_step, p_next_followup_at: $('Build WA Body').item.json.lead_data.next_followup_at, p_new_state: $('Build WA Body').item.json.lead_data.new_state, p_is_closure: $('Build WA Body').item.json.lead_data.is_closure}) }}",
+        "options": {}
+      },
+      "id": "node-update-lead",
+      "name": "Update Lead",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        1408,
+        -240
+      ],
+      "typeVersion": 4.3
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "f",
+              "name": "send_failed",
+              "type": "boolean",
+              "value": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "node-log-failed",
+      "name": "Log Failed",
+      "type": "n8n-nodes-base.set",
+      "position": [
+        1408,
+        -80
+      ],
+      "typeVersion": 3.4
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://jjpscimtxrudtepzwhag.supabase.co/rest/v1/rpc/log_followup_event",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpqcHNjaW10eHJ1ZHRlcHp3aGFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI5NDMyMzIsImV4cCI6MjA3ODUxOTIzMn0._U_HwdF5-yT8-prJLzkdO_rGbNuu7Z3gpUQW0Q8zxa0"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpqcHNjaW10eHJ1ZHRlcHp3aGFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI5NDMyMzIsImV4cCI6MjA3ODUxOTIzMn0._U_HwdF5-yT8-prJLzkdO_rGbNuu7Z3gpUQW0Q8zxa0"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({p_lead_id: $('Build WA Body').item.json.lead_data.lead_id, p_property_id: $('Build WA Body').item.json.lead_data.property_id, p_event_type: $('Build WA Body').item.json.lead_data.is_closure ? 'lost' : 'followup_sent', p_channel: $('Build WA Body').item.json.lead_data.channel, p_step: $('Build WA Body').item.json.lead_data.step, p_intent: $('Build WA Body').item.json.lead_data.intent}) }}",
+        "options": {}
+      },
+      "id": "node-log-event",
+      "name": "Log Event",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        1648,
+        -240
+      ],
+      "typeVersion": 4.3
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "n",
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              },
+              "leftValue": "={{ $('Build WA Body').item.json.lead_data.notify_owner }}",
+              "rightValue": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "node-notify-check",
+      "name": "Notify Owner?",
+      "type": "n8n-nodes-base.if",
+      "position": [
+        1888,
+        -240
+      ],
+      "typeVersion": 2.2
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const ld = $('Build WA Body').item.json.lead_data;\nconst msg = `🔔 LEAD ALERT\n\nLead: ${ld.name || 'Unknown'}\nPhone: ${ld.phone}\nChannel: ${ld.channel}\nState: ${ld.new_state}\nStep: ${ld.step}/6\nIntent: ${ld.intent}\nNights: ${ld.stay_nights || 'N/A'}\nVillas: ${ld.villas_count || 'N/A'}\nDiscount: ${ld.requested_discount ? 'Yes' : 'No'}\nHigh Value: ${ld.high_value ? 'Yes' : 'No'}\n\n⚡ Action Required`;\n\nreturn {json: {owner_wa_body: JSON.stringify({messaging_product: 'whatsapp', to: '34619794604', type: 'text', text: {body: msg}}), lead_data: ld}};"
+      },
+      "id": "node-build-owner-wa",
+      "name": "Build Owner WA",
+      "type": "n8n-nodes-base.code",
+      "position": [
+        2128,
+        -320
+      ],
+      "typeVersion": 2
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.chakrahq.com/v1/ext/plugin/whatsapp/2e45a0bd-8600-41b4-ac92-599d59d6221c/api/v19.0/944855278702577/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer qiu1Z9eA3i2hhNjVM3Dm7QEK1Ey6iKQUE5IDWJlsFSAqXk5OlmQoD6DhqEwv9TOdgOVRWSYLWGxm6HfCs2LeCuwiU8Poqrw2Rgmvih0iEawZhoL6TTmMjVjvDUw2WuygAQgQ1vIeLCreDAKOGymGQCuR5bUYDHrRQQrvoMZLYwHw0LaGhFUuf4GxLpQbV3AQj8JDjhP2MzsCUYT4EVCARX6cODl1d1udr4pITGOmHQ793MUBtptq4XCvC8OGD3g"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.owner_wa_body }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "node-send-owner-wa",
+      "name": "Send Owner WA",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        2368,
+        -320
+      ],
+      "typeVersion": 4.3
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://jjpscimtxrudtepzwhag.supabase.co/rest/v1/rpc/update_owner_notified",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpqcHNjaW10eHJ1ZHRlcHp3aGFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI5NDMyMzIsImV4cCI6MjA3ODUxOTIzMn0._U_HwdF5-yT8-prJLzkdO_rGbNuu7Z3gpUQW0Q8zxa0"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpqcHNjaW10eHJ1ZHRlcHp3aGFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI5NDMyMzIsImV4cCI6MjA3ODUxOTIzMn0._U_HwdF5-yT8-prJLzkdO_rGbNuu7Z3gpUQW0Q8zxa0"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({p_lead_id: $('Build Owner WA').item.json.lead_data.lead_id}) }}",
+        "options": {}
+      },
+      "id": "node-owner-notified",
+      "name": "Update Owner Notified",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        2608,
+        -320
+      ],
+      "typeVersion": 4.3
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Build Final Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send OK?": {
+      "main": [
+        [
+          {
+            "node": "Update Lead",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Log Failed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Event": {
+      "main": [
+        [
+          {
+            "node": "Notify Owner?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Leads?": {
+      "main": [
+        [
+          {
+            "node": "Compute Decision",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Update Lead": {
+      "main": [
+        [
+          {
+            "node": "Log Event",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "CRON Trigger": {
+      "main": [
+        [
+          {
+            "node": "Query Due Leads",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is WhatsApp?": {
+      "main": [
+        [
+          {
+            "node": "Build WA Body",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Log Skip",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build WA Body": {
+      "main": [
+        [
+          {
+            "node": "Send WhatsApp",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notify Owner?": {
+      "main": [
+        [
+          {
+            "node": "Build Owner WA",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Send WhatsApp": {
+      "main": [
+        [
+          {
+            "node": "Send OK?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Owner WA": {
+      "main": [
+        [
+          {
+            "node": "Update Owner Notified",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Owner WA": {
+      "main": [
+        [
+          {
+            "node": "Send Owner WA",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Query Due Leads": {
+      "main": [
+        [
+          {
+            "node": "Has Leads?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Compute Decision": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Final Message": {
+      "main": [
+        [
+          {
+            "node": "Is WhatsApp?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
+  },
+  "versionId": "b034c0b8-43fa-4f42-9dbe-29060555c39f",
+  "meta": {
+    "instanceId": "ca7bc7f182c365457ea4a94a4dc2efe81c23590ab8904858ce5cabfbdd56e40f"
+  },
+  "id": "HndGXnQAEyaYDKFZ",
+  "tags": []
+}

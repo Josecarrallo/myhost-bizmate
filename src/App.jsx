@@ -48,6 +48,7 @@ import CreateMyWebsite from './components/MySite/CreateMyWebsite';
 import GuestCommunications from './components/GuestCommunications/GuestCommunications';
 import LeadsInbox from './components/SalesLeads/LeadsInbox';
 import LeadsPipeline from './components/SalesLeads/LeadsPipeline';
+import AISalesAssistant from './components/SalesLeads/AISalesAssistant';
 import LeadsFollowups from './components/SalesLeads/LeadsFollowups';
 import LeadsConversations from './components/SalesLeads/LeadsConversations';
 import LeadsTemplates from './components/SalesLeads/LeadsTemplates';
@@ -55,6 +56,14 @@ import CompetitorsSnapshot from './components/MarketIntelligence/CompetitorsSnap
 import BaliMarketTrends from './components/MarketIntelligence/BaliMarketTrends';
 import IntelligenceAlerts from './components/MarketIntelligence/IntelligenceAlerts';
 import AIRecommendations from './components/MarketIntelligence/AIRecommendations';
+import KoraCallsInbox from './components/VoiceAI/KoraCallsInbox';
+import KoraCallLogs from './components/VoiceAI/KoraCallLogs';
+import KoraScripts from './components/VoiceAI/KoraScripts';
+import KoraSettings from './components/VoiceAI/KoraSettings';
+import KoraAnalytics from './components/VoiceAI/KoraAnalytics';
+import BanyuGuestJourney from './components/BANYU/BanyuGuestJourney';
+import BanyuTemplates from './components/BANYU/BanyuTemplates';
+import BanyuLogs from './components/BANYU/BanyuLogs';
 
 // ==================== FLOATING ICON COMPONENT ====================
 const FloatingIcon = ({ icon: Icon, className, delay }) => (
@@ -196,7 +205,7 @@ export default function App() {
   const renderContent = () => {
     switch (currentView) {
       case 'overview':
-        return <OwnerExecutiveSummary key="overview" userName={userData?.full_name || user?.email?.split('@')[0] || 'José'} />;
+        return <OwnerExecutiveSummary key="overview" userName={userData?.full_name || user?.email?.split('@')[0] || 'José'} onNavigate={setCurrentView} />;
 
       case 'dashboard':
         return <Dashboard onBack={() => setCurrentView('overview')} />;
@@ -245,6 +254,9 @@ export default function App() {
       case 'leads-pipeline':
         return <LeadsPipeline key="leads-pipeline" onBack={() => setCurrentView('overview')} />;
 
+      case 'leads-ai-assistant':
+        return <AISalesAssistant key="leads-ai-assistant" onBack={() => setCurrentView('overview')} />;
+
       case 'leads-followups':
         return <LeadsFollowups key="leads-followups" onBack={() => setCurrentView('overview')} />;
 
@@ -267,15 +279,71 @@ export default function App() {
       case 'ai-recommendations':
         return <AIRecommendations key="ai-recommendations" onBack={() => setCurrentView('overview')} />;
 
-      // PMS Core (Internal Agent)
+      // BANYU.AI (WhatsApp Hub)
+      case 'banyu-inbox':
+        return <GuestCommunications key="banyu-inbox" onBack={() => setCurrentView('overview')} />;
+
+      case 'banyu-guest-journey':
+        return <BanyuGuestJourney key="banyu-guest-journey" onBack={() => setCurrentView('overview')} />;
+
+      case 'banyu-templates':
+        return <BanyuTemplates key="banyu-templates" onBack={() => setCurrentView('overview')} />;
+
+      case 'banyu-logs':
+        return <BanyuLogs key="banyu-logs" onBack={() => setCurrentView('overview')} />;
+
+      // KORA.AI (Voice Concierge)
+      case 'kora-calls-inbox':
+        return <KoraCallsInbox key="kora-calls-inbox" onBack={() => setCurrentView('overview')} />;
+
+      case 'kora-call-logs':
+        return <KoraCallLogs key="kora-call-logs" onBack={() => setCurrentView('overview')} />;
+
+      case 'kora-scripts':
+        return <KoraScripts key="kora-scripts" onBack={() => setCurrentView('overview')} />;
+
+      // OSIRIS.AI (Operations & Control)
+      case 'osiris-ai-assistant':
+        return <AIAssistant onBack={() => setCurrentView('overview')} />;
+
+      case 'agents-monitor':
+        return <AIAgentsMonitor onBack={() => setCurrentView('overview')} />;
+
+      case 'osiris-alerts':
+        return (
+          <div className="flex-1 h-screen bg-[#2a2f3a] p-4 relative overflow-auto">
+            <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-4 mb-6 shadow-xl border border-white/10">
+              <h2 className="text-2xl font-bold text-white">Alerts / Exceptions (Coming Soon)</h2>
+              <p className="text-sm text-orange-400">Powered by OSIRIS.AI</p>
+            </div>
+            <div className="bg-white/5 rounded-2xl p-6 border border-white/10">
+              <p className="text-white/80">System alerts and exception monitoring coming soon...</p>
+            </div>
+          </div>
+        );
+
+      case 'workflows':
+        return <Workflows onBack={() => setCurrentView('overview')} onNavigate={setCurrentView} />;
+
+      case 'osiris-audit-log':
+        return (
+          <div className="flex-1 h-screen bg-[#2a2f3a] p-4 relative overflow-auto">
+            <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-4 mb-6 shadow-xl border border-white/10">
+              <h2 className="text-2xl font-bold text-white">Logs / Audit (Coming Soon)</h2>
+              <p className="text-sm text-orange-400">Powered by OSIRIS.AI</p>
+            </div>
+            <div className="bg-white/5 rounded-2xl p-6 border border-white/10">
+              <p className="text-white/80">Complete audit log and system logs coming soon...</p>
+            </div>
+          </div>
+        );
+
+      // Legacy routes
       case 'ai-assistant':
         return <AIAssistant onBack={() => setCurrentView('overview')} />;
 
       case 'ai-operator-demo':
         return <AIOperatorDemo onBack={() => setCurrentView('overview')} />;
-
-      case 'agents-monitor':
-        return <AIAgentsMonitor onBack={() => setCurrentView('overview')} />;
 
       case 'my-site':
         return <MySite key="my-site" onBack={() => setCurrentView('overview')} />;
@@ -289,7 +357,7 @@ export default function App() {
 
       // Marketing & Growth
       case 'marketing-overview':
-        return <MarketingOverview key="marketing-overview" onBack={() => setCurrentView('overview')} />;
+        return <MarketingOverview key="marketing-overview" onBack={() => setCurrentView('overview')} onNavigate={setCurrentView} />;
 
       case 'meta-ads':
         return <MetaAds key="meta-ads" onBack={() => setCurrentView('overview')} />;

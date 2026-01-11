@@ -1,0 +1,14 @@
+Reglas de Seguimiento - Resumen
+Estados:
+NEW → ENGAGED → HOT → FOLLOWING_UP → WON / LOST
+Secuencia temporal:
+TiempoAcción24hMensaje suave48hRecordatorio valor72hÚltima llamada1 semanaRe-engagement suave2 semanasRe-engagement + incentivo1 mesÚltimo intento → LOST
+Cambios de estado:
+Si...Entonces...Responde positivo→ HOTQuiere reservar→ HOT + notificar ownerNo responde 1 mes→ LOSTReserva→ WON
+Notificar owner:
+
+Lead HOT
+Alto valor (>5 noches o >2 villas)
+HOT sin respuesta 72h
+Pide descuento
+Claude es IA y puede cometer errores. Por favor, verifica nuevamente las respuestas.

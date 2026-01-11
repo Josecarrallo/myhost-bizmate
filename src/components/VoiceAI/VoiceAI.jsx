@@ -92,7 +92,7 @@ const VoiceAIAgent = ({ onBack }) => {
         <div className="absolute w-72 h-72 bg-[#d85a2a]/5 rounded-full blur-2xl top-1/2 right-1/4 animate-pulse" style={{ animationDelay: '0.5s' }}></div>
       </div>
 
-      <div className="bg-[#1f2937]/95 backdrop-blur-sm border-b-2 border-[#d85a2a]/20 p-4 relative z-10 shadow-lg">
+      <div className="bg-[#2a2f3a] backdrop-blur-sm border-b-2 border-[#d85a2a]/20 p-4 relative z-10 shadow-lg">
         <div className="max-w-6xl mx-auto flex items-center justify-between">
           <button onClick={onBack} className="flex items-center gap-2 text-[#FF8C42] hover:text-orange-500 transition-colors">
             <ChevronLeft className="w-5 h-5" />
@@ -108,27 +108,27 @@ const VoiceAIAgent = ({ onBack }) => {
       <div className="flex-1 overflow-auto p-6 relative z-10">
         <div className="max-w-6xl mx-auto space-y-6">
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-            <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-2xl p-4 border-2 border-[#d85a2a]/20 shadow-lg">
+            <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-4 border border-white/10 shadow-lg">
               <div className="text-3xl font-black text-[#FF8C42]">{mockStats.totalCalls}</div>
               <div className="text-xs font-semibold text-gray-600 mt-1">Total Calls</div>
             </div>
-            <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-2xl p-4 border-2 border-[#d85a2a]/20 shadow-lg">
+            <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-4 border border-white/10 shadow-lg">
               <div className="text-3xl font-black text-blue-600">{mockStats.avgDuration}</div>
               <div className="text-xs font-semibold text-gray-600 mt-1">Avg Duration</div>
             </div>
-            <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-2xl p-4 border-2 border-[#d85a2a]/20 shadow-lg">
+            <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-4 border border-white/10 shadow-lg">
               <div className="text-3xl font-black text-green-600">{mockStats.satisfactionRate}</div>
               <div className="text-xs font-semibold text-gray-600 mt-1">Satisfaction</div>
             </div>
-            <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-2xl p-4 border-2 border-[#d85a2a]/20 shadow-lg">
+            <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-4 border border-white/10 shadow-lg">
               <div className="text-3xl font-black text-[#FF8C42]">{mockStats.autoResolved}</div>
               <div className="text-xs font-semibold text-gray-600 mt-1">Auto Resolved</div>
             </div>
-            <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-2xl p-4 border-2 border-[#d85a2a]/20 shadow-lg">
+            <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-4 border border-white/10 shadow-lg">
               <div className="text-3xl font-black text-[#FF8C42]">{mockStats.callsToday}</div>
               <div className="text-xs font-semibold text-gray-600 mt-1">Calls Today</div>
             </div>
-            <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-2xl p-4 border-2 border-[#d85a2a]/20 shadow-lg">
+            <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-4 border border-white/10 shadow-lg">
               <div className="text-3xl font-black text-red-600">{mockStats.activeNow}</div>
               <div className="text-xs font-semibold text-gray-600 mt-1">Active Now</div>
             </div>
@@ -136,7 +136,7 @@ const VoiceAIAgent = ({ onBack }) => {
 
           <div className="grid lg:grid-cols-2 gap-6">
             <div className="space-y-6">
-              <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-3xl p-8 border-2 border-[#d85a2a]/20 shadow-2xl">
+              <div className="bg-white/5 backdrop-blur-sm rounded-3xl p-8 border border-white/10 shadow-2xl">
                 <h2 className="text-2xl font-black mb-6 text-[#FF8C42]">Voice Agent Control</h2>
 
                 {callStatus === 'idle' && (
@@ -208,7 +208,7 @@ const VoiceAIAgent = ({ onBack }) => {
                 )}
               </div>
 
-              <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-3xl p-6 border-2 border-[#d85a2a]/20 shadow-2xl">
+              <div className="bg-white/5 backdrop-blur-sm rounded-3xl p-6 border border-white/10 shadow-2xl">
                 <h3 className="text-xl font-black mb-4 text-[#FF8C42]">Voice Settings</h3>
 
                 <div className="space-y-4">
@@ -273,7 +273,7 @@ const VoiceAIAgent = ({ onBack }) => {
               </div>
             </div>
 
-            <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-3xl p-6 border-2 border-[#d85a2a]/20 shadow-2xl">
+            <div className="bg-white/5 backdrop-blur-sm rounded-3xl p-6 border border-white/10 shadow-2xl">
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-2xl font-black text-[#FF8C42]">Call History</h2>
                 <button className="px-4 py-2 bg-gray-100 text-gray-700 rounded-xl font-bold hover:bg-gray-200 transition-all text-sm">

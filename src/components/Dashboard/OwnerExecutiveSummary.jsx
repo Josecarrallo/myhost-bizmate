@@ -8,11 +8,19 @@ import {
   AlertCircle,
   CreditCard,
   Package,
-  Users
+  Users,
+  Target,
+  MessageSquare,
+  PhoneCall,
+  Eye,
+  ArrowRight,
+  Inbox,
+  Phone,
+  Clock
 } from 'lucide-react';
 import { dataService } from '../../services/data';
 
-const OwnerExecutiveSummary = ({ userName = 'José' }) => {
+const OwnerExecutiveSummary = ({ userName = 'José', onNavigate }) => {
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState(null);
   const [checkIns, setCheckIns] = useState([]);
@@ -203,6 +211,204 @@ const OwnerExecutiveSummary = ({ userName = 'José' }) => {
                 </div>
               );
             })}
+          </div>
+
+          {/* 4 AI Agents Section */}
+          <div className="mb-6 sm:mb-8">
+            <h3 className="text-xl sm:text-2xl font-bold text-white mb-4 flex items-center gap-2">
+              <Lightbulb className="w-6 h-6 text-[#FF8C42]" />
+              Your AI Team (4 Agents)
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              {/* LUMINA.AI */}
+              <button
+                onClick={() => onNavigate?.('leads-inbox')}
+                className="bg-gradient-to-br from-purple-500/20 to-pink-500/20 border border-purple-500/30 rounded-xl p-5 hover:scale-105 transition-all text-left group"
+              >
+                <div className="flex items-start justify-between mb-3">
+                  <div className="p-2 bg-purple-500/20 rounded-lg">
+                    <Target className="w-6 h-6 text-purple-300" />
+                  </div>
+                  <ArrowRight className="w-5 h-5 text-white/40 group-hover:text-white/80 transition-colors" />
+                </div>
+                <h4 className="text-lg font-bold text-white mb-1">🌟 LUMINA.AI</h4>
+                <p className="text-sm text-white/80 mb-3">Sales & Leads</p>
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-white/60">New Leads</span>
+                    <span className="text-purple-300 font-bold">12</span>
+                  </div>
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-white/60">In Pipeline</span>
+                    <span className="text-purple-300 font-bold">8</span>
+                  </div>
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-white/60">Follow-ups</span>
+                    <span className="text-orange-300 font-bold">5</span>
+                  </div>
+                </div>
+              </button>
+
+              {/* BANYU.AI */}
+              <button
+                onClick={() => onNavigate?.('guest-communications')}
+                className="bg-gradient-to-br from-green-500/20 to-emerald-500/20 border border-green-500/30 rounded-xl p-5 hover:scale-105 transition-all text-left group"
+              >
+                <div className="flex items-start justify-between mb-3">
+                  <div className="p-2 bg-green-500/20 rounded-lg">
+                    <MessageSquare className="w-6 h-6 text-green-300" />
+                  </div>
+                  <ArrowRight className="w-5 h-5 text-white/40 group-hover:text-white/80 transition-colors" />
+                </div>
+                <h4 className="text-lg font-bold text-white mb-1">💧 BANYU.AI</h4>
+                <p className="text-sm text-white/80 mb-3">WhatsApp Concierge</p>
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-white/60">Messages Today</span>
+                    <span className="text-green-300 font-bold">47</span>
+                  </div>
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-white/60">Active Guests</span>
+                    <span className="text-green-300 font-bold">23</span>
+                  </div>
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-white/60">Response Time</span>
+                    <span className="text-blue-300 font-bold">1.2min</span>
+                  </div>
+                </div>
+              </button>
+
+              {/* KORA.AI */}
+              <button
+                onClick={() => onNavigate?.('kora-call-logs')}
+                className="bg-gradient-to-br from-blue-500/20 to-indigo-500/20 border border-blue-500/30 rounded-xl p-5 hover:scale-105 transition-all text-left group"
+              >
+                <div className="flex items-start justify-between mb-3">
+                  <div className="p-2 bg-blue-500/20 rounded-lg">
+                    <PhoneCall className="w-6 h-6 text-blue-300" />
+                  </div>
+                  <ArrowRight className="w-5 h-5 text-white/40 group-hover:text-white/80 transition-colors" />
+                </div>
+                <h4 className="text-lg font-bold text-white mb-1">📞 KORA.AI</h4>
+                <p className="text-sm text-white/80 mb-3">Voice Concierge</p>
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-white/60">Calls Today</span>
+                    <span className="text-blue-300 font-bold">15</span>
+                  </div>
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-white/60">Avg Duration</span>
+                    <span className="text-blue-300 font-bold">3:24</span>
+                  </div>
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-white/60">Sentiment</span>
+                    <span className="text-green-300 font-bold">😊 85%</span>
+                  </div>
+                </div>
+              </button>
+
+              {/* OSIRIS.AI */}
+              <button
+                onClick={() => onNavigate?.('agents-monitor')}
+                className="bg-gradient-to-br from-orange-500/20 to-red-500/20 border border-orange-500/30 rounded-xl p-5 hover:scale-105 transition-all text-left group"
+              >
+                <div className="flex items-start justify-between mb-3">
+                  <div className="p-2 bg-orange-500/20 rounded-lg">
+                    <Eye className="w-6 h-6 text-orange-300" />
+                  </div>
+                  <ArrowRight className="w-5 h-5 text-white/40 group-hover:text-white/80 transition-colors" />
+                </div>
+                <h4 className="text-lg font-bold text-white mb-1">👁️ OSIRIS.AI</h4>
+                <p className="text-sm text-white/80 mb-3">Operations & Control</p>
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-white/60">Active Workflows</span>
+                    <span className="text-orange-300 font-bold">7</span>
+                  </div>
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-white/60">Alerts</span>
+                    <span className="text-red-300 font-bold">2</span>
+                  </div>
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-white/60">System Health</span>
+                    <span className="text-green-300 font-bold">✓ Good</span>
+                  </div>
+                </div>
+              </button>
+            </div>
+          </div>
+
+          {/* Activity Feed */}
+          <div className="mb-6 sm:mb-8">
+            <h3 className="text-xl sm:text-2xl font-semibold text-white mb-4">Recent Activity</h3>
+            <div className="bg-[#1f2937] rounded-xl border border-[#d85a2a]/20 overflow-hidden">
+              <div className="divide-y divide-[#d85a2a]/10">
+                {/* Activity 1 */}
+                <div className="p-4 hover:bg-[#d85a2a]/5 transition-colors flex items-start gap-3">
+                  <div className="p-2 bg-purple-500/20 rounded-lg flex-shrink-0">
+                    <Inbox className="w-5 h-5 text-purple-300" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-white font-medium">New lead from Instagram</p>
+                    <p className="text-white/60 text-sm">Sarah Johnson inquiring about honeymoon package → added to LUMINA Inbox</p>
+                    <p className="text-white/40 text-xs mt-1">2 minutes ago</p>
+                  </div>
+                  <span className="px-2 py-1 bg-green-500/20 text-green-300 rounded text-xs font-medium">New</span>
+                </div>
+
+                {/* Activity 2 */}
+                <div className="p-4 hover:bg-[#d85a2a]/5 transition-colors flex items-start gap-3">
+                  <div className="p-2 bg-blue-500/20 rounded-lg flex-shrink-0">
+                    <Phone className="w-5 h-5 text-blue-300" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-white font-medium">KORA call summary created</p>
+                    <p className="text-white/60 text-sm">Michael Chen called about villa availability → lead qualified and sent to LUMINA</p>
+                    <p className="text-white/40 text-xs mt-1">15 minutes ago</p>
+                  </div>
+                  <span className="px-2 py-1 bg-blue-500/20 text-blue-300 rounded text-xs font-medium">Qualified</span>
+                </div>
+
+                {/* Activity 3 */}
+                <div className="p-4 hover:bg-[#d85a2a]/5 transition-colors flex items-start gap-3">
+                  <div className="p-2 bg-orange-500/20 rounded-lg flex-shrink-0">
+                    <Clock className="w-5 h-5 text-orange-300" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-white font-medium">Follow-up message scheduled</p>
+                    <p className="text-white/60 text-sm">LUMINA scheduled WhatsApp follow-up for Emma Watson tomorrow at 10 AM</p>
+                    <p className="text-white/40 text-xs mt-1">1 hour ago</p>
+                  </div>
+                  <span className="px-2 py-1 bg-orange-500/20 text-orange-300 rounded text-xs font-medium">Scheduled</span>
+                </div>
+
+                {/* Activity 4 */}
+                <div className="p-4 hover:bg-[#d85a2a]/5 transition-colors flex items-start gap-3">
+                  <div className="p-2 bg-green-500/20 rounded-lg flex-shrink-0">
+                    <MessageSquare className="w-5 h-5 text-green-300" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-white font-medium">Guest Journey message sent</p>
+                    <p className="text-white/60 text-sm">BANYU sent pre-arrival info to David Miller (check-in tomorrow)</p>
+                    <p className="text-white/40 text-xs mt-1">2 hours ago</p>
+                  </div>
+                  <span className="px-2 py-1 bg-green-500/20 text-green-300 rounded text-xs font-medium">Sent</span>
+                </div>
+
+                {/* Activity 5 */}
+                <div className="p-4 hover:bg-[#d85a2a]/5 transition-colors flex items-start gap-3">
+                  <div className="p-2 bg-red-500/20 rounded-lg flex-shrink-0">
+                    <AlertCircle className="w-5 h-5 text-red-300" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-white font-medium">Owner alert generated</p>
+                    <p className="text-white/60 text-sm">OSIRIS detected payment pending for booking #1234 → requires attention</p>
+                    <p className="text-white/40 text-xs mt-1">3 hours ago</p>
+                  </div>
+                  <span className="px-2 py-1 bg-red-500/20 text-red-300 rounded text-xs font-medium">Alert</span>
+                </div>
+              </div>
+            </div>
           </div>
 
           {/* Today's Activity */}

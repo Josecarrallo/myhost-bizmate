@@ -1,0 +1,938 @@
+{
+  "name": "WF-SP-01 Inbound Lead Handler MYHOST Bizmate XXIII",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "inbound-lead-v2",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -1232,
+        304
+      ],
+      "id": "webhook-inbound",
+      "name": "Webhook Inbound Lead",
+      "webhookId": "inbound-lead-v2"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "channel",
+              "name": "channel",
+              "value": "={{ $json.body.channel || 'web' }}",
+              "type": "string"
+            },
+            {
+              "id": "phone",
+              "name": "phone",
+              "value": "={{ $json.body.phone || null }}",
+              "type": "string"
+            },
+            {
+              "id": "name",
+              "name": "name",
+              "value": "={{ $json.body.name || 'Unknown' }}",
+              "type": "string"
+            },
+            {
+              "id": "email",
+              "name": "email",
+              "value": "={{ $json.body.email || null }}",
+              "type": "string"
+            },
+            {
+              "id": "message",
+              "name": "message",
+              "value": "={{ $json.body.message || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "raw_payload",
+              "name": "raw_payload",
+              "value": "={{ JSON.stringify($json.body) }}",
+              "type": "string"
+            },
+            {
+              "id": "tenant_id",
+              "name": "tenant_id",
+              "value": "c24393db-d318-4d75-8bbf-0fa240b9c1db",
+              "type": "string"
+            },
+            {
+              "id": "property_id",
+              "name": "property_id",
+              "value": "18711359-1378-4d12-9ea6-fb31c0b1bac2",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -1056,
+        304
+      ],
+      "id": "normalize-data",
+      "name": "1. Normalizar"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://jjpscimtxrudtepzwhag.supabase.co/rest/v1/rpc/find_lead_by_contact",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpqcHNjaW10eHJ1ZHRlcHp3aGFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI5NDMyMzIsImV4cCI6MjA3ODUxOTIzMn0._U_HwdF5-yT8-prJLzkdO_rGbNuu7Z3gpUQW0Q8zxa0"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"p_phone\": {{ $json.phone ? '\"' + $json.phone + '\"' : 'null' }},\n  \"p_email\": {{ $json.email ? '\"' + $json.email + '\"' : 'null' }},\n  \"p_tenant_id\": \"{{ $json.tenant_id }}\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        -896,
+        304
+      ],
+      "id": "search-lead",
+      "name": "2. Buscar Lead",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "existing_lead_id",
+              "name": "existing_lead_id",
+              "value": "={{ $json.id || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "existing_lead_status",
+              "name": "existing_lead_status",
+              "value": "={{ $json.status || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "channel",
+              "name": "channel",
+              "value": "={{ $('1. Normalizar').item.json.channel }}",
+              "type": "string"
+            },
+            {
+              "id": "phone",
+              "name": "phone",
+              "value": "={{ $('1. Normalizar').item.json.phone }}",
+              "type": "string"
+            },
+            {
+              "id": "name",
+              "name": "name",
+              "value": "={{ $('1. Normalizar').item.json.name }}",
+              "type": "string"
+            },
+            {
+              "id": "email",
+              "name": "email",
+              "value": "={{ $('1. Normalizar').item.json.email }}",
+              "type": "string"
+            },
+            {
+              "id": "message",
+              "name": "message",
+              "value": "={{ $('1. Normalizar').item.json.message }}",
+              "type": "string"
+            },
+            {
+              "id": "tenant_id",
+              "name": "tenant_id",
+              "value": "={{ $('1. Normalizar').item.json.tenant_id }}",
+              "type": "string"
+            },
+            {
+              "id": "property_id",
+              "name": "property_id",
+              "value": "={{ $('1. Normalizar').item.json.property_id }}",
+              "type": "string"
+            },
+            {
+              "id": "raw_payload",
+              "name": "raw_payload",
+              "value": "={{ $('1. Normalizar').item.json.raw_payload }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -736,
+        304
+      ],
+      "id": "merge-data",
+      "name": "3. Merge"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.existing_lead_id }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "string",
+                      "operation": "empty"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "New Lead"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.existing_lead_id }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "string",
+                      "operation": "notEmpty"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Existing Lead"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.3,
+      "position": [
+        -240,
+        304
+      ],
+      "id": "switch-new-existing",
+      "name": "4. Switch"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://jjpscimtxrudtepzwhag.supabase.co/rest/v1/leads",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpqcHNjaW10eHJ1ZHRlcHp3aGFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI5NDMyMzIsImV4cCI6MjA3ODUxOTIzMn0._U_HwdF5-yT8-prJLzkdO_rGbNuu7Z3gpUQW0Q8zxa0"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpqcHNjaW10eHJ1ZHRlcHp3aGFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI5NDMyMzIsImV4cCI6MjA3ODUxOTIzMn0._U_HwdF5-yT8-prJLzkdO_rGbNuu7Z3gpUQW0Q8zxa0"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=representation"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"tenant_id\": \"{{ $json.tenant_id }}\",\n  \"property_id\": \"{{ $json.property_id }}\",\n  \"name\": \"{{ $json.name }}\",\n  \"phone\": {{ $json.phone ? '\"' + $json.phone + '\"' : 'null' }},\n  \"email\": {{ $json.email ? '\"' + $json.email + '\"' : 'null' }},\n  \"channel\": \"{{ $json.channel }}\",\n  \"status\": \"{{ $json.is_hot ? 'HOT' : 'NEW' }}\",\n  \"intent\": \"{{ $json.intent }}\",\n  \"score\": {{ $json.intent_score }}\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        -80,
+        128
+      ],
+      "id": "insert-lead",
+      "name": "5a. INSERT"
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "=https://jjpscimtxrudtepzwhag.supabase.co/rest/v1/leads?id=eq.{{ $json.existing_lead_id }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpqcHNjaW10eHJ1ZHRlcHp3aGFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI5NDMyMzIsImV4cCI6MjA3ODUxOTIzMn0._U_HwdF5-yT8-prJLzkdO_rGbNuu7Z3gpUQW0Q8zxa0"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpqcHNjaW10eHJ1ZHRlcHp3aGFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI5NDMyMzIsImV4cCI6MjA3ODUxOTIzMn0._U_HwdF5-yT8-prJLzkdO_rGbNuu7Z3gpUQW0Q8zxa0"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=representation"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"last_contacted_at\": \"{{ new Date().toISOString() }}\",\n  \"status\": \"{{ $json.is_hot ? 'HOT' : 'ENGAGED' }}\",\n  \"intent\": \"{{ $json.intent }}\",\n  \"score\": {{ $json.intent_score }},\n  \"updated_at\": \"{{ new Date().toISOString() }}\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        -64,
+        432
+      ],
+      "id": "update-lead",
+      "name": "5b. UPDATE"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"success\": true,\n  \"lead_id\": \"{{ $json[0]?.id || $json.id || 'unknown' }}\",\n  \"message\": \"Lead processed\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        720,
+        224
+      ],
+      "id": "respond-success",
+      "name": "6. Respond"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.openai.com/v1/chat/completions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer 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"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"gpt-4o-mini\",\n  \"max_tokens\": 10,\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"Clasifica el mensaje en UNA palabra: info, price, availability, o booking. Responde SOLO una palabra.\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"{{ $json.message }}\"\n    }\n  ]\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        -576,
+        304
+      ],
+      "id": "e51de15c-b012-429c-b3ed-c8938dbdffdd",
+      "name": "3.5 Clasificar Intención"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "intent",
+              "name": "intent",
+              "type": "string",
+              "value": "={{ $json.choices[0].message.content.trim().toLowerCase() }}"
+            },
+            {
+              "id": "intent_score",
+              "name": "intent_score",
+              "type": "number",
+              "value": "={{ {'info': 10, 'price': 20, 'availability': 30, 'booking': 50}[$json.choices[0].message.content.trim().toLowerCase()] || 10 }}"
+            },
+            {
+              "id": "is_hot",
+              "name": "is_hot",
+              "type": "boolean",
+              "value": "={{ $json.choices[0].message.content.trim().toLowerCase() === 'booking' }}"
+            },
+            {
+              "id": "existing_lead_id",
+              "name": "existing_lead_id",
+              "type": "string",
+              "value": "={{ $('3. Merge').item.json.existing_lead_id }}"
+            },
+            {
+              "id": "existing_lead_status",
+              "name": "existing_lead_status",
+              "type": "string",
+              "value": "={{ $('3. Merge').item.json.existing_lead_status }}"
+            },
+            {
+              "id": "existing_lead_score",
+              "name": "existing_lead_score",
+              "type": "number",
+              "value": "={{ $('3. Merge').item.json.existing_lead_score }}"
+            },
+            {
+              "id": "channel",
+              "name": "channel",
+              "type": "string",
+              "value": "={{ $('3. Merge').item.json.channel }}"
+            },
+            {
+              "id": "phone",
+              "name": "phone",
+              "type": "string",
+              "value": "={{ $('3. Merge').item.json.phone }}"
+            },
+            {
+              "id": "name",
+              "name": "name",
+              "type": "string",
+              "value": "={{ $('3. Merge').item.json.name }}"
+            },
+            {
+              "id": "email",
+              "name": "email",
+              "type": "string",
+              "value": "={{ $('3. Merge').item.json.email }}"
+            },
+            {
+              "id": "message",
+              "name": "message",
+              "type": "string",
+              "value": "={{ $('3. Merge').item.json.message }}"
+            },
+            {
+              "id": "tenant_id",
+              "name": "tenant_id",
+              "type": "string",
+              "value": "={{ $('3. Merge').item.json.tenant_id }}"
+            },
+            {
+              "id": "property_id",
+              "name": "property_id",
+              "type": "string",
+              "value": "={{ $('3. Merge').item.json.property_id }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -400,
+        304
+      ],
+      "id": "995eb7e5-826e-4a9a-a93e-787a05204849",
+      "name": "3.6 Set Intent Data"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://jjpscimtxrudtepzwhag.supabase.co/rest/v1/lead_events",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpqcHNjaW10eHJ1ZHRlcHp3aGFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI5NDMyMzIsImV4cCI6MjA3ODUxOTIzMn0._U_HwdF5-yT8-prJLzkdO_rGbNuu7Z3gpUQW0Q8zxa0"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpqcHNjaW10eHJ1ZHRlcHp3aGFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI5NDMyMzIsImV4cCI6MjA3ODUxOTIzMn0._U_HwdF5-yT8-prJLzkdO_rGbNuu7Z3gpUQW0Q8zxa0"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=representation"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"lead_id\": \"{{ $json[0]?.id || $json.id }}\",\n  \"event_type\": \"lead_created\",\n  \"payload_json\": {\n    \"channel\": \"{{ $('3.6 Set Intent Data').item.json.channel }}\",\n    \"message\": \"{{ $('3.6 Set Intent Data').item.json.message }}\",\n    \"intent\": \"{{ $('3.6 Set Intent Data').item.json.intent }}\",\n    \"score\": {{ $('3.6 Set Intent Data').item.json.intent_score }}\n  }\n}",
+        "options": {}
+      },
+      "id": "7747929c-3c46-42e7-b86c-80fa5c37df2c",
+      "name": "6a. Log lead_created",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        80,
+        128
+      ],
+      "typeVersion": 4.3
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://jjpscimtxrudtepzwhag.supabase.co/rest/v1/lead_events",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpqcHNjaW10eHJ1ZHRlcHp3aGFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI5NDMyMzIsImV4cCI6MjA3ODUxOTIzMn0._U_HwdF5-yT8-prJLzkdO_rGbNuu7Z3gpUQW0Q8zxa0"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpqcHNjaW10eHJ1ZHRlcHp3aGFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI5NDMyMzIsImV4cCI6MjA3ODUxOTIzMn0._U_HwdF5-yT8-prJLzkdO_rGbNuu7Z3gpUQW0Q8zxa0"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=representation"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"lead_id\": \"{{ $json[0]?.id || $json.id }}\",\n  \"event_type\": \"message_received\",\n  \"payload_json\": {\n    \"channel\": \"{{ $('3.6 Set Intent Data').item.json.channel }}\",\n    \"message\": \"{{ $('3.6 Set Intent Data').item.json.message }}\",\n    \"intent\": \"{{ $('3.6 Set Intent Data').item.json.intent }}\",\n    \"score\": {{ $('3.6 Set Intent Data').item.json.intent_score }}\n  }\n}",
+        "options": {}
+      },
+      "id": "9b5e7280-1d68-4d2a-943d-44562d0595a7",
+      "name": "6b. Log message_received",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        80,
+        432
+      ],
+      "typeVersion": 4.3
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "version": 2,
+                  "leftValue": "",
+                  "caseSensitive": true,
+                  "typeValidation": "loose"
+                },
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "leftValue": "={{ $('3.6 Set Intent Data').item.json.channel }}",
+                    "rightValue": "whatsapp"
+                  }
+                ]
+              },
+              "renameOutput": true,
+              "outputKey": "WhatsApp"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "version": 2,
+                  "leftValue": "",
+                  "caseSensitive": true,
+                  "typeValidation": "loose"
+                },
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "operator": {
+                      "type": "string",
+                      "operation": "notEquals"
+                    },
+                    "leftValue": "={{ $('3.6 Set Intent Data').item.json.channel }}",
+                    "rightValue": "whatsapp"
+                  }
+                ]
+              },
+              "renameOutput": true,
+              "outputKey": "Other"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "7bb68441-9671-4cb6-b231-bcb615946938",
+      "name": "7. Switch Channel",
+      "type": "n8n-nodes-base.switch",
+      "position": [
+        224,
+        288
+      ],
+      "typeVersion": 3.3
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.chakrahq.com/v1/ext/plugin/whatsapp/2e45a0bd-8600-41b4-ac92-599d59d6221c/api/v19.0/944855278702577/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer qiu1Z9eA3i2hhNjVM3Dm7QEK1Ey6iKQUE5IDWJlsFSAqXk5OlmQoD6DhqEwv9TOdgOVRWSYLWGxm6HfCs2LeCuwiU8Poqrw2Rgmvih0iEawZhoL6TTmMjVjvDUw2WuygAQgQ1vIeLCreDAKOGymGQCuR5bUYDHrRQQrvoMZLYwHw0LaGhFUuf4GxLpQbV3AQj8JDjhP2MzsCUYT4EVCARX6cODl1d1udr4pITGOmHQ793MUBtptq4XCvC8OGD3g"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"messaging_product\": \"whatsapp\",\n  \"to\": \"{{ $('3.6 Set Intent Data').item.json.phone.replace('+', '') }}\",\n  \"type\": \"text\",\n  \"text\": {\n    \"body\": \"Hola {{ $('3.6 Set Intent Data').item.json.name }}! 🌺 Soy Ayu de Izumi Hotel. Gracias por contactarnos. En un momento te atiendo.\"\n  }\n}",
+        "options": {}
+      },
+      "id": "bf2b75cb-1ae6-414e-af95-387e955f169d",
+      "name": "8. Enviar WhatsApp",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        512,
+        128
+      ],
+      "typeVersion": 4.3
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.sendgrid.com/v3/mail/send",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer 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"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"personalizations\": [\n    {\n      \"to\": [\n        {\n          \"email\": \"{{ $('3.6 Set Intent Data').item.json.email }}\"\n        }\n      ]\n    }\n  ],\n  \"from\": {\n    \"email\": \"josecarrallodelafuente@gmail.com\",\n    \"name\": \"Izumi Hotel\"\n  },\n  \"subject\": \"Gracias por contactar Izumi Hotel 🌺\",\n  \"content\": [\n    {\n      \"type\": \"text/plain\",\n      \"value\": \"Hola {{ $('3.6 Set Intent Data').item.json.name }},\\n\\nGracias por tu interés en Izumi Hotel.\\n\\nHemos recibido tu mensaje y nuestro equipo te contactará pronto.\\n\\nSi tienes alguna pregunta, responde a este email o escríbenos por WhatsApp al +62 813 2576 4867.\\n\\nSaludos,\\nEl equipo de Izumi Hotel\\nUbud, Bali\"\n    }\n  ]\n}",
+        "options": {}
+      },
+      "id": "49ac116c-5ca9-433e-9e6c-6f365b9ac2b3",
+      "name": "9. Enviar Email",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        528,
+        352
+      ],
+      "typeVersion": 4.3
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "version": 2,
+                  "leftValue": "",
+                  "caseSensitive": true,
+                  "typeValidation": "loose"
+                },
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "operator": {
+                      "type": "string",
+                      "operation": "notEmpty"
+                    },
+                    "leftValue": "={{ $('3.6 Set Intent Data').item.json.email }}",
+                    "rightValue": ""
+                  }
+                ]
+              },
+              "renameOutput": true,
+              "outputKey": "Has Email"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "version": 2,
+                  "leftValue": "",
+                  "caseSensitive": true,
+                  "typeValidation": "loose"
+                },
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "operator": {
+                      "type": "string",
+                      "operation": "empty"
+                    },
+                    "leftValue": "={{ $('3.6 Set Intent Data').item.json.email }}",
+                    "rightValue": ""
+                  }
+                ]
+              },
+              "renameOutput": true,
+              "outputKey": "No Email"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "ad59f503-8647-4953-bffc-2b1c860bb908",
+      "name": "9. Has Email?",
+      "type": "n8n-nodes-base.switch",
+      "position": [
+        368,
+        496
+      ],
+      "typeVersion": 3.3
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook Inbound Lead": {
+      "main": [
+        [
+          {
+            "node": "1. Normalizar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "1. Normalizar": {
+      "main": [
+        [
+          {
+            "node": "2. Buscar Lead",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "2. Buscar Lead": {
+      "main": [
+        [
+          {
+            "node": "3. Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "3. Merge": {
+      "main": [
+        [
+          {
+            "node": "3.5 Clasificar Intención",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "4. Switch": {
+      "main": [
+        [
+          {
+            "node": "5a. INSERT",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "5b. UPDATE",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "5a. INSERT": {
+      "main": [
+        [
+          {
+            "node": "6a. Log lead_created",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "5b. UPDATE": {
+      "main": [
+        [
+          {
+            "node": "6b. Log message_received",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "3.5 Clasificar Intención": {
+      "main": [
+        [
+          {
+            "node": "3.6 Set Intent Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "3.6 Set Intent Data": {
+      "main": [
+        [
+          {
+            "node": "4. Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "6a. Log lead_created": {
+      "main": [
+        [
+          {
+            "node": "7. Switch Channel",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "6b. Log message_received": {
+      "main": [
+        [
+          {
+            "node": "7. Switch Channel",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "7. Switch Channel": {
+      "main": [
+        [
+          {
+            "node": "8. Enviar WhatsApp",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "9. Has Email?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "8. Enviar WhatsApp": {
+      "main": [
+        [
+          {
+            "node": "6. Respond",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "9. Has Email?": {
+      "main": [
+        [
+          {
+            "node": "9. Enviar Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "9. Enviar Email": {
+      "main": [
+        [
+          {
+            "node": "6. Respond",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
+  },
+  "versionId": "e40cccb6-7f77-4824-9d7b-8b81d61bcc61",
+  "meta": {
+    "instanceId": "ca7bc7f182c365457ea4a94a4dc2efe81c23590ab8904858ce5cabfbdd56e40f"
+  },
+  "id": "lpRxkDSlXduhdpc1",
+  "tags": []
+}

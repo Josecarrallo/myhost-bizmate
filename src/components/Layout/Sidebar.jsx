@@ -33,7 +33,9 @@ import {
   FileText,
   Brain,
   Bell,
-  Lightbulb
+  Lightbulb,
+  Phone,
+  PhoneCall
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -43,7 +45,8 @@ const Sidebar = ({ currentView, onNavigate, isOpen, onClose }) => {
     'overview': true,
     'operations': false,
     'revenue': false,
-    'sales-leads': false,
+    'lumina-ai': false,
+    'kora-ai': false,
     'market-intelligence': false,
     'marketing-growth': false,
     'osiris-ai': false,
@@ -89,6 +92,56 @@ const Sidebar = ({ currentView, onNavigate, isOpen, onClose }) => {
       ]
     },
     {
+      sectionId: 'osiris-ai',
+      sectionLabel: '👁️ OSIRIS.AI (Operations & Control)',
+      sectionIcon: Bot,
+      collapsible: true,
+      items: [
+        { id: 'osiris-ai-assistant', label: 'AI Assistant', icon: Sparkles },
+        { id: 'agents-monitor', label: 'AI Agents Monitor', icon: Activity },
+        { id: 'osiris-alerts', label: 'Alerts / Exceptions', icon: Bell },
+        { id: 'workflows', label: 'Workflows & Automations', icon: Workflow },
+        { id: 'osiris-audit-log', label: 'Logs / Audit', icon: FileText }
+      ]
+    },
+    {
+      sectionId: 'banyu-ai',
+      sectionLabel: '💧 BANYU.AI (WhatsApp Hub)',
+      sectionIcon: MessageSquare,
+      collapsible: true,
+      items: [
+        { id: 'banyu-inbox', label: 'Live Inbox', icon: Inbox },
+        { id: 'banyu-guest-journey', label: 'Guest Journey', icon: CalendarCheck },
+        { id: 'banyu-templates', label: 'Templates', icon: FileText },
+        { id: 'banyu-logs', label: 'Logs', icon: Activity }
+      ]
+    },
+    {
+      sectionId: 'kora-ai',
+      sectionLabel: '📞 KORA.AI (Voice Concierge)',
+      sectionIcon: PhoneCall,
+      collapsible: true,
+      items: [
+        { id: 'kora-calls-inbox', label: 'Calls Inbox', icon: Inbox },
+        { id: 'kora-call-logs', label: 'Call Logs', icon: Phone },
+        { id: 'kora-scripts', label: 'Scripts', icon: FileText }
+      ]
+    },
+    {
+      sectionId: 'lumina-ai',
+      sectionLabel: '🌟 LUMINA.AI (Sales & Leads)',
+      sectionIcon: Target,
+      collapsible: true,
+      items: [
+        { id: 'leads-inbox', label: 'Inbox (New Leads)', icon: Inbox },
+        { id: 'leads-pipeline', label: 'Pipeline', icon: TrendingUp },
+        { id: 'leads-ai-assistant', label: 'AI Sales Assistant', icon: Sparkles },
+        { id: 'leads-followups', label: 'Follow-ups', icon: Clock },
+        { id: 'leads-conversations', label: 'Conversations', icon: MessageSquare },
+        { id: 'leads-templates', label: 'Templates', icon: FileText }
+      ]
+    },
+    {
       sectionId: 'revenue',
       sectionLabel: 'REVENUE & PRICING',
       sectionIcon: DollarSign,
@@ -98,19 +151,6 @@ const Sidebar = ({ currentView, onNavigate, isOpen, onClose }) => {
         { id: 'smartPricing', label: 'Smart Pricing', icon: DollarSign },
         { id: 'reports', label: 'Reports', icon: BarChart3 },
         { id: 'channelIntegration', label: 'Channel Integration', icon: Repeat }
-      ]
-    },
-    {
-      sectionId: 'sales-leads',
-      sectionLabel: 'SALES & LEADS',
-      sectionIcon: Target,
-      collapsible: true,
-      items: [
-        { id: 'leads-inbox', label: 'Inbox (New Leads)', icon: Inbox },
-        { id: 'leads-pipeline', label: 'Pipeline', icon: TrendingUp },
-        { id: 'leads-followups', label: 'Follow-ups', icon: Clock },
-        { id: 'leads-conversations', label: 'Conversations', icon: MessageSquare },
-        { id: 'leads-templates', label: 'Templates', icon: FileText }
       ]
     },
     {
@@ -140,40 +180,11 @@ const Sidebar = ({ currentView, onNavigate, isOpen, onClose }) => {
       ]
     },
     {
-      sectionId: 'osiris-ai',
-      sectionLabel: 'OSIRIS.AI (Owner & Operations Agent)',
-      sectionIcon: Bot,
-      collapsible: true,
-      items: [
-        { id: 'ai-assistant', label: 'AI Assistant', icon: Sparkles },
-        { id: 'agents-monitor', label: 'AI Agents Monitor', icon: Activity },
-        { id: 'workflows', label: 'Workflows & Automations', icon: Workflow },
-        { id: 'my-site', label: 'My Site', icon: Monitor }
-      ]
-    },
-    {
-      sectionId: 'banyu-ai',
-      sectionLabel: 'BANYU.AI (Guest & Marketing Agent)',
-      sectionIcon: Users,
-      collapsible: true,
-      items: [
-        { id: 'crm', label: 'Guest Database / CRM', icon: Users },
-        { id: 'guest-communications', label: 'Guest Communications', icon: MessageSquare },
-        { id: 'analytics', label: 'Guest Analytics', icon: BarChart3 },
-        { id: 'campaigns', label: 'Marketing Campaigns', icon: Megaphone },
-        { id: 'meta-ads', label: 'Meta Ads (Instagram + Facebook)', icon: TrendingUp },
-        { id: 'reviews', label: 'Reviews Management', icon: Star },
-        { id: 'my-website', label: 'Create My Website', icon: Globe },
-        { id: 'booking-engine', label: 'Booking Engine Config', icon: Globe },
-        { id: 'digital-checkin', label: 'Digital Check-in Setup', icon: CheckCircle }
-      ]
-    },
-    {
       sectionId: 'settings',
       sectionLabel: 'SETTINGS',
       sectionIcon: Settings,
       collapsible: false,
-      isDirectLink: true, // Indica que la sección misma es clickeable
+      isDirectLink: true,
       items: []
     }
   ];

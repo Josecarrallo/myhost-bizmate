@@ -21,7 +21,7 @@ import marketingService from '../../services/marketingService';
  * Marketing Overview - Main dashboard for Marketing & Growth module
  * Shows KPIs, recent campaigns, posts, and reviews
  */
-const MarketingOverview = ({ onBack }) => {
+const MarketingOverview = ({ onBack, onNavigate }) => {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [recentCampaigns, setRecentCampaigns] = useState([]);
@@ -173,6 +173,115 @@ const MarketingOverview = ({ onBack }) => {
                 <p className="text-2xl font-bold text-white">{recentPosts.length}</p>
               </div>
             </div>
+          </div>
+        </div>
+
+        {/* Lead Flow Card - Marketing → LUMINA Connection */}
+        <div className="bg-gradient-to-br from-purple-500/10 to-orange-500/10 border border-purple-500/30 rounded-2xl p-6">
+          <div className="flex items-start justify-between mb-4">
+            <div>
+              <h3 className="text-xl font-semibold text-white mb-2 flex items-center gap-2">
+                <Target className="w-6 h-6 text-purple-400" />
+                Lead Flow
+              </h3>
+              <p className="text-white/70 text-sm">
+                Marketing generates leads → LUMINA.AI converts them
+              </p>
+            </div>
+            <div className="px-3 py-1 bg-purple-500/20 text-purple-300 rounded-full text-xs font-medium">
+              Connected
+            </div>
+          </div>
+
+          <div className="flex items-center justify-center py-6 mb-6">
+            <div className="flex items-center gap-4">
+              <div className="flex flex-col items-center">
+                <div className="w-16 h-16 bg-gradient-to-br from-pink-500 to-purple-500 rounded-2xl flex items-center justify-center mb-2">
+                  <Zap className="w-8 h-8 text-white" />
+                </div>
+                <span className="text-sm font-medium text-white">Marketing</span>
+                <span className="text-xs text-white/60">Generates Demand</span>
+              </div>
+
+              <div className="flex items-center gap-2 px-4">
+                <div className="h-0.5 w-16 bg-gradient-to-r from-purple-500 to-orange-500"></div>
+                <span className="text-2xl">→</span>
+                <div className="h-0.5 w-16 bg-gradient-to-r from-orange-500 to-purple-500"></div>
+              </div>
+
+              <div className="flex flex-col items-center">
+                <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-pink-500 rounded-2xl flex items-center justify-center mb-2">
+                  <Target className="w-8 h-8 text-white" />
+                </div>
+                <span className="text-sm font-medium text-white">LUMINA.AI</span>
+                <span className="text-xs text-white/60">Converts to Sales</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <button
+              onClick={() => onNavigate?.('leads-inbox')}
+              className="px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 rounded-xl text-white font-semibold transition-all shadow-lg"
+            >
+              View LUMINA Inbox →
+            </button>
+            <button
+              onClick={() => alert('Simulating lead capture... (Mock)')}
+              className="px-6 py-3 bg-white/10 hover:bg-white/20 border border-white/20 rounded-xl text-white font-semibold transition-all"
+            >
+              Simulate Lead Capture
+            </button>
+          </div>
+        </div>
+
+        {/* Lead Source Metrics Widget */}
+        <div className="bg-[#1a1f2e] rounded-xl border border-white/10 p-6">
+          <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+            <TrendingUp className="w-5 h-5 text-[#FF8C42]" />
+            Lead Source Metrics
+          </h3>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="bg-[#2a2f3a] rounded-lg p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <Facebook className="w-5 h-5 text-blue-400" />
+                <span className="text-xs text-white/60">Meta Ads</span>
+              </div>
+              <p className="text-2xl font-bold text-white">18</p>
+              <p className="text-xs text-green-400 mt-1">+6 this week</p>
+            </div>
+
+            <div className="bg-[#2a2f3a] rounded-lg p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <Instagram className="w-5 h-5 text-pink-400" />
+                <span className="text-xs text-white/60">Organic IG</span>
+              </div>
+              <p className="text-2xl font-bold text-white">12</p>
+              <p className="text-xs text-green-400 mt-1">+4 this week</p>
+            </div>
+
+            <div className="bg-[#2a2f3a] rounded-lg p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <MessageSquare className="w-5 h-5 text-purple-400" />
+                <span className="text-xs text-white/60">TikTok</span>
+              </div>
+              <p className="text-2xl font-bold text-white">3</p>
+              <p className="text-xs text-blue-400 mt-1">+1 this week</p>
+            </div>
+
+            <div className="bg-[#2a2f3a] rounded-lg p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <Globe className="w-5 h-5 text-green-400" />
+                <span className="text-xs text-white/60">Website</span>
+              </div>
+              <p className="text-2xl font-bold text-white">2</p>
+              <p className="text-xs text-white/40 mt-1">same as last week</p>
+            </div>
+          </div>
+          <div className="mt-4 p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg">
+            <p className="text-xs text-blue-200">
+              💡 <strong>Total leads this month: 35</strong> - All leads are automatically sent to LUMINA.AI Inbox for qualification and follow-up.
+            </p>
           </div>
         </div>
 
