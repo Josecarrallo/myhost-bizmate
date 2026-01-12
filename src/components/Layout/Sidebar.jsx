@@ -160,11 +160,18 @@ const Sidebar = ({ currentView, onNavigate, isOpen, onClose }) => {
       collapsible: true,
       items: [
         { id: 'marketing-overview', label: 'Overview', icon: PieChart },
+        { id: 'my-site', label: 'My Site (Website Builder)', icon: Globe },
         { id: 'meta-ads', label: 'Meta Ads', icon: TrendingUp },
         { id: 'content-planner', label: 'Content Planner', icon: CalendarCheck },
         { id: 'creative-studio', label: 'Creative Studio (Soon)', icon: Palette },
         { id: 'reviews', label: 'Reviews Management', icon: Star },
-        { id: 'insights', label: 'Insights', icon: BarChart3 }
+        { id: 'insights', label: 'Insights', icon: BarChart3 },
+        { id: 'crm', label: 'Guest Database / CRM', icon: Users },
+        { id: 'segmentation', label: 'Guest Segmentation', icon: Target },
+        { id: 'booking-engine', label: 'Booking Engine Config', icon: Calendar },
+        { id: 'digital-checkin', label: 'Digital Check-in Setup', icon: CheckCircle },
+        { id: 'campaigns', label: 'Marketing Campaigns', icon: Megaphone },
+        { id: 'analytics', label: 'Guest Analytics', icon: BarChart3 }
       ]
     },
     {
