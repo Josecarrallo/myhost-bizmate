@@ -43,6 +43,7 @@ import GuestAnalytics from './components/GuestAnalytics/GuestAnalytics';
 import AIOperatorDemo from './components/ai-operator/AIOperatorDemo';
 import MarketingOverview from './components/Marketing/MarketingOverview';
 import ContentPlanner from './components/Marketing/ContentPlanner';
+import WebsiteAds from './components/Marketing/WebsiteAds';
 import ReviewsManagement from './components/Reviews/ReviewsManagement';
 import CreateMyWebsite from './components/MySite/CreateMyWebsite';
 import GuestCommunications from './components/GuestCommunications/GuestCommunications';
@@ -359,8 +360,8 @@ export default function App() {
       case 'marketing-overview':
         return <MarketingOverview key="marketing-overview" onBack={() => setCurrentView('overview')} onNavigate={setCurrentView} />;
 
-      case 'meta-ads':
-        return <MetaAds key="meta-ads" onBack={() => setCurrentView('overview')} />;
+      case 'website-ads':
+        return <WebsiteAds key="website-ads" onBack={() => setCurrentView('overview')} />;
 
       case 'content-planner':
         return <ContentPlanner key="content-planner" onBack={() => setCurrentView('overview')} />;
