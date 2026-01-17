@@ -220,6 +220,9 @@ export default function App() {
       case 'bookings':
         return <Bookings key="bookings" onBack={() => setCurrentView('overview')} />;
 
+      case 'messages':
+        return <Messages key="messages" onBack={() => setCurrentView('overview')} />;
+
       case 'calendar':
         return <PMSCalendar onBack={() => setCurrentView('overview')} />;
 

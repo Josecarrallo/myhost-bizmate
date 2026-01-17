@@ -95,6 +95,7 @@ const Sidebar = ({ currentView, onNavigate, isOpen, onClose }) => {
         { id: 'checkin-checkout', label: 'Check-in / Check-out', icon: CheckCircle, indent: true },
         { id: 'daily-operations', label: 'Daily Operations', icon: Clock, indent: true },
         { id: 'issues-tasks', label: 'Issues & Tasks', icon: AlertCircle, indent: true },
+        { id: 'messages', label: 'Messages', icon: MessageSquare, indent: true },
 
         // Control sub-section
         { id: 'control-header', label: 'Control', isSubHeader: true, icon: Bot },

@@ -151,7 +151,7 @@ const Payments = ({ onBack }) => {
   }
 
   return (
-    <div className="min-h-screen bg-[#2a2f3a] p-4 pb-24 relative overflow-hidden">
+    <div className="min-h-screen bg-[#2a2f3a] p-4 pb-24 relative overflow-auto">
       {/* Animated background elements */}
       <div className="absolute inset-0 overflow-hidden">
         <div className="absolute w-96 h-96 bg-[#d85a2a]/5 rounded-full blur-3xl top-20 -left-48 animate-pulse"></div>

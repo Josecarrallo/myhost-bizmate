@@ -16,7 +16,10 @@ import {
   Image as ImageIcon,
   Play,
   Pause,
-  Volume2
+  Volume2,
+  Mail,
+  Phone,
+  Inbox
 } from 'lucide-react';
 import { supabaseService } from '../../services/supabase';
 import { dataService } from '../../services/data';
@@ -25,6 +28,7 @@ const Messages = ({ onBack }) => {
   const [messageText, setMessageText] = useState('');
   const [selectedConversation, setSelectedConversation] = useState(null);
   const [filter, setFilter] = useState('all'); // all, unread, ai-handled
+  const [channelFilter, setChannelFilter] = useState('all'); // all, whatsapp, email, voice, sms
   const [searchQuery, setSearchQuery] = useState('');
   const [conversations, setConversations] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -92,6 +96,9 @@ const Messages = ({ onBack }) => {
         const propertyId = msg.property_id || booking?.propertyId;
         const propertyName = propertyMap[propertyId] || 'Property';
 
+        // Determine channel/platform
+        const channel = msg.platform || 'whatsapp'; // Default to whatsapp if not specified
+
         return {
           id: index + 1,
           name: msg.guest_name || 'Guest',
@@ -106,6 +113,7 @@ const Messages = ({ onBack }) => {
           checkIn: '-',
           status: msg.status === 'unread' ? 'pending' : 'confirmed',
           messageType: msg.message_type,
+          channel: channel, // whatsapp, email, voice, sms
           voiceDuration: msg.message_type === 'voice' ? '0:15' : undefined,
           photoUrl: msg.media_url
         };
@@ -158,12 +166,14 @@ const Messages = ({ onBack }) => {
       (filter === 'unread' && conv.unread) ||
       (filter === 'ai-handled' && conv.aiHandled);
 
+    const matchesChannel = channelFilter === 'all' || conv.channel === channelFilter;
+
     const matchesSearch = searchQuery === '' ||
       conv.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       conv.property.toLowerCase().includes(searchQuery.toLowerCase()) ||
       conv.message.toLowerCase().includes(searchQuery.toLowerCase());
 
-    return matchesFilter && matchesSearch;
+    return matchesFilter && matchesChannel && matchesSearch;
   });
 
   const handleTemplateClick = (template) => {
@@ -197,11 +207,74 @@ const Messages = ({ onBack }) => {
             <ChevronLeft className="w-5 h-5" />
             <span className="font-semibold">Back</span>
           </button>
-          <div className="text-center">
-            <h2 className="text-3xl md:text-4xl font-black text-[#FF8C42] mb-1">WhatsApp IA</h2>
-            <p className="text-sm md:text-base font-semibold text-orange-500">AI-Powered Messaging</p>
+          <div className="text-center flex-1">
+            <h2 className="text-3xl md:text-4xl font-black text-[#FF8C42] mb-1">Guest Inbox</h2>
+            <p className="text-sm md:text-base font-semibold text-orange-500">Multi-Channel Communication Center</p>
           </div>
           <div className="w-20"></div>
+        </div>
+      </div>
+
+      {/* Channel Tabs */}
+      <div className="bg-[#1f2937]/95 backdrop-blur-sm border-b-2 border-[#d85a2a]/20 relative z-10">
+        <div className="max-w-7xl mx-auto px-6 py-4">
+          <div className="flex gap-2 overflow-x-auto">
+            <button
+              onClick={() => setChannelFilter('all')}
+              className={`flex items-center gap-2 px-6 py-3 rounded-xl font-bold transition-all ${
+                channelFilter === 'all'
+                  ? 'bg-gradient-to-r from-orange-500 to-orange-600 text-white shadow-lg'
+                  : 'bg-[#2a2f3a] text-gray-400 hover:text-white hover:bg-[#2a2f3a]/80'
+              }`}
+            >
+              <Inbox className="w-5 h-5" />
+              <span>All Messages</span>
+            </button>
+            <button
+              onClick={() => setChannelFilter('whatsapp')}
+              className={`flex items-center gap-2 px-6 py-3 rounded-xl font-bold transition-all ${
+                channelFilter === 'whatsapp'
+                  ? 'bg-gradient-to-r from-green-500 to-green-600 text-white shadow-lg'
+                  : 'bg-[#2a2f3a] text-gray-400 hover:text-white hover:bg-[#2a2f3a]/80'
+              }`}
+            >
+              <MessageSquare className="w-5 h-5" />
+              <span>WhatsApp</span>
+            </button>
+            <button
+              onClick={() => setChannelFilter('email')}
+              className={`flex items-center gap-2 px-6 py-3 rounded-xl font-bold transition-all ${
+                channelFilter === 'email'
+                  ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg'
+                  : 'bg-[#2a2f3a] text-gray-400 hover:text-white hover:bg-[#2a2f3a]/80'
+              }`}
+            >
+              <Mail className="w-5 h-5" />
+              <span>Email</span>
+            </button>
+            <button
+              onClick={() => setChannelFilter('voice')}
+              className={`flex items-center gap-2 px-6 py-3 rounded-xl font-bold transition-all ${
+                channelFilter === 'voice'
+                  ? 'bg-gradient-to-r from-purple-500 to-purple-600 text-white shadow-lg'
+                  : 'bg-[#2a2f3a] text-gray-400 hover:text-white hover:bg-[#2a2f3a]/80'
+              }`}
+            >
+              <Phone className="w-5 h-5" />
+              <span>Voice/VAPI</span>
+            </button>
+            <button
+              onClick={() => setChannelFilter('sms')}
+              className={`flex items-center gap-2 px-6 py-3 rounded-xl font-bold transition-all ${
+                channelFilter === 'sms'
+                  ? 'bg-gradient-to-r from-pink-500 to-pink-600 text-white shadow-lg'
+                  : 'bg-[#2a2f3a] text-gray-400 hover:text-white hover:bg-[#2a2f3a]/80'
+              }`}
+            >
+              <MessageSquare className="w-5 h-5" />
+              <span>SMS</span>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -323,9 +396,36 @@ const Messages = ({ onBack }) => {
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-start justify-between mb-1">
-                        <div>
-                          <h4 className="text-base font-black text-[#FF8C42]">{conv.name}</h4>
-                          <p className="text-xs font-semibold text-gray-500">{conv.property}</p>
+                        <div className="flex items-center gap-2">
+                          <div>
+                            <h4 className="text-base font-black text-[#FF8C42]">{conv.name}</h4>
+                            <p className="text-xs font-semibold text-gray-500">{conv.property}</p>
+                          </div>
+                          {/* Channel Badge */}
+                          {conv.channel === 'whatsapp' && (
+                            <div className="px-2 py-1 bg-green-100 rounded-lg flex items-center gap-1">
+                              <MessageSquare className="w-3 h-3 text-green-600" />
+                              <span className="text-xs font-bold text-green-600">WhatsApp</span>
+                            </div>
+                          )}
+                          {conv.channel === 'email' && (
+                            <div className="px-2 py-1 bg-blue-100 rounded-lg flex items-center gap-1">
+                              <Mail className="w-3 h-3 text-blue-600" />
+                              <span className="text-xs font-bold text-blue-600">Email</span>
+                            </div>
+                          )}
+                          {conv.channel === 'voice' && (
+                            <div className="px-2 py-1 bg-purple-100 rounded-lg flex items-center gap-1">
+                              <Phone className="w-3 h-3 text-purple-600" />
+                              <span className="text-xs font-bold text-purple-600">Voice</span>
+                            </div>
+                          )}
+                          {conv.channel === 'sms' && (
+                            <div className="px-2 py-1 bg-pink-100 rounded-lg flex items-center gap-1">
+                              <MessageSquare className="w-3 h-3 text-pink-600" />
+                              <span className="text-xs font-bold text-pink-600">SMS</span>
+                            </div>
+                          )}
                         </div>
                         <div className="flex items-center gap-2">
                           {conv.messageType === 'voice' && (
