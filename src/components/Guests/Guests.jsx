@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import GuestProfile from './GuestProfile';
+import { dataService } from '../../services/data';
 
 const Guests = ({ onBack }) => {
   const { user } = useAuth();
@@ -56,45 +57,41 @@ const Guests = ({ onBack }) => {
   };
 
   const loadGuests = async () => {
-    setLoading(true);
+    try {
+      setLoading(true);
 
-    // TEMPORARY: Using mock data with José's real info
-    // TODO: Fix Supabase anon key permissions issue
-    const mockGuests = [
-      {
-        id: '98171a38-179e-421c-9568-a2b4a61f03fa',
-        name: 'José Carrallo',
-        email: 'josecarrallodelafuente@gmail.com',
-        phone: '+34 619 79 46 04',
-        lastBooking: new Date().toLocaleDateString(),
-        totalBookings: 0,
-        status: 'active',
-        nationality: 'Spain'
-      },
-      {
-        id: '1',
-        name: 'John Smith',
-        email: 'john.smith@email.com',
-        phone: '+1234567890',
-        lastBooking: '12/23/2025',
-        totalBookings: 2,
-        status: 'active',
-        nationality: 'United States'
-      },
-      {
-        id: '2',
-        name: 'Emma Wilson',
-        email: 'emma.wilson@email.com',
-        phone: '+447123456789',
-        lastBooking: '12/20/2025',
-        totalBookings: 1,
-        status: 'active',
-        nationality: 'United Kingdom'
+      // Load real guests from Supabase
+      const guestsData = await dataService.getGuests();
+
+      console.log('[Guests] Loaded from Supabase:', guestsData?.length || 0);
+
+      if (guestsData && guestsData.length > 0) {
+        // Map Supabase data to component format
+        const mappedGuests = guestsData.map(guest => ({
+          id: guest.id,
+          name: guest.full_name,
+          email: guest.email || 'N/A',
+          phone: guest.phone || guest.whatsapp || 'N/A',
+          lastBooking: guest.last_stay_date
+            ? new Date(guest.last_stay_date).toLocaleDateString()
+            : 'Never',
+          totalBookings: guest.total_stays || 0,
+          status: guest.total_stays > 0 ? 'active' : 'prospect',
+          nationality: 'Unknown', // Not in guest_contacts table
+          totalRevenue: guest.total_revenue || 0,
+          segment: guest.segment || []
+        }));
+
+        setGuests(mappedGuests);
+      } else {
+        setGuests([]);
       }
-    ];
-
-    setGuests(mockGuests);
-    setLoading(false);
+    } catch (error) {
+      console.error('[Guests] Error loading:', error);
+      setGuests([]);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const filteredGuests = guests.filter(guest =>

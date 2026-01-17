@@ -170,5 +170,20 @@ export const dataService = {
     }
 
     return data[0] || { active_workflows: 0, active_alerts: 0, system_health: 'unknown' };
+  },
+
+  // Get all guest contacts
+  async getGuests() {
+    const { data, error } = await supabase
+      .from('guest_contacts')
+      .select('*')
+      .order('last_stay_date', { ascending: false, nullsFirst: false });
+
+    if (error) {
+      console.error('Error fetching guests:', error);
+      return [];
+    }
+
+    return data;
   }
 };
