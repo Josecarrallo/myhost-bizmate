@@ -117,18 +117,18 @@ const VoiceAssistant = () => {
   const getButtonState = () => {
     if (isLoading) return {
       text: 'Connecting...',
-      icon: <Loader2 className="w-6 h-6 animate-spin" />,
+      icon: <Loader2 className="w-5 h-5 animate-spin" />,
       color: 'bg-yellow-500 hover:bg-yellow-600'
     };
     if (isCallActive) return {
       text: 'End Call',
-      icon: <PhoneOff className="w-6 h-6" />,
+      icon: <PhoneOff className="w-5 h-5" />,
       color: 'bg-red-500 hover:bg-red-600'
     };
     return {
-      text: 'Talk to Ayu',
-      icon: <Phone className="w-6 h-6" />,
-      color: 'bg-green-700 hover:bg-green-800'
+      text: 'Talk to LUMINA',
+      icon: <Phone className="w-5 h-5" />,
+      color: 'bg-gradient-to-r from-[#d85a2a] to-[#f5a524] hover:from-[#c74d1f] hover:to-[#e09518]'
     };
   };
 
@@ -146,17 +146,17 @@ const VoiceAssistant = () => {
 
         {/* Panel de estado cuando está en llamada */}
         {isCallActive && (
-          <div className="bg-white rounded-2xl shadow-2xl p-6 w-80 animate-fade-in border-2 border-green-200">
+          <div className="bg-white rounded-2xl shadow-2xl p-6 w-80 animate-fade-in border-2 border-orange-200">
             <div className="flex items-center gap-3 mb-4">
-              <div className={`w-4 h-4 rounded-full ${isSpeaking ? 'bg-green-500 animate-pulse' : 'bg-gray-300'}`} />
+              <div className={`w-4 h-4 rounded-full ${isSpeaking ? 'bg-orange-500 animate-pulse' : 'bg-gray-300'}`} />
               <span className="text-base font-semibold text-gray-800">
-                {isSpeaking ? '🎤 Listening...' : '💬 Ayu is responding...'}
+                {isSpeaking ? '🎤 Listening...' : '💬 LUMINA is responding...'}
               </span>
             </div>
 
             {transcript && (
-              <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl p-4 mt-3 border border-green-100">
-                <p className="text-xs font-medium text-green-600 mb-2">Transcript:</p>
+              <div className="bg-gradient-to-br from-orange-50 to-orange-100 rounded-xl p-4 mt-3 border border-orange-200">
+                <p className="text-xs font-medium text-orange-600 mb-2">Transcript:</p>
                 <p className="text-sm text-gray-700 leading-relaxed">{transcript}</p>
               </div>
             )}
@@ -177,13 +177,13 @@ const VoiceAssistant = () => {
           onClick={isCallActive ? handleEndCall : handleStartCall}
           disabled={isLoading}
           className={`
-            flex items-center gap-3 px-8 py-4 rounded-full shadow-2xl
-            text-white font-bold text-lg
+            flex items-center gap-2 px-5 py-3 rounded-full shadow-2xl
+            text-white font-bold text-base
             transition-all duration-300 transform
             ${buttonState.color}
             ${isLoading ? 'opacity-70 cursor-wait' : 'hover:scale-110 hover:shadow-3xl'}
             ${isCallActive ? 'animate-pulse' : ''}
-            border-4 border-white
+            border-2 border-white
           `}
           title={buttonState.text}
         >
@@ -198,7 +198,7 @@ const VoiceAssistant = () => {
               🤖 24/7 Voice Assistant
             </p>
             <p className="text-xs text-white/90">
-              Ayu - Izumi Hotel Receptionist
+              LUMINA - Sales Assistant
             </p>
           </div>
         )}

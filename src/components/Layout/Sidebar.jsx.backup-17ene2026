@@ -35,10 +35,7 @@ import {
   Bell,
   Lightbulb,
   Phone,
-  PhoneCall,
-  AlertCircle,
-  Instagram,
-  Mail
+  PhoneCall
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -47,11 +44,13 @@ const Sidebar = ({ currentView, onNavigate, isOpen, onClose }) => {
   const [expandedSections, setExpandedSections] = useState({
     'overview': true,
     'operations': false,
-    'lumina-ai': false,
-    'customer-communications': false,
-    'marketing-growth': false,
-    'market-intelligence': false,
     'revenue': false,
+    'lumina-ai': false,
+    'kora-ai': false,
+    'market-intelligence': false,
+    'marketing-growth': false,
+    'osiris-ai': false,
+    'banyu-ai': false,
     'settings': false
   });
 
@@ -81,33 +80,56 @@ const Sidebar = ({ currentView, onNavigate, isOpen, onClose }) => {
     },
     {
       sectionId: 'operations',
-      sectionLabel: 'OPERATIONS',
+      sectionLabel: 'OPERATIONS & GUESTS',
       sectionIcon: LayoutDashboard,
       collapsible: true,
       items: [
-        // Guest & Properties sub-section
-        { id: 'guest-properties-header', label: 'Guest & Properties', isSubHeader: true, icon: Building2 },
-        { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, indent: true },
-        { id: 'properties', label: 'Properties', icon: Building2, indent: true },
-        { id: 'bookings', label: 'Bookings', icon: Calendar, indent: true },
-        { id: 'calendar', label: 'Calendar', icon: Calendar, indent: true },
-        { id: 'guests', label: 'Guests', icon: Users, indent: true },
-        { id: 'checkin-checkout', label: 'Check-in / Check-out', icon: CheckCircle, indent: true },
-        { id: 'daily-operations', label: 'Daily Operations', icon: Clock, indent: true },
-        { id: 'issues-tasks', label: 'Issues & Tasks', icon: AlertCircle, indent: true },
-
-        // Control sub-section
-        { id: 'control-header', label: 'Control', isSubHeader: true, icon: Bot },
-        { id: 'osiris-ai-assistant', label: 'AI Assistant', icon: Sparkles, indent: true },
-        { id: 'agents-monitor', label: 'AI Agents Monitor', icon: Activity, indent: true },
-        { id: 'osiris-alerts', label: 'Alerts / Exceptions', icon: Bell, indent: true },
-        { id: 'workflows', label: 'Workflows & Automations', icon: Workflow, indent: true },
-        { id: 'osiris-audit-log', label: 'Logs / Audit', icon: FileText, indent: true }
+        { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+        { id: 'properties', label: 'Properties', icon: Building2 },
+        { id: 'bookings', label: 'Bookings', icon: Calendar },
+        { id: 'calendar', label: 'Calendar', icon: Calendar },
+        { id: 'guests', label: 'Guests', icon: Users }
+      ]
+    },
+    {
+      sectionId: 'osiris-ai',
+      sectionLabel: '👁️ OSIRIS.AI (Operations & Control)',
+      sectionIcon: Bot,
+      collapsible: true,
+      items: [
+        { id: 'osiris-ai-assistant', label: 'AI Assistant', icon: Sparkles },
+        { id: 'agents-monitor', label: 'AI Agents Monitor', icon: Activity },
+        { id: 'osiris-alerts', label: 'Alerts / Exceptions', icon: Bell },
+        { id: 'workflows', label: 'Workflows & Automations', icon: Workflow },
+        { id: 'osiris-audit-log', label: 'Logs / Audit', icon: FileText }
+      ]
+    },
+    {
+      sectionId: 'banyu-ai',
+      sectionLabel: '💧 BANYU.AI (WhatsApp Hub)',
+      sectionIcon: MessageSquare,
+      collapsible: true,
+      items: [
+        { id: 'banyu-inbox', label: 'Live Inbox', icon: Inbox },
+        { id: 'banyu-guest-journey', label: 'Guest Journey', icon: CalendarCheck },
+        { id: 'banyu-templates', label: 'Templates', icon: FileText },
+        { id: 'banyu-logs', label: 'Logs', icon: Activity }
+      ]
+    },
+    {
+      sectionId: 'kora-ai',
+      sectionLabel: '📞 KORA.AI (Voice Concierge)',
+      sectionIcon: PhoneCall,
+      collapsible: true,
+      items: [
+        { id: 'kora-calls-inbox', label: 'Calls Inbox', icon: Inbox },
+        { id: 'kora-call-logs', label: 'Call Logs', icon: Phone },
+        { id: 'kora-scripts', label: 'Scripts', icon: FileText }
       ]
     },
     {
       sectionId: 'lumina-ai',
-      sectionLabel: 'SALES & LEADS',
+      sectionLabel: '🌟 LUMINA.AI (Sales & Leads)',
       sectionIcon: Target,
       collapsible: true,
       items: [
@@ -120,30 +142,15 @@ const Sidebar = ({ currentView, onNavigate, isOpen, onClose }) => {
       ]
     },
     {
-      sectionId: 'customer-communications',
-      sectionLabel: 'CUSTOMER COMMUNICATIONS',
-      sectionIcon: MessageSquare,
+      sectionId: 'revenue',
+      sectionLabel: 'REVENUE & PRICING',
+      sectionIcon: DollarSign,
       collapsible: true,
       items: [
-        { id: 'whatsapp-header', label: 'WhatsApp Assistant', isSubHeader: true, icon: MessageSquare },
-        { id: 'banyu-inbox', label: 'Live Inbox', icon: Inbox, indent: true },
-        { id: 'banyu-guest-journey', label: 'Guest Journey', icon: CalendarCheck, indent: true },
-        { id: 'banyu-templates', label: 'Templates', icon: FileText, indent: true },
-        { id: 'banyu-logs', label: 'Logs', icon: Activity, indent: true },
-
-        { id: 'voice-header', label: 'Voice Assistant', isSubHeader: true, icon: PhoneCall },
-        { id: 'kora-calls-inbox', label: 'Calls Inbox', icon: Inbox, indent: true },
-        { id: 'kora-call-logs', label: 'Call Logs', icon: Phone, indent: true },
-        { id: 'kora-scripts', label: 'Scripts', icon: FileText, indent: true },
-
-        { id: 'social-header', label: 'Instagram / Social DM', isSubHeader: true, icon: Instagram },
-        { id: 'social-inbox', label: 'Inbox', icon: Inbox, indent: true },
-        { id: 'social-templates', label: 'Templates', icon: FileText, indent: true },
-
-        { id: 'web-header', label: 'Web / Chat / Email', isSubHeader: true, icon: Mail },
-        { id: 'web-inbox', label: 'Inbox', icon: Inbox, indent: true },
-        { id: 'web-automations', label: 'Automations', icon: Workflow, indent: true },
-        { id: 'web-logs', label: 'Logs', icon: Activity, indent: true }
+        { id: 'payments', label: 'Payments', icon: CreditCard },
+        { id: 'smartPricing', label: 'Smart Pricing', icon: DollarSign },
+        { id: 'reports', label: 'Reports', icon: BarChart3 },
+        { id: 'channelIntegration', label: 'Channel Integration', icon: Repeat }
       ]
     },
     {
@@ -162,18 +169,6 @@ const Sidebar = ({ currentView, onNavigate, isOpen, onClose }) => {
         { id: 'segmentation', label: 'Guest Segmentation', icon: Target },
         { id: 'booking-engine', label: 'Booking Engine Config', icon: Calendar },
         { id: 'digital-checkin', label: 'Digital Check-in Setup', icon: CheckCircle }
-      ]
-    },
-    {
-      sectionId: 'revenue',
-      sectionLabel: 'REVENUE & PRICING',
-      sectionIcon: DollarSign,
-      collapsible: true,
-      items: [
-        { id: 'payments', label: 'Payments', icon: CreditCard },
-        { id: 'smartPricing', label: 'Smart Pricing', icon: DollarSign },
-        { id: 'reports', label: 'Reports', icon: BarChart3 },
-        { id: 'channelIntegration', label: 'Channel Integration', icon: Repeat }
       ]
     },
     {
@@ -212,15 +207,15 @@ const Sidebar = ({ currentView, onNavigate, isOpen, onClose }) => {
       <div
         className={`
           fixed lg:static inset-y-0 left-0 z-50
-          w-80 bg-[#2a2f3a] h-screen flex flex-col border-r border-white/10
+          w-64 bg-[#2a2f3a] h-screen flex flex-col border-r border-white/10
           transform transition-transform duration-300 ease-in-out
           ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
         `}
       >
         {/* Header */}
         <div className="bg-gradient-to-r from-[#d85a2a] to-[#f5a524] p-6">
-          <h1 className="text-white text-2xl font-bold">MY HOST</h1>
-          <p className="text-white text-base font-medium">BizMate</p>
+          <h1 className="text-white text-xl font-bold">MY HOST</h1>
+          <p className="text-white text-sm font-medium">BizMate</p>
         </div>
 
       {/* Navigation Menu */}
@@ -235,34 +230,34 @@ const Sidebar = ({ currentView, onNavigate, isOpen, onClose }) => {
               {section.collapsible ? (
                 <button
                   onClick={() => toggleSection(section.sectionId)}
-                  className="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-bold text-white hover:bg-white/5 transition-colors uppercase tracking-wider"
+                  className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-bold text-white hover:bg-white/5 transition-colors uppercase tracking-wider"
                 >
-                  <SectionIcon className="w-5 h-5 flex-shrink-0" />
+                  <SectionIcon className="w-4 h-4 flex-shrink-0" />
                   <span className="flex-1 text-left">{section.sectionLabel}</span>
                   {isExpanded ? (
-                    <ChevronDown className="w-5 h-5" />
+                    <ChevronDown className="w-4 h-4" />
                   ) : (
-                    <ChevronRight className="w-5 h-5" />
+                    <ChevronRight className="w-4 h-4" />
                   )}
                 </button>
               ) : section.isDirectLink ? (
                 <button
                   onClick={() => handleNavigate(section.sectionId)}
                   className={`
-                    w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-bold uppercase tracking-wider transition-colors
+                    w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-colors
                     ${currentView === section.sectionId
                       ? 'bg-[#d85a2a]/20 text-[#FF8C42]'
                       : 'text-white hover:bg-white/5'
                     }
                   `}
                 >
-                  <SectionIcon className="w-5 h-5 flex-shrink-0" />
+                  <SectionIcon className="w-4 h-4 flex-shrink-0" />
                   <span className="flex-1 text-left">{section.sectionLabel}</span>
                 </button>
               ) : (
-                <div className="px-4 py-2.5">
-                  <h3 className="text-sm font-bold text-gray-600 uppercase tracking-wider flex items-center gap-3">
-                    <SectionIcon className="w-5 h-5" />
+                <div className="px-3 py-2">
+                  <h3 className="text-xs font-bold text-gray-600 uppercase tracking-wider flex items-center gap-2">
+                    <SectionIcon className="w-4 h-4" />
                     {section.sectionLabel}
                   </h3>
                 </div>
@@ -275,37 +270,20 @@ const Sidebar = ({ currentView, onNavigate, isOpen, onClose }) => {
                     const Icon = item.icon;
                     const isActive = currentView === item.id;
 
-                    // Render sub-header
-                    if (item.isSubHeader) {
-                      return (
-                        <div
-                          key={item.id}
-                          className="px-4 py-2 mt-3 first:mt-1"
-                        >
-                          <h4 className="text-sm font-bold text-white/70 uppercase tracking-wider flex items-center gap-2">
-                            <Icon className="w-5 h-5" />
-                            {item.label}
-                          </h4>
-                        </div>
-                      );
-                    }
-
-                    // Render regular item
                     return (
                       <button
                         key={item.id}
                         onClick={() => handleNavigate(item.id)}
                         className={`
-                          w-full flex items-center gap-3 px-4 py-2 rounded-lg text-base font-medium
-                          transition-colors
-                          ${item.indent ? 'ml-6' : 'ml-2'}
+                          w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium
+                          transition-colors ml-2
                           ${isActive
                             ? 'bg-[#d85a2a]/20 text-[#FF8C42] border-l-2 border-[#FF8C42]'
                             : 'text-white/90 hover:bg-white/5 hover:text-white'
                           }
                         `}
                       >
-                        <Icon className="w-5 h-5 flex-shrink-0" />
+                        <Icon className="w-4 h-4 flex-shrink-0" />
                         <span className="flex-1 text-left">{item.label}</span>
                       </button>
                     );
@@ -320,9 +298,9 @@ const Sidebar = ({ currentView, onNavigate, isOpen, onClose }) => {
         <div className="mt-6 pt-6 border-t border-white/10">
           <button
             onClick={signOut}
-            className="w-full flex items-center gap-3 px-4 py-2 rounded-lg text-base font-medium text-red-400 hover:bg-red-500/10 transition-colors"
+            className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-red-400 hover:bg-red-500/10 transition-colors"
           >
-            <LogOut className="w-5 h-5 flex-shrink-0" />
+            <LogOut className="w-4 h-4 flex-shrink-0" />
             <span className="flex-1 text-left">Logout</span>
           </button>
         </div>

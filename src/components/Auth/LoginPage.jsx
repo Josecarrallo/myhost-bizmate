@@ -68,13 +68,13 @@ const LoginPage = () => {
 
           {/* Right Side: Login Form */}
           <div className="w-full md:w-auto flex justify-center md:justify-end">
-            <div className="md:bg-white md:rounded-2xl md:shadow-2xl p-0 md:p-5 w-full max-w-sm transition-all duration-300 md:hover:shadow-2xl md:border md:border-white/20">
-              <div className="text-center mb-4">
-                <h2 className="text-xl font-extrabold text-white md:text-slate-900 tracking-tight">Sign In</h2>
-                <div className="mt-1 h-1 w-10 bg-[#FF8C42] mx-auto rounded-full" />
+            <div className="md:bg-white md:rounded-2xl md:shadow-2xl p-0 md:p-6 w-full max-w-md transition-all duration-300 md:hover:shadow-2xl md:border md:border-white/20">
+              <div className="text-center mb-5">
+                <h2 className="text-3xl font-extrabold text-white md:text-slate-900 tracking-tight">Sign In</h2>
+                <div className="mt-2 h-1 w-12 bg-[#FF8C42] mx-auto rounded-full" />
               </div>
 
-              <form onSubmit={handleSubmit} className="space-y-3">
+              <form onSubmit={handleSubmit} className="space-y-4">
                 {/* Error Message */}
                 {error && (
                   <div className="bg-red-50 border border-red-200 rounded-lg p-3 flex items-start gap-2">
@@ -87,19 +87,19 @@ const LoginPage = () => {
                 )}
 
                 {/* Email Field */}
-                <div className="space-y-1">
-                  <label htmlFor="email" className="text-white md:text-slate-700 font-semibold ml-1 block text-sm">
+                <div className="space-y-2">
+                  <label htmlFor="email" className="text-white md:text-slate-700 font-semibold ml-1 block text-base">
                     Email Address
                   </label>
                   <div className="relative group">
-                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-[#FF8C42] transition-colors" />
+                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 group-focus-within:text-[#FF8C42] transition-colors" />
                     <input
                       id="email"
                       type="email"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       placeholder="jose@myhost.com"
-                      className="w-full pl-10 h-10 bg-white md:bg-slate-50 border border-white/30 md:border-slate-200 rounded-lg focus:border-[#FF8C42] focus:ring-2 focus:ring-[#FF8C42]/20 focus:outline-none text-sm transition-all"
+                      className="w-full pl-11 h-12 bg-white md:bg-slate-50 border border-white/30 md:border-slate-200 rounded-lg focus:border-[#FF8C42] focus:ring-2 focus:ring-[#FF8C42]/20 focus:outline-none text-base transition-all"
                       required
                       disabled={loading}
                     />
@@ -107,19 +107,19 @@ const LoginPage = () => {
                 </div>
 
                 {/* Password Field */}
-                <div className="space-y-1">
-                  <label htmlFor="password" className="text-white md:text-slate-700 font-semibold ml-1 block text-sm">
+                <div className="space-y-2">
+                  <label htmlFor="password" className="text-white md:text-slate-700 font-semibold ml-1 block text-base">
                     Password
                   </label>
                   <div className="relative group">
-                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-[#FF8C42] transition-colors" />
+                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 group-focus-within:text-[#FF8C42] transition-colors" />
                     <input
                       id="password"
                       type="password"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       placeholder="•••••••••"
-                      className="w-full pl-10 h-10 bg-white md:bg-slate-50 border border-white/30 md:border-slate-200 rounded-lg focus:border-[#FF8C42] focus:ring-2 focus:ring-[#FF8C42]/20 focus:outline-none text-sm transition-all"
+                      className="w-full pl-11 h-12 bg-white md:bg-slate-50 border border-white/30 md:border-slate-200 rounded-lg focus:border-[#FF8C42] focus:ring-2 focus:ring-[#FF8C42]/20 focus:outline-none text-base transition-all"
                       required
                       disabled={loading}
                     />
@@ -130,11 +130,11 @@ const LoginPage = () => {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full h-10 flex items-center justify-center text-sm font-bold bg-[#FF8C42] hover:bg-[#E67E30] text-white rounded-lg transition-all shadow-lg shadow-orange-500/20 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full h-12 flex items-center justify-center text-base font-bold bg-[#FF8C42] hover:bg-[#E67E30] text-white rounded-lg transition-all shadow-lg shadow-orange-500/20 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {loading ? (
                     <span className="flex items-center justify-center gap-2">
-                      <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+                      <svg className="animate-spin h-6 w-6" viewBox="0 0 24 24">
                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
                         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                       </svg>
@@ -146,8 +146,8 @@ const LoginPage = () => {
                 </button>
 
                 {/* Footer */}
-                <div className="hidden md:block text-center pt-3 border-t border-slate-100">
-                  <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">AI Powered · Secure · Private</p>
+                <div className="hidden md:block text-center pt-4 border-t border-slate-100">
+                  <p className="text-sm font-bold text-slate-400 uppercase tracking-wider">AI Powered · Secure · Private</p>
                 </div>
               </form>
             </div>

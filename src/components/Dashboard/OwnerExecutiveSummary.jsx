@@ -149,10 +149,10 @@ const OwnerExecutiveSummary = ({ userName = 'José', onNavigate }) => {
         {/* Main Content */}
         <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto">
           {/* Greeting */}
-          <h2 className="text-2xl sm:text-3xl font-black text-white mb-1">
+          <h2 className="text-3xl sm:text-4xl font-black text-white mb-2">
             {getGreeting()}, {userName}
           </h2>
-          <p className="text-base sm:text-lg text-white/90 font-semibold mb-6 sm:mb-8">
+          <p className="text-lg sm:text-xl text-white/90 font-semibold mb-6 sm:mb-8">
             Owner Executive Summary - {new Date().toLocaleDateString('en-US', {
               weekday: 'long',
               year: 'numeric',
@@ -169,14 +169,14 @@ const OwnerExecutiveSummary = ({ userName = 'José', onNavigate }) => {
                   <Lightbulb className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h3 className="text-base sm:text-lg font-semibold text-white mb-2">
+                  <h3 className="text-lg sm:text-xl font-semibold text-white mb-2">
                     MyHost AI - Today's Snapshot
                   </h3>
-                  <p className="text-white/90 text-sm leading-relaxed mb-1">
+                  <p className="text-white/90 text-base leading-relaxed mb-1">
                     You have {stats?.active_bookings || 0} active booking{stats?.active_bookings !== 1 ? 's' : ''} with an occupancy rate of {stats?.occupancy_rate || 0}%.
                     {checkIns.length > 0 && ` ${checkIns.length} guest${checkIns.length > 1 ? 's are' : ' is'} checking in today.`}
                   </p>
-                  <p className="text-white/90 text-sm leading-relaxed">
+                  <p className="text-white/90 text-base leading-relaxed">
                     Total revenue: ${stats?.total_revenue?.toLocaleString() || '0'}. Average nightly rate: ${stats?.avg_nightly_rate?.toFixed(0) || '0'}.
                   </p>
                 </div>
