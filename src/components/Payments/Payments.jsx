@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { StatCard } from '../common';
 import { supabaseService } from '../../services/supabase';
+import { dataService } from '../../services/data';
 
 const Payments = ({ onBack }) => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -45,25 +46,52 @@ const Payments = ({ onBack }) => {
   const loadPayments = async () => {
     try {
       setLoading(true);
-      const payments = await supabaseService.getPayments();
+
+      // Load payments, properties, and bookings in parallel
+      const [payments, properties, bookings] = await Promise.all([
+        supabaseService.getPayments(),
+        dataService.getProperties(),
+        dataService.getBookings()
+      ]);
+
+      // Create lookup maps
+      const propertyMap = {};
+      properties?.forEach(prop => {
+        propertyMap[prop.id] = prop.name;
+      });
+
+      const bookingMap = {};
+      bookings?.forEach(booking => {
+        bookingMap[booking.id] = {
+          checkIn: booking.check_in,
+          checkOut: booking.check_out,
+          nights: booking.nights || 0,
+          propertyId: booking.property_id
+        };
+      });
 
       // Transform Supabase data to match component format
-      const transformedPayments = payments.map(payment => ({
-        id: payment.transaction_id || payment.id.substring(0, 8).toUpperCase(),
-        guest: payment.guest_name,
-        email: payment.guest_email,
-        amount: parseFloat(payment.amount),
-        status: payment.status.charAt(0).toUpperCase() + payment.status.slice(1),
-        method: payment.payment_method,
-        date: new Date(payment.transaction_date).toISOString().split('T')[0],
-        time: new Date(payment.transaction_date).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
-        type: payment.payment_type || 'Full Payment',
-        property: 'Property', // TODO: Join with properties table
-        checkIn: '-',
-        checkOut: '-',
-        bookingRef: payment.booking_id ? `BK-${payment.booking_id.substring(0, 8)}` : '-',
-        nights: 0
-      }));
+      const transformedPayments = payments.map(payment => {
+        const booking = bookingMap[payment.booking_id];
+        const propertyId = payment.property_id || booking?.propertyId;
+
+        return {
+          id: payment.transaction_id || payment.id.substring(0, 8).toUpperCase(),
+          guest: payment.guest_name,
+          email: payment.guest_email,
+          amount: parseFloat(payment.amount),
+          status: payment.status.charAt(0).toUpperCase() + payment.status.slice(1),
+          method: payment.payment_method,
+          date: new Date(payment.transaction_date).toISOString().split('T')[0],
+          time: new Date(payment.transaction_date).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+          type: payment.payment_type || 'Full Payment',
+          property: propertyMap[propertyId] || 'Property',
+          checkIn: booking?.checkIn || '-',
+          checkOut: booking?.checkOut || '-',
+          bookingRef: payment.booking_id ? `BK-${payment.booking_id.substring(0, 8)}` : '-',
+          nights: booking?.nights || 0
+        };
+      });
 
       setAllTransactions(transformedPayments);
 

@@ -51,17 +51,32 @@ const Bookings = ({ onBack }) => {
   const loadBookings = async () => {
     try {
       setLoading(true);
-      const data = await dataService.getBookings();
-      console.log('[Bookings] Loaded from Supabase:', data);
 
-      if (data && data.length > 0) {
+      // Load both bookings and properties in parallel
+      const [bookingsData, propertiesData] = await Promise.all([
+        dataService.getBookings(),
+        dataService.getProperties()
+      ]);
+
+      console.log('[Bookings] Loaded from Supabase:', bookingsData?.length || 0, 'bookings');
+      console.log('[Bookings] Properties loaded:', propertiesData?.length || 0);
+
+      if (bookingsData && bookingsData.length > 0) {
+        // Create property lookup map
+        const propertyMap = {};
+        if (propertiesData) {
+          propertiesData.forEach(prop => {
+            propertyMap[prop.id] = prop.name;
+          });
+        }
+
         // Map Supabase data to component format
-        const mappedBookings = data.map(booking => ({
+        const mappedBookings = bookingsData.map(booking => ({
           id: booking.id,
           guest: booking.guest_name,
           email: booking.guest_email || 'N/A',
           phone: booking.guest_phone || 'N/A',
-          property: `Property ${booking.property_id?.substring(0, 8)}`,
+          property: propertyMap[booking.property_id] || `Property ${booking.property_id?.substring(0, 8)}`,
           checkIn: booking.check_in,
           checkOut: booking.check_out,
           status: capitalizeFirst(booking.status),

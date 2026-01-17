@@ -19,6 +19,7 @@ import {
   Volume2
 } from 'lucide-react';
 import { supabaseService } from '../../services/supabase';
+import { dataService } from '../../services/data';
 
 const Messages = ({ onBack }) => {
   const [messageText, setMessageText] = useState('');
@@ -43,7 +44,27 @@ const Messages = ({ onBack }) => {
   const loadMessages = async () => {
     try {
       setLoading(true);
-      const messages = await supabaseService.getMessages();
+
+      // Load messages, properties, and bookings in parallel
+      const [messages, properties, bookings] = await Promise.all([
+        supabaseService.getMessages(),
+        dataService.getProperties(),
+        dataService.getBookings()
+      ]);
+
+      // Create lookup maps
+      const propertyMap = {};
+      properties?.forEach(prop => {
+        propertyMap[prop.id] = prop.name;
+      });
+
+      const bookingMap = {};
+      bookings?.forEach(booking => {
+        bookingMap[booking.id] = {
+          propertyId: booking.property_id,
+          checkIn: booking.check_in
+        };
+      });
 
       // Transform messages to conversation format
       const transformedConversations = messages.map((msg, index) => {
@@ -66,10 +87,15 @@ const Messages = ({ onBack }) => {
         else if (diffDays < 7) timeAgo = `${diffDays}d ago`;
         else timeAgo = `${Math.floor(diffDays / 7)}w ago`;
 
+        // Get property name
+        const booking = bookingMap[msg.booking_id];
+        const propertyId = msg.property_id || booking?.propertyId;
+        const propertyName = propertyMap[propertyId] || 'Property';
+
         return {
           id: index + 1,
           name: msg.guest_name || 'Guest',
-          property: 'Property',
+          property: propertyName,
           message: msg.message_type === 'voice' ? `🎤 Voice message: ${msg.message_text || 'Voice message'}` :
                    msg.message_type === 'photo' ? `📷 Photo: ${msg.message_text || 'Photo message'}` :
                    msg.message_text,
