@@ -185,5 +185,20 @@ export const dataService = {
     }
 
     return data;
+  },
+
+  // Get all reviews
+  async getReviews() {
+    const { data, error } = await supabase
+      .from('marketing_reviews')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching reviews:', error);
+      return [];
+    }
+
+    return data;
   }
 };

@@ -20,6 +20,7 @@ import {
   AlertCircle,
   Zap
 } from 'lucide-react';
+import { dataService } from '../../services/data';
 
 const Reviews = ({ onBack }) => {
   const [activeTab, setActiveTab] = useState('reviews'); // reviews, automation, analytics, settings
@@ -31,41 +32,118 @@ const Reviews = ({ onBack }) => {
   const [responseText, setResponseText] = useState('');
   const [isGeneratingAI, setIsGeneratingAI] = useState(false);
   const [autoResponseEnabled, setAutoResponseEnabled] = useState(false);
+  const [reviews, setReviews] = useState([]);
+  const [properties, setProperties] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     window.scrollTo(0, 0);
+    loadReviewsData();
   }, []);
 
-  const mockReviews = [
-    { id: 1, guest: "Sarah Johnson", property: "Villa Sunset", platform: "Airbnb", rating: 5, date: "2025-12-20", comment: "Amazing stay! The villa was spotless and the host was incredibly responsive. Highly recommend!", status: "published", sentiment: "positive", response: "Thank you so much for your wonderful review! We're thrilled you enjoyed your stay.", keywords: ["spotless", "responsive", "recommend"] },
-    { id: 2, guest: "Marco Rossi", property: "Beach House", platform: "Booking.com", rating: 4, date: "2025-12-18", comment: "Great location and amenities. Only minor issue was late check-in.", status: "published", sentiment: "positive", response: "Thank you for your feedback! We apologize for the check-in delay and have improved our process.", keywords: ["location", "amenities", "check-in"] },
-    { id: 3, guest: "Ana García", property: "Villa Paradise", platform: "Airbnb", rating: 5, date: "2025-12-15", comment: "Perfect for our family vacation. Pool was amazing and the view was breathtaking!", status: "published", sentiment: "positive", response: "We're so happy your family had a wonderful time! Thank you for staying with us.", keywords: ["family", "pool", "view"] },
-    { id: 4, guest: "David Chen", property: "Villa Sunset", platform: "Google", rating: 3, date: "2025-12-12", comment: "Good villa but WiFi was slow and AC in one room didn't work well.", status: "needs-response", sentiment: "mixed", response: null, keywords: ["wifi", "ac", "issue"] },
-    { id: 5, guest: "Emma Wilson", property: "Beach House", platform: "TripAdvisor", rating: 5, date: "2025-12-10", comment: "Absolutely incredible! Best vacation rental we've ever stayed at. Everything was perfect.", status: "published", sentiment: "positive", response: "Thank you for your amazing review! We'd love to host you again.", keywords: ["incredible", "best", "perfect"] },
-    { id: 6, guest: "Luca Bianchi", property: "Villa Paradise", platform: "Booking.com", rating: 4, date: "2025-12-08", comment: "Very nice villa with great amenities. Location is excellent, close to everything.", status: "published", sentiment: "positive", response: "Thanks for your feedback! We're glad you enjoyed the location and amenities.", keywords: ["amenities", "location", "close"] },
-    { id: 7, guest: "Sophie Martin", property: "Villa Sunset", platform: "Expedia", rating: 5, date: "2025-12-05", comment: "Stunning villa! The sunset views are absolutely magical. Will definitely return!", status: "published", sentiment: "positive", response: "Thank you! We can't wait to welcome you back for another magical sunset.", keywords: ["stunning", "sunset", "magical"] },
-    { id: 8, guest: "James Anderson", property: "Beach House", platform: "Airbnb", rating: 3, date: "2025-12-03", comment: "Decent place but could be cleaner. Pool maintenance needed attention.", status: "needs-response", sentiment: "mixed", response: null, keywords: ["cleaner", "pool", "maintenance"] },
-    { id: 9, guest: "Yuki Tanaka", property: "Villa Paradise", platform: "Booking.com", rating: 5, date: "2025-12-01", comment: "Perfect stay! Very clean, beautiful design, and excellent service. Highly recommended.", status: "published", sentiment: "positive", response: "Arigatou gozaimasu! We're delighted you had such a wonderful experience.", keywords: ["clean", "design", "service"] },
-    { id: 10, guest: "Isabella Costa", property: "Villa Sunset", platform: "Google", rating: 4, date: "2025-11-28", comment: "Great villa with amazing ocean views. Only complaint is the kitchen could use more equipment.", status: "needs-response", sentiment: "positive", response: null, keywords: ["ocean", "views", "kitchen"] }
-  ];
+  const loadReviewsData = async () => {
+    try {
+      setLoading(true);
 
-  const stats = {
-    overallRating: 4.6,
-    totalReviews: 156,
-    airbnb: 4.8,
-    booking: 4.5,
-    google: 4.4,
-    tripadvisor: 4.7,
-    expedia: 4.6,
-    responseRate: "98%",
-    avgResponseTime: "2.5 hrs",
-    positiveSentiment: 82,
-    mixedSentiment: 15,
-    negativeSentiment: 3,
-    reviewRequestsSent: 45,
-    reviewsReceived: 12,
-    conversionRate: "26.7%"
+      // Load reviews and properties in parallel
+      const [reviewsData, propertiesData] = await Promise.all([
+        dataService.getReviews(),
+        dataService.getProperties()
+      ]);
+
+      console.log('[Reviews] Loaded from Supabase:', reviewsData?.length || 0);
+      console.log('[Reviews] Properties loaded:', propertiesData?.length || 0);
+
+      // Create property lookup map
+      const propertyMap = {};
+      if (propertiesData) {
+        propertiesData.forEach(prop => {
+          propertyMap[prop.id] = prop.name;
+        });
+      }
+
+      // Map Supabase data to component format
+      if (reviewsData && reviewsData.length > 0) {
+        const mappedReviews = reviewsData.map(review => ({
+          id: review.id,
+          guest: review.guest_name || 'Anonymous',
+          property: propertyMap[review.property_id] || 'Unknown Property',
+          platform: capitalizeFirst(review.source || 'manual'),
+          rating: review.rating || 0,
+          date: review.stay_date || review.created_at?.split('T')[0],
+          comment: review.review_text || '',
+          status: review.response_text ? 'published' : 'needs-response',
+          sentiment: review.sentiment || 'neutral',
+          response: review.response_text || null,
+          keywords: extractKeywords(review.review_text || '')
+        }));
+        setReviews(mappedReviews);
+      }
+
+      // Set properties for filter
+      if (propertiesData && propertiesData.length > 0) {
+        const propertyList = [
+          { id: 'all', name: 'All Properties' },
+          ...propertiesData.map(p => ({ id: p.name, name: p.name }))
+        ];
+        setProperties(propertyList);
+      }
+    } catch (error) {
+      console.error('[Reviews] Error loading:', error);
+    } finally {
+      setLoading(false);
+    }
   };
+
+  const capitalizeFirst = (str) => {
+    if (!str) return '';
+    return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
+  };
+
+  const extractKeywords = (text) => {
+    if (!text) return [];
+    const words = text.toLowerCase().split(/\s+/);
+    const keywords = ['clean', 'location', 'view', 'pool', 'wifi', 'responsive', 'amenities', 'service'];
+    return keywords.filter(kw => words.some(w => w.includes(kw)));
+  };
+
+  // Stats calculated from real reviews
+  const calculateStats = () => {
+    if (reviews.length === 0) {
+      return {
+        overallRating: 0,
+        totalReviews: 0,
+        responseRate: "0%",
+        avgResponseTime: "N/A",
+        positiveSentiment: 0,
+        mixedSentiment: 0,
+        negativeSentiment: 0
+      };
+    }
+
+    const avgRating = reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length;
+    const withResponse = reviews.filter(r => r.response).length;
+    const responseRate = Math.round((withResponse / reviews.length) * 100);
+
+    const sentimentCounts = reviews.reduce((acc, r) => {
+      if (r.sentiment === 'positive') acc.positive++;
+      else if (r.sentiment === 'negative') acc.negative++;
+      else acc.mixed++;
+      return acc;
+    }, { positive: 0, mixed: 0, negative: 0 });
+
+    return {
+      overallRating: avgRating.toFixed(1),
+      totalReviews: reviews.length,
+      responseRate: `${responseRate}%`,
+      avgResponseTime: "2.5 hrs", // Would need response timestamps to calculate
+      positiveSentiment: Math.round((sentimentCounts.positive / reviews.length) * 100),
+      mixedSentiment: Math.round((sentimentCounts.mixed / reviews.length) * 100),
+      negativeSentiment: Math.round((sentimentCounts.negative / reviews.length) * 100)
+    };
+  };
+
+  const stats = calculateStats();
 
   const platforms = [
     { id: 'all', name: 'All Platforms', icon: '🌐', color: 'gray' },
@@ -74,13 +152,6 @@ const Reviews = ({ onBack }) => {
     { id: 'google', name: 'Google', icon: '🔍', color: 'green' },
     { id: 'tripadvisor', name: 'TripAdvisor', icon: '🦉', color: 'emerald' },
     { id: 'expedia', name: 'Expedia', icon: '✈️', color: 'yellow' }
-  ];
-
-  const properties = [
-    { id: 'all', name: 'All Properties' },
-    { id: 'Villa Sunset', name: 'Villa Sunset' },
-    { id: 'Beach House', name: 'Beach House' },
-    { id: 'Villa Paradise', name: 'Villa Paradise' }
   ];
 
   const ratings = [
@@ -110,7 +181,7 @@ const Reviews = ({ onBack }) => {
   ];
 
   // Filter logic
-  const filteredReviews = mockReviews.filter(review => {
+  const filteredReviews = reviews.filter(review => {
     const platformMatch = selectedPlatform === 'all' || review.platform.toLowerCase().includes(selectedPlatform);
     const ratingMatch = selectedRating === 'all' || review.rating === parseInt(selectedRating);
     const propertyMatch = selectedProperty === 'all' || review.property === selectedProperty;
