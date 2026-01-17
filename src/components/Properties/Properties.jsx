@@ -223,7 +223,7 @@ const Properties = ({ onBack }) => {
   const loadProperties = async () => {
     try {
       setLoading(true);
-      const realProperties = await supabaseService.getProperties();
+      const realProperties = await dataService.getProperties();
       console.log('[Properties] Loaded from Supabase:', realProperties);
 
       // Si hay properties reales, usarlas. Si no, usar mock
