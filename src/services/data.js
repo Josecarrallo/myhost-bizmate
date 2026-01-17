@@ -200,5 +200,20 @@ export const dataService = {
     }
 
     return data;
+  },
+
+  // Get all marketing campaigns
+  async getCampaigns() {
+    const { data, error } = await supabase
+      .from('marketing_campaigns')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching campaigns:', error);
+      return [];
+    }
+
+    return data;
   }
 };

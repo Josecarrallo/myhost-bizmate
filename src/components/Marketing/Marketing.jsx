@@ -12,154 +12,91 @@ import {
   MousePointer,
   X
 } from 'lucide-react';
+import { dataService } from '../../services/data';
 
 const MarketingSuite = ({ onBack }) => {
   const [selectedCampaign, setSelectedCampaign] = useState(null);
   const [filter, setFilter] = useState('all'); // all, active, scheduled, completed
   const [searchQuery, setSearchQuery] = useState('');
+  const [campaigns, setCampaigns] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     window.scrollTo(0, 0);
+    loadCampaigns();
   }, []);
 
-  const campaigns = [
-    {
-      id: 1,
-      name: "Summer Villa Special",
-      platform: "Instagram",
-      platformIcon: "📸",
-      status: "Active",
-      reach: "45.2K",
-      engagement: "3.8K",
-      clicks: "892",
-      conversions: 24,
-      budget: "1,500",
-      spent: "1,245",
-      startDate: "Oct 1",
-      endDate: "Oct 31",
-      ctr: "1.97%",
-      cpc: "$1.40"
-    },
-    {
-      id: 2,
-      name: "Beach House Getaway",
-      platform: "Facebook",
-      platformIcon: "📘",
-      status: "Active",
-      reach: "38.5K",
-      engagement: "2.9K",
-      clicks: "756",
-      conversions: 18,
-      budget: "1,200",
-      spent: "890",
-      startDate: "Oct 15",
-      endDate: "Nov 15",
-      ctr: "1.96%",
-      cpc: "$1.18"
-    },
-    {
-      id: 3,
-      name: "Mountain Escape",
-      platform: "LinkedIn",
-      platformIcon: "💼",
-      status: "Scheduled",
-      reach: "0",
-      engagement: "0",
-      clicks: "0",
-      conversions: 0,
-      budget: "800",
-      spent: "0",
-      startDate: "Nov 1",
-      endDate: "Nov 30",
-      ctr: "0%",
-      cpc: "$0"
-    },
-    {
-      id: 4,
-      name: "Luxury Bali Experience",
-      platform: "Google Ads",
-      platformIcon: "🔍",
-      status: "Active",
-      reach: "52.3K",
-      engagement: "4.2K",
-      clicks: "1,245",
-      conversions: 32,
-      budget: "2,000",
-      spent: "1,780",
-      startDate: "Sep 20",
-      endDate: "Nov 20",
-      ctr: "2.38%",
-      cpc: "$1.43"
-    },
-    {
-      id: 5,
-      name: "Weekend Special Offer",
-      platform: "Facebook",
-      platformIcon: "📘",
-      status: "Completed",
-      reach: "28.7K",
-      engagement: "2.1K",
-      clicks: "512",
-      conversions: 14,
-      budget: "600",
-      spent: "600",
-      startDate: "Sep 1",
-      endDate: "Sep 30",
-      ctr: "1.78%",
-      cpc: "$1.17"
-    },
-    {
-      id: 6,
-      name: "Christmas Holiday Campaign",
-      platform: "Instagram",
-      platformIcon: "📸",
-      status: "Scheduled",
-      reach: "0",
-      engagement: "0",
-      clicks: "0",
-      conversions: 0,
-      budget: "2,500",
-      spent: "0",
-      startDate: "Dec 1",
-      endDate: "Dec 25",
-      ctr: "0%",
-      cpc: "$0"
-    },
-    {
-      id: 7,
-      name: "New Year Villa Package",
-      platform: "Google Ads",
-      platformIcon: "🔍",
-      status: "Scheduled",
-      reach: "0",
-      engagement: "0",
-      clicks: "0",
-      conversions: 0,
-      budget: "3,000",
-      spent: "0",
-      startDate: "Dec 20",
-      endDate: "Jan 10",
-      ctr: "0%",
-      cpc: "$0"
-    },
-    {
-      id: 8,
-      name: "Fall Promotion",
-      platform: "LinkedIn",
-      platformIcon: "💼",
-      status: "Completed",
-      reach: "15.4K",
-      engagement: "1.2K",
-      clicks: "298",
-      conversions: 8,
-      budget: "500",
-      spent: "500",
-      startDate: "Aug 1",
-      endDate: "Sep 15",
-      ctr: "1.93%",
-      cpc: "$1.68"
+  const loadCampaigns = async () => {
+    try {
+      setLoading(true);
+
+      const campaignsData = await dataService.getCampaigns();
+
+      console.log('[Marketing] Loaded from Supabase:', campaignsData?.length || 0);
+
+      if (campaignsData && campaignsData.length > 0) {
+        const mappedCampaigns = campaignsData.map(campaign => ({
+          id: campaign.id,
+          name: campaign.name,
+          platform: getPlatformName(campaign.platform),
+          platformIcon: getPlatformIcon(campaign.platform),
+          status: capitalizeFirst(campaign.status),
+          reach: formatNumber(campaign.impressions || 0),
+          engagement: formatNumber(campaign.leads_count || 0),
+          clicks: formatNumber(campaign.clicks || 0),
+          conversions: campaign.leads_count || 0,
+          budget: formatCurrency(campaign.daily_budget ? campaign.daily_budget * 30 : 0),
+          spent: formatCurrency(campaign.total_spend_mtd || 0),
+          startDate: campaign.created_at ? new Date(campaign.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'N/A',
+          endDate: 'N/A', // Not in schema
+          ctr: campaign.ctr ? `${(campaign.ctr * 100).toFixed(2)}%` : '0%',
+          cpc: formatCurrency(campaign.clicks ? (campaign.total_spend_mtd / campaign.clicks) : 0)
+        }));
+        setCampaigns(mappedCampaigns);
+      }
+    } catch (error) {
+      console.error('[Marketing] Error loading:', error);
+    } finally {
+      setLoading(false);
     }
-  ];
+  };
+
+  const capitalizeFirst = (str) => {
+    if (!str) return '';
+    return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
+  };
+
+  const getPlatformName = (platform) => {
+    const platforms = {
+      'meta': 'Facebook',
+      'google': 'Google Ads',
+      'tiktok': 'TikTok'
+    };
+    return platforms[platform] || platform;
+  };
+
+  const getPlatformIcon = (platform) => {
+    const icons = {
+      'meta': '📘',
+      'google': '🔍',
+      'tiktok': '🎵'
+    };
+    return icons[platform] || '📱';
+  };
+
+  const formatNumber = (num) => {
+    if (num >= 1000000) {
+      return `${(num / 1000000).toFixed(1)}M`;
+    } else if (num >= 1000) {
+      return `${(num / 1000).toFixed(1)}K`;
+    }
+    return num.toString();
+  };
+
+  const formatCurrency = (amount) => {
+    if (amount === 0) return '$0';
+    return `$${Math.round(amount).toLocaleString()}`;
+  };
 
   const filteredCampaigns = campaigns.filter(campaign => {
     const matchesFilter = filter === 'all' || campaign.status.toLowerCase() === filter.toLowerCase();
