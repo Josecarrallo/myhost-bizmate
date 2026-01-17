@@ -3,7 +3,7 @@
  * Handles all API calls for Workflows & Automations module
  */
 
-import { supabase } from './supabase';
+import { supabase } from '../lib/supabase';
 import { mockStats, mockRecentActivity, mockWorkflowSettings, PROPERTY_ID } from './workflowsMocks';
 
 const workflowsService = {
