@@ -26,6 +26,12 @@ const OwnerExecutiveSummary = ({ userName = 'José', onNavigate }) => {
   const [checkIns, setCheckIns] = useState([]);
   const [checkOuts, setCheckOuts] = useState([]);
   const [alerts, setAlerts] = useState([]);
+  const [aiStats, setAiStats] = useState({
+    lumina: null,
+    banyu: null,
+    kora: null,
+    osiris: null
+  });
 
   useEffect(() => {
     loadDashboardData();
@@ -34,17 +40,27 @@ const OwnerExecutiveSummary = ({ userName = 'José', onNavigate }) => {
   const loadDashboardData = async () => {
     setLoading(true);
     try {
-      const [statsData, checkInsData, checkOutsData, alertsData] = await Promise.all([
+      const [statsData, checkInsData, checkOutsData, alertsData, luminaData, banyuData, koraData, osirisData] = await Promise.all([
         dataService.getDashboardStats(),
         dataService.getTodayCheckIns(),
         dataService.getTodayCheckOuts(),
-        dataService.getActiveAlerts()
+        dataService.getActiveAlerts(),
+        dataService.getLuminaStats(),
+        dataService.getBanyuStats(),
+        dataService.getKoraStats(),
+        dataService.getOsirisStats()
       ]);
 
       setStats(statsData);
       setCheckIns(checkInsData);
       setCheckOuts(checkOutsData);
       setAlerts(alertsData);
+      setAiStats({
+        lumina: luminaData,
+        banyu: banyuData,
+        kora: koraData,
+        osiris: osirisData
+      });
     } catch (error) {
       console.error('Error loading dashboard:', error);
     } finally {
@@ -236,15 +252,15 @@ const OwnerExecutiveSummary = ({ userName = 'José', onNavigate }) => {
                 <div className="space-y-1">
                   <div className="flex items-center justify-between text-xs">
                     <span className="text-white/60">New Leads</span>
-                    <span className="text-purple-300 font-bold">12</span>
+                    <span className="text-purple-300 font-bold">{aiStats.lumina?.new_leads || 0}</span>
                   </div>
                   <div className="flex items-center justify-between text-xs">
                     <span className="text-white/60">In Pipeline</span>
-                    <span className="text-purple-300 font-bold">8</span>
+                    <span className="text-purple-300 font-bold">{aiStats.lumina?.in_pipeline || 0}</span>
                   </div>
                   <div className="flex items-center justify-between text-xs">
                     <span className="text-white/60">Follow-ups</span>
-                    <span className="text-orange-300 font-bold">5</span>
+                    <span className="text-orange-300 font-bold">{aiStats.lumina?.pending_followups || 0}</span>
                   </div>
                 </div>
               </button>
@@ -265,15 +281,17 @@ const OwnerExecutiveSummary = ({ userName = 'José', onNavigate }) => {
                 <div className="space-y-1">
                   <div className="flex items-center justify-between text-xs">
                     <span className="text-white/60">Messages Today</span>
-                    <span className="text-green-300 font-bold">47</span>
+                    <span className="text-green-300 font-bold">{aiStats.banyu?.messages_today || 0}</span>
                   </div>
                   <div className="flex items-center justify-between text-xs">
-                    <span className="text-white/60">Active Guests</span>
-                    <span className="text-green-300 font-bold">23</span>
+                    <span className="text-white/60">Active Conversations</span>
+                    <span className="text-green-300 font-bold">{aiStats.banyu?.active_conversations || 0}</span>
                   </div>
                   <div className="flex items-center justify-between text-xs">
                     <span className="text-white/60">Response Time</span>
-                    <span className="text-blue-300 font-bold">1.2min</span>
+                    <span className="text-blue-300 font-bold">
+                      {aiStats.banyu?.avg_response_time_minutes ? `${aiStats.banyu.avg_response_time_minutes.toFixed(1)}min` : 'N/A'}
+                    </span>
                   </div>
                 </div>
               </button>
@@ -294,15 +312,19 @@ const OwnerExecutiveSummary = ({ userName = 'José', onNavigate }) => {
                 <div className="space-y-1">
                   <div className="flex items-center justify-between text-xs">
                     <span className="text-white/60">Calls Today</span>
-                    <span className="text-blue-300 font-bold">15</span>
+                    <span className="text-blue-300 font-bold">{aiStats.kora?.calls_today || 0}</span>
                   </div>
                   <div className="flex items-center justify-between text-xs">
                     <span className="text-white/60">Avg Duration</span>
-                    <span className="text-blue-300 font-bold">3:24</span>
+                    <span className="text-blue-300 font-bold">
+                      {aiStats.kora?.avg_duration_seconds ? `${Math.floor(aiStats.kora.avg_duration_seconds / 60)}:${String(aiStats.kora.avg_duration_seconds % 60).padStart(2, '0')}` : 'N/A'}
+                    </span>
                   </div>
                   <div className="flex items-center justify-between text-xs">
                     <span className="text-white/60">Sentiment</span>
-                    <span className="text-green-300 font-bold">😊 85%</span>
+                    <span className="text-green-300 font-bold">
+                      {aiStats.kora?.positive_sentiment_pct ? `😊 ${aiStats.kora.positive_sentiment_pct}%` : 'N/A'}
+                    </span>
                   </div>
                 </div>
               </button>
@@ -323,15 +345,23 @@ const OwnerExecutiveSummary = ({ userName = 'José', onNavigate }) => {
                 <div className="space-y-1">
                   <div className="flex items-center justify-between text-xs">
                     <span className="text-white/60">Active Workflows</span>
-                    <span className="text-orange-300 font-bold">7</span>
+                    <span className="text-orange-300 font-bold">{aiStats.osiris?.active_workflows || 0}</span>
                   </div>
                   <div className="flex items-center justify-between text-xs">
                     <span className="text-white/60">Alerts</span>
-                    <span className="text-red-300 font-bold">2</span>
+                    <span className="text-red-300 font-bold">{aiStats.osiris?.active_alerts || 0}</span>
                   </div>
                   <div className="flex items-center justify-between text-xs">
                     <span className="text-white/60">System Health</span>
-                    <span className="text-green-300 font-bold">✓ Good</span>
+                    <span className={`font-bold ${
+                      aiStats.osiris?.system_health === 'good' ? 'text-green-300' :
+                      aiStats.osiris?.system_health === 'warning' ? 'text-orange-300' :
+                      'text-red-300'
+                    }`}>
+                      {aiStats.osiris?.system_health === 'good' ? '✓ Good' :
+                       aiStats.osiris?.system_health === 'warning' ? '⚠ Warning' :
+                       aiStats.osiris?.system_health === 'error' ? '✗ Error' : 'Unknown'}
+                    </span>
                   </div>
                 </div>
               </button>

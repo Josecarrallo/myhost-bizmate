@@ -116,5 +116,59 @@ export const dataService = {
       console.error('Error in createBooking:', error);
       return { success: false, error: error.message };
     }
+  },
+
+  // ===== AI AGENTS STATS =====
+
+  // LUMINA.AI Stats (Sales & Leads)
+  async getLuminaStats(tenantId = 'c24393db-d318-4d75-8bbf-0fa240b9c1db') {
+    const { data, error } = await supabase
+      .rpc('get_lumina_stats', { p_tenant_id: tenantId });
+
+    if (error) {
+      console.error('Error fetching LUMINA stats:', error);
+      return { new_leads: 0, in_pipeline: 0, pending_followups: 0 };
+    }
+
+    return data[0] || { new_leads: 0, in_pipeline: 0, pending_followups: 0 };
+  },
+
+  // BANYU.AI Stats (WhatsApp Concierge)
+  async getBanyuStats(tenantId = 'c24393db-d318-4d75-8bbf-0fa240b9c1db') {
+    const { data, error } = await supabase
+      .rpc('get_banyu_stats', { p_tenant_id: tenantId });
+
+    if (error) {
+      console.error('Error fetching BANYU stats:', error);
+      return { messages_today: 0, active_conversations: 0, avg_response_time_minutes: null };
+    }
+
+    return data[0] || { messages_today: 0, active_conversations: 0, avg_response_time_minutes: null };
+  },
+
+  // KORA.AI Stats (Voice Concierge)
+  async getKoraStats(tenantId = 'c24393db-d318-4d75-8bbf-0fa240b9c1db') {
+    const { data, error } = await supabase
+      .rpc('get_kora_stats', { p_tenant_id: tenantId });
+
+    if (error) {
+      console.error('Error fetching KORA stats:', error);
+      return { calls_today: 0, avg_duration_seconds: null, positive_sentiment_pct: null };
+    }
+
+    return data[0] || { calls_today: 0, avg_duration_seconds: null, positive_sentiment_pct: null };
+  },
+
+  // OSIRIS.AI Stats (Operations & Control)
+  async getOsirisStats(tenantId = 'c24393db-d318-4d75-8bbf-0fa240b9c1db') {
+    const { data, error } = await supabase
+      .rpc('get_osiris_stats', { p_tenant_id: tenantId });
+
+    if (error) {
+      console.error('Error fetching OSIRIS stats:', error);
+      return { active_workflows: 0, active_alerts: 0, system_health: 'unknown' };
+    }
+
+    return data[0] || { active_workflows: 0, active_alerts: 0, system_health: 'unknown' };
   }
 };
