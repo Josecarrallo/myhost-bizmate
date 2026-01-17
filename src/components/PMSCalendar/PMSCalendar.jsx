@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   ChevronLeft,
   ChevronRight,
@@ -12,33 +12,80 @@ import {
   Phone,
   MapPin
 } from 'lucide-react';
+import { dataService } from '../../services/data';
 
 const PMSCalendar = ({ onBack }) => {
   const [view, setView] = useState('month');
-  const [selectedDate, setSelectedDate] = useState(new Date(2025, 0, 1)); // January 2025
+  const [selectedDate, setSelectedDate] = useState(new Date()); // Current month
   const [selectedBooking, setSelectedBooking] = useState(null);
+  const [properties, setProperties] = useState([]);
+  const [calendarBookings, setCalendarBookings] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  // Mock Properties
-  const mockProperties = [
-    { id: 1, name: "Villa Sunset Paradise", color: "from-purple-500 to-pink-600" },
-    { id: 2, name: "Beach House", color: "from-blue-500 to-cyan-600" },
-    { id: 3, name: "City Loft", color: "from-green-500 to-emerald-600" },
-    { id: 4, name: "Mountain Cabin", color: "from-orange-500 to-red-600" }
-  ];
+  // Load real data from Supabase
+  useEffect(() => {
+    loadCalendarData();
+  }, []);
 
-  // Mock Bookings (expanded)
-  const mockCalendarBookings = [
-    { id: 1, guestName: "Sarah Johnson", email: "sarah.j@email.com", phone: "+1 555-0101", propertyId: 1, checkIn: "2025-01-05", checkOut: "2025-01-10", guests: 4, revenue: 1250, status: "confirmed" },
-    { id: 2, guestName: "Michael Chen", email: "mchen@email.com", phone: "+1 555-0102", propertyId: 1, checkIn: "2025-01-12", checkOut: "2025-01-17", guests: 6, revenue: 1800, status: "in-progress" },
-    { id: 3, guestName: "Emma Wilson", email: "ewilson@email.com", phone: "+1 555-0103", propertyId: 2, checkIn: "2025-01-08", checkOut: "2025-01-13", guests: 2, revenue: 950, status: "confirmed" },
-    { id: 4, guestName: "David Park", email: "dpark@email.com", phone: "+1 555-0104", propertyId: 2, checkIn: "2025-01-15", checkOut: "2025-01-20", guests: 5, revenue: 1600, status: "pending" },
-    { id: 5, guestName: "Sofia Martinez", email: "sofia.m@email.com", phone: "+1 555-0105", propertyId: 3, checkIn: "2025-01-03", checkOut: "2025-01-08", guests: 3, revenue: 890, status: "confirmed" },
-    { id: 6, guestName: "James Anderson", email: "j.anderson@email.com", phone: "+1 555-0106", propertyId: 3, checkIn: "2025-01-10", checkOut: "2025-01-15", guests: 4, revenue: 1200, status: "confirmed" },
-    { id: 7, guestName: "Lisa Thompson", email: "lisa.t@email.com", phone: "+1 555-0107", propertyId: 4, checkIn: "2025-01-06", checkOut: "2025-01-11", guests: 2, revenue: 750, status: "in-progress" },
-    { id: 8, guestName: "Robert Kim", email: "rkim@email.com", phone: "+1 555-0108", propertyId: 4, checkIn: "2025-01-13", checkOut: "2025-01-18", guests: 6, revenue: 1440, status: "confirmed" },
-    { id: 9, guestName: "Maria Garcia", email: "mgarcia@email.com", phone: "+1 555-0109", propertyId: 1, checkIn: "2025-01-20", checkOut: "2025-01-25", guests: 2, revenue: 1100, status: "pending" },
-    { id: 10, guestName: "John Smith", email: "jsmith@email.com", phone: "+1 555-0110", propertyId: 2, checkIn: "2025-01-22", checkOut: "2025-01-28", guests: 5, revenue: 2100, status: "confirmed" },
-  ];
+  const loadCalendarData = async () => {
+    try {
+      setLoading(true);
+
+      // Load properties and bookings in parallel
+      const [propertiesData, bookingsData] = await Promise.all([
+        dataService.getProperties(),
+        dataService.getBookings()
+      ]);
+
+      console.log('[PMSCalendar] Loaded properties:', propertiesData?.length || 0);
+      console.log('[PMSCalendar] Loaded bookings:', bookingsData?.length || 0);
+
+      // Map properties to calendar format
+      if (propertiesData && propertiesData.length > 0) {
+        const mappedProperties = propertiesData.map((prop, index) => ({
+          id: prop.id,
+          name: prop.name,
+          color: getPropertyColor(index) // Assign colors cyclically
+        }));
+        setProperties(mappedProperties);
+      }
+
+      // Map bookings to calendar format
+      if (bookingsData && bookingsData.length > 0) {
+        const mappedBookings = bookingsData.map(booking => ({
+          id: booking.id,
+          guestName: booking.guest_name,
+          email: booking.guest_email || 'N/A',
+          phone: booking.guest_phone || 'N/A',
+          propertyId: booking.property_id,
+          checkIn: booking.check_in,
+          checkOut: booking.check_out,
+          guests: booking.guests || 0,
+          revenue: parseFloat(booking.total_price) || 0,
+          status: booking.status ? booking.status.toLowerCase() : 'pending'
+        }));
+        setCalendarBookings(mappedBookings);
+      }
+    } catch (error) {
+      console.error('[PMSCalendar] Error loading data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getPropertyColor = (index) => {
+    const colors = [
+      "from-purple-500 to-pink-600",
+      "from-blue-500 to-cyan-600",
+      "from-green-500 to-emerald-600",
+      "from-orange-500 to-red-600",
+      "from-indigo-500 to-purple-600",
+      "from-yellow-500 to-orange-600",
+      "from-teal-500 to-green-600",
+      "from-red-500 to-pink-600"
+    ];
+    return colors[index % colors.length];
+  };
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -102,7 +149,7 @@ const PMSCalendar = ({ onBack }) => {
   };
 
   const getBookingForPropertyOnDay = (propertyId, day) => {
-    return mockCalendarBookings.find(booking =>
+    return calendarBookings.find(booking =>
       booking.propertyId === propertyId && isDateInBooking(day, booking)
     );
   };
@@ -134,8 +181,19 @@ const PMSCalendar = ({ onBack }) => {
   };
 
   const getPropertyName = (propertyId) => {
-    return mockProperties.find(p => p.id === propertyId)?.name || "Unknown Property";
+    return properties.find(p => p.id === propertyId)?.name || "Unknown Property";
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[#2a2f3a] p-4 pb-24 relative overflow-hidden flex items-center justify-center">
+        <div className="text-center">
+          <div className="inline-block animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-orange-500 mb-4"></div>
+          <p className="text-white text-xl font-bold">Loading Calendar...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#2a2f3a] p-4 pb-24 relative overflow-hidden">
@@ -245,7 +303,7 @@ const PMSCalendar = ({ onBack }) => {
                   </tr>
                 </thead>
                 <tbody>
-                  {mockProperties.map(property => (
+                  {properties.map(property => (
                     <tr key={property.id} className="border-t-2 border-gray-200 hover:bg-orange-50/30 transition-colors">
                       <td className="px-4 py-4 font-bold text-[#FF8C42] border-r-2 border-gray-200 sticky left-0 bg-white z-10">
                         <div className="flex items-center gap-2">
@@ -292,7 +350,7 @@ const PMSCalendar = ({ onBack }) => {
             <div className="p-6">
               <h3 className="text-2xl font-black text-[#FF8C42] mb-6">Weekly Overview</h3>
               <div className="space-y-4">
-                {mockCalendarBookings
+                {calendarBookings
                   .filter(booking => {
                     const checkIn = new Date(booking.checkIn);
                     const checkOut = new Date(booking.checkOut);
@@ -340,7 +398,7 @@ const PMSCalendar = ({ onBack }) => {
                     </button>
                   ))}
 
-                {mockCalendarBookings.filter(booking => {
+                {calendarBookings.filter(booking => {
                   const checkIn = new Date(booking.checkIn);
                   const checkOut = new Date(booking.checkOut);
                   const weekStart = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), getWeekDays()[0]);
