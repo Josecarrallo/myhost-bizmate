@@ -39,6 +39,7 @@ import VoiceAssistant from './components/VoiceAssistant/VoiceAssistant';
 import AIAgentsMonitor from './components/AIAgentsMonitor/AIAgentsMonitor';
 import MySite from './components/MySite/MySite';
 import Guests from './components/Guests/Guests';
+import AISystems from './components/AISystems/AISystems';
 import GuestSegmentation from './components/GuestSegmentation/GuestSegmentation';
 import MetaAds from './components/MetaAds/MetaAds';
 import GuestAnalytics from './components/GuestAnalytics/GuestAnalytics';
@@ -787,11 +788,12 @@ export default function App() {
           </div>
         );
 
-      // OSIRIS.AI (Operations & Control)
-      case 'osiris-ai-assistant':
-        return <AIAssistant onBack={() => setCurrentView('overview')} />;
+      // AI SYSTEMS (Global chat with all agents)
+      case 'ai-systems':
+        return <AISystems onBack={() => setCurrentView('overview')} />;
 
-      case 'agents-monitor':
+      // OSIRIS.AI (Operations & Control)
+      case 'ai-monitor':
         return <AIAgentsMonitor onBack={() => setCurrentView('overview')} />;
 
       case 'osiris-alerts':

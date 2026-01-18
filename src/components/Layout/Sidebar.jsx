@@ -99,8 +99,7 @@ const Sidebar = ({ currentView, onNavigate, isOpen, onClose }) => {
 
         // Control sub-section
         { id: 'control-header', label: 'Control', isSubHeader: true, icon: Bot },
-        { id: 'osiris-ai-assistant', label: 'AI Assistant', icon: Sparkles, indent: true },
-        { id: 'agents-monitor', label: 'AI Agents Monitor', icon: Activity, indent: true },
+        { id: 'ai-monitor', label: 'AI Monitor', icon: Activity, indent: true },
         { id: 'osiris-alerts', label: 'Alerts / Exceptions', icon: Bell, indent: true },
         { id: 'workflows', label: 'Workflows & Automations', icon: Workflow, indent: true },
         { id: 'osiris-audit-log', label: 'Logs / Audit', icon: FileText, indent: true }
@@ -188,6 +187,14 @@ const Sidebar = ({ currentView, onNavigate, isOpen, onClose }) => {
         { id: 'intelligence-alerts', label: 'Alerts', icon: Bell },
         { id: 'ai-recommendations', label: 'AI Recommendations', icon: Lightbulb }
       ]
+    },
+    {
+      sectionId: 'ai-systems',
+      sectionLabel: 'AI SYSTEMS',
+      sectionIcon: Sparkles,
+      collapsible: false,
+      isDirectLink: true,
+      items: []
     },
     {
       sectionId: 'settings',
