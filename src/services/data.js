@@ -215,5 +215,171 @@ export const dataService = {
     }
 
     return data;
+  },
+
+  // ===== REPORTS & ANALYTICS =====
+
+  // Get monthly analytics (last 12 months)
+  async getMonthlyAnalytics(tenantId = 'c24393db-d318-4d75-8bbf-0fa240b9c1db') {
+    try {
+      // Get all bookings from last 12 months
+      const twelveMonthsAgo = new Date();
+      twelveMonthsAgo.setMonth(twelveMonthsAgo.getMonth() - 12);
+
+      const { data: bookings, error } = await supabase
+        .from('bookings')
+        .select('check_in, check_out, total_price, property_id, status')
+        .gte('check_in', twelveMonthsAgo.toISOString())
+        .eq('tenant_id', tenantId);
+
+      if (error) {
+        console.error('Error fetching monthly analytics:', error);
+        return [];
+      }
+
+      // Get properties count for occupancy calculation
+      const { data: properties } = await supabase
+        .from('properties')
+        .select('id')
+        .eq('tenant_id', tenantId);
+
+      const propertyCount = properties?.length || 1;
+
+      // Group by month
+      const monthlyStats = {};
+      const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+      bookings.forEach(booking => {
+        const checkIn = new Date(booking.check_in);
+        const checkOut = new Date(booking.check_out);
+        const monthKey = `${monthNames[checkIn.getMonth()]} ${checkIn.getFullYear().toString().slice(-2)}`;
+
+        if (!monthlyStats[monthKey]) {
+          monthlyStats[monthKey] = {
+            month: monthKey,
+            revenue: 0,
+            bookings: 0,
+            totalNights: 0,
+            date: checkIn
+          };
+        }
+
+        const nights = Math.ceil((checkOut - checkIn) / (1000 * 60 * 60 * 24));
+        monthlyStats[monthKey].revenue += parseFloat(booking.total_price) || 0;
+        monthlyStats[monthKey].bookings += 1;
+        monthlyStats[monthKey].totalNights += nights;
+      });
+
+      // Convert to array and calculate occupancy & ADR
+      const monthlyData = Object.values(monthlyStats)
+        .sort((a, b) => a.date - b.date)
+        .map(month => {
+          const daysInMonth = new Date(month.date.getFullYear(), month.date.getMonth() + 1, 0).getDate();
+          const totalAvailableNights = propertyCount * daysInMonth;
+          const occupancy = totalAvailableNights > 0
+            ? Math.round((month.totalNights / totalAvailableNights) * 100)
+            : 0;
+          const adr = month.totalNights > 0
+            ? Math.round(month.revenue / month.totalNights)
+            : 0;
+
+          return {
+            month: month.month,
+            revenue: Math.round(month.revenue),
+            bookings: month.bookings,
+            occupancy,
+            adr
+          };
+        });
+
+      return monthlyData;
+    } catch (error) {
+      console.error('Error in getMonthlyAnalytics:', error);
+      return [];
+    }
+  },
+
+  // Get recent clients (last bookings)
+  async getRecentClients(tenantId = 'c24393db-d318-4d75-8bbf-0fa240b9c1db', limit = 4) {
+    const { data, error } = await supabase
+      .from('bookings')
+      .select(`
+        id,
+        guest_name,
+        check_in,
+        check_out,
+        total_price,
+        status,
+        property_id,
+        properties (name)
+      `)
+      .eq('tenant_id', tenantId)
+      .in('status', ['confirmed', 'checked_in', 'completed'])
+      .order('check_in', { ascending: false })
+      .limit(limit);
+
+    if (error) {
+      console.error('Error fetching recent clients:', error);
+      return [];
+    }
+
+    return data || [];
+  },
+
+  // Get top guests by total revenue
+  async getTopGuests(tenantId = 'c24393db-d318-4d75-8bbf-0fa240b9c1db', limit = 4) {
+    const { data, error } = await supabase
+      .from('guest_contacts')
+      .select('*')
+      .eq('tenant_id', tenantId)
+      .order('total_revenue', { ascending: false, nullsFirst: false })
+      .limit(limit);
+
+    if (error) {
+      console.error('Error fetching top guests:', error);
+      return [];
+    }
+
+    return data || [];
+  },
+
+  // Get bookings distribution by property
+  async getPropertyDistribution(tenantId = 'c24393db-d318-4d75-8bbf-0fa240b9c1db') {
+    try {
+      const { data: bookings, error } = await supabase
+        .from('bookings')
+        .select('property_id')
+        .eq('tenant_id', tenantId);
+
+      if (error) {
+        console.error('Error fetching property distribution:', error);
+        return [];
+      }
+
+      const { data: properties } = await supabase
+        .from('properties')
+        .select('id, name')
+        .eq('tenant_id', tenantId);
+
+      // Count bookings per property
+      const distribution = {};
+      bookings.forEach(booking => {
+        const propId = booking.property_id;
+        distribution[propId] = (distribution[propId] || 0) + 1;
+      });
+
+      // Map to property names with colors
+      const colors = ['#F97316', '#EC4899', '#8B5CF6', '#3B82F6', '#10B981', '#F59E0B'];
+      const propertyDistribution = properties.map((prop, index) => ({
+        name: prop.name,
+        value: distribution[prop.id] || 0,
+        color: colors[index % colors.length]
+      })).filter(p => p.value > 0);
+
+      return propertyDistribution;
+    } catch (error) {
+      console.error('Error in getPropertyDistribution:', error);
+      return [];
+    }
   }
 };
