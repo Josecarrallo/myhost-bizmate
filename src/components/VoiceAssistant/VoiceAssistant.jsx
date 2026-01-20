@@ -276,6 +276,25 @@ const VoiceAssistant = () => {
           </div>
         )}
 
+        {/* Avatar de LUMINA cuando no está en llamada */}
+        {!isCallActive && !isLoading && (
+          <div className="flex items-center gap-3 bg-white rounded-full shadow-2xl pr-4 border-2 border-orange-200 animate-fade-in">
+            <img
+              src="/images/lumina-avatar.jpg"
+              alt="LUMINA - Sales Assistant"
+              className="w-14 h-14 rounded-full object-cover border-3 border-white shadow-lg"
+            />
+            <div className="text-left">
+              <p className="text-sm font-black text-[#d85a2a]">
+                LUMINA
+              </p>
+              <p className="text-xs text-gray-600 font-semibold">
+                Sales Assistant
+              </p>
+            </div>
+          </div>
+        )}
+
         {/* Botón principal */}
         <button
           onClick={isCallActive ? handleEndCall : handleStartCall}
@@ -302,7 +321,7 @@ const VoiceAssistant = () => {
               🤖 24/7 Voice Assistant
             </p>
             <p className="text-xs text-white/90">
-              LUMINA - Sales Assistant
+              Click "Talk to LUMINA" to start
             </p>
           </div>
         )}
