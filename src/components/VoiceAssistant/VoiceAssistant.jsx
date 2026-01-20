@@ -7,6 +7,7 @@ const VoiceAssistant = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [transcript, setTranscript] = useState('');
+  const [interimTranscript, setInterimTranscript] = useState('');
   const [callStatus, setCallStatus] = useState('idle');
   const [error, setError] = useState(null);
 
@@ -89,6 +90,7 @@ const VoiceAssistant = () => {
       setIsLoading(false);
       setIsSpeaking(false);
       setTranscript('');
+      setInterimTranscript('');
       setCallStatus('ended');
       setTimeout(() => setCallStatus('idle'), 2000);
 
@@ -131,24 +133,35 @@ const VoiceAssistant = () => {
 
     vapi.on('speech-start', () => {
       setIsSpeaking(true);
+      // Clear interim transcript when speech starts
+      setInterimTranscript('');
     });
 
     vapi.on('speech-end', () => {
       setIsSpeaking(false);
+      // Clear interim transcript when speech ends
+      setInterimTranscript('');
     });
 
     vapi.on('message', (message) => {
       // Capturar todos los mensajes para el reporte final
       callDataRef.current.messages.push(message);
 
-      // Transcripción en tiempo real
-      if (message.type === 'transcript' && message.transcriptType === 'final') {
-        setTranscript(message.transcript);
-        callDataRef.current.transcripts.push({
-          text: message.transcript,
-          timestamp: new Date().toISOString(),
-          role: message.role || 'user'
-        });
+      // Transcripción en tiempo real - mostrar parciales Y finales
+      if (message.type === 'transcript') {
+        if (message.transcriptType === 'partial') {
+          // Mostrar transcript parcial inmediatamente (en tiempo real)
+          setInterimTranscript(message.transcript);
+        } else if (message.transcriptType === 'final') {
+          // Transcript final - actualizar el transcript principal
+          setTranscript(message.transcript);
+          setInterimTranscript(''); // Limpiar el parcial
+          callDataRef.current.transcripts.push({
+            text: message.transcript,
+            timestamp: new Date().toISOString(),
+            role: message.role || 'user'
+          });
+        }
       }
 
       // Capturar structured outputs / artifacts
@@ -258,10 +271,17 @@ const VoiceAssistant = () => {
               </span>
             </div>
 
-            {transcript && (
+            {(transcript || interimTranscript) && (
               <div className="bg-gradient-to-br from-orange-50 to-orange-100 rounded-xl p-4 mt-3 border border-orange-200">
                 <p className="text-xs font-medium text-orange-600 mb-2">Transcript:</p>
-                <p className="text-sm text-gray-700 leading-relaxed">{transcript}</p>
+                {transcript && (
+                  <p className="text-sm text-gray-700 leading-relaxed mb-2">{transcript}</p>
+                )}
+                {interimTranscript && (
+                  <p className="text-sm text-gray-500 italic leading-relaxed">
+                    {interimTranscript}
+                  </p>
+                )}
               </div>
             )}
           </div>
