@@ -1,0 +1,309 @@
+A list of Zodomus API's
+Account API's
+Access account data and list of channels
+
+
+Operation	Description
+GET /account	
+Get account information
+
+GET /channels	
+Get a list of current active channels
+
+GET /currencies	
+Get a list of current currencies
+
+GET /price-model	
+Get a list of price models
+
+Mapping API's
+Mapping properties, rooms and rates from the channel
+
+
+Operation	Description
+POST /property-activation	
+Activate a channel property with Zodomus
+
+POST /property-cancellation	
+Cancel a channel property with Zodomus
+
+POST /property-check	
+Check a property with Zodomus
+
+POST /rooms-activation	
+Activate the property rooms and rates and map them with Zodomus
+
+POST /rooms-cancellation	
+Cancel property rooms associated with Zodomus
+
+Airbnb Mapping API's
+Mapping Airbnb hosts and properties
+
+
+Operation	Description
+POST /airbnb-host-activation	
+Activate a host with Zodomus
+
+POST /airbnb-host-cancellation	
+Cancel an Airbnb host with Zodomus
+
+GET /airbnb-host-status	
+Get the status of an Airbnb Host with Zodomus
+
+GET /airbnb-host-info/a>	
+Get the account information of an Airbnb Host with Zodomus
+
+GET /airbnb-listings	
+Get a list of listings from the Airbnb Host Zodomus
+
+Rates and Availability API's
+Rates and Availability APIs
+
+Set Rates and Availabilties for your rooms and rates
+
+
+Operation	Description
+GET /room-rates	
+Get a list of rooms and rates for the corresponding channel / property
+
+GET /availability	
+Get the rooms availability for the corresponding channel / property / dates
+
+POST /availability	
+Set your availability in the defined channel / property / room
+
+POST /rates	
+Set rates for your channel / property / room /rate
+
+POST /rates-derived	
+Set rates (derived) for your channel / property / room /rate
+
+Reservation API's
+Reservation APIs
+
+Create test reservations and handle production reservations from OTAs
+
+
+Operation	Description
+GET /reservations-queue	
+Get a list of reservations
+
+GET /reservations	
+Get a reservation
+
+GET /reservations-cc	
+Get a reservation credit card info.
+
+GET /reservations-summary	
+Get a list of future reservations
+
+POST /reservations-createtest	
+Create a test reservation for your test property (only used in tests)
+
+Content API's
+Content APIs
+
+Create and manage properties, rooms and rates (some APIs are only available on some OTAs)
+
+
+Operation	Description
+GET /property	
+Get a list of properties or detail about a property (Only in Expedia)
+
+POST /property	
+Create or modify a property (only in Booking)
+
+POST /property-status	
+Set your property status (only in Booking)
+
+GET /room	
+Get a list of rooms or a specific room (only in Expedia)
+
+POST /room	
+Create or modify a room (Booking and Expedia)
+
+POST /room-status	
+Set room status (only in Booking).
+
+GET /rate	
+Get a list of rates or a specific rate (only in Expedia)
+
+POST /rate	
+Create or modify a rate (Booking and Expedia)
+
+POST /product	
+Create, modify or delete a product (only in Booking).
+
+Booking Content tables API's
+Booking Content table API functions (a full list of tables is shown inside our documentation)
+
+
+Operation	Description
+GET /booking-property-types	
+Get a list of items from the table
+
+Expedia Content tables API's
+Expedia Content table API functions (a full list of tables is shown inside our documentation)
+
+
+Operation	Description
+GET /expedia-room-types	
+Get a list of items from the table
+
+Booking Opportunities
+Booking opportunities APIs
+
+Use the Opportunity API to retrieve actionable opportunities for your connected properties.
+Opportunities helps you identify ways to improve your property's performance and your guests experiences
+
+
+Operation	Description
+GET /opportunities	
+Get a list of opportunities for a specific property
+
+POST /opportunities	
+POST a reply to an opportunity
+
+Booking Guest Reviews
+Booking Guest Reviews APIs
+
+Use the Review API to retrieve a property's reviews, render them in your interface, and let the property reply.
+Publicly replying to reviews is a great way for properties to show they care about their guests experiences and potentially attract more bookings.
+
+
+Operation	Description
+GET /reviews	
+Get a list or a specific guest review
+
+GET /reviews-score	
+GET a review score for a specific property
+
+POST /reviews	
+POST a guest review reply
+
+Booking Reporting
+Booking Reporting APIs
+
+Use the Reporting API to report the following types of changes to a reservation:
+- Guest provided invalid credit card
+- Changes to check-out date and/or price
+- Cancellation due to guest no-show
+- Cancellation due to invalid credit card
+
+
+Operation	Description
+GET /reporting-misconduct-categories	
+Get a list of misconduct categories
+
+POST /reporting	
+POST a specific report (isNoShow, StayChange guestMisconduct, ccIsInvalid,...)
+
+Booking Promotions
+Booking Promotions APIs
+
+The Promotions API enables you to create and manage promotions.
+Promotions are special prices that a property can offer during a certain time window, or to a certain type of booker
+
+
+Operation	Description
+POST /promotions	
+Create or update a promotion
+
+GET /promotions	
+Get a list of promotions
+
+GET /promotion-channels	
+Get a list of promotion channels
+
+POST /activate-promotion	
+Activate a promotion
+
+POST /deactivate-promotion	
+Deactivate a promotion
+
+It's easy to use our API's
+Zodomus API's are REST API's with JSON requests and responses.
+On the API reference, available after registration, you can get a detailed reference for each API.
+
+Our API endpoint is : https://api.zodomus.com
+
+All your API calls must use HTTPS and TLS 1.2
+Zodomus uses Basic Authentication, with the API User and API Password keys provided in the backoffice.
+
+Let's see some examples to call one simple API : https://api.zodomus.com/channels, to get a list of active channels.
+
+curl:
+                    
+                    curl -u api_key_user:api_key_password -i -H 'Accept:application/json' https://api.zodomus.com/channels
+                    
+                    
+Guzzle (Http client for PHP):
+                    
+                      $credentials = base64_encode($api_key_user.":".$api_key_password);
+
+                      $client = new GuzzleHttp\Client();
+
+                      $url="https://api.zodomus.com/channels";
+
+                      $response = $client->request('GET',$url, [
+
+                       'headers' => [
+
+                          'Authorization' => ['Basic '.$credentials],
+
+                          'Content-type' => 'application/json; charset=UTF8'
+
+                        ]
+
+                      ]);
+                      
+                      
+Python:
+                      
+                      import requests
+
+                      from requests.auth import HTTPBasicAuth
+
+                      r = requests.post('https://api.zodomus.com/channels', auth=HTTPBasicAuth('api_key_user', 'api_key_password'))
+                      
+                      
+C#:
+                      
+                      WebRequest req = WebRequest.Create(@"https://api.zodomus.com/channels");
+                      req.Method = "GET";
+                      req.Headers["Authorization"] = "Basic " + Convert.ToBase64String(Encoding.Default.GetBytes("api_key_user:api_key_password"));
+                      HttpWebResponse resp = req.GetResponse() as HttpWebResponse;
+                      
+                      
+
+If you need support with any programming language, please send an email to our support.
+Unlimited access to our API's during tests
+You can use Zodomus sandbox for as long as you need.
+You can also access all our API's and prepare your App to production.
+Our support team is available during tests if you need.
+Access to production
+To get access to production you need to have tested all API's in test mode with no errors at least once.
+You also need to pass our certification tests in order to go to production.
+To pass our certification you should call our support so that we can follow with you all the steps needed to pass certification.
+You can find more information about certification and access to production after registration.
+PCI complaince and security
+Anyone involved with the processing, transmission or storage of credit card data must comply with the Payment Card Industry Data Security Standards (PCI DSS).
+
+Zodomus is PCI DSS compliant to store credit card data.
+
+PCI compliance is a shared responsibility and applies to both Zodomus and your business.
+If you are not PCI DSS compliant you should not store card data in your system, you should use Zodomus to access card data and not store it.
+All our users must validate their PCI compliance if they need to access credit card data in Production.
+If you don't store card data, usually you can do this with a Self-Assessment Questionnaire (SAQ) provided by the PCI Security Standards Council.
+
+If you need any help regarding security call our support team.
+
+Your API calls must use HTTPS and a modern version of TLS (TLS 1.2 or bigger).
+You get can a free certificate at Let's Encrypt or any other provider. TLS can be easily setup if you are a developer, but if you need help, please call our support.
+You can check your SSL security using Qualys SSL Labs to make sure you have everything set up in a secure way.
+More information and support
+More information and an API reference with all API's is available after registration in our backoffice.
+Support is available during tests and production.
+
+
+

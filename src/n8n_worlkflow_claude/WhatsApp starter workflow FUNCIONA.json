@@ -1,0 +1,204 @@
+{
+  "name": "WhatsApp starter workflow FUNCIONA",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "whatsapp-webhook",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "6c96d7c0-b547-4dce-879e-425133c594ed",
+      "name": "Verify",
+      "type": "n8n-nodes-base.webhook",
+      "position": [
+        -192,
+        96
+      ],
+      "webhookId": "793f285b-9da7-4a5e-97ce-f0976c113db5",
+      "typeVersion": 1.1
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ $json.query['hub.challenge'] }}",
+        "options": {}
+      },
+      "id": "36ad0030-0f23-4635-86ab-6f03f03bc7ea",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "position": [
+        32,
+        96
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "phoneNumberId": "687372914468322",
+        "recipientPhoneNumber": "={{ $json.body.entry[0].changes[0].value.messages[0].from }}",
+        "textBody": "=Echo back: {{ $json.body.entry[0].changes[0].value.messages[0].text.body }}",
+        "additionalFields": {}
+      },
+      "id": "4a6edc14-f922-4c54-a8ac-4eb97c5fdf35",
+      "name": "Echo the message back",
+      "type": "n8n-nodes-base.whatsApp",
+      "position": [
+        240,
+        448
+      ],
+      "typeVersion": 1,
+      "webhookId": "a7eaff8a-979f-407b-9a1e-750c0a97f21c",
+      "credentials": {
+        "whatsAppApi": {
+          "id": "WgPJRWbhlrzbIHH6",
+          "name": "WhatsApp account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "leftValue": "",
+            "caseSensitive": true,
+            "typeValidation": "loose"
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "8a765e57-8e39-4547-a99a-0458df2b75f4",
+              "operator": {
+                "type": "object",
+                "operation": "exists",
+                "singleValue": true
+              },
+              "leftValue": "={{ $json.body.entry[0].changes[0].value.messages[0] }}",
+              "rightValue": ""
+            }
+          ]
+        },
+        "options": {
+          "looseTypeValidation": true
+        }
+      },
+      "id": "2c4e7ef9-fabb-466e-891b-1f9ee60c0813",
+      "name": "Is message?",
+      "type": "n8n-nodes-base.if",
+      "position": [
+        32,
+        448
+      ],
+      "typeVersion": 2
+    },
+    {
+      "parameters": {
+        "content": "## Verify Webhook\n* Go to your [Meta for Developers App page](https://developers.facebook.com/apps/), navigate to the App settings\n* Add a **production webhook URL** as a new Callback URL\n* *Verify* webhook receives a GET Request and sends back a verification code\n",
+        "height": 272,
+        "width": 618
+      },
+      "id": "01c4a185-2eba-44be-8192-21eba11fb1b3",
+      "name": "Sticky Note",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -240,
+        -48
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "content": "## Main flow\n* *Respond* webhook receives various POST Requests from Meta regarding WhatsApp messages (user messages + status notifications)\n* Check if the incoming JSON contains user message\n* Echo back the text message to the user. This is a custom message, not a WhatsApp Business template message",
+        "height": 343,
+        "width": 619
+      },
+      "id": "bafab148-15ae-447a-ac0f-53f6f400144f",
+      "name": "Sticky Note1",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -240,
+        272
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "content": "## Important!\n### Configure the webhook nodes this way:\n* Make sure that both *Verify* and *Respond* have the same URL\n* *Verify* should have GET HTTP Method\n* *Respond* should have POST HTTP Method",
+        "height": 177,
+        "width": 405,
+        "color": 3
+      },
+      "id": "e243d2e9-89d1-4994-9805-49e0ae62f87f",
+      "name": "Sticky Note2",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -656,
+        176
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "whatsapp-webhook",
+        "options": {}
+      },
+      "id": "789dbb7a-f96e-45ed-bd22-80cad3c19ce9",
+      "name": "Respond",
+      "type": "n8n-nodes-base.webhook",
+      "position": [
+        -192,
+        448
+      ],
+      "webhookId": "c4cbc1c4-e1f5-4ea5-bd9a-c5f697493985",
+      "typeVersion": 1.1
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Verify": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Respond": {
+      "main": [
+        [
+          {
+            "node": "Is message?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is message?": {
+      "main": [
+        [
+          {
+            "node": "Echo the message back",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "ecff96a7-6e13-4d98-ba40-794f476d42ff",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "ca7bc7f182c365457ea4a94a4dc2efe81c23590ab8904858ce5cabfbdd56e40f"
+  },
+  "id": "GpQnOujVASwDWwTH",
+  "tags": []
+}

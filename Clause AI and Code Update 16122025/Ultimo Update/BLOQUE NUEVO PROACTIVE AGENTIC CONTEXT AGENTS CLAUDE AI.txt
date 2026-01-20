@@ -1,0 +1,211 @@
+DOCUMENTO OFICIAL — CLAUDE AI (N8N)
+BLOQUE NUEVO: PROACTIVE AGENTIC CONTEXT AGENTS
+PROYECTO: MY HOST – BizMate
+ESTADO: NUEVO DESARROLLO (NO EXISTE AÚN)
+OBJETIVO: Crear agentes proactivos basados en CONTEXTO EXTERNO
+ALCANCE: Observación → Decisión → Acción (disparo a sistemas existentes)
+
+================================================================
+0) QUÉ ES ESTE BLOQUE (IMPORTANTE)
+================================================================
+Este bloque NO reemplaza nada existente.
+NO duplica OSIRIS, LUMINA, BANYU ni KORA.
+
+Es una CAPA NUEVA de “Agentic Context” que:
+- observa señales externas (tiempo, tráfico, eventos)
+- decide si hay impacto real en el negocio
+- dispara acciones en sistemas YA EXISTENTES
+
+Estos agentes NO hablan directamente con el usuario final
+por defecto. Disparan ACCIONES.
+
+================================================================
+1) AGENTES PROACTIVOS DEFINIDOS (NUEVOS)
+================================================================
+
+AGENTE 1 — WEATHER CONTEXT AGENT
+Rol:
+- Monitorizar clima relevante para operaciones y huéspedes
+
+Señales que observa:
+- lluvia fuerte
+- tormentas
+- calor extremo
+- avisos meteorológicos
+
+Impactos posibles:
+- llegadas / salidas
+- housekeeping
+- experiencia huésped
+- cancelaciones
+
+------------------------------------------------------------
+
+AGENTE 2 — TRAFFIC & ACCESS CONTEXT AGENT
+Rol:
+- Detectar problemas de acceso físico a la propiedad
+
+Señales que observa:
+- tráfico anómalo
+- carreteras cerradas
+- retrasos significativos
+- zonas inaccesibles
+
+Impactos posibles:
+- check-in tardío
+- frustración huésped
+- llamadas / mensajes preventivos
+
+------------------------------------------------------------
+
+AGENTE 3 — LOCAL EVENTS & DEMAND AGENT
+Rol:
+- Detectar eventos locales que alteran la demanda
+
+Señales que observa:
+- eventos grandes
+- festividades
+- picos de ocupación zona
+- cambios de demanda
+
+Impactos posibles:
+- pricing
+- marketing
+- comunicación proactiva
+- upsell
+
+------------------------------------------------------------
+
+AGENTE 4 — DISRUPTION & RISK AGENT
+Rol:
+- Detectar disrupciones críticas
+
+Señales que observa:
+- alertas públicas
+- emergencias
+- cortes eléctricos / agua (si disponible)
+- situaciones de riesgo
+
+Impactos posibles:
+- escalación inmediata
+- comunicaciones urgentes
+- cambio de journeys
+
+================================================================
+2) QUÉ HACEN ESTOS AGENTES (COMPORTAMIENTO)
+================================================================
+Cada agente sigue SIEMPRE este patrón:
+
+OBSERVAR
+→ EVALUAR IMPACTO
+→ DECIDIR ACCIÓN
+→ DISPARAR A SISTEMA EXISTENTE
+→ LOG
+
+NO ejecutan acciones finales directamente
+salvo que esté explícitamente permitido.
+
+================================================================
+3) ACCIONES QUE PUEDEN DISPARAR
+================================================================
+
+Acciones INTERNAS (auto):
+- create_internal_alert
+- create_task (ops / housekeeping)
+- escalate_to_manager
+- update_internal_state
+
+Acciones EXTERNAS (DRAFT):
+- draft_whatsapp_message (BANYU)
+- draft_voice_call (KORA)
+- draft_guest_notification
+- trigger_content_generator (draft)
+
+NUNCA enviar directamente sin pasar por control SAFE.
+
+================================================================
+4) WORKFLOW N8N — ESTRUCTURA BASE (FASE 1)
+================================================================
+
+WF-CONTEXT-ROUTER
+
+NODO 1 — Cron Trigger
+- Frecuencia: cada 30–60 minutos
+
+NODO 2 — Fetch External Signals
+- Weather API (o mock)
+- Traffic / Access feed (o mock)
+- Events feed (o manual list)
+
+NODO 3 — Normalize Signals
+- Convertir señales en formato común
+
+NODO 4 — Claude Decision Node
+- Rol: Operations & Risk Context Analyst
+- Input: señales normalizadas
+- Output: JSON de impacto y acciones sugeridas
+
+NODO 5 — Parse Decision
+- Validar estructura
+- Ignorar ruido (impact = none)
+
+NODO 6 — Trigger Actions
+- Llamar a workflows existentes:
+  - OSIRIS
+  - BANYU
+  - KORA
+  - Content Generator
+
+NODO 7 — Log Context Run
+- Guardar todo para auditoría
+
+================================================================
+5) FORMATO DE DECISIÓN (JSON OBLIGATORIO)
+================================================================
+
+{
+  "context_run_id": "uuid",
+  "agent": "weather | traffic | events | disruption",
+  "signal_summary": ["string"],
+  "impact_level": "none | low | medium | high | critical",
+  "recommended_actions": [
+    {
+      "target": "osiris | baniu | kora | content",
+      "action": "create_alert | draft_message | trigger_content",
+      "reason": "string",
+      "payload": { "json": "any" },
+      "requires_approval": true
+    }
+  ]
+}
+
+Si impact_level = "none"
+→ no hacer nada, solo log.
+
+================================================================
+6) REGLAS CLAVE (NO ROMPER)
+================================================================
+- No generar ruido
+- No disparar acciones si impacto = none
+- Siempre priorizar operaciones internas
+- Mensajes externos SIEMPRE en draft
+- Todo con log
+- Kill switch global:
+  context_agents_enabled = true | false
+
+================================================================
+7) OBJETIVO DE ESTE BLOQUE
+================================================================
+Que el sistema:
+- se adelante a problemas
+- reduzca estrés operativo
+- mejore experiencia huésped
+- active marketing y comunicación con sentido
+
+SIN añadir carga humana
+SIN spam
+SIN descontrol
+
+================================================================
+FIN BLOQUE — PROACTIVE AGENTIC CONTEXT AGENTS
+================================================================

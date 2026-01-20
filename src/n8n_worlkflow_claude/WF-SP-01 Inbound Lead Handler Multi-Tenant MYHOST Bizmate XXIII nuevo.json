@@ -1,0 +1,877 @@
+{
+  "name": "WF-SP-01 Inbound Lead Handler Multi-Tenant MYHOST Bizmate XXIII nuevo",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "inbound-lead-v3",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "position": [
+        -2400,
+        0
+      ],
+      "webhookId": "inbound-lead-v3",
+      "typeVersion": 2.1
+    },
+    {
+      "parameters": {
+        "jsCode": "// Validate Master Event v1.0\nconst e = $json.body || $json;\n\n// Validation\nif (!e.schema_version || e.schema_version !== '1.0') {\n  throw new Error('Invalid schema_version');\n}\nif (!e.tenant || !e.tenant.tenant_id) {\n  throw new Error('Missing tenant.tenant_id');\n}\nif (!e.contact || !e.contact.phone) {\n  throw new Error('Missing contact.phone');\n}\nif (!e.message || !e.message.text) {\n  throw new Error('Missing message.text');\n}\n\nreturn [{\n  json: {\n    schema_version: e.schema_version,\n    event_id: e.event_id,\n    source: e.source,\n    tenant_id: e.tenant.tenant_id,\n    property_id: e.tenant.property_id || '18711359-1378-4d12-9ea6-fb31c0b1bac2',\n    name: e.contact.name || 'Unknown',\n    phone: e.contact.phone,\n    email: e.contact.email || null,\n    language: e.contact.language || 'en',\n    channel: e.message.channel || e.source || 'web',\n    message: e.message.text,\n    message_id: e.message.message_id || null,\n    check_in: e.context?.checkin || null,\n    check_out: e.context?.checkout || null,\n    guests: e.context?.guests || null,\n    flow_origin: e.meta?.flow_origin || 'unknown',\n    trace_id: e.meta?.trace_id || null,\n    raw_payload: JSON.stringify(e)\n  }\n}];"
+      },
+      "id": "validate-master-event",
+      "name": "Validate Master Event",
+      "type": "n8n-nodes-base.code",
+      "position": [
+        -2192,
+        0
+      ],
+      "typeVersion": 2
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://jjpscimtxrudtepzwhag.supabase.co/rest/v1/rpc/find_lead_by_contact",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpqcHNjaW10eHJ1ZHRlcHp3aGFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI5NDMyMzIsImV4cCI6MjA3ODUxOTIzMn0._U_HwdF5-yT8-prJLzkdO_rGbNuu7Z3gpUQW0Q8zxa0"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"p_phone\": {{ $json.phone ? '\"' + $json.phone + '\"' : 'null' }},\n  \"p_email\": {{ $json.email ? '\"' + $json.email + '\"' : 'null' }},\n  \"p_tenant_id\": \"{{ $json.tenant_id }}\"\n}",
+        "options": {}
+      },
+      "id": "buscar-lead",
+      "name": "Buscar Lead",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        -1984,
+        0
+      ],
+      "typeVersion": 4.3,
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "existing_lead_id",
+              "name": "existing_lead_id",
+              "type": "string",
+              "value": "={{ $json.id || '' }}"
+            },
+            {
+              "id": "existing_lead_state",
+              "name": "existing_lead_state",
+              "type": "string",
+              "value": "={{ $json.state || '' }}"
+            },
+            {
+              "id": "tenant_id",
+              "name": "tenant_id",
+              "type": "string",
+              "value": "={{ $('Validate Master Event').item.json.tenant_id }}"
+            },
+            {
+              "id": "property_id",
+              "name": "property_id",
+              "type": "string",
+              "value": "={{ $('Validate Master Event').item.json.property_id }}"
+            },
+            {
+              "id": "channel",
+              "name": "channel",
+              "type": "string",
+              "value": "={{ $('Validate Master Event').item.json.channel }}"
+            },
+            {
+              "id": "name",
+              "name": "name",
+              "type": "string",
+              "value": "={{ $('Validate Master Event').item.json.name }}"
+            },
+            {
+              "id": "email",
+              "name": "email",
+              "type": "string",
+              "value": "={{ $('Validate Master Event').item.json.email }}"
+            },
+            {
+              "id": "phone",
+              "name": "phone",
+              "type": "string",
+              "value": "={{ $('Validate Master Event').item.json.phone }}"
+            },
+            {
+              "id": "message",
+              "name": "message",
+              "type": "string",
+              "value": "={{ $('Validate Master Event').item.json.message }}"
+            },
+            {
+              "id": "check_in",
+              "name": "check_in",
+              "type": "string",
+              "value": "={{ $('Validate Master Event').item.json.check_in }}"
+            },
+            {
+              "id": "check_out",
+              "name": "check_out",
+              "type": "string",
+              "value": "={{ $('Validate Master Event').item.json.check_out }}"
+            },
+            {
+              "id": "guests",
+              "name": "guests",
+              "type": "number",
+              "value": "={{ $('Validate Master Event').item.json.guests }}"
+            },
+            {
+              "id": "language",
+              "name": "language",
+              "type": "string",
+              "value": "={{ $('Validate Master Event').item.json.language }}"
+            },
+            {
+              "id": "source",
+              "name": "source",
+              "type": "string",
+              "value": "={{ $('Validate Master Event').item.json.source }}"
+            },
+            {
+              "id": "flow_origin",
+              "name": "flow_origin",
+              "type": "string",
+              "value": "={{ $('Validate Master Event').item.json.flow_origin }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "merge",
+      "name": "Merge",
+      "type": "n8n-nodes-base.set",
+      "position": [
+        -1776,
+        0
+      ],
+      "typeVersion": 3.4
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.openai.com/v1/chat/completions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer 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"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"gpt-4o-mini\",\n  \"max_tokens\": 10,\n  \"messages\": [\n    {\"role\": \"system\", \"content\": \"Clasifica el mensaje en UNA palabra: info, price, availability, o booking. Responde SOLO una palabra.\"},\n    {\"role\": \"user\", \"content\": \"{{ $json.message.replace(/\\\\n/g, ' ').replace(/\\\"/g, '') }}\"}\n  ]\n}",
+        "options": {}
+      },
+      "id": "clasificar",
+      "name": "Clasificar",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        -1568,
+        0
+      ],
+      "typeVersion": 4.3
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "intent",
+              "name": "intent",
+              "type": "string",
+              "value": "={{ $json.choices[0].message.content.trim().toLowerCase() }}"
+            },
+            {
+              "id": "intent_score",
+              "name": "intent_score",
+              "type": "number",
+              "value": "={{ {'info': 10, 'price': 20, 'availability': 30, 'booking': 50}[$json.choices[0].message.content.trim().toLowerCase()] || 10 }}"
+            },
+            {
+              "id": "is_hot",
+              "name": "is_hot",
+              "type": "boolean",
+              "value": "={{ $json.choices[0].message.content.trim().toLowerCase() === 'booking' }}"
+            },
+            {
+              "id": "existing_lead_id",
+              "name": "existing_lead_id",
+              "type": "string",
+              "value": "={{ $('Merge').item.json.existing_lead_id }}"
+            },
+            {
+              "id": "existing_lead_state",
+              "name": "existing_lead_state",
+              "type": "string",
+              "value": "={{ $('Merge').item.json.existing_lead_state }}"
+            },
+            {
+              "id": "tenant_id",
+              "name": "tenant_id",
+              "type": "string",
+              "value": "={{ $('Merge').item.json.tenant_id }}"
+            },
+            {
+              "id": "property_id",
+              "name": "property_id",
+              "type": "string",
+              "value": "={{ $('Merge').item.json.property_id }}"
+            },
+            {
+              "id": "channel",
+              "name": "channel",
+              "type": "string",
+              "value": "={{ $('Merge').item.json.channel }}"
+            },
+            {
+              "id": "name",
+              "name": "name",
+              "type": "string",
+              "value": "={{ $('Merge').item.json.name }}"
+            },
+            {
+              "id": "email",
+              "name": "email",
+              "type": "string",
+              "value": "={{ $('Merge').item.json.email }}"
+            },
+            {
+              "id": "phone",
+              "name": "phone",
+              "type": "string",
+              "value": "={{ $('Merge').item.json.phone }}"
+            },
+            {
+              "id": "message",
+              "name": "message",
+              "type": "string",
+              "value": "={{ $('Merge').item.json.message }}"
+            },
+            {
+              "id": "source",
+              "name": "source",
+              "type": "string",
+              "value": "={{ $('Merge').item.json.source }}"
+            },
+            {
+              "id": "flow_origin",
+              "name": "flow_origin",
+              "type": "string",
+              "value": "={{ $('Merge').item.json.flow_origin }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "set-intent",
+      "name": "Set Intent",
+      "type": "n8n-nodes-base.set",
+      "position": [
+        -1360,
+        0
+      ],
+      "typeVersion": 3.4
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "version": 2,
+                  "caseSensitive": true,
+                  "typeValidation": "loose"
+                },
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "operator": {
+                      "type": "string",
+                      "operation": "empty"
+                    },
+                    "leftValue": "={{ $json.existing_lead_id }}"
+                  }
+                ]
+              },
+              "renameOutput": true,
+              "outputKey": "New"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "version": 2,
+                  "caseSensitive": true,
+                  "typeValidation": "loose"
+                },
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "operator": {
+                      "type": "string",
+                      "operation": "notEmpty"
+                    },
+                    "leftValue": "={{ $json.existing_lead_id }}"
+                  }
+                ]
+              },
+              "renameOutput": true,
+              "outputKey": "Existing"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "switch-lead",
+      "name": "Switch Lead",
+      "type": "n8n-nodes-base.switch",
+      "position": [
+        -1152,
+        0
+      ],
+      "typeVersion": 3.3
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://jjpscimtxrudtepzwhag.supabase.co/rest/v1/leads",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpqcHNjaW10eHJ1ZHRlcHp3aGFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI5NDMyMzIsImV4cCI6MjA3ODUxOTIzMn0._U_HwdF5-yT8-prJLzkdO_rGbNuu7Z3gpUQW0Q8zxa0"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpqcHNjaW10eHJ1ZHRlcHp3aGFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI5NDMyMzIsImV4cCI6MjA3ODUxOTIzMn0._U_HwdF5-yT8-prJLzkdO_rGbNuu7Z3gpUQW0Q8zxa0"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=representation"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"tenant_id\": \"{{ $json.tenant_id }}\",\n  \"property_id\": \"{{ $json.property_id }}\",\n  \"name\": \"{{ $json.name }}\",\n  \"phone\": {{ $json.phone ? '\"' + $json.phone + '\"' : 'null' }},\n  \"email\": {{ $json.email ? '\"' + $json.email + '\"' : 'null' }},\n  \"channel\": \"{{ $json.channel }}\",\n  \"state\": \"{{ $json.is_hot ? 'HOT' : 'NEW' }}\",\n  \"intent\": \"{{ $json.intent }}\",\n  \"score\": {{ $json.intent_score }},\n  \"source\": \"{{ $json.source }}\"\n}",
+        "options": {}
+      },
+      "id": "insert-lead",
+      "name": "INSERT",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        -944,
+        -144
+      ],
+      "typeVersion": 4.3
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "=https://jjpscimtxrudtepzwhag.supabase.co/rest/v1/leads?id=eq.{{ $json.existing_lead_id }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpqcHNjaW10eHJ1ZHRlcHp3aGFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI5NDMyMzIsImV4cCI6MjA3ODUxOTIzMn0._U_HwdF5-yT8-prJLzkdO_rGbNuu7Z3gpUQW0Q8zxa0"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpqcHNjaW10eHJ1ZHRlcHp3aGFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI5NDMyMzIsImV4cCI6MjA3ODUxOTIzMn0._U_HwdF5-yT8-prJLzkdO_rGbNuu7Z3gpUQW0Q8zxa0"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=representation"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"last_contacted_at\": \"{{ new Date().toISOString() }}\",\n  \"state\": \"{{ $json.is_hot ? 'HOT' : 'ENGAGED' }}\",\n  \"intent\": \"{{ $json.intent }}\",\n  \"score\": {{ $json.intent_score }},\n  \"updated_at\": \"{{ new Date().toISOString() }}\"\n}",
+        "options": {}
+      },
+      "id": "update-lead",
+      "name": "UPDATE",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        -944,
+        144
+      ],
+      "typeVersion": 4.3
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://jjpscimtxrudtepzwhag.supabase.co/rest/v1/lead_events",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpqcHNjaW10eHJ1ZHRlcHp3aGFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI5NDMyMzIsImV4cCI6MjA3ODUxOTIzMn0._U_HwdF5-yT8-prJLzkdO_rGbNuu7Z3gpUQW0Q8zxa0"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpqcHNjaW10eHJ1ZHRlcHp3aGFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI5NDMyMzIsImV4cCI6MjA3ODUxOTIzMn0._U_HwdF5-yT8-prJLzkdO_rGbNuu7Z3gpUQW0Q8zxa0"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=representation"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"lead_id\": \"{{ $json[0]?.id || $json.id }}\",\n  \"event_type\": \"lead_created\",\n  \"payload_json\": {\n    \"channel\": \"{{ $('Set Intent').item.json.channel }}\",\n    \"message\": \"{{ $('Set Intent').item.json.message }}\",\n    \"intent\": \"{{ $('Set Intent').item.json.intent }}\",\n    \"score\": {{ $('Set Intent').item.json.intent_score }}\n  }\n}",
+        "options": {}
+      },
+      "id": "log-created",
+      "name": "Log Created",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        -736,
+        -144
+      ],
+      "typeVersion": 4.3
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://jjpscimtxrudtepzwhag.supabase.co/rest/v1/lead_events",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpqcHNjaW10eHJ1ZHRlcHp3aGFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI5NDMyMzIsImV4cCI6MjA3ODUxOTIzMn0._U_HwdF5-yT8-prJLzkdO_rGbNuu7Z3gpUQW0Q8zxa0"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpqcHNjaW10eHJ1ZHRlcHp3aGFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI5NDMyMzIsImV4cCI6MjA3ODUxOTIzMn0._U_HwdF5-yT8-prJLzkdO_rGbNuu7Z3gpUQW0Q8zxa0"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=representation"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"lead_id\": \"{{ $json[0]?.id || $json.id }}\",\n  \"event_type\": \"message_received\",\n  \"payload_json\": {\n    \"channel\": \"{{ $('Set Intent').item.json.channel }}\",\n    \"message\": \"{{ $('Set Intent').item.json.message }}\",\n    \"intent\": \"{{ $('Set Intent').item.json.intent }}\",\n    \"score\": {{ $('Set Intent').item.json.intent_score }}\n  }\n}",
+        "options": {}
+      },
+      "id": "log-received",
+      "name": "Log Received",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        -736,
+        144
+      ],
+      "typeVersion": 4.3
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "version": 2,
+                  "caseSensitive": true,
+                  "typeValidation": "loose"
+                },
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "leftValue": "={{ $('Set Intent').item.json.channel }}",
+                    "rightValue": "whatsapp"
+                  }
+                ]
+              },
+              "renameOutput": true,
+              "outputKey": "WhatsApp"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "version": 2,
+                  "caseSensitive": true,
+                  "typeValidation": "loose"
+                },
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "operator": {
+                      "type": "string",
+                      "operation": "notEquals"
+                    },
+                    "leftValue": "={{ $('Set Intent').item.json.channel }}",
+                    "rightValue": "whatsapp"
+                  }
+                ]
+              },
+              "renameOutput": true,
+              "outputKey": "Other"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "switch-canal",
+      "name": "Switch Canal",
+      "type": "n8n-nodes-base.switch",
+      "position": [
+        -528,
+        0
+      ],
+      "typeVersion": 3.3
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "version": 2,
+                  "caseSensitive": true,
+                  "typeValidation": "loose"
+                },
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "operator": {
+                      "type": "string",
+                      "operation": "notEmpty"
+                    },
+                    "leftValue": "={{ $('Set Intent').item.json.email }}"
+                  }
+                ]
+              },
+              "renameOutput": true,
+              "outputKey": "Yes"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "version": 2,
+                  "caseSensitive": true,
+                  "typeValidation": "loose"
+                },
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "operator": {
+                      "type": "string",
+                      "operation": "empty"
+                    },
+                    "leftValue": "={{ $('Set Intent').item.json.email }}"
+                  }
+                ]
+              },
+              "renameOutput": true,
+              "outputKey": "No"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "check-email",
+      "name": "Check Email",
+      "type": "n8n-nodes-base.switch",
+      "position": [
+        -320,
+        144
+      ],
+      "typeVersion": 3.3
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.sendgrid.com/v3/mail/send",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer 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"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"personalizations\": [{\"to\": [{\"email\": \"{{ $('Set Intent').item.json.email }}\"}]}],\n  \"from\": {\"email\": \"josecarrallodelafuente@gmail.com\", \"name\": \"Izumi Hotel\"},\n  \"subject\": \"Gracias por contactar Izumi Hotel\",\n  \"content\": [{\"type\": \"text/plain\", \"value\": \"Hola {{ $('Set Intent').item.json.name }},\\n\\nGracias por tu interes en Izumi Hotel.\\n\\nHemos recibido tu mensaje y nuestro equipo te contactara pronto.\\n\\nSi tienes alguna pregunta, responde a este email o escribenos por WhatsApp al +6281325764867.\\n\\nSaludos,\\nEl equipo de Izumi Hotel\"}]}",
+        "options": {}
+      },
+      "id": "send-email",
+      "name": "Email",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        -112,
+        144
+      ],
+      "typeVersion": 4.3
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"success\": true,\n  \"lead_id\": \"{{ $json[0]?.id || $json.id || 'unknown' }}\",\n  \"message\": \"Lead processed\"\n}",
+        "options": {}
+      },
+      "id": "respond",
+      "name": "Respond",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "position": [
+        96,
+        -16
+      ],
+      "typeVersion": 1.1
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Validate Master Event",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Master Event": {
+      "main": [
+        [
+          {
+            "node": "Buscar Lead",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar Lead": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Clasificar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Clasificar": {
+      "main": [
+        [
+          {
+            "node": "Set Intent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Intent": {
+      "main": [
+        [
+          {
+            "node": "Switch Lead",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch Lead": {
+      "main": [
+        [
+          {
+            "node": "INSERT",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "UPDATE",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "INSERT": {
+      "main": [
+        [
+          {
+            "node": "Log Created",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "UPDATE": {
+      "main": [
+        [
+          {
+            "node": "Log Received",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Created": {
+      "main": [
+        [
+          {
+            "node": "Switch Canal",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Received": {
+      "main": [
+        [
+          {
+            "node": "Switch Canal",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch Canal": {
+      "main": [
+        [
+          {
+            "node": "Respond",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Check Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Email": {
+      "main": [
+        [
+          {
+            "node": "Email",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Email": {
+      "main": [
+        [
+          {
+            "node": "Respond",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
+  },
+  "versionId": "007da270-00fc-4242-bdc1-d54183faf255",
+  "meta": {
+    "instanceId": "ca7bc7f182c365457ea4a94a4dc2efe81c23590ab8904858ce5cabfbdd56e40f"
+  },
+  "id": "BX2X9P1xvZBnpr1p",
+  "tags": []
+}

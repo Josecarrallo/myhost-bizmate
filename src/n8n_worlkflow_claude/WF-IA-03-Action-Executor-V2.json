@@ -1,0 +1,476 @@
+{
+  "name": "WF-IA-03 - Action Executor MYHOST BizMate",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "action-executor",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [-112, -32],
+      "id": "e88d99e4-99be-4d61-9f96-62108b0ff7a3",
+      "name": "Webhook Action Executor",
+      "webhookId": "action-executor"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [-112, 176],
+      "id": "9942e0e4-d545-4dc4-a3d2-e38ad74397ef",
+      "name": "Manual Trigger"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Context Init - Normaliza el input\nconst input = $input.first().json;\n\n// Si viene del webhook\nconst body = input.body || input;\n\n// Generar UUID simple si no viene request_id\nfunction generateUUID() {\n  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {\n    const r = Math.random() * 16 | 0;\n    const v = c === 'x' ? r : (r & 0x3 | 0x8);\n    return v.toString(16);\n  });\n}\n\nconst ctx = {\n  request_id: body.request_id || generateUUID(),\n  property_id: body.property_id || null,\n  actor_user_id: body.actor_user_id || null,\n  tenant_id: body.tenant_id || '00000000-0000-0000-0000-000000000000',\n  source: body.source || 'chat',\n  action_type: body.action_type || 'unknown',\n  params: body.params || {},\n  priority: body.priority || 'medium',\n  requires_confirmation: body.requires_confirmation || false,\n  timestamp: new Date().toISOString()\n};\n\nreturn [{ json: ctx }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [144, 80],
+      "id": "99d705ad-ebaa-444a-ab9f-fbd6595c2bb4",
+      "name": "Set ctx.init"
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "action_requests",
+        "filterType": "string",
+        "filterString": "=request_id=eq.{{ $json.request_id }}",
+        "returnAll": false,
+        "limit": 1
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [352, 80],
+      "id": "be3673bb-074e-4882-a778-86741434882a",
+      "name": "Check Idempotency",
+      "credentials": {
+        "supabaseApi": {
+          "id": "SJLQzwU9BVHEVAGc",
+          "name": "Supabase account"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Verificar si ya existe el request\nconst ctx = $('Set ctx.init').first().json;\nconst existing = $input.all();\n\n// Si hay error o no hay resultados, continuar como nuevo\nif (!existing || existing.length === 0 || !existing[0].json || !existing[0].json.id) {\n  return [{ json: { ...ctx, already_processed: false } }];\n}\n\nreturn [{ json: { ...ctx, already_processed: true, existing_status: existing[0].json.status } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [544, 80],
+      "id": "3c553778-dcd5-495a-85dc-db09d4584bfc",
+      "name": "Check Existing"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "already-processed",
+              "leftValue": "={{ $json.already_processed }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [752, 80],
+      "id": "6d502f74-4083-4176-b995-5b9ee1477874",
+      "name": "Already Processed?"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ request_id: $json.request_id, status: 'already_processed', action_type: $json.action_type, result: { existing_status: $json.existing_status }, next_step: 'none' }) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [944, -32],
+      "id": "3128b4ec-907e-48d1-a8ce-5fb8b7c5c111",
+      "name": "Respond Already Processed"
+    },
+    {
+      "parameters": {
+        "tableId": "action_requests",
+        "fieldsUi": {
+          "fieldValues": [
+            {"fieldId": "request_id", "fieldValue": "={{ $json.request_id }}"},
+            {"fieldId": "property_id", "fieldValue": "={{ $json.property_id }}"},
+            {"fieldId": "actor_user_id", "fieldValue": "={{ $json.actor_user_id }}"},
+            {"fieldId": "tenant_id", "fieldValue": "={{ $json.tenant_id }}"},
+            {"fieldId": "source", "fieldValue": "={{ $json.source }}"},
+            {"fieldId": "action_type", "fieldValue": "={{ $json.action_type }}"},
+            {"fieldId": "params", "fieldValue": "={{ JSON.stringify($json.params) }}"},
+            {"fieldId": "priority", "fieldValue": "={{ $json.priority }}"},
+            {"fieldId": "requires_confirmation", "fieldValue": "={{ $json.requires_confirmation }}"},
+            {"fieldId": "status", "fieldValue": "received"}
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [944, 176],
+      "id": "d68fea7a-60fd-4936-a5d8-10de65fb4b02",
+      "name": "Create Action Request",
+      "credentials": {
+        "supabaseApi": {
+          "id": "SJLQzwU9BVHEVAGc",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Preparar para el router\nconst ctx = $('Check Existing').first().json;\nconst created = $input.first().json;\n\nreturn [{ json: { ...ctx, action_request_id: created.id } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1152, 176],
+      "id": "b921e4ac-2616-486e-a4af-9a3ee3052df3",
+      "name": "Prepare Routing"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {"conditions": {"conditions": [{"leftValue": "={{ $json.action_type }}", "rightValue": "send_whatsapp", "operator": {"type": "string", "operation": "equals"}}]}},
+            {"conditions": {"conditions": [{"leftValue": "={{ $json.action_type }}", "rightValue": "create_internal_alert", "operator": {"type": "string", "operation": "equals"}}]}},
+            {"conditions": {"conditions": [{"leftValue": "={{ $json.action_type }}", "rightValue": "resolve_alert", "operator": {"type": "string", "operation": "equals"}}]}},
+            {"conditions": {"conditions": [{"leftValue": "={{ $json.action_type }}", "rightValue": "toggle_campaign", "operator": {"type": "string", "operation": "equals"}}]}},
+            {"conditions": {"conditions": [{"leftValue": "={{ $json.action_type }}", "rightValue": "request_pricing_reco", "operator": {"type": "string", "operation": "equals"}}]}}
+          ]
+        },
+        "options": {"fallbackOutput": "extra"}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3,
+      "position": [1344, 176],
+      "id": "2cdb61c5-b548-463f-9cd7-34f12d3e5ff7",
+      "name": "Route by Action Type"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.chakrahq.com/v1/ext/plugin/whatsapp/2e45a0bd-8600-41b4-ac92-599d59d6221c/api/v19.0/944855278702577/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {"name": "Authorization", "value": "Bearer qiu1Z9eA3i2hhNjVM3Dm7QEK1Ey6iKQUE5IDWJlsFSAqXk5OlmQoD6DhqEwv9TOdgOVRWSYLWGxm6HfCs2LeCuwiU8Poqrw2Rgmvih0iEawZhoL6TTmMjVjvDUw2WuygAQgQ1vIeLCreDAKOGymGQCuR5bUYDHrRQQrvoMZLYwHw0LaGhFUuf4GxLpQbV3AQj8JDjhP2MzsCUYT4EVCARX6cODl1d1udr4pITGOmHQ793MUBtptq4XCvC8OGD3g"}
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"messaging_product\": \"whatsapp\",\n  \"to\": \"{{ $json.params.to_phone }}\",\n  \"type\": \"text\",\n  \"text\": {\n    \"body\": {{ JSON.stringify($json.params.message) }}\n  }\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1600, -32],
+      "id": "94742c76-aa9b-48c0-864c-1dc9f1250f38",
+      "name": "Send WhatsApp"
+    },
+    {
+      "parameters": {
+        "tableId": "messages",
+        "fieldsUi": {
+          "fieldValues": [
+            {"fieldId": "tenant_id", "fieldValue": "={{ $('Prepare Routing').first().json.tenant_id }}"},
+            {"fieldId": "property_id", "fieldValue": "={{ $('Prepare Routing').first().json.property_id }}"},
+            {"fieldId": "guest_id", "fieldValue": "={{ $('Prepare Routing').first().json.params.to_guest_id }}"},
+            {"fieldId": "direction", "fieldValue": "outbound"},
+            {"fieldId": "channel", "fieldValue": "whatsapp"},
+            {"fieldId": "content", "fieldValue": "={{ $('Prepare Routing').first().json.params.message }}"},
+            {"fieldId": "status", "fieldValue": "sent"}
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [1792, -32],
+      "id": "2c986c28-d761-40df-8180-46dafe93be05",
+      "name": "Save WhatsApp Message",
+      "credentials": {
+        "supabaseApi": {
+          "id": "SJLQzwU9BVHEVAGc",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "tableId": "alerts",
+        "fieldsUi": {
+          "fieldValues": [
+            {"fieldId": "tenant_id", "fieldValue": "={{ $json.tenant_id }}"},
+            {"fieldId": "property_id", "fieldValue": "={{ $json.property_id }}"},
+            {"fieldId": "alert_type", "fieldValue": "={{ $json.params.issue_type }}"},
+            {"fieldId": "severity", "fieldValue": "={{ $json.params.priority }}"},
+            {"fieldId": "title", "fieldValue": "={{ $json.params.title }}"},
+            {"fieldId": "description", "fieldValue": "={{ $json.params.description }}"},
+            {"fieldId": "status", "fieldValue": "open"}
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [1600, 128],
+      "id": "51e667e1-3ad7-4db0-a04c-fa1f70a90339",
+      "name": "Create Alert",
+      "credentials": {
+        "supabaseApi": {
+          "id": "SJLQzwU9BVHEVAGc",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "tableId": "alerts",
+        "filterType": "string",
+        "filterString": "=id=eq.{{ $json.params.alert_id }}",
+        "fieldsUi": {
+          "fieldValues": [
+            {"fieldId": "status", "fieldValue": "resolved"}
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [1600, 272],
+      "id": "a2129691-f2f7-4ccb-9ae4-360e90afd419",
+      "name": "Resolve Alert",
+      "credentials": {
+        "supabaseApi": {
+          "id": "SJLQzwU9BVHEVAGc",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "tableId": "campaigns",
+        "filterType": "string",
+        "filterString": "=id=eq.{{ $json.params.campaign_id }}",
+        "fieldsUi": {
+          "fieldValues": [
+            {"fieldId": "status", "fieldValue": "={{ $json.params.state === 'on' ? 'active' : 'paused' }}"}
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [1600, 432],
+      "id": "5b1d0912-4ec0-450c-9082-d4eff2fa14ae",
+      "name": "Toggle Campaign",
+      "credentials": {
+        "supabaseApi": {
+          "id": "SJLQzwU9BVHEVAGc",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "tableId": "alerts",
+        "fieldsUi": {
+          "fieldValues": [
+            {"fieldId": "tenant_id", "fieldValue": "={{ $json.tenant_id }}"},
+            {"fieldId": "property_id", "fieldValue": "={{ $json.params.target_id }}"},
+            {"fieldId": "alert_type", "fieldValue": "pricing_recommendation"},
+            {"fieldId": "severity", "fieldValue": "medium"},
+            {"fieldId": "title", "fieldValue": "Solicitud de ajuste de precio"},
+            {"fieldId": "description", "fieldValue": "=Ajuste solicitado: {{ $json.params.range }}% - Razón: {{ $json.params.reason }}"},
+            {"fieldId": "status", "fieldValue": "open"}
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [1600, 576],
+      "id": "36bfb385-f672-4c05-a9dc-40d240fb4be4",
+      "name": "Request Pricing Reco",
+      "credentials": {
+        "supabaseApi": {
+          "id": "SJLQzwU9BVHEVAGc",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Unknown action type\nconst ctx = $input.first().json;\n\nreturn [{ json: {\n  request_id: ctx.request_id,\n  action_request_id: ctx.action_request_id,\n  status: 'failed',\n  action_type: ctx.action_type,\n  result: { error: 'Unknown action type' },\n  next_step: 'none'\n} }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1600, 720],
+      "id": "3b293351-f27c-4f6d-ad20-3299aa29d746",
+      "name": "Unknown Action"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Preparar respuesta de éxito\nconst ctx = $('Prepare Routing').first().json;\nconst result = $input.first().json;\n\nreturn [{ json: {\n  request_id: ctx.request_id,\n  action_request_id: ctx.action_request_id,\n  status: 'success',\n  action_type: ctx.action_type,\n  result: result,\n  next_step: 'none'\n} }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2000, 176],
+      "id": "47e22f69-c79c-40ae-8652-d5bad6df12ef",
+      "name": "Prepare Success Response"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "tableId": "action_requests",
+        "filterType": "string",
+        "filterString": "=id=eq.{{ $json.action_request_id }}",
+        "fieldsUi": {
+          "fieldValues": [
+            {"fieldId": "status", "fieldValue": "={{ $json.status }}"},
+            {"fieldId": "result", "fieldValue": "={{ JSON.stringify($json.result) }}"}
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [2192, 176],
+      "id": "2f5217b1-3afd-4485-bee7-ad2741ff3e5a",
+      "name": "Update Action Request",
+      "credentials": {
+        "supabaseApi": {
+          "id": "SJLQzwU9BVHEVAGc",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "tableId": "workflow_logs",
+        "fieldsUi": {
+          "fieldValues": [
+            {"fieldId": "tenant_id", "fieldValue": "={{ $('Prepare Routing').first().json.tenant_id }}"},
+            {"fieldId": "workflow_name", "fieldValue": "WF-IA-03-Action-Executor"},
+            {"fieldId": "execution_status", "fieldValue": "={{ $json.status }}"},
+            {"fieldId": "execution_data", "fieldValue": "={{ JSON.stringify({ request_id: $json.request_id, action_type: $('Prepare Routing').first().json.action_type }) }}"}
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [2400, 176],
+      "id": "53180133-fec2-433c-b496-9c59cba9e9a0",
+      "name": "Log Execution",
+      "credentials": {
+        "supabaseApi": {
+          "id": "SJLQzwU9BVHEVAGc",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ request_id: $('Prepare Success Response').first().json.request_id, status: $('Prepare Success Response').first().json.status, action_type: $('Prepare Success Response').first().json.action_type, result: $('Prepare Success Response').first().json.result, next_step: $('Prepare Success Response').first().json.next_step }) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [2592, 176],
+      "id": "9b538501-014b-4c42-adc0-0784499ba32e",
+      "name": "Respond to Webhook"
+    }
+  ],
+  "connections": {
+    "Webhook Action Executor": {
+      "main": [[{"node": "Set ctx.init", "type": "main", "index": 0}]]
+    },
+    "Manual Trigger": {
+      "main": [[{"node": "Set ctx.init", "type": "main", "index": 0}]]
+    },
+    "Set ctx.init": {
+      "main": [[{"node": "Check Idempotency", "type": "main", "index": 0}]]
+    },
+    "Check Idempotency": {
+      "main": [[{"node": "Check Existing", "type": "main", "index": 0}]]
+    },
+    "Check Existing": {
+      "main": [[{"node": "Already Processed?", "type": "main", "index": 0}]]
+    },
+    "Already Processed?": {
+      "main": [
+        [{"node": "Respond Already Processed", "type": "main", "index": 0}],
+        [{"node": "Create Action Request", "type": "main", "index": 0}]
+      ]
+    },
+    "Create Action Request": {
+      "main": [[{"node": "Prepare Routing", "type": "main", "index": 0}]]
+    },
+    "Prepare Routing": {
+      "main": [[{"node": "Route by Action Type", "type": "main", "index": 0}]]
+    },
+    "Route by Action Type": {
+      "main": [
+        [{"node": "Send WhatsApp", "type": "main", "index": 0}],
+        [{"node": "Create Alert", "type": "main", "index": 0}],
+        [{"node": "Resolve Alert", "type": "main", "index": 0}],
+        [{"node": "Toggle Campaign", "type": "main", "index": 0}],
+        [{"node": "Request Pricing Reco", "type": "main", "index": 0}],
+        [{"node": "Unknown Action", "type": "main", "index": 0}]
+      ]
+    },
+    "Send WhatsApp": {
+      "main": [[{"node": "Save WhatsApp Message", "type": "main", "index": 0}]]
+    },
+    "Save WhatsApp Message": {
+      "main": [[{"node": "Prepare Success Response", "type": "main", "index": 0}]]
+    },
+    "Create Alert": {
+      "main": [[{"node": "Prepare Success Response", "type": "main", "index": 0}]]
+    },
+    "Resolve Alert": {
+      "main": [[{"node": "Prepare Success Response", "type": "main", "index": 0}]]
+    },
+    "Toggle Campaign": {
+      "main": [[{"node": "Prepare Success Response", "type": "main", "index": 0}]]
+    },
+    "Request Pricing Reco": {
+      "main": [[{"node": "Prepare Success Response", "type": "main", "index": 0}]]
+    },
+    "Unknown Action": {
+      "main": [[{"node": "Update Action Request", "type": "main", "index": 0}]]
+    },
+    "Prepare Success Response": {
+      "main": [[{"node": "Update Action Request", "type": "main", "index": 0}]]
+    },
+    "Update Action Request": {
+      "main": [[{"node": "Log Execution", "type": "main", "index": 0}]]
+    },
+    "Log Execution": {
+      "main": [[{"node": "Respond to Webhook", "type": "main", "index": 0}]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveDataErrorExecution": "all",
+    "saveDataSuccessExecution": "all",
+    "saveExecutionProgress": true,
+    "saveManualExecutions": true,
+    "timezone": "Asia/Singapore"
+  }
+}

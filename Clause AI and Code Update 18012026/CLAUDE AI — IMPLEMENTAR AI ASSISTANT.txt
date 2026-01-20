@@ -1,0 +1,213 @@
+[CLAUDE AI + n8n — BRIEF ÚNICO COMPLETO (COPIAR/PEGAR)]
+Proyecto: MY HOST BizMate — AI Systems (AI Assistant) + Agentes + Supabase
+Objetivo: construir en n8n el “cerebro/operador” para que la app (ClaudeCode) pueda:
+- Interrogar agentes IA (OSIRIS/LUMINA/IRIS/BANYU/KORA/AURA) sobre datos reales en Supabase
+- Ver KPIs + tablas/listados
+- Proponer y ejecutar acciones (WhatsApp, bookings, follow-ups, marketing drafts)
+Todo con seguridad, multi-tenant y auditoría. El schema oficial de Supabase ya está definido en el documento compartido (NO inventar tablas/columnas).
+
+================================================================================
+0) ARQUITECTURA HÍBRIDA (REGLA SIMPLE)
+- App (ClaudeCode) = UI. Solo envía/recibe.
+- n8n (Claude AI) = inteligencia + consultas + acciones + logs.
+- Supabase = datos + seguridad (RLS).
+IMPORTANTE: Para IA/chat, la app NO consulta Supabase directo. Todo va por n8n.
+
+================================================================================
+1) ENDPOINTS / WORKFLOWS OBLIGATORIOS (MVP)
+Implementar 2 workflows:
+
+WF-01: WF-AI-ROUTER
+- Trigger: Webhook POST /ai/chat
+- Función: enrutador de conversación para TODOS los agentes (chat).
+
+WF-02: WF-AI-ACTION
+- Trigger: Webhook POST /ai/action
+- Función: ejecutar acciones confirmadas (STOP/GO). NO decide, solo ejecuta.
+
+================================================================================
+2) CONTRATO DE ENTRADA (APP → n8n)
+2.1 /ai/chat recibirá SIEMPRE:
+{
+  "tenant_id": "<uuid>",
+  "user_id": "<uuid>",
+  "session_id": "<uuid>",
+  "agent_id": "osiris|lumina|iris|banyu|kora|aura",
+  "message": "<texto usuario>",
+  "page_context": "overview|operations|sales|marketing|payments|messages"
+}
+
+2.2 /ai/action recibirá:
+{
+  "tenant_id": "<uuid>",
+  "user_id": "<uuid>",
+  "session_id": "<uuid>",
+  "agent_id": "osiris|lumina|iris|banyu|kora|aura",
+  "action_id": "<string>",
+  "payload": { ... }
+}
+
+================================================================================
+3) SALIDA (n8n → APP) — JSON ÚNICO OBLIGATORIO
+Responder SIEMPRE con JSON (aunque solo sea texto):
+{
+  "reply": "texto final para el usuario",
+  "agent": "osiris|lumina|iris|banyu|kora|aura",
+  "intent": "insight|list|action",
+  "kpis": [{"label":"...","value":"...","delta":"+..."}],                 (opcional)
+  "table": {"columns":["..."],"rows":[...], "row_count": 0},              (opcional)
+  "actions": [{"id":"...","label":"...","needs_confirm":true,"payload":{...}}], (opcional)
+  "meta": {
+    "tenant_id":"...",
+    "user_id":"...",
+    "session_id":"...",
+    "page_context":"...",
+    "module":"payments|bookings|leads|messages|marketing|overview|ai",
+    "route":"/payments|/bookings|/sales|/messages|/marketing|/ai",
+    "execution_id":"<n8n_execution_id>",
+    "sources":["rpc:<name>", "table:<name>", "workflow:<name>"]
+  }
+}
+Reglas:
+- reply siempre existe.
+- kpis/table/actions son opcionales.
+- intent:
+  - insight = KPIs/resumen
+  - list = devuelve tabla/listado
+  - action = NO ejecutar todavía; proponer actions[] con needs_confirm=true
+
+================================================================================
+4) SEGURIDAD + “NO INVENTAR” (OBLIGATORIO)
+- NO SQL libre generado por el LLM.
+- NO inventar tablas/columnas/RPCs: el schema oficial ya está en el doc.
+- Todas las consultas deben ser mediante “tools” controladas (RPC o selects predefinidos).
+- Siempre aplicar tenant_id y respetar RLS.
+- Limitar resultados por defecto: max_rows=50 con paginación.
+
+Si algo pedido por el usuario no existe aún:
+- Responder con intent="insight" y texto indicando “Setup required / Coming soon”
+- Mantener siempre el formato JSON.
+
+================================================================================
+5) TOOLS CONTROLADAS (MVP) — MÍNIMO POR AGENTE
+Implementar tools como llamadas RPC o selects controlados en Supabase.
+(Usar nombres/columnas EXACTOS del schema compartido.)
+
+5A) OSIRIS (Operations) — mínimo 3 tools reales en Fase 1
+OSIRIS-01 (KPI) get_dashboard_stats
+- RPC / vista agregada del dashboard (ocupación, revenue, pending payments, etc.)
+
+OSIRIS-02 (LIST) list_pending_payments
+- Select controlado de pagos pendientes (limit 50)
+
+OSIRIS-03 (ACTION PROPUESTA) propose_send_whatsapp_payment_reminder
+- NO ejecutar aquí: devolver actions[] con needs_confirm=true y payload (payment_ids / guest_ids)
+
+5B) LUMINA (Sales & Leads) — mínimo 3 tools reales en Fase 1
+LUMINA-01 (LIST) list_hot_leads
+- Select controlado leads ordenados por score/stage (limit 50)
+
+LUMINA-02 (LIST) search_lead
+- Buscar lead por email/teléfono/nombre (limit 20)
+
+LUMINA-03 (ACTION PROPUESTA) propose_send_followup_message
+- NO ejecutar aquí: devolver actions[] con needs_confirm=true y payload (lead_id, channel, message)
+
+5C) Fase 2 (extensión) — añadir IRIS/BANYU/KORA/AURA con 2–3 tools c/u
+IRIS: drafts/campaign summary/reviews summary (si es mock, devolver coming soon)
+BANYU: list recent messages + propose send welcome WhatsApp
+KORA: communications log + propose escalate/create task
+AURA: insights + alerts/anomalies (si falta data, mock en formato correcto)
+
+================================================================================
+6) WF-AI-ROUTER (/ai/chat) — PASOS EXACTOS EN n8n
+NODE 1: Webhook (POST /ai/chat)
+NODE 2: Validate Input
+- comprobar tenant_id,user_id,session_id,agent_id,message
+- si falta: responder 400 con JSON estándar (reply + meta)
+
+NODE 3: Build Context (Set)
+- construir context:
+  tenant_id, user_id, session_id, agent_id, page_context, timestamp
+- (Opcional) leer últimos 10 mensajes de ai_chat_history_v2 para continuidad
+
+NODE 4: Switch por agent_id
+- osiris: precargar stats si aplica
+- lumina: si detecta email/teléfono en message, precargar lead
+- otros: cargar lo mínimo
+
+NODE 5: System Prompt (Set) — INSTRUCCIONES OBLIGATORIAS AL LLM
+- “No SQL libre. Solo tools permitidas.”
+- “Si necesitas datos, llama tools.”
+- “Si es acción, NO ejecutes: devuelve actions[] needs_confirm=true.”
+- “Devuelve JSON según contrato (reply/kpis/table/actions/meta).”
+- “Si falta algo del schema, no inventes: coming soon.”
+
+NODE 6: AI Agent Node (LLM)
+- Conectar tools disponibles (OSIRIS tools o LUMINA tools según agent_id)
+- Salida preferible: JSON
+
+NODE 7: Normalize Output (Function)
+- Asegurar campos mínimos: reply, agent, intent, meta
+- Añadir execution_id (del workflow) y sources
+- Asegurar limit/row_count si table existe
+
+NODE 8: Logging (OBLIGATORIO)
+- Insert en ai_chat_history_v2:
+  tenant_id, user_id, session_id, agent_id, user_message, assistant_reply, intent, created_at
+- Insert en workflow_executions (o tabla equivalente):
+  tenant_id, workflow_name="WF-AI-ROUTER", execution_id, status, timestamps
+- (Si actions propuestas) registrar pending actions en tabla action_requests si existe (o en workflow logs)
+
+NODE 9: Respond to Webhook
+- devolver JSON final estándar
+
+================================================================================
+7) WF-AI-ACTION (/ai/action) — EJECUCIÓN STOP/GO (CONFIRMADO)
+NODE 1: Webhook (POST /ai/action)
+NODE 2: Validate Input (tenant/user/action_id/payload)
+NODE 3: Switch action_id
+MVP (mínimo 2 acciones reales):
+A) send_whatsapp_message
+- Ejecutar envío WhatsApp (tu provider actual)
+- Guardar log en communications_log (o tabla equivalente del schema)
+B) create_booking (si ya existe tool/endpoints definidos en tu stack)
+- Ejecutar creación y loguear booking_events/booking record
+
+NODE 4: Log action result
+- communications_log / lead_events / booking_events + workflow_executions
+
+NODE 5: Respond JSON
+{ "ok": true|false, "result": {...}, "execution_id": "<id>" }
+
+Regla:
+- /ai/action SOLO ejecuta acciones confirmadas. No “interpreta” la intención.
+
+================================================================================
+8) MVP POR FASES (STOP/GO) — ENTREGABLES OBLIGATORIOS
+FASE 1 (MVP listo):
+- WF-AI-ROUTER operativo con OSIRIS y LUMINA:
+  - OSIRIS: 1 KPI + 1 listado + 1 acción propuesta
+  - LUMINA: 1 listado + 1 búsqueda + 1 acción propuesta
+- Logging mínimo funcionando: ai_chat_history_v2 + workflow_executions
+- Respuesta JSON 100% compatible con la UI
+
+FASE 2:
+- Implementar WF-AI-ACTION con 2 acciones reales (WhatsApp + booking)
+- Añadir IRIS/BANYU/KORA/AURA (2–3 tools cada uno)
+
+================================================================================
+9) PRUEBAS (OBLIGATORIO) — ENTREGAR 6 CASOS
+Entregar ejemplos listos para probar (request/response):
+1) OSIRIS: “Pending payments this week”
+2) OSIRIS: “Occupancy rate next 7 days”
+3) OSIRIS: “Propose WhatsApp reminders”
+4) LUMINA: “Show hot leads”
+5) LUMINA: “Find lead +email/phone”
+6) LUMINA: “Propose follow-up message”
+
+Cada prueba debe devolver JSON estándar y (si aplica) table/actions.
+
+================================================================================
+FIN
+Este brief es lo único que necesitas implementar en n8n para habilitar AI Systems en la app.

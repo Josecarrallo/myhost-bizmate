@@ -1,0 +1,162 @@
+DOCUMENTO OFICIAL — CLOUDCODE / CLAUDE CODE
+PROYECTO: MY HOST – BizMate
+OBJETIVO: Reestructuración COMPLETA del menú (sidebar)
+ESTADO: VALIDADO POR CLIENTE
+REGLA CRÍTICA: NO ELIMINAR NINGUNA FUNCIÓN EXISTENTE
+
+================================================================
+1. OBJETIVO GENERAL
+================================================================
+Reorganizar el menú lateral (sidebar) para reflejar el modelo mental
+real del cliente hotelero:
+
+- Ver el negocio
+- Operar el negocio
+- Controlar con IA
+- Vender más
+- Comunicarse con el cliente
+- Gestionar pricing, marketing e inteligencia
+
+La IA (OSIRIS, LUMINA, BANYU, KORA) NO es un menú separado.
+La IA está INTEGRADA dentro de cada función.
+
+NO crear nuevos features.
+NO eliminar ninguno existente.
+SOLO reordenar, agrupar y renombrar.
+
+================================================================
+2. MENÚ GLOBAL FINAL — REFERENCIA VISUAL OBLIGATORIA
+================================================================
+ESTE GRÁFICO DEFINE EL MENÚ FINAL.
+NO INTERPRETAR. NO SIMPLIFICAR. NO OMITIR NADA.
+
+MY HOST – BizMate
+│
+├── OVERVIEW
+│
+├── OPERATIONS & GUESTS
+│   ├─ Bookings
+│   ├─ Guests
+│   ├─ Check-in / Check-out
+│   ├─ Daily Operations
+│   └─ Issues & Tasks
+│
+├── OPERATIONS & CONTROL — OSIRIS.AI
+│   ├─ AI Assistant
+│   ├─ AI Agents Monitor
+│   ├─ Alerts / Exceptions
+│   ├─ Workflows & Automations
+│   └─ Logs / Audit
+│
+├── SALES & LEADS — LUMINA.AI
+│   ├─ Inbox (New Leads)
+│   ├─ Pipeline
+│   ├─ AI Sales Assistant
+│   ├─ Follow-ups
+│   ├─ Conversations
+│   └─ Templates
+│
+├── CUSTOMER COMMUNICATIONS
+│   ├─ WhatsApp — BANYU.AI
+│   │   ├─ Live Inbox
+│   │   ├─ Guest Journey
+│   │   ├─ Templates
+│   │   └─ Logs
+│   │
+│   ├─ Voice — KORA.AI
+│   │   ├─ Calls Inbox
+│   │   ├─ Call Logs
+│   │   └─ Scripts
+│   │
+│   ├─ Instagram / Social DM
+│   │   ├─ Inbox
+│   │   └─ Templates
+│   │
+│   └─ Web / Chat / Email
+│       ├─ Inbox
+│       ├─ Automations
+│       └─ Logs
+│
+├── REVENUE & PRICING
+│   ├─ Payments
+│   ├─ Smart Pricing
+│   ├─ Reports
+│   └─ Channel Integration
+│
+├── MARKETING & GROWTH
+│   ├─ Overview
+│   ├─ My Site (Website Builder)
+│   ├─ Website & Ads
+│   ├─ Content Planner (AI)
+│   ├─ Reviews
+│   ├─ Insights
+│   ├─ Guest Database / CRM
+│   ├─ Guest Segmentation
+│   └─ Booking Engine Config
+│
+├── MARKET INTELLIGENCE
+│   ├─ Competitors Snapshot
+│   ├─ Bali Market Trends
+│   ├─ Alerts
+│   └─ AI Recommendations
+│
+├── SETTINGS
+│   ├─ Team & Roles
+│   ├─ Integrations
+│   └─ Billing
+│
+└── LOGOUT
+
+================================================================
+3. REGLAS DE IMPLEMENTACIÓN (OBLIGATORIAS)
+================================================================
+
+- NO eliminar ningún item existente aunque no aparezca arriba.
+- Si un item existe hoy, DEBE existir tras el cambio.
+- Agrupar bajo el bloque correcto si hoy está suelto.
+- Mantener rutas actuales siempre que sea posible.
+- Si se cambia una ruta, crear redirect interno.
+- Mantener menú colapsable y submenús desplegables.
+- Mantener estado activo correcto.
+- Mantener orden EXACTO del gráfico.
+
+================================================================
+4. REGLAS DE NAMING (NO MODIFICAR)
+================================================================
+
+Usar exactamente estos nombres visibles:
+
+- OPERATIONS & CONTROL — OSIRIS.AI
+- SALES & LEADS — LUMINA.AI
+- CUSTOMER COMMUNICATIONS
+  - WhatsApp — BANYU.AI
+  - Voice — KORA.AI
+
+NO crear un menú llamado “Agentic AI”.
+La Agentic AI está implícita en los módulos.
+
+================================================================
+5. PRINCIPIOS UX (CLAVE)
+================================================================
+
+- El usuario navega por FUNCIÓN, no por tecnología.
+- La IA actúa como copiloto, no como destino de navegación.
+- Customer Communications es UNA sola puerta multicanal.
+- Arquitectura escalable (futuro: SMS, Telegram, Booking Chat).
+
+================================================================
+6. CRITERIOS DE ACEPTACIÓN
+================================================================
+
+El cambio se considera correcto SOLO si:
+
+- El menú coincide visualmente con el gráfico.
+- No falta ningún item previo.
+- No hay duplicados.
+- Dashboard y vistas siguen funcionando.
+- Los agentes están integrados, no separados.
+- El cliente entiende el menú sin explicación.
+
+================================================================
+FIN DEL DOCUMENTO — NO INTERPRETAR, SOLO EJECUTAR
+================================================================

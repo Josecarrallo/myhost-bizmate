@@ -1,0 +1,132 @@
+{
+  "name": "MCP Central v1 - Solo 2 Tools",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "izumi-hotel-v3"
+      },
+      "type": "@n8n/n8n-nodes-langchain.mcpTrigger",
+      "typeVersion": 2,
+      "position": [
+        0,
+        0
+      ],
+      "id": "mcp-trigger",
+      "name": "MCP Server Trigger",
+      "webhookId": "izumi-hotel-v3-mcp"
+    },
+    {
+      "parameters": {
+        "toolDescription": "Check room availability at Izumi Hotel for specific dates. Returns available rooms with prices. Use this tool when the guest asks about availability.",
+        "method": "POST",
+        "url": "https://jjpscimtxrudtepzwhag.supabase.co/rest/v1/rpc/check_availability",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpqcHNjaW10eHJ1ZHRlcHp3aGFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI5NDMyMzIsImV4cCI6MjA3ODUxOTIzMn0._U_HwdF5-yT8-prJLzkdO_rGbNuu7Z3gpUQW0Q8zxa0"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpqcHNjaW10eHJ1ZHRlcHp3aGFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI5NDMyMzIsImV4cCI6MjA3ODUxOTIzMn0._U_HwdF5-yT8-prJLzkdO_rGbNuu7Z3gpUQW0Q8zxa0"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"p_property_id\": \"{{ $fromAI('hotel_id', 'Hotel ID, use 18711359-1378-4d12-9ea6-fb31c0b1bac2 for Izumi Hotel') }}\",\n  \"p_check_in\": \"{{ $fromAI('check_in', 'Check-in date in YYYY-MM-DD format') }}\",\n  \"p_check_out\": \"{{ $fromAI('check_out', 'Check-out date in YYYY-MM-DD format') }}\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.3,
+      "position": [
+        0,
+        208
+      ],
+      "id": "check-avail",
+      "name": "check_availability"
+    },
+    {
+      "parameters": {
+        "toolDescription": "Create a confirmed booking at Izumi Hotel. Use this tool ONLY after the guest confirms ALL booking details: name, email, phone, dates, villa and number of guests. The booking will be saved to the database and automatic notifications will be sent to the guest and staff.",
+        "method": "POST",
+        "url": "https://jjpscimtxrudtepzwhag.supabase.co/rest/v1/bookings",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpqcHNjaW10eHJ1ZHRlcHp3aGFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI5NDMyMzIsImV4cCI6MjA3ODUxOTIzMn0._U_HwdF5-yT8-prJLzkdO_rGbNuu7Z3gpUQW0Q8zxa0"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpqcHNjaW10eHJ1ZHRlcHp3aGFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI5NDMyMzIsImV4cCI6MjA3ODUxOTIzMn0._U_HwdF5-yT8-prJLzkdO_rGbNuu7Z3gpUQW0Q8zxa0"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=representation"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"property_id\": \"{{ $fromAI('property_id', 'Property ID of the selected room/villa') }}\",\n  \"guest_name\": \"{{ $fromAI('guest_name', 'Full name of the guest') }}\",\n  \"guest_email\": \"{{ $fromAI('guest_email', 'Guest email address') }}\",\n  \"guest_phone\": \"{{ $fromAI('guest_phone', 'Guest phone with country code') }}\",\n  \"check_in\": \"{{ $fromAI('check_in', 'Check-in date YYYY-MM-DD') }}\",\n  \"check_out\": \"{{ $fromAI('check_out', 'Check-out date YYYY-MM-DD') }}\",\n  \"guests\": {{ $fromAI('guests', 'Number of guests') }},\n  \"total_price\": {{ $fromAI('total_price', 'Total price as number') }},\n  \"status\": \"confirmed\",\n  \"channel\": \"voice_ai\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.3,
+      "position": [
+        208,
+        208
+      ],
+      "id": "create-book",
+      "name": "create_booking"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "check_availability": {
+      "ai_tool": [
+        [
+          {
+            "node": "MCP Server Trigger",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "create_booking": {
+      "ai_tool": [
+        [
+          {
+            "node": "MCP Server Trigger",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
+  },
+  "versionId": "bfc688d0-a683-4c72-afc8-04c090e309a2",
+  "meta": {
+    "instanceId": "ca7bc7f182c365457ea4a94a4dc2efe81c23590ab8904858ce5cabfbdd56e40f"
+  },
+  "id": "ydByDOQWq9kJACAe",
+  "tags": []
+}

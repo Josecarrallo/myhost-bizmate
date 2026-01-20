@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   ChevronLeft,
   Sparkles,
@@ -14,126 +14,60 @@ import {
   Sun,
   Moon,
   AlertCircle,
-  CheckCircle
+  CheckCircle,
+  Loader2
 } from 'lucide-react';
+import { dataService } from '../../services/data';
 
 const Pricing = ({ onBack }) => {
   const [selectedProperty, setSelectedProperty] = useState(null);
+  const [properties, setProperties] = useState([]);
+  const [stats, setStats] = useState({
+    avgOccupancy: 0,
+    avgDailyRate: 0,
+    revPAR: 0,
+    revenueGrowth: 0
+  });
+  const [priceHistory, setPriceHistory] = useState({});
+  const [isLoading, setIsLoading] = useState(true);
 
-  const properties = [
-    {
-      id: 1,
-      name: 'Villa Sunset Paradise',
-      basePrice: 350,
-      currentPrice: 425,
-      occupancy: 92,
-      trend: 'up',
-      nextUpdate: '2 hours',
-      factors: [
-        { name: 'High Demand', impact: '+15%', positive: true },
-        { name: 'Peak Season', impact: '+10%', positive: true },
-        { name: 'Competitor Rates', impact: '+8%', positive: true },
-        { name: 'Recent Reviews', impact: '+5%', positive: true }
-      ],
-      priceHistory: [
-        { date: 'Oct 20', price: 380 },
-        { date: 'Oct 21', price: 395 },
-        { date: 'Oct 22', price: 410 },
-        { date: 'Oct 23', price: 420 },
-        { date: 'Oct 24', price: 425 }
-      ],
-      rules: [
-        { name: 'Weekend Premium', value: '+15%', active: true },
-        { name: 'Last-Minute Discount', value: '-10%', active: true },
-        { name: 'Long-Stay Discount (7+ nights)', value: '-12%', active: true },
-        { name: 'Peak Season Adjustment', value: '+20%', active: true }
-      ]
-    },
-    {
-      id: 2,
-      name: 'Beach House Deluxe',
-      basePrice: 450,
-      currentPrice: 520,
-      occupancy: 88,
-      trend: 'up',
-      nextUpdate: '4 hours',
-      factors: [
-        { name: 'High Demand', impact: '+12%', positive: true },
-        { name: 'Peak Season', impact: '+8%', positive: true },
-        { name: 'Premium Location', impact: '+6%', positive: true },
-        { name: 'Excellent Rating', impact: '+4%', positive: true }
-      ],
-      priceHistory: [
-        { date: 'Oct 20', price: 470 },
-        { date: 'Oct 21', price: 485 },
-        { date: 'Oct 22', price: 500 },
-        { date: 'Oct 23', price: 510 },
-        { date: 'Oct 24', price: 520 }
-      ],
-      rules: [
-        { name: 'Weekend Premium', value: '+15%', active: true },
-        { name: 'Last-Minute Discount', value: '-8%', active: true },
-        { name: 'Long-Stay Discount (7+ nights)', value: '-10%', active: true },
-        { name: 'Peak Season Adjustment', value: '+18%', active: true }
-      ]
-    },
-    {
-      id: 3,
-      name: 'Mountain Cabin Retreat',
-      basePrice: 280,
-      currentPrice: 245,
-      occupancy: 65,
-      trend: 'down',
-      nextUpdate: '1 hour',
-      factors: [
-        { name: 'Low Demand', impact: '-8%', positive: false },
-        { name: 'Off-Season', impact: '-5%', positive: false },
-        { name: 'Competitor Pricing', impact: '-4%', positive: false },
-        { name: 'Gap Filling', impact: '-3%', positive: false }
-      ],
-      priceHistory: [
-        { date: 'Oct 20', price: 275 },
-        { date: 'Oct 21', price: 265 },
-        { date: 'Oct 22', price: 255 },
-        { date: 'Oct 23', price: 250 },
-        { date: 'Oct 24', price: 245 }
-      ],
-      rules: [
-        { name: 'Weekend Premium', value: '+10%', active: true },
-        { name: 'Last-Minute Discount', value: '-15%', active: true },
-        { name: 'Long-Stay Discount (7+ nights)', value: '-18%', active: true },
-        { name: 'Off-Season Adjustment', value: '-12%', active: true }
-      ]
-    },
-    {
-      id: 4,
-      name: 'City Loft Premium',
-      basePrice: 320,
-      currentPrice: 380,
-      occupancy: 95,
-      trend: 'up',
-      nextUpdate: '3 hours',
-      factors: [
-        { name: 'Very High Demand', impact: '+18%', positive: true },
-        { name: 'Limited Availability', impact: '+12%', positive: true },
-        { name: 'Event in Area', impact: '+8%', positive: true },
-        { name: 'Perfect Rating', impact: '+6%', positive: true }
-      ],
-      priceHistory: [
-        { date: 'Oct 20', price: 340 },
-        { date: 'Oct 21', price: 355 },
-        { date: 'Oct 22', price: 365 },
-        { date: 'Oct 23', price: 375 },
-        { date: 'Oct 24', price: 380 }
-      ],
-      rules: [
-        { name: 'Weekend Premium', value: '+20%', active: true },
-        { name: 'Last-Minute Discount', value: '-5%', active: false },
-        { name: 'Long-Stay Discount (7+ nights)', value: '-8%', active: true },
-        { name: 'Event-Based Surge', value: '+25%', active: true }
-      ]
-    }
-  ];
+  // Fetch pricing data on component mount
+  useEffect(() => {
+    const fetchPricingData = async () => {
+      setIsLoading(true);
+      try {
+        // Fetch pricing data and stats in parallel
+        const [pricingData, pricingStats] = await Promise.all([
+          dataService.getPricingData(),
+          dataService.getPricingStats()
+        ]);
+
+        setProperties(pricingData);
+        setStats(pricingStats);
+
+        // Generate price history for each property
+        const historyPromises = pricingData.map(async (property) => {
+          const history = await dataService.getPriceHistory(property.id);
+          return { id: property.id, history };
+        });
+
+        const historyResults = await Promise.all(historyPromises);
+        const historyMap = {};
+        historyResults.forEach(result => {
+          historyMap[result.id] = result.history;
+        });
+        setPriceHistory(historyMap);
+
+        console.log('✅ Pricing data loaded:', pricingData.length, 'properties');
+      } catch (error) {
+        console.error('Error loading pricing data:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchPricingData();
+  }, []);
 
   const getOccupancyColor = (occupancy) => {
     if (occupancy >= 85) return 'from-green-500 to-emerald-600';
@@ -148,6 +82,18 @@ const Pricing = ({ onBack }) => {
   const getTrendColor = (trend) => {
     return trend === 'up' ? 'text-green-600 bg-green-100' : 'text-red-600 bg-red-100';
   };
+
+  // Show loading spinner while fetching data
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-[#2a2f3a] flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="w-16 h-16 text-orange-500 animate-spin mx-auto mb-4" />
+          <p className="text-xl text-white font-semibold">Loading pricing data...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#2a2f3a] p-4 pb-24 relative overflow-hidden">
@@ -180,7 +126,7 @@ const Pricing = ({ onBack }) => {
               </div>
               <div>
                 <p className="text-white/80 text-sm mb-1">AI-Optimized Revenue Increase</p>
-                <p className="text-5xl font-black">+32%</p>
+                <p className="text-5xl font-black">+{stats.revenueGrowth}%</p>
               </div>
             </div>
             <div className="text-right hidden md:block">
@@ -188,7 +134,10 @@ const Pricing = ({ onBack }) => {
               <p className="text-2xl font-black">50+ Factors</p>
             </div>
           </div>
-          <p className="text-white/90 leading-relaxed mt-4">Your properties are earning an average of 32% more compared to static pricing. Our AI analyzes market demand, competitor rates, seasonality, events, and guest behavior in real-time.</p>
+          <p className="text-white/90 leading-relaxed mt-4">
+            Your properties are earning an average of {stats.revenueGrowth}% more compared to static pricing.
+            Our AI analyzes market demand, competitor rates, seasonality, events, and guest behavior in real-time.
+          </p>
         </div>
 
         {/* Overview Stats */}
@@ -200,7 +149,7 @@ const Pricing = ({ onBack }) => {
               </div>
               <p className="text-sm font-bold text-gray-600">Avg Occupancy</p>
             </div>
-            <p className="text-3xl font-black text-[#FF8C42]">85%</p>
+            <p className="text-3xl font-black text-[#FF8C42]">{stats.avgOccupancy}%</p>
           </div>
           <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-2xl p-5 shadow-xl border-2 border-[#d85a2a]/20">
             <div className="flex items-center gap-3 mb-2">
@@ -209,7 +158,7 @@ const Pricing = ({ onBack }) => {
               </div>
               <p className="text-sm font-bold text-gray-600">Avg Daily Rate</p>
             </div>
-            <p className="text-3xl font-black text-[#FF8C42]">$392</p>
+            <p className="text-3xl font-black text-[#FF8C42]">${stats.avgDailyRate}</p>
           </div>
           <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-2xl p-5 shadow-xl border-2 border-[#d85a2a]/20">
             <div className="flex items-center gap-3 mb-2">
@@ -218,7 +167,7 @@ const Pricing = ({ onBack }) => {
               </div>
               <p className="text-sm font-bold text-gray-600">RevPAR</p>
             </div>
-            <p className="text-3xl font-black text-[#FF8C42]">$333</p>
+            <p className="text-3xl font-black text-[#FF8C42]">${stats.revPAR}</p>
           </div>
           <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-2xl p-5 shadow-xl border-2 border-[#d85a2a]/20">
             <div className="flex items-center gap-3 mb-2">
@@ -227,7 +176,7 @@ const Pricing = ({ onBack }) => {
               </div>
               <p className="text-sm font-bold text-gray-600">Revenue Growth</p>
             </div>
-            <p className="text-3xl font-black text-green-600">+32%</p>
+            <p className="text-3xl font-black text-green-600">+{stats.revenueGrowth}%</p>
           </div>
         </div>
 
@@ -388,8 +337,8 @@ const Pricing = ({ onBack }) => {
                   <BarChart3 className="w-6 h-6" /> 5-Day Price History
                 </h4>
                 <div className="flex items-end justify-between gap-2 h-40">
-                  {selectedProperty.priceHistory.map((day, idx) => {
-                    const maxPrice = Math.max(...selectedProperty.priceHistory.map(d => d.price));
+                  {priceHistory[selectedProperty.id] && priceHistory[selectedProperty.id].map((day, idx) => {
+                    const maxPrice = Math.max(...priceHistory[selectedProperty.id].map(d => d.price));
                     const height = (day.price / maxPrice) * 100;
 
                     return (

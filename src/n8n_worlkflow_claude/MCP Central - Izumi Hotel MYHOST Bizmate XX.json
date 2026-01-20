@@ -1,0 +1,253 @@
+{
+  "name": "MCP Central - Izumi Hotel MYHOST Bizmate XX",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "izumi-hotel"
+      },
+      "type": "@n8n/n8n-nodes-langchain.mcpTrigger",
+      "typeVersion": 2,
+      "position": [
+        0,
+        0
+      ],
+      "id": "mcp-trigger-central",
+      "name": "MCP Server Trigger",
+      "webhookId": "631cb7dc-2ffc-44cc-bf08-1c63a4f7b18d"
+    },
+    {
+      "parameters": {
+        "toolDescription": "Check room availability at Izumi Hotel for specific dates. Returns available rooms with prices. Use this tool when the guest asks about availability.",
+        "method": "POST",
+        "url": "https://jjpscimtxrudtepzwhag.supabase.co/rest/v1/rpc/check_availability",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpqcHNjaW10eHJ1ZHRlcHp3aGFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI5NDMyMzIsImV4cCI6MjA3ODUxOTIzMn0._U_HwdF5-yT8-prJLzkdO_rGbNuu7Z3gpUQW0Q8zxa0"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpqcHNjaW10eHJ1ZHRlcHp3aGFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI5NDMyMzIsImV4cCI6MjA3ODUxOTIzMn0._U_HwdF5-yT8-prJLzkdO_rGbNuu7Z3gpUQW0Q8zxa0"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"p_property_id\": \"{{ $fromAI('hotel_id', 'Hotel ID, use 18711359-1378-4d12-9ea6-fb31c0b1bac2 for Izumi Hotel') }}\",\n  \"p_check_in\": \"{{ $fromAI('check_in', 'Check-in date in YYYY-MM-DD format') }}\",\n  \"p_check_out\": \"{{ $fromAI('check_out', 'Check-out date in YYYY-MM-DD format') }}\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.3,
+      "position": [
+        -208,
+        208
+      ],
+      "id": "tool-check-availability",
+      "name": "check_availability"
+    },
+    {
+      "parameters": {
+        "toolDescription": "Create a confirmed booking at Izumi Hotel. Use this tool after the guest confirms all booking details including name, email, phone, dates and selected room.",
+        "method": "POST",
+        "url": "https://jjpscimtxrudtepzwhag.supabase.co/rest/v1/bookings",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpqcHNjaW10eHJ1ZHRlcHp3aGFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI5NDMyMzIsImV4cCI6MjA3ODUxOTIzMn0._U_HwdF5-yT8-prJLzkdO_rGbNuu7Z3gpUQW0Q8zxa0"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpqcHNjaW10eHJ1ZHRlcHp3aGFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI5NDMyMzIsImV4cCI6MjA3ODUxOTIzMn0._U_HwdF5-yT8-prJLzkdO_rGbNuu7Z3gpUQW0Q8zxa0"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=representation"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"property_id\": \"{{ $fromAI('property_id', 'Property ID of the selected room/villa') }}\",\n  \"guest_name\": \"{{ $fromAI('guest_name', 'Full name of the guest') }}\",\n  \"guest_email\": \"{{ $fromAI('guest_email', 'Guest email address') }}\",\n  \"guest_phone\": \"{{ $fromAI('guest_phone', 'Guest phone with country code') }}\",\n  \"check_in\": \"{{ $fromAI('check_in', 'Check-in date YYYY-MM-DD') }}\",\n  \"check_out\": \"{{ $fromAI('check_out', 'Check-out date YYYY-MM-DD') }}\",\n  \"guests\": {{ $fromAI('guests', 'Number of guests') }},\n  \"total_price\": {{ $fromAI('total_price', 'Total price as number') }},\n  \"status\": \"confirmed\",\n  \"channel\": \"voice_ai\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.3,
+      "position": [
+        0,
+        208
+      ],
+      "id": "tool-create-booking",
+      "name": "create_booking"
+    },
+    {
+      "parameters": {
+        "toolDescription": "Send booking confirmation email to guest. Use this after a booking is successfully created.",
+        "method": "POST",
+        "url": "https://api.sendgrid.com/v3/mail/send",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer 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"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"personalizations\": [{\"to\": [{\"email\": \"{{ $fromAI('guest_email', 'Guest email address') }}\"}]}],\n  \"from\": {\"email\": \"josecarrallodelafuente@gmail.com\", \"name\": \"Izumi Hotel\"},\n  \"subject\": \"Booking Confirmed - Izumi Hotel\",\n  \"content\": [{\"type\": \"text/plain\", \"value\": \"Hello {{ $fromAI('guest_name', 'Guest name') }}!\\n\\nYour booking has been confirmed.\\n\\nCheck-in: {{ $fromAI('check_in', 'Check-in date') }}\\nCheck-out: {{ $fromAI('check_out', 'Check-out date') }}\\nTotal: ${{ $fromAI('total_price', 'Total price') }} USD\\n\\nWe look forward to welcoming you!\\nIzumi Hotel, Ubud, Bali\"}]\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.3,
+      "position": [
+        208,
+        208
+      ],
+      "id": "tool-send-email",
+      "name": "send_email_confirmation"
+    },
+    {
+      "parameters": {
+        "toolDescription": "Send WhatsApp confirmation message to guest. Use this after a booking is successfully created.",
+        "method": "POST",
+        "url": "https://api.chakrahq.com/v1/ext/plugin/whatsapp/2e45a0bd-8600-41b4-ac92-599d59d6221c/api/v19.0/944855278702577/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer qiu1Z9eA3i2hhNjVM3Dm7QEK1Ey6iKQUE5IDWJlsFSAqXk5OlmQoD6DhqEwv9TOdgOVRWSYLWGxm6HfCs2LeCuwiU8Poqrw2Rgmvih0iEawZhoL6TTmMjVjvDUw2WuygAQgQ1vIeLCreDAKOGymGQCuR5bUYDHrRQQrvoMZLYwHw0LaGhFUuf4GxLpQbV3AQj8JDjhP2MzsCUYT4EVCARX6cODl1d1udr4pITGOmHQ793MUBtptq4XCvC8OGD3g"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"messaging_product\": \"whatsapp\",\n  \"to\": \"{{ $fromAI('guest_phone', 'Guest phone with country code, no + symbol') }}\",\n  \"type\": \"text\",\n  \"text\": {\n    \"body\": \"*Booking Confirmed*\\n\\nHello {{ $fromAI('guest_name', 'Guest name') }},\\n\\nYour booking has been confirmed!\\n\\nHotel: Izumi Hotel\\nCheck-in: {{ $fromAI('check_in', 'Check-in date') }}\\nCheck-out: {{ $fromAI('check_out', 'Check-out date') }}\\nTotal: ${{ $fromAI('total_price', 'Total price') }} USD\\n\\nWe look forward to welcoming you!\"\n  }\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.3,
+      "position": [
+        400,
+        208
+      ],
+      "id": "tool-whatsapp-guest",
+      "name": "send_whatsapp_to_guest"
+    },
+    {
+      "parameters": {
+        "toolDescription": "Send WhatsApp notification to hotel staff about new booking. Use this after a booking is successfully created.",
+        "method": "POST",
+        "url": "https://api.chakrahq.com/v1/ext/plugin/whatsapp/2e45a0bd-8600-41b4-ac92-599d59d6221c/api/v19.0/944855278702577/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer qiu1Z9eA3i2hhNjVM3Dm7QEK1Ey6iKQUE5IDWJlsFSAqXk5OlmQoD6DhqEwv9TOdgOVRWSYLWGxm6HfCs2LeCuwiU8Poqrw2Rgmvih0iEawZhoL6TTmMjVjvDUw2WuygAQgQ1vIeLCreDAKOGymGQCuR5bUYDHrRQQrvoMZLYwHw0LaGhFUuf4GxLpQbV3AQj8JDjhP2MzsCUYT4EVCARX6cODl1d1udr4pITGOmHQ793MUBtptq4XCvC8OGD3g"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"messaging_product\": \"whatsapp\",\n  \"to\": \"34619794604\",\n  \"type\": \"text\",\n  \"text\": {\n    \"body\": \"*NEW BOOKING*\\n\\nGuest: {{ $fromAI('guest_name', 'Guest name') }}\\nEmail: {{ $fromAI('guest_email', 'Guest email') }}\\nPhone: {{ $fromAI('guest_phone', 'Guest phone') }}\\nCheck-in: {{ $fromAI('check_in', 'Check-in date') }}\\nCheck-out: {{ $fromAI('check_out', 'Check-out date') }}\\nTotal: ${{ $fromAI('total_price', 'Total price') }} USD\"\n  }\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.3,
+      "position": [
+        576,
+        208
+      ],
+      "id": "tool-whatsapp-staff",
+      "name": "send_whatsapp_to_staff"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "check_availability": {
+      "ai_tool": [
+        [
+          {
+            "node": "MCP Server Trigger",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "create_booking": {
+      "ai_tool": [
+        [
+          {
+            "node": "MCP Server Trigger",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "send_email_confirmation": {
+      "ai_tool": [
+        [
+          {
+            "node": "MCP Server Trigger",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "send_whatsapp_to_guest": {
+      "ai_tool": [
+        [
+          {
+            "node": "MCP Server Trigger",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "send_whatsapp_to_staff": {
+      "ai_tool": [
+        [
+          {
+            "node": "MCP Server Trigger",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
+  },
+  "versionId": "adc1134b-11da-4d17-b266-915c4c565b07",
+  "meta": {
+    "instanceId": "ca7bc7f182c365457ea4a94a4dc2efe81c23590ab8904858ce5cabfbdd56e40f"
+  },
+  "id": "jyvFpkPes5DdoBRE",
+  "tags": []
+}

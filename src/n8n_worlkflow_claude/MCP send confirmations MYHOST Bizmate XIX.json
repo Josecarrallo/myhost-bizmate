@@ -1,0 +1,153 @@
+{
+  "name": "MCP send confirmations MYHOST Bizmate XIX",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "send-confirmations"
+      },
+      "type": "@n8n/n8n-nodes-langchain.mcpTrigger",
+      "typeVersion": 2,
+      "position": [
+        -128,
+        -112
+      ],
+      "id": "908b0981-8652-44f5-8a72-bdd4692d031c",
+      "name": "MCP - send_confirmations",
+      "webhookId": "ae4e8ca6-b8a9-4ac7-88df-8b1c90671647"
+    },
+    {
+      "parameters": {
+        "toolDescription": "Send booking confirmation email to guest via SendGrid",
+        "method": "POST",
+        "url": "https://api.sendgrid.com/v3/mail/send",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer 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"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"personalizations\": [{\"to\": [{\"email\": \"{{ $fromAI('guest_email', 'Guest email address') }}\"}]}],\n  \"from\": {\"email\": \"josecarrallodelafuente@gmail.com\", \"name\": \"MY HOST BizMate\"},\n  \"subject\": \"✅ Reserva Confirmada - Izumi Hotel\",\n  \"content\": [{\"type\": \"text/plain\", \"value\": \"¡Hola {{ $fromAI('guest_name', 'Guest name') }}!\\n\\nTu reserva ha sido confirmada.\\n\\nCheck-in: {{ $fromAI('check_in', 'Check-in date') }}\\nCheck-out: {{ $fromAI('check_out', 'Check-out date') }}\\nTotal: ${{ $fromAI('total_price', 'Total price') }}\\n\\n¡Te esperamos!\\nIzumi Hotel\"}]\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.3,
+      "position": [
+        -192,
+        96
+      ],
+      "id": "45e8920f-a46b-4702-81d9-9d67f24faee0",
+      "name": "Send Email"
+    },
+    {
+      "parameters": {
+        "toolDescription": "Send WhatsApp confirmation message to guest",
+        "method": "POST",
+        "url": "https://api.chakrahq.com/v1/ext/plugin/whatsapp/2e45a0bd-8600-41b4-ac92-599d59d6221c/api/v19.0/944855278702577/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer qiu1Z9eA3i2hhNjVM3Dm7QEK1Ey6iKQUE5IDWJlsFSAqXk5OlmQoD6DhqEwv9TOdgOVRWSYLWGxm6HfCs2LeCuwiU8Poqrw2Rgmvih0iEawZhoL6TTmMjVjvDUw2WuygAQgQ1vIeLCreDAKOGymGQCuR5bUYDHrRQQrvoMZLYwHw0LaGhFUuf4GxLpQbV3AQj8JDjhP2MzsCUYT4EVCARX6cODl1d1udr4pITGOmHQ793MUBtptq4XCvC8OGD3g"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"messaging_product\": \"whatsapp\",\n  \"to\": \"{{ $fromAI('guest_phone', 'Guest phone with country code, no + symbol') }}\",\n  \"type\": \"text\",\n  \"text\": {\n    \"body\": \"✅ *Reserva Confirmada*\\n\\nHola {{ $fromAI('guest_name', 'Guest name') }},\\n\\n¡Tu reserva ha sido confirmada!\\n\\n🏨 *Hotel:* Izumi Hotel\\n📅 *Check-in:* {{ $fromAI('check_in', 'Check-in date') }}\\n📅 *Check-out:* {{ $fromAI('check_out', 'Check-out date') }}\\n💰 *Total:* ${{ $fromAI('total_price', 'Total price') }}\\n\\n¡Te esperamos! 🌺\"\n  }\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.3,
+      "position": [
+        16,
+        96
+      ],
+      "id": "47f01873-88c3-4c2c-ad6c-6e76385d0752",
+      "name": "WhatsApp to Guest"
+    },
+    {
+      "parameters": {
+        "toolDescription": "Send WhatsApp notification to hotel staff about new booking",
+        "method": "POST",
+        "url": "https://api.chakrahq.com/v1/ext/plugin/whatsapp/2e45a0bd-8600-41b4-ac92-599d59d6221c/api/v19.0/944855278702577/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer qiu1Z9eA3i2hhNjVM3Dm7QEK1Ey6iKQUE5IDWJlsFSAqXk5OlmQoD6DhqEwv9TOdgOVRWSYLWGxm6HfCs2LeCuwiU8Poqrw2Rgmvih0iEawZhoL6TTmMjVjvDUw2WuygAQgQ1vIeLCreDAKOGymGQCuR5bUYDHrRQQrvoMZLYwHw0LaGhFUuf4GxLpQbV3AQj8JDjhP2MzsCUYT4EVCARX6cODl1d1udr4pITGOmHQ793MUBtptq4XCvC8OGD3g"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"messaging_product\": \"whatsapp\",\n  \"to\": \"34619794604\",\n  \"type\": \"text\",\n  \"text\": {\n    \"body\": \"🔔 *NUEVA RESERVA*\\n\\n👤 *Huésped:* {{ $fromAI('guest_name', 'Guest name') }}\\n📧 *Email:* {{ $fromAI('guest_email', 'Guest email') }}\\n📱 *Teléfono:* {{ $fromAI('guest_phone', 'Guest phone') }}\\n📅 *Check-in:* {{ $fromAI('check_in', 'Check-in date') }}\\n📅 *Check-out:* {{ $fromAI('check_out', 'Check-out date') }}\\n💰 *Total:* ${{ $fromAI('total_price', 'Total price') }}\"\n  }\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.3,
+      "position": [
+        208,
+        96
+      ],
+      "id": "eeb69668-ac02-4c37-9596-835760c8e749",
+      "name": "WhatsApp to Staff"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Send Email": {
+      "ai_tool": [
+        [
+          {
+            "node": "MCP - send_confirmations",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WhatsApp to Guest": {
+      "ai_tool": [
+        [
+          {
+            "node": "MCP - send_confirmations",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WhatsApp to Staff": {
+      "ai_tool": [
+        [
+          {
+            "node": "MCP - send_confirmations",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "b121bc57-5364-47bd-8f58-90978cd96f5d",
+  "meta": {
+    "instanceId": "ca7bc7f182c365457ea4a94a4dc2efe81c23590ab8904858ce5cabfbdd56e40f"
+  },
+  "id": "fc4gf1eFELMTxBzL",
+  "tags": []
+}

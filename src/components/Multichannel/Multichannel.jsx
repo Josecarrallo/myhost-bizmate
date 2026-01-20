@@ -7,96 +7,59 @@ import {
   RefreshCw,
   TrendingUp,
   AlertCircle,
-  Calendar
+  Calendar,
+  Loader2
 } from 'lucide-react';
+import { dataService } from '../../services/data';
 
 const MultichannelIntegration = ({ onBack }) => {
   const [selectedChannel, setSelectedChannel] = useState(null);
+  const [channels, setChannels] = useState([]);
+  const [totalStats, setTotalStats] = useState({
+    connectedChannels: 0,
+    totalChannels: 0,
+    totalListings: 0,
+    totalRevenue: '0K',
+    totalBookings: 0
+  });
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     window.scrollTo(0, 0);
+
+    const fetchMultichannelData = async () => {
+      setIsLoading(true);
+      try {
+        const [channelData, stats] = await Promise.all([
+          dataService.getMultichannelData(),
+          dataService.getMultichannelStats()
+        ]);
+
+        setChannels(channelData);
+        setTotalStats(stats);
+
+        console.log('✅ Multichannel data loaded:', channelData.length, 'channels');
+      } catch (error) {
+        console.error('Error loading multichannel data:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchMultichannelData();
   }, []);
 
-  const channels = [
-    {
-      name: 'Booking.com',
-      logo: '🔵',
-      gradient: 'from-blue-500 to-blue-600',
-      bgColor: 'bg-blue-50',
-      textColor: 'text-blue-700',
-      connected: true,
-      lastSync: '3h ago',
-      stats: { listings: 6, pending: 3, revenue: '24.5K', bookings: 45, avgRating: 8.9 },
-      syncHistory: [
-        { date: '2025-12-04 09:00', status: 'success', items: 6 },
-        { date: '2025-12-04 06:00', status: 'success', items: 6 },
-        { date: '2025-12-03 21:00', status: 'success', items: 6 }
-      ]
-    },
-    {
-      name: 'Airbnb',
-      logo: '🔴',
-      gradient: 'from-red-500 to-pink-600',
-      bgColor: 'bg-red-50',
-      textColor: 'text-red-700',
-      connected: true,
-      lastSync: '1h ago',
-      stats: { listings: 8, pending: 5, revenue: '32.8K', bookings: 62, avgRating: 4.8 },
-      syncHistory: [
-        { date: '2025-12-04 11:00', status: 'success', items: 8 },
-        { date: '2025-12-04 08:00', status: 'success', items: 8 },
-        { date: '2025-12-04 05:00', status: 'warning', items: 7 }
-      ]
-    },
-    {
-      name: 'Agoda',
-      logo: '🌈',
-      gradient: 'from-purple-500 to-pink-500',
-      bgColor: 'bg-purple-50',
-      textColor: 'text-purple-700',
-      connected: false,
-      lastSync: 'Never',
-      stats: { listings: 0, pending: 0, revenue: '0', bookings: 0, avgRating: 0 },
-      syncHistory: []
-    },
-    {
-      name: 'Expedia',
-      logo: '🟡',
-      gradient: 'from-yellow-500 to-orange-500',
-      bgColor: 'bg-yellow-50',
-      textColor: 'text-yellow-700',
-      connected: true,
-      lastSync: '5h ago',
-      stats: { listings: 6, pending: 2, revenue: '18.3K', bookings: 34, avgRating: 4.6 },
-      syncHistory: [
-        { date: '2025-12-04 07:00', status: 'success', items: 6 },
-        { date: '2025-12-04 04:00', status: 'success', items: 6 },
-        { date: '2025-12-03 22:00', status: 'error', items: 0 }
-      ]
-    },
-    {
-      name: 'VRBO',
-      logo: '🟠',
-      gradient: 'from-orange-500 to-red-500',
-      bgColor: 'bg-orange-50',
-      textColor: 'text-orange-700',
-      connected: true,
-      lastSync: '2h ago',
-      stats: { listings: 5, pending: 1, revenue: '15.7K', bookings: 28, avgRating: 4.7 },
-      syncHistory: [
-        { date: '2025-12-04 10:00', status: 'success', items: 5 },
-        { date: '2025-12-04 07:00', status: 'success', items: 5 },
-        { date: '2025-12-04 04:00', status: 'success', items: 5 }
-      ]
-    }
-  ];
-
-  const totalStats = {
-    connectedChannels: channels.filter(c => c.connected).length,
-    totalListings: channels.reduce((sum, c) => sum + c.stats.listings, 0),
-    totalRevenue: channels.reduce((sum, c) => sum + parseFloat(c.stats.revenue.replace('K', '')), 0).toFixed(1) + 'K',
-    totalBookings: channels.reduce((sum, c) => sum + c.stats.bookings, 0)
-  };
+  // Show loading spinner while fetching data
+  if (isLoading) {
+    return (
+      <div className="flex-1 h-screen bg-[#2a2f3a] flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="w-16 h-16 text-orange-500 animate-spin mx-auto mb-4" />
+          <p className="text-xl text-white font-semibold">Loading channel data...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex-1 h-screen bg-[#2a2f3a] flex flex-col relative overflow-auto">
@@ -127,7 +90,7 @@ const MultichannelIntegration = ({ onBack }) => {
           {/* Global Stats */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div className="bg-gradient-to-br from-orange-500 to-orange-600 rounded-2xl p-6 border-2 border-[#d85a2a]/20 shadow-lg text-white">
-              <div className="text-3xl font-black mb-1">{totalStats.connectedChannels}/{channels.length}</div>
+              <div className="text-3xl font-black mb-1">{totalStats.connectedChannels}/{totalStats.totalChannels}</div>
               <div className="text-xs font-semibold opacity-90">Connected Channels</div>
             </div>
             <div className="bg-gradient-to-br from-orange-500 to-orange-600 rounded-2xl p-6 border-2 border-[#d85a2a]/20 shadow-lg text-white">

@@ -11,6 +11,13 @@ const VoiceAssistant = () => {
   const [error, setError] = useState(null);
 
   const vapiRef = useRef(null);
+  const callDataRef = useRef({
+    messages: [],
+    transcripts: [],
+    structuredOutputs: {},
+    startTime: null,
+    endTime: null
+  });
 
   useEffect(() => {
     // Inicializar Vapi con Public Key
@@ -28,20 +35,98 @@ const VoiceAssistant = () => {
     // Event listeners
     vapi.on('call-start', () => {
       console.log('✅ Llamada iniciada');
+      callDataRef.current = {
+        messages: [],
+        transcripts: [],
+        structuredOutputs: {},
+        startTime: new Date().toISOString(),
+        endTime: null
+      };
       setIsCallActive(true);
       setIsLoading(false);
       setCallStatus('connected');
       setError(null);
     });
 
-    vapi.on('call-end', () => {
+    vapi.on('call-end', async (callData) => {
       console.log('📞 Llamada terminada');
+
+      // Guardar endTime
+      callDataRef.current.endTime = new Date().toISOString();
+
+      // Calcular duración
+      const startTime = new Date(callDataRef.current.startTime);
+      const endTime = new Date(callDataRef.current.endTime);
+      const durationMs = endTime - startTime;
+
+      // Capturar structured outputs de callData si existen
+      if (callData?.artifact?.structuredOutputs) {
+        console.log('📦 Structured outputs en callData:', callData.artifact.structuredOutputs);
+        callDataRef.current.structuredOutputs = {
+          ...callDataRef.current.structuredOutputs,
+          ...callData.artifact.structuredOutputs
+        };
+      }
+
+      // Construir payload con datos acumulados
+      const accumulatedData = {
+        assistantId: 'ae9ea22a-fc9a-49ba-b5b8-900ed69b7615',
+        startedAt: callDataRef.current.startTime,
+        endedAt: callDataRef.current.endTime,
+        durationMs: durationMs,
+        messages: callDataRef.current.messages,
+        transcripts: callDataRef.current.transcripts,
+        transcript: callDataRef.current.transcripts.map(t => `${t.role}: ${t.text}`).join('\n'),
+        structuredOutputs: callDataRef.current.structuredOutputs,
+        // Incluir callData de VAPI si existe
+        ...(callData || {})
+      };
+
+      console.log('📊 Datos acumulados de la llamada:', accumulatedData);
+      console.log('📦 Structured Outputs capturados:', callDataRef.current.structuredOutputs);
+
       setIsCallActive(false);
       setIsLoading(false);
       setIsSpeaking(false);
       setTranscript('');
       setCallStatus('ended');
       setTimeout(() => setCallStatus('idle'), 2000);
+
+      // VAPI no envía webhooks desde llamadas web/browser
+      // Enviamos manualmente los datos al webhook de n8n
+      try {
+        console.log('📤 Enviando call report a n8n...');
+        const response = await fetch('https://n8n-production-bb2d.up.railway.app/webhook/kora-post-call-v2', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            message: {
+              type: 'end-of-call-report',
+              call: accumulatedData,
+              artifact: {
+                structuredOutputs: callDataRef.current.structuredOutputs || {
+                  '6426dbc9-8b9e-49f7-8f29-faa16683bcda': {
+                    name: 'callResult',
+                    result: accumulatedData
+                  }
+                }
+              }
+            }
+          })
+        });
+
+        if (response.ok) {
+          console.log('✅ Call report enviado correctamente a n8n');
+          const responseData = await response.json();
+          console.log('📥 Respuesta de n8n:', responseData);
+        } else {
+          console.error('❌ Error al enviar call report:', response.status, response.statusText);
+        }
+      } catch (error) {
+        console.error('❌ Error enviando call report a n8n:', error);
+      }
     });
 
     vapi.on('speech-start', () => {
@@ -53,9 +138,26 @@ const VoiceAssistant = () => {
     });
 
     vapi.on('message', (message) => {
+      // Capturar todos los mensajes para el reporte final
+      callDataRef.current.messages.push(message);
+
       // Transcripción en tiempo real
       if (message.type === 'transcript' && message.transcriptType === 'final') {
         setTranscript(message.transcript);
+        callDataRef.current.transcripts.push({
+          text: message.transcript,
+          timestamp: new Date().toISOString(),
+          role: message.role || 'user'
+        });
+      }
+
+      // Capturar structured outputs / artifacts
+      if (message.type === 'structured-data' || message.structuredData) {
+        console.log('📦 Structured data recibido:', message.structuredData || message);
+        callDataRef.current.structuredOutputs = {
+          ...callDataRef.current.structuredOutputs,
+          ...(message.structuredData || {})
+        };
       }
 
       // Log de function calls (para debug)
@@ -99,9 +201,8 @@ const VoiceAssistant = () => {
       // ID: Izumi Hotel Receptionist (MCP) - ae9ea22a-fc9a-49ba-b5b8-900ed69b7615
       // Con MCP Server: https://n8n-production-bb2d.up.railway.app/mcp/izumi-hotel
       // Server URL: https://n8n-production-bb2d.up.railway.app/webhook/kora-post-call-v2
-      await vapiRef.current.start({
-        assistantId: 'ae9ea22a-fc9a-49ba-b5b8-900ed69b7615'
-      });
+      // NOTA: VAPI Web SDK requiere string directo, no objeto
+      await vapiRef.current.start('ae9ea22a-fc9a-49ba-b5b8-900ed69b7615');
     } catch (error) {
       console.error('Error al iniciar llamada:', error);
       setIsLoading(false);

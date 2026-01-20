@@ -1,0 +1,118 @@
+[AI ASSISTANT (AI SYSTEMS) — ESPECIFICACIÓN DETALLADA DE PANTALLA]
+Esto aplica a: ClaudeCode (UI) + Claude AI (n8n). 
+Objetivo: cuando el usuario pulse “AI Assistant / AI Systems” en el menú, vea un “centro único” para hablar con la IA, ver datos y ejecutar acciones.
+
+1) ESTRUCTURA DE LA PÁGINA (LAYOUT)
+La pantalla “AI Assistant” debe tener 3 zonas claras:
+
+A) HEADER (arriba)
+- Título: “AI Assistant” (o “AI Systems”)
+- Subtítulo corto: “Ask your AI team anything about your property”
+- Selector de Agente (dropdown) + indicador de estado:
+  - OSIRIS (Operations)
+  - LUMINA (Sales & Leads)
+  - IRIS (Marketing)
+  - BANYU (Guest Concierge)
+  - KORA (Communications/Voice)
+  - AURA (Proactive Insights)
+- Botón pequeño: “New chat” (reinicia conversación)
+- (Opcional) Botón: “View Agent Center” (abre el drawer derecho si existe)
+
+B) CHAT AREA (centro - principal)
+- Conversación estilo chat (burbujas):
+  - Mensajes del usuario
+  - Respuestas del agente seleccionado
+- Mensaje de bienvenida (primer load):
+  “Hello! I’m [AGENT]. I can help with: …” (bullets según agente)
+- Siempre visible el contexto actual:
+  “Active Agent: OSIRIS • Context: Operations”
+- Capacidad de mostrar 3 tipos de salida:
+  1) Texto normal (respuesta humana)
+  2) Tarjetas de KPI (cuando aplique)
+  3) Tabla (Data Table) con columnas y filas cuando la respuesta sea “lista”
+
+C) ACTION / INPUT BAR (abajo)
+- Input principal: “Ask me anything…”
+- Botón Send
+- Indicador “typing/loading” mientras n8n responde
+- Botón de adjuntar (opcional, futuro)
+- (Muy importante) zona de “Actions suggested” si la respuesta incluye acciones:
+  - Botones con confirmación: “Send WhatsApp”, “Create booking”, “Generate report”, etc.
+
+2) BLOQUE “QUICK QUESTIONS” (debajo del header o encima del input)
+Botones rápidos para 1-click (según agente):
+- OSIRIS: “What’s my occupancy rate?”, “Any check-ins today?”, “Pending payments?”, “Top issues?”
+- LUMINA: “Show hot leads”, “Follow-up due today”, “Create booking”, “What’s conversion rate?”
+- IRIS: “Draft 3 IG posts”, “Show campaign performance”, “Latest reviews summary”
+- BANYU: “Show last WhatsApp messages”, “Send welcome message”, “Guest requests today”
+- KORA: “Call summary”, “Next follow-ups”, “Open communications log”
+- AURA: “Today’s insights”, “Anomalies & alerts”, “Suggested actions”
+
+3) BLOQUE “RESULTS” CUANDO HAY TABLAS (OBLIGATORIO)
+Cuando n8n devuelva datos tabulares:
+- Mostrar DataTable embebida en el chat (o en un panel “Results” justo debajo)
+- Con:
+  - Columnas visibles
+  - Paginación
+  - Search local
+  - Filtros simples (status/date/property)
+- Botón: “Open in Module”
+  - Abre el módulo correspondiente (Bookings/Payments/Leads/Messages) con filtro aplicado
+
+4) BLOQUE “ACTIONS” (EJECUCIÓN CONTROLADA)
+Cuando n8n sugiera una acción:
+- Mostrar botones de acción en la respuesta
+- Al pulsar acción:
+  - Confirmación modal (STOP/GO):
+    “Confirm you want to send WhatsApp to +62… with message: …”
+  - Botón Confirm / Cancel
+- Tras ejecutar:
+  - Mostrar resultado: “Sent ✅” / “Failed ❌” + log reference
+
+5) COMPORTAMIENTO (REGLAS CLAVE)
+- Un solo chat principal por sesión (con historial)
+- Cambiar agente NO debe “mezclar” contexto sin control:
+  - Opción A: mantener mismo chat pero el sistema marca “Agent switched”
+  - Opción B (recomendado): al cambiar agente, preguntar:
+    “Switch agent and start a new thread?” (pero sin fricción: default = new thread)
+- La pantalla debe funcionar aunque no haya backend “real” (mock), pero preparada para producción.
+
+6) INTEGRACIÓN (CONTRATO ENTRE APP Y n8n)
+La UI SIEMPRE llama a n8n para respuestas de IA (no a Supabase directo para el chat).
+Request (App → n8n):
+{
+  tenant_id,
+  user_id,
+  session_id,
+  agent_id,
+  message,
+  page_context: "operations|sales|marketing|payments|messages|overview"
+}
+Response (n8n → App):
+{
+  reply,
+  agent,
+  intent: "insight|list|action",
+  kpis: [{label,value,delta}],              (opcional)
+  table: {columns:[...], rows:[...]},       (opcional)
+  actions: [{id,label,needs_confirm,payload}], (opcional)
+  meta: {sources:[...], execution_id:"..."} (opcional)
+}
+
+7) MÍNIMO VIABLE (MVP) PARA IMPLEMENTAR YA
+MVP debe incluir SÍ o SÍ:
+- Selector de agente + welcome message por agente
+- Chat + input + loading
+- Render de tabla (aunque sea simple)
+- Botones de acción con confirmación (aunque sea “dummy” al inicio)
+- Botón “Open in Module” desde resultados
+
+8) CRITERIOS DE ACEPTACIÓN (CHECKLIST)
+1) Al pulsar “AI Assistant” aparece esta pantalla con header + selector + chat.
+2) Quick Questions cambian según el agente seleccionado.
+3) El chat envía a n8n y muestra la respuesta correctamente.
+4) Si n8n devuelve tabla, se ve DataTable con Open in Module.
+5) Si n8n devuelve acción, hay confirmación y feedback de éxito/error.
+6) Drawer derecho de “AI Agents” puede abrir “AI Assistant” con agente preseleccionado.
+
+FIN — ESTA ES LA DEFINICIÓN OFICIAL DE “AI ASSISTANT”

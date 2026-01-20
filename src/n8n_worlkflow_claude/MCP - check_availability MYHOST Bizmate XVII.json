@@ -1,0 +1,81 @@
+{
+  "name": "MCP - check_availability MYHOST Bizmate XVII",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "check-availability"
+      },
+      "type": "@n8n/n8n-nodes-langchain.mcpTrigger",
+      "typeVersion": 2,
+      "position": [
+        -128,
+        -32
+      ],
+      "id": "8f6874fb-8c08-486a-9ac5-55d9dab328f0",
+      "name": "MCP Server Trigger",
+      "webhookId": "04cffcfc-071a-46a1-a0b0-0b143b43ea76"
+    },
+    {
+      "parameters": {
+        "toolDescription": "Check room availability at Izumi Hotel for specific dates. Returns available rooms with prices.",
+        "method": "POST",
+        "url": "https://jjpscimtxrudtepzwhag.supabase.co/rest/v1/rpc/check_availability",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpqcHNjaW10eHJ1ZHRlcHp3aGFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI5NDMyMzIsImV4cCI6MjA3ODUxOTIzMn0._U_HwdF5-yT8-prJLzkdO_rGbNuu7Z3gpUQW0Q8zxa0"
+            },
+            {
+              "name": "Authorization",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpqcHNjaW10eHJ1ZHRlcHp3aGFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI5NDMyMzIsImV4cCI6MjA3ODUxOTIzMn0._U_HwdF5-yT8-prJLzkdO_rGbNuu7Z3gpUQW0Q8zxa0"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"p_property_id\": \"{{ $fromAI('hotel_id', 'Hotel ID, use 18711359-1378-4d12-9ea6-fb31c0b1bac2 for Izumi Hotel') }}\",\n  \"p_check_in\": \"{{ $fromAI('check_in', 'Check-in date in YYYY-MM-DD format') }}\",\n  \"p_check_out\": \"{{ $fromAI('check_out', 'Check-out date in YYYY-MM-DD format') }}\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.3,
+      "position": [
+        -48,
+        176
+      ],
+      "id": "cc534299-dd9b-4175-89ad-4934872b32a1",
+      "name": "HTTP Request"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "HTTP Request": {
+      "ai_tool": [
+        [
+          {
+            "node": "MCP Server Trigger",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
+  },
+  "versionId": "e7ef0d09-025b-4730-be35-4a91a5f2e36b",
+  "meta": {
+    "instanceId": "ca7bc7f182c365457ea4a94a4dc2efe81c23590ab8904858ce5cabfbdd56e40f"
+  },
+  "id": "VXHTmwTK5BidYnbx",
+  "tags": []
+}

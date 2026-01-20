@@ -1,0 +1,90 @@
+PLAN H126
+┌───────────────────────────────────────────────┐
+│          MYHOST BIZMATE — ROADMAP              │
+│                                               │
+│  Q1: Build properly and test in real life     │
+│                                               │
+│  Q2: Launch calmly and scale with control     │
+└───────────────────────────────────────────────┘
+
+
+┌───────────────────────────────────────────────┐
+│                Q1 2026                        │
+│        BUILD · STABILIZE · PILOT              │
+└───────────────────────────────────────────────┘
+
+
+┌───────────────────────────────┐
+│           JANUARY             │
+│            BUILD              │
+├───────────────────────────────┤
+│ • Core development            │
+│ • WhatsApp (BANYU)            │
+│ • Voice (KORA)                │
+│ • Main n8n workflows          │
+│                               │
+│ Focus:                        │
+│ Build the system correctly    │
+│ Nothing public yet            │
+└───────────────────────────────┘
+                ↓
+┌───────────────────────────────┐
+│          FEBRUARY             │
+│          STABILIZE            │
+├───────────────────────────────┤
+│ • Flow stability              │
+│ • SAFE mode & logging         │
+│ • Lead & booking states       │
+│ • Remove noise / edge cases   │
+│                               │
+│ Focus:                        │
+│ Make everything reliable      │
+│ No new features               │
+└───────────────────────────────┘
+                ↓
+┌───────────────────────────────┐
+│            MARCH              │
+│            PILOT              │
+├───────────────────────────────┤
+│ • 2–5 real pilot clients      │
+│ • Real leads & guests         │
+│ • Observe real usage          │
+│ • Adjust timing & copy        │
+│                               │
+│ Focus:                        │
+│ Learn from reality            │
+│ Not marketing                 │
+└───────────────────────────────┘
+
+
+┌───────────────────────────────────────────────┐
+│                Q2 2026                        │
+│        LAUNCH · EARLY SCALE                   │
+└───────────────────────────────────────────────┘
+
+
+┌───────────────────────────────┐
+│            APRIL              │
+│           LAUNCH              │
+├───────────────────────────────┤
+│ • Controlled public launch    │
+│ • Clear positioning           │
+│ • First paying customers      │
+│                               │
+│ Focus:                        │
+│ Confident demos               │
+│ Smooth onboarding             │
+└───────────────────────────────┘
+                ↓
+┌───────────────────────────────┐
+│         MAY – JUNE             │
+│        EARLY SCALE             │
+├───────────────────────────────┤
+│ • Gradual onboarding          │
+│ • Performance & cost tuning   │
+│ • Improve from real usage     │
+│                               │
+│ Focus:                        │
+│ Controlled growth             │
+│ No rushing                    │
+└───────────────────────────────┘

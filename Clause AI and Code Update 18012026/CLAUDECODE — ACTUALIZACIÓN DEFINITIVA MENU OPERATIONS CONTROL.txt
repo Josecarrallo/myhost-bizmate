@@ -1,0 +1,88 @@
+[CLAUDECODE — ACTUALIZACIÓN DEFINITIVA DEL MENÚ (AI SYSTEMS + AI MONITOR)]
+Proyecto: MY HOST BizMate
+Objetivo: dejar la navegación clara, sin duplicidades, y coherente con la arquitectura híbrida cerrada.
+
+================================================================================
+DECISIÓN FINAL (NO INTERPRETAR, IMPLEMENTAR TAL CUAL)
+
+REGLA CLAVE:
+- “AI Systems” = hablar con la IA (chat + agentes) → GLOBAL
+- “AI Monitor” = vigilar la IA (estado, ejecuciones, errores) → CONTROL
+
+================================================================================
+A) MENÚ PRINCIPAL (NIVEL 1)
+
+AÑADIR un nuevo ítem en el menú izquierdo principal, justo debajo de:
+→ Market Intelligence
+
+Nuevo ítem:
+- Label: **AI Systems**
+- Ruta: **/ai**
+- Icono: sparkles / bot / ai
+- Función:
+  - Pantalla única de IA
+  - Chat con la IA
+  - Selector de agente (OSIRIS, LUMINA, IRIS, BANYU, KORA, AURA)
+  - Quick questions
+  - Resultados (KPIs, tablas, acciones)
+
+IMPORTANTE:
+- Este es el ÚNICO punto principal para “hablar con la IA”.
+
+================================================================================
+B) OPERATIONS → CONTROL (SUBMENÚ)
+
+1) ELIMINAR COMPLETAMENTE el ítem:
+- **AI Assistant**
+(No debe existir dentro de Control para evitar confusión.)
+
+2) MANTENER y RENOMBRAR:
+- Antes: “AI Agents Monitor”
+- Nuevo nombre: **AI Monitor**
+- Ruta: **/control/ai-monitor**
+- Icono: activity / pulse
+
+Función de AI Monitor:
+- Estado de agentes (active / idle / error)
+- Últimas ejecuciones
+- Errores y alertas
+- Logs técnicos
+- (Más adelante: latencia, costes, métricas)
+
+3) Mantener SIN CAMBIOS:
+- Alerts / Exceptions
+- Workflows & Automations
+- Logs / Audit
+
+================================================================================
+C) COMPORTAMIENTO DE NAVEGACIÓN (OBLIGATORIO)
+
+- No debe haber más de un chat de IA en la app.
+- “AI Systems” (/ai) es el chat único.
+- “AI Monitor” NO es chat, es panel técnico.
+- Si desde cualquier parte (drawer derecho, tarjetas de agentes, etc.)
+  el usuario pulsa “Ask / Chat”:
+  → navegar a **/ai**
+  → preseleccionar el agente correspondiente.
+
+================================================================================
+D) (OPCIONAL — SOLO SI SE QUIERE ACCESO RÁPIDO DESDE CONTROL)
+Si se añade un acceso directo dentro de Control:
+- Label: **Open AI Systems**
+- Ruta: /ai
+- NO llamarlo “AI Assistant”
+- Es solo un shortcut, no un segundo chat
+
+(Si no es necesario, NO añadir nada.)
+
+================================================================================
+E) CRITERIOS DE ACEPTACIÓN (CHECKLIST FINAL)
+
+1) En Operations → Control ya NO aparece “AI Assistant”.
+2) En Operations → Control aparece “AI Monitor” (renombrado).
+3) En el menú principal existe “AI Systems” y abre /ai.
+4) Solo existe UN chat de IA en toda la app.
+5) El drawer derecho de agentes sigue funcionando y redirige a /ai.
+6) La navegación es clara y no confunde al usuario.
+
+FIN — IMPLEMENTAR TAL CUAL, SIN CAMBIOS DE CRITERIO
