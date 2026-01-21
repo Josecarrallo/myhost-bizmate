@@ -243,7 +243,7 @@ const VoiceAssistant = () => {
       color: 'bg-red-500 hover:bg-red-600'
     };
     return {
-      text: 'Talk to LUMINA',
+      text: 'Talk to KORA',
       icon: <Phone className="w-5 h-5" />,
       color: 'bg-gradient-to-r from-[#d85a2a] to-[#f5a524] hover:from-[#c74d1f] hover:to-[#e09518]'
     };
@@ -267,7 +267,7 @@ const VoiceAssistant = () => {
             <div className="flex items-center gap-3 mb-4">
               <div className={`w-4 h-4 rounded-full ${isSpeaking ? 'bg-orange-500 animate-pulse' : 'bg-gray-300'}`} />
               <span className="text-base font-semibold text-gray-800">
-                {isSpeaking ? '🎤 Listening...' : '💬 LUMINA is responding...'}
+                {isSpeaking ? '🎤 Listening...' : '💬 KORA is responding...'}
               </span>
             </div>
 
@@ -301,15 +301,15 @@ const VoiceAssistant = () => {
           <div className="flex items-center gap-3 bg-white rounded-full shadow-2xl pr-4 border-2 border-orange-200 animate-fade-in">
             <img
               src="/images/lumina-avatar.jpg"
-              alt="LUMINA - Sales Assistant"
+              alt="KORA - Voice Assistant"
               className="w-14 h-14 rounded-full object-cover border-3 border-white shadow-lg"
             />
             <div className="text-left">
               <p className="text-sm font-black text-[#d85a2a]">
-                LUMINA
+                KORA
               </p>
               <p className="text-xs text-gray-600 font-semibold">
-                Sales Assistant
+                Voice Assistant
               </p>
             </div>
           </div>
@@ -341,7 +341,7 @@ const VoiceAssistant = () => {
               🤖 24/7 Voice Assistant
             </p>
             <p className="text-xs text-white/90">
-              Click "Talk to LUMINA" to start
+              Click "Talk to KORA" to start
             </p>
           </div>
         )}
