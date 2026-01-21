@@ -12,7 +12,11 @@ import {
   Users,
   DollarSign,
   Calendar,
-  TrendingUp
+  TrendingUp,
+  ArrowUp,
+  ArrowDown,
+  AlertCircle,
+  CheckCircle
 } from 'lucide-react';
 
 const AISystems = ({ onBack }) => {
@@ -144,20 +148,67 @@ const AISystems = ({ onBack }) => {
     };
 
     setMessages(prev => [...prev, userMessage]);
+    const currentQuestion = inputMessage;
     setInputMessage('');
     setIsLoading(true);
 
-    // Simulate AI response (mock for demo)
-    setTimeout(() => {
-      const mockResponse = {
+    try {
+      // OSIRIS: Call real n8n endpoint
+      if (selectedAgent === 'osiris') {
+        const response = await fetch('https://n8n-production-bb2d.up.railway.app/webhook/ai/chat', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            tenant_id: 'c24393db-d318-4d75-8bbf-0fa240b9c1db',
+            user_id: 'c24393db-d318-4d75-8bbf-0fa240b9c1db',
+            message: currentQuestion
+          })
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+
+        const assistantMessage = {
+          type: 'assistant',
+          agent: 'osiris',
+          content: data.reply,
+          kpis: data.kpis || null,
+          table: data.table || null,
+          actions: data.actions || null,
+          meta: data.meta || null,
+          timestamp: new Date()
+        };
+
+        setMessages(prev => [...prev, assistantMessage]);
+      } else {
+        // Other agents: Use mock response
+        setTimeout(() => {
+          const mockResponse = {
+            type: 'assistant',
+            agent: selectedAgent,
+            content: getMockResponse(selectedAgent, currentQuestion),
+            timestamp: new Date()
+          };
+          setMessages(prev => [...prev, mockResponse]);
+        }, 1500);
+      }
+    } catch (error) {
+      console.error('Error calling OSIRIS:', error);
+      const errorMessage = {
         type: 'assistant',
         agent: selectedAgent,
-        content: getMockResponse(selectedAgent, inputMessage),
+        content: `❌ Sorry, I encountered an error: ${error.message}. Please try again.`,
         timestamp: new Date()
       };
-      setMessages(prev => [...prev, mockResponse]);
+      setMessages(prev => [...prev, errorMessage]);
+    } finally {
       setIsLoading(false);
-    }, 1500);
+    }
   };
 
   const handleQuickQuestion = (question) => {
@@ -167,7 +218,6 @@ const AISystems = ({ onBack }) => {
   const getMockResponse = (agent, question) => {
     // Mock responses for demo
     const responses = {
-      osiris: "Based on current data:\n\n📊 **Occupancy Next 7 Days:** 85% (6 of 7 properties booked)\n\n💰 **Pending Payments:** 3 payments totaling $2,450\n\n✅ **System Status:** All operational\n\nWould you like me to send payment reminders?",
       lumina: "Here's your sales summary:\n\n🎯 **Hot Leads:** 5 leads with high engagement\n\n📧 **Pending Follow-ups:** 8 leads need contact\n\n📈 **Conversion Rate:** 23% (last 30 days)\n\nShall I draft follow-up messages for the hot leads?",
       iris: "Marketing insights:\n\n✨ **Content Ideas:** Beach sunset posts, villa tours, guest testimonials\n\n⭐ **Review Performance:** 4.8 avg rating (last month)\n\n📱 **Best Time to Post:** 6-8 PM local time\n\nWant me to create a content calendar?",
       banyu: "WhatsApp status:\n\n💬 **Active Conversations:** 12 guests\n\n📨 **Messages Today:** 47 messages\n\n⚡ **Avg Response Time:** 3.2 minutes\n\nNeed help with any specific conversation?",
@@ -179,6 +229,108 @@ const AISystems = ({ onBack }) => {
   };
 
   const AgentIcon = currentAgent.icon;
+
+  // Render KPIs as cards
+  const renderKPIs = (kpis) => {
+    if (!kpis || kpis.length === 0) return null;
+
+    return (
+      <div className="grid grid-cols-2 gap-3 mt-4">
+        {kpis.map((kpi, index) => {
+          const isPositive = kpi.delta && kpi.delta.startsWith('+');
+          const isNegative = kpi.delta && kpi.delta.startsWith('-');
+
+          return (
+            <div key={index} className="bg-white/5 backdrop-blur-sm rounded-xl p-4 border border-white/10">
+              <p className="text-xs text-orange-300 font-medium mb-1">{kpi.label}</p>
+              <div className="flex items-baseline gap-2">
+                <p className="text-2xl font-bold text-white">{kpi.value}</p>
+                {kpi.delta && (
+                  <span className={`text-xs font-semibold flex items-center gap-1 ${
+                    isPositive ? 'text-green-400' : isNegative ? 'text-red-400' : 'text-gray-400'
+                  }`}>
+                    {isPositive && <ArrowUp className="w-3 h-3" />}
+                    {isNegative && <ArrowDown className="w-3 h-3" />}
+                    {kpi.delta}
+                  </span>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    );
+  };
+
+  // Render table
+  const renderTable = (table) => {
+    if (!table || !table.rows || table.rows.length === 0) return null;
+
+    return (
+      <div className="mt-4 overflow-x-auto">
+        <div className="bg-white/5 backdrop-blur-sm rounded-xl border border-white/10 overflow-hidden">
+          <table className="w-full text-sm">
+            <thead className="bg-white/10">
+              <tr>
+                {table.columns.map((col, index) => (
+                  <th key={index} className="px-4 py-3 text-left text-xs font-semibold text-orange-300 uppercase tracking-wider">
+                    {col.label}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-white/10">
+              {table.rows.slice(0, 10).map((row, rowIndex) => (
+                <tr key={rowIndex} className="hover:bg-white/5 transition-colors">
+                  {table.columns.map((col, colIndex) => (
+                    <td key={colIndex} className="px-4 py-3 text-white/90">
+                      {row[col.key]}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {table.row_count > 10 && (
+            <div className="bg-white/5 px-4 py-2 text-center text-xs text-orange-300">
+              Showing 10 of {table.row_count} rows
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  // Render action buttons
+  const renderActions = (actions) => {
+    if (!actions || actions.length === 0) return null;
+
+    return (
+      <div className="flex flex-wrap gap-2 mt-4">
+        {actions.map((action, index) => (
+          <button
+            key={index}
+            onClick={() => {
+              console.log('Action clicked:', action);
+              // TODO: Implement action execution
+              alert(`Action "${action.label}" - Implementation pending`);
+            }}
+            className="px-4 py-2 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700
+                     text-white text-sm font-medium rounded-lg
+                     transition-all duration-300 hover:scale-105 hover:shadow-lg
+                     flex items-center gap-2"
+          >
+            {action.needs_confirm ? (
+              <AlertCircle className="w-4 h-4" />
+            ) : (
+              <CheckCircle className="w-4 h-4" />
+            )}
+            {action.label}
+          </button>
+        ))}
+      </div>
+    );
+  };
 
   return (
     <div className="flex-1 h-screen bg-gradient-to-br from-[#1a1f2e] via-[#2a2f3a] to-[#1a1f2e] flex flex-col overflow-hidden">
@@ -287,6 +439,16 @@ const AISystems = ({ onBack }) => {
                 </div>
               )}
               <p className="whitespace-pre-wrap leading-relaxed text-base">{message.content}</p>
+
+              {/* Render KPIs */}
+              {message.kpis && renderKPIs(message.kpis)}
+
+              {/* Render Table */}
+              {message.table && renderTable(message.table)}
+
+              {/* Render Actions */}
+              {message.actions && renderActions(message.actions)}
+
               <p className="text-xs opacity-70 mt-3 text-right">
                 {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
               </p>
