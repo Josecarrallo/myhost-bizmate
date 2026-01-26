@@ -68,6 +68,8 @@ import KoraAnalytics from './components/VoiceAI/KoraAnalytics';
 import BanyuGuestJourney from './components/BANYU/BanyuGuestJourney';
 import BanyuTemplates from './components/BANYU/BanyuTemplates';
 import BanyuLogs from './components/BANYU/BanyuLogs';
+import ManualDataEntry from './components/ManualDataEntry/ManualDataEntry';
+import Autopilot from './components/Autopilot/Autopilot';
 
 // ==================== FLOATING ICON COMPONENT ====================
 const FloatingIcon = ({ icon: Icon, className, delay }) => (
@@ -889,6 +891,13 @@ export default function App() {
 
       case 'workflow-tester':
         return <WorkflowTester onBack={() => setCurrentView('workflows')} />;
+
+      // AUTOPILOT MODULE
+      case 'manual-entry':
+        return <ManualDataEntry key="manual-entry" onBack={() => setCurrentView('overview')} />;
+
+      case 'autopilot':
+        return <Autopilot key="autopilot" onBack={() => setCurrentView('overview')} />;
 
       case 'settings':
         // Placeholder for settings
