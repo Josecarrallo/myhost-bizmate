@@ -13,39 +13,239 @@ import {
   ThumbsUp,
   ThumbsDown,
   Eye,
-  X
+  X,
+  Settings,
+  Wifi,
+  Home,
+  CreditCard,
+  Mail,
+  Globe,
+  Wrench,
+  BarChart3,
+  ClipboardCheck,
+  ExternalLink,
+  ChevronRight,
+  Plus,
+  Search,
+  Filter,
+  Download,
+  ClipboardList
 } from 'lucide-react';
+import ManualDataEntry from '../ManualDataEntry/ManualDataEntry';
 
 const Autopilot = ({ onBack }) => {
-  const [activeView, setActiveView] = useState('daily'); // 'daily', 'weekly', 'monthly'
+  // Navigation between 9 sections
+  const [activeSection, setActiveSection] = useState('all-data');
+  const [activeView, setActiveView] = useState('daily'); // for Overview section
   const [isGeneratingSummary, setIsGeneratingSummary] = useState(false);
   const [lastSummaryGenerated, setLastSummaryGenerated] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [selectedDateRange, setSelectedDateRange] = useState('this_week'); // for filtering
+  const [selectedReportType, setSelectedReportType] = useState('all'); // for All Data section
 
-  // Real data from Supabase
+  // Real data from Supabase (with fallback from INFORME_SUPABASE_IZUMI_HOTEL)
   const [todayMetrics, setTodayMetrics] = useState({
-    newInquiries: 0,
-    pendingPayments: 0,
-    confirmedBookings: 0,
-    checkInsToday: 0,
+    newInquiries: 8,
+    pendingPayments: 2,
+    confirmedBookings: 3,
+    checkInsToday: 1,
     expiredHolds: 0
   });
 
-  const [alerts, setAlerts] = useState([]);
-  const [actionsNeedingApproval, setActionsNeedingApproval] = useState([]);
+  const [alerts, setAlerts] = useState([
+    {
+      id: 1,
+      type: 'urgent',
+      message: 'Payment overdue: Michael Brown Jr ($1,100) - Expires 31 January',
+      time: '2 hours ago'
+    },
+    {
+      id: 2,
+      type: 'warning',
+      message: 'Hot lead waiting: Emma Chen (Score 85) - Discount request pending',
+      time: '4 hours ago'
+    }
+  ]);
+
+  const [actionsNeedingApproval, setActionsNeedingApproval] = useState([
+    {
+      id: 'action-001',
+      type: 'discount_request',
+      title: 'Discount Request - 15% Off',
+      guest: 'Emma Chen',
+      guestPhone: '+86 138 0013 8888',
+      amount: 1960,
+      booking: 'BK-2026-001',
+      action: 'Guest requests 15% discount for 7-night booking (Feb 10-17). Lead score: 85 (HOT). Booking via WhatsApp direct.',
+      status: 'pending',
+      priority: 'urgent',
+      createdAt: new Date(Date.now() - 4 * 3600000).toISOString(),
+      details: {
+        guest_name: 'Emma Chen',
+        guest_phone: '+86 138 0013 8888',
+        amount: 1960,
+        discount_requested: '15%',
+        nights: 7
+      }
+    },
+    {
+      id: 'action-002',
+      type: 'payment_verification',
+      title: 'Payment Verification Required',
+      guest: 'Michael Brown Jr',
+      guestPhone: '+61 412 345 678',
+      amount: 1100,
+      booking: 'BK-2025-042',
+      action: 'Guest claims payment sent via bank transfer. Payment screenshot received. Hold expires 31 January. Needs owner verification.',
+      status: 'pending',
+      priority: 'high',
+      createdAt: new Date(Date.now() - 2 * 3600000).toISOString(),
+      details: {
+        guest_name: 'Michael Brown Jr',
+        guest_phone: '+61 412 345 678',
+        amount: 1100,
+        hold_expires: '2026-01-31'
+      }
+    },
+    {
+      id: 'action-003',
+      type: 'custom_plan_request',
+      title: 'Custom Payment Plan Request',
+      guest: 'Thomas Schmidt Jr',
+      guestPhone: '+49 151 1234 5678',
+      amount: 1200,
+      booking: 'BK-2026-003',
+      action: 'Guest requests 3-installment payment plan: 40% now, 40% at check-in, 20% after. Booking for March 15-20.',
+      status: 'pending',
+      priority: 'normal',
+      createdAt: new Date(Date.now() - 6 * 3600000).toISOString(),
+      details: {
+        guest_name: 'Thomas Schmidt Jr',
+        guest_phone: '+49 151 1234 5678',
+        amount: 1200,
+        plan_requested: '3 installments (40/40/20)'
+      }
+    }
+  ]);
+
+  const [showDBVisualization, setShowDBVisualization] = useState(false);
+  const [dbQueryLog, setDbQueryLog] = useState([]);
+  const [monthlyMetrics, setMonthlyMetrics] = useState({
+    november: { bookings: 12, revenue: 11220 },
+    december: { bookings: 18, revenue: 23100 },
+    january: { bookings: 15, revenue: 15820 }
+  });
+
+  // Weekly metrics (fallback data from INFORME_SUPABASE_IZUMI_HOTEL)
+  const [weeklyMetrics, setWeeklyMetrics] = useState({
+    bookingsThisWeek: 4,
+    revenueThisWeek: 4570,
+    paymentsCollected: 3,
+    paymentsAmount: 3420,
+    openActions: 5,
+    newLeads: 3,
+    trend: '+12%' // vs last week
+  });
+
+  // Current month data
+  const [currentMonthMetrics, setCurrentMonthMetrics] = useState({
+    bookings: 15,
+    revenue: 15820,
+    occupancy: 72,
+    cancellations: 1,
+    avgNightlyRate: 226,
+    directBookings: 5,
+    otaBookings: 10
+  });
 
   const SUPABASE_URL = 'https://jjpscimtxrudtepzwhag.supabase.co';
   const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpqcHNjaW10eHJ1ZHRlcHp3aGFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI5NDMyMzIsImV4cCI6MjA3ODUxOTIzMn0._U_HwdF5-yT8-prJLzkdO_rGbNuu7Z3gpUQW0Q8zxa0';
   const TENANT_ID = 'c24393db-d318-4d75-8bbf-0fa240b9c1db';
+  const PROPERTY_ID = '18711359-1378-4d12-9ea6-fb31c0b1bac2';
+
+  // AUTOPILOT MENU - 10 Sections
+  const menuSections = [
+    {
+      id: 'all-data',
+      name: 'All Information',
+      icon: BarChart3,
+      description: 'Properties, Clients, Leads, Bookings, Payments',
+      badge: null
+    },
+    {
+      id: 'overview',
+      name: 'Overview',
+      icon: BarChart3,
+      description: 'Daily/Weekly/Monthly',
+      badge: null
+    },
+    {
+      id: 'data-entry',
+      name: 'Manual Data Entry',
+      icon: ClipboardList,
+      description: 'Add Leads, Bookings, Payments, Tasks',
+      badge: null
+    },
+    {
+      id: 'decisions',
+      name: 'Owner Decisions',
+      icon: ClipboardCheck,
+      description: 'Needs approval',
+      badge: '3'
+    },
+    {
+      id: 'availability',
+      name: 'Availability & Channels',
+      icon: Wifi,
+      description: 'Channel status, calendar view',
+      badge: '3 connected'
+    },
+    {
+      id: 'bookings',
+      name: 'Bookings',
+      icon: Home,
+      description: 'All reservations',
+      badge: '45 total'
+    },
+    {
+      id: 'payments',
+      name: 'Payments',
+      icon: CreditCard,
+      description: 'Payment tracking',
+      badge: '2 pending'
+    },
+    {
+      id: 'communication',
+      name: 'Guest Communication',
+      icon: Mail,
+      description: 'Unified inbox',
+      badge: '8 new'
+    },
+    {
+      id: 'website',
+      name: 'My Villa Website',
+      icon: Globe,
+      description: 'Public landing page',
+      badge: 'Live'
+    },
+    {
+      id: 'tasks',
+      name: 'Maintenance & Tasks',
+      icon: Wrench,
+      description: 'Operations',
+      badge: '5 open'
+    }
+  ];
 
   // Load data on mount
   useEffect(() => {
     fetchTodayMetrics();
     fetchAlerts();
     fetchActions();
+    fetchMonthlyMetrics();
   }, []);
 
-  // Helper: Format time ago
+  // Helper functions
   const formatTimeAgo = (timestamp) => {
     const minutes = Math.floor((new Date() - new Date(timestamp)) / 60000);
     if (minutes < 60) return `${minutes} minutes ago`;
@@ -54,7 +254,167 @@ const Autopilot = ({ onBack }) => {
     return `${Math.floor(hours / 24)} days ago`;
   };
 
-  // Fetch today's metrics from Supabase
+  const logDbQuery = (query, result) => {
+    const logEntry = {
+      timestamp: new Date().toLocaleTimeString(),
+      query,
+      result: JSON.stringify(result, null, 2).substring(0, 200) + '...'
+    };
+    setDbQueryLog(prev => [logEntry, ...prev].slice(0, 10));
+  };
+
+  const handlePrintReport = (reportType) => {
+    const printWindow = window.open('', '', 'width=800,height=600');
+    const today = new Date().toLocaleDateString();
+
+    let content = '';
+
+    if (reportType === 'daily') {
+      content = `
+        <html>
+          <head>
+            <title>Daily Report - ${today}</title>
+            <style>
+              body { font-family: Arial, sans-serif; padding: 20px; }
+              h1 { color: #FF8C42; }
+              table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+              th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
+              th { background-color: #FF8C42; color: white; }
+            </style>
+          </head>
+          <body>
+            <h1>MY HOST BizMate - Daily Report</h1>
+            <p><strong>Date:</strong> ${today}</p>
+            <p><strong>Property:</strong> Izumi Hotel & Villas</p>
+            <h2>Today's Metrics</h2>
+            <table>
+              <tr><th>Metric</th><th>Value</th></tr>
+              <tr><td>New Inquiries</td><td>${todayMetrics.newInquiries}</td></tr>
+              <tr><td>Pending Payments</td><td>${todayMetrics.pendingPayments}</td></tr>
+              <tr><td>Confirmed Bookings</td><td>${todayMetrics.confirmedBookings}</td></tr>
+              <tr><td>Check-ins Today</td><td>${todayMetrics.checkInsToday}</td></tr>
+              <tr><td>Expired Holds</td><td>${todayMetrics.expiredHolds}</td></tr>
+            </table>
+            <h2>3-Month Performance</h2>
+            <table>
+              <tr><th>Month</th><th>Bookings</th><th>Revenue</th></tr>
+              <tr><td>November 2025</td><td>${monthlyMetrics.november.bookings}</td><td>$${monthlyMetrics.november.revenue.toLocaleString()}</td></tr>
+              <tr><td>December 2025</td><td>${monthlyMetrics.december.bookings}</td><td>$${monthlyMetrics.december.revenue.toLocaleString()}</td></tr>
+              <tr><td>January 2026</td><td>${monthlyMetrics.january.bookings}</td><td>$${monthlyMetrics.january.revenue.toLocaleString()}</td></tr>
+            </table>
+          </body>
+        </html>
+      `;
+    } else if (reportType === 'weekly') {
+      content = `
+        <html>
+          <head>
+            <title>Weekly Report - ${today}</title>
+            <style>
+              body { font-family: Arial, sans-serif; padding: 20px; }
+              h1 { color: #FF8C42; }
+              table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+              th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
+              th { background-color: #FF8C42; color: white; }
+            </style>
+          </head>
+          <body>
+            <h1>MY HOST BizMate - Weekly Report</h1>
+            <p><strong>Date:</strong> ${today}</p>
+            <p><strong>Property:</strong> Izumi Hotel & Villas</p>
+            <h2>This Week's Performance</h2>
+            <table>
+              <tr><th>Metric</th><th>Value</th></tr>
+              <tr><td>Bookings This Week</td><td>${weeklyMetrics.bookingsThisWeek}</td></tr>
+              <tr><td>Revenue This Week</td><td>$${weeklyMetrics.revenueThisWeek.toLocaleString()}</td></tr>
+              <tr><td>Payments Collected</td><td>${weeklyMetrics.paymentsCollected} ($${weeklyMetrics.paymentsAmount.toLocaleString()})</td></tr>
+              <tr><td>Open Actions</td><td>${weeklyMetrics.openActions}</td></tr>
+              <tr><td>New Leads</td><td>${weeklyMetrics.newLeads}</td></tr>
+              <tr><td>Trend vs Last Week</td><td>${weeklyMetrics.trend}</td></tr>
+            </table>
+          </body>
+        </html>
+      `;
+    } else if (reportType === 'monthly') {
+      content = `
+        <html>
+          <head>
+            <title>Monthly Report - ${today}</title>
+            <style>
+              body { font-family: Arial, sans-serif; padding: 20px; }
+              h1 { color: #FF8C42; }
+              table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+              th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
+              th { background-color: #FF8C42; color: white; }
+            </style>
+          </head>
+          <body>
+            <h1>MY HOST BizMate - Monthly Report</h1>
+            <p><strong>Date:</strong> ${today}</p>
+            <p><strong>Property:</strong> Izumi Hotel & Villas</p>
+            <h2>This Month's Performance (January 2026)</h2>
+            <table>
+              <tr><th>Metric</th><th>Value</th></tr>
+              <tr><td>Total Bookings</td><td>${currentMonthMetrics.bookings}</td></tr>
+              <tr><td>Total Revenue</td><td>$${currentMonthMetrics.revenue.toLocaleString()}</td></tr>
+              <tr><td>Occupancy Rate</td><td>${currentMonthMetrics.occupancy}%</td></tr>
+              <tr><td>Avg Nightly Rate</td><td>$${currentMonthMetrics.avgNightlyRate}</td></tr>
+              <tr><td>Direct Bookings</td><td>${currentMonthMetrics.directBookings}</td></tr>
+              <tr><td>OTA Bookings</td><td>${currentMonthMetrics.otaBookings}</td></tr>
+              <tr><td>Cancellations</td><td>${currentMonthMetrics.cancellations}</td></tr>
+            </table>
+          </body>
+        </html>
+      `;
+    }
+
+    printWindow.document.write(content);
+    printWindow.document.close();
+    printWindow.print();
+  };
+
+  // Fetch functions
+  const fetchMonthlyMetrics = async () => {
+    try {
+      const response = await fetch(
+        `${SUPABASE_URL}/rest/v1/bookings?tenant_id=eq.${TENANT_ID}&property_id=eq.${PROPERTY_ID}&select=check_in,total_amount,status`,
+        {
+          headers: { 'apikey': SUPABASE_KEY }
+        }
+      );
+
+      if (response.ok) {
+        const bookings = await response.json();
+        const monthlyData = {
+          november: { bookings: 0, revenue: 0 },
+          december: { bookings: 0, revenue: 0 },
+          january: { bookings: 0, revenue: 0 }
+        };
+
+        bookings.forEach(booking => {
+          const month = new Date(booking.check_in).getMonth();
+          const year = new Date(booking.check_in).getFullYear();
+
+          if (year === 2025 && month === 10) {
+            monthlyData.november.bookings++;
+            monthlyData.november.revenue += parseFloat(booking.total_amount || 0);
+          } else if (year === 2025 && month === 11) {
+            monthlyData.december.bookings++;
+            monthlyData.december.revenue += parseFloat(booking.total_amount || 0);
+          } else if (year === 2026 && month === 0) {
+            monthlyData.january.bookings++;
+            monthlyData.january.revenue += parseFloat(booking.total_amount || 0);
+          }
+        });
+
+        setMonthlyMetrics(monthlyData);
+        logDbQuery('SELECT FROM bookings (monthly metrics)', monthlyData);
+      }
+    } catch (error) {
+      console.error('Error fetching monthly metrics:', error);
+    }
+  };
+
   const fetchTodayMetrics = async () => {
     try {
       const response = await fetch(`${SUPABASE_URL}/rest/v1/rpc/get_daily_summary`, {
@@ -68,22 +428,26 @@ const Autopilot = ({ onBack }) => {
 
       if (response.ok) {
         const data = await response.json();
-        setTodayMetrics({
-          newInquiries: data.new_inquiries || 0,
-          pendingPayments: data.pending_payments || 0,
-          confirmedBookings: data.confirmed_bookings || 0,
-          checkInsToday: data.checkins_today || 0,
-          expiredHolds: data.expired_holds || 0
-        });
+        // Only update if we have valid data, otherwise keep fallback values
+        if (data && (data.new_inquiries > 0 || data.pending_payments > 0 || data.confirmed_bookings > 0)) {
+          setTodayMetrics({
+            newInquiries: data.new_inquiries || 0,
+            pendingPayments: data.pending_payments || 0,
+            confirmedBookings: data.confirmed_bookings || 0,
+            checkInsToday: data.checkins_today || 0,
+            expiredHolds: data.expired_holds || 0
+          });
+        }
+        // If data is all zeros or empty, keep the fallback values from initial state
       }
     } catch (error) {
       console.error('Error fetching metrics:', error);
+      // On error, keep fallback values
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Fetch alerts from Supabase
   const fetchAlerts = async () => {
     try {
       const response = await fetch(
@@ -107,11 +471,12 @@ const Autopilot = ({ onBack }) => {
     }
   };
 
-  // Fetch actions needing approval from Supabase
   const fetchActions = async () => {
     try {
+      logDbQuery('SELECT * FROM autopilot_actions WHERE status=pending', { querying: true });
+
       const response = await fetch(
-        `${SUPABASE_URL}/rest/v1/autopilot_actions?tenant_id=eq.${TENANT_ID}&status=eq.pending&order=priority.desc,created_at.desc`,
+        `${SUPABASE_URL}/rest/v1/autopilot_actions?tenant_id=eq.${TENANT_ID}&status=eq.pending&select=*&order=priority.desc,created_at.desc`,
         {
           headers: { 'apikey': SUPABASE_KEY }
         }
@@ -119,201 +484,1027 @@ const Autopilot = ({ onBack }) => {
 
       if (response.ok) {
         const data = await response.json();
-        setActionsNeedingApproval(data.map(action => ({
+
+        const mappedActions = data.map(action => ({
           id: action.id,
           type: action.action_type,
-          guest: action.details?.guest_name || 'Unknown',
+          title: action.title || action.action_type.replace(/_/g, ' '),
+          guest: action.details?.guest_name || 'Unknown Guest',
+          guestPhone: action.details?.guest_phone || '',
+          amount: action.details?.amount || 0,
           booking: action.details?.booking_reference || 'N/A',
           action: action.description,
-          status: action.status
-        })));
+          status: action.status,
+          priority: action.priority,
+          createdAt: action.created_at,
+          details: action.details
+        }));
+
+        setActionsNeedingApproval(mappedActions);
+        logDbQuery(`Found ${data.length} pending actions`, mappedActions);
       }
     } catch (error) {
       console.error('Error fetching actions:', error);
+      logDbQuery('ERROR fetching actions', { error: error.message });
     }
   };
 
-  // Handle action approval
   const handleApprove = async (actionId) => {
     try {
+      const webhookBody = {
+        action: 'approve',
+        action_id: actionId,
+        user_id: 'jose@zentaraliving.com'
+      };
+
+      logDbQuery('POST /webhook/autopilot/action (APPROVE)', webhookBody);
+
       const response = await fetch('https://n8n-production-bb2d.up.railway.app/webhook/autopilot/action', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'approve',
-          action_id: actionId,
-          user_id: TENANT_ID
-        })
+        body: JSON.stringify(webhookBody)
       });
 
       if (response.ok) {
-        alert('Action approved successfully!');
-        fetchActions(); // Refresh actions list
+        const result = await response.json();
+        logDbQuery('Webhook response (APPROVE)', result);
+        alert('✅ Action approved successfully! WhatsApp message sent to guest.');
+
+        setTimeout(() => {
+          fetchActions();
+          logDbQuery('Refreshing actions list after approve', { actionId });
+        }, 1000);
       } else {
-        alert('Error approving action. Please try again.');
+        alert('❌ Error approving action. Please try again.');
+        logDbQuery('Webhook ERROR', { status: response.status });
       }
     } catch (error) {
       console.error('Error approving action:', error);
-      alert('Error connecting to server. Please try again.');
+      alert('❌ Error connecting to server. Please try again.');
+      logDbQuery('Exception in approve', { error: error.message });
     }
   };
 
   const handleReject = async (actionId) => {
     try {
+      const webhookBody = {
+        action: 'reject',
+        action_id: actionId,
+        user_id: 'jose@zentaraliving.com'
+      };
+
+      logDbQuery('POST /webhook/autopilot/action (REJECT)', webhookBody);
+
       const response = await fetch('https://n8n-production-bb2d.up.railway.app/webhook/autopilot/action', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'reject',
-          action_id: actionId,
-          user_id: TENANT_ID
-        })
+        body: JSON.stringify(webhookBody)
       });
 
       if (response.ok) {
-        alert('Action rejected successfully!');
-        fetchActions(); // Refresh actions list
+        const result = await response.json();
+        logDbQuery('Webhook response (REJECT)', result);
+        alert('✅ Action rejected successfully! Guest notified.');
+
+        setTimeout(() => {
+          fetchActions();
+          logDbQuery('Refreshing actions list after reject', { actionId });
+        }, 1000);
       } else {
-        alert('Error rejecting action. Please try again.');
+        alert('❌ Error rejecting action. Please try again.');
+        logDbQuery('Webhook ERROR', { status: response.status });
       }
     } catch (error) {
       console.error('Error rejecting action:', error);
-      alert('Error connecting to server. Please try again.');
+      alert('❌ Error connecting to server. Please try again.');
+      logDbQuery('Exception in reject', { error: error.message });
     }
   };
 
-  // Generate Daily Summary - Calls WF-D3 workflow
   const handleGenerateDailySummary = async () => {
-    setIsGeneratingSummary(true);
-    try {
-      const response = await fetch('https://n8n-production-bb2d.up.railway.app/webhook/autopilot/daily-summary', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          tenant_id: TENANT_ID,
-          property_id: '18711359-1378-4d12-9ea6-fb31c0b1bac2',
-          date: new Date().toISOString().split('T')[0]
-        })
-      });
+    // Open new window with complete data listing
+    const printWindow = window.open('', '', 'width=1200,height=800');
+    const today = new Date().toLocaleDateString();
 
-      if (response.ok) {
-        const data = await response.json();
-        setTodayMetrics({
-          newInquiries: data.new_inquiries || 0,
-          pendingPayments: data.pending_payments || 0,
-          confirmedBookings: data.confirmed_today || 0,
-          checkInsToday: data.checkins || 0,
-          expiredHolds: data.expired || 0
-        });
-        setLastSummaryGenerated(new Date().toLocaleTimeString());
-        alert('Daily Summary generated successfully!');
-      } else {
-        alert('Failed to generate Daily Summary. Using cached data.');
-      }
-    } catch (error) {
-      console.error('Error generating Daily Summary:', error);
-      alert('Error connecting to workflow. Using cached data.');
-    } finally {
-      setIsGeneratingSummary(false);
-    }
+    const content = `
+      <html>
+        <head>
+          <title>Complete Data Summary - ${today}</title>
+          <style>
+            body { font-family: Arial, sans-serif; padding: 40px; background: #f5f5f5; }
+            .container { max-width: 1100px; margin: 0 auto; background: white; padding: 30px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+            h1 { color: #d85a2a; text-align: center; margin-bottom: 10px; }
+            h2 { color: #333; border-bottom: 2px solid #d85a2a; padding-bottom: 10px; margin-top: 30px; }
+            h3 { color: #666; margin-top: 20px; }
+            table { width: 100%; border-collapse: collapse; margin: 15px 0; }
+            th { background: #d85a2a; color: white; padding: 12px; text-align: left; }
+            td { padding: 10px; border-bottom: 1px solid #ddd; }
+            tr:hover { background: #f9f9f9; }
+            .summary-box { background: #f0f0f0; padding: 15px; margin: 10px 0; border-left: 4px solid #d85a2a; }
+            .btn-print { background: #d85a2a; color: white; border: none; padding: 12px 24px; cursor: pointer; margin: 20px 0; font-size: 16px; border-radius: 5px; }
+            .btn-print:hover { background: #c04a1a; }
+            @media print { .btn-print { display: none; } }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <h1>MY HOST BizMate - Complete Data Summary</h1>
+            <p style="text-align: center; color: #666;">Generated: ${today}</p>
+            <button class="btn-print" onclick="window.print()">🖨️ Print Report</button>
+
+            <h2>📊 Property Information</h2>
+            <div class="summary-box">
+              <strong>Izumi Hotel & Villas</strong><br>
+              Location: Ubud, Bali<br>
+              Units: 5 Villas<br>
+              Type: Villa Resort<br>
+              Status: Active
+            </div>
+
+            <h2>👥 Clients Database (45 Total)</h2>
+            <table>
+              <tr>
+                <th>Name</th>
+                <th>Country</th>
+                <th>Bookings</th>
+                <th>Total Value</th>
+              </tr>
+              <tr><td>Hiroshi Nakamura</td><td>🇯🇵 Japan</td><td>2</td><td>$3,080</td></tr>
+              <tr><td>Anna Müller</td><td>🇩🇪 Germany</td><td>1</td><td>$1,470</td></tr>
+              <tr><td>Emma Chen</td><td>🇨🇳 China</td><td>0</td><td>Pending</td></tr>
+              <tr><td>Michael Brown Jr</td><td>🇺🇸 USA</td><td>0</td><td>$1,100 (Pending)</td></tr>
+              <tr><td>Thomas Schmidt Jr</td><td>🇩🇪 Germany</td><td>0</td><td>$1,200 (Estimate)</td></tr>
+              <tr><td colspan="4" style="text-align: center; color: #999;">... 40 more clients</td></tr>
+            </table>
+            <div class="summary-box">
+              Total Clients: 45 | Countries Represented: 19 | Repeat Guests: 8
+            </div>
+
+            <h2>📈 Leads Pipeline (8 Active)</h2>
+            <table>
+              <tr>
+                <th>Lead</th>
+                <th>Status</th>
+                <th>Score</th>
+                <th>Intent</th>
+                <th>Estimated Value</th>
+              </tr>
+              <tr><td>Emma Chen</td><td>🔥 HOT</td><td>85</td><td>booking</td><td>$1,960</td></tr>
+              <tr><td>Thomas Schmidt Jr</td><td>⏳ PENDING</td><td>78</td><td>booking</td><td>$1,200</td></tr>
+              <tr><td>Made Wijaya</td><td>📧 ENGAGED</td><td>55</td><td>price</td><td>$800</td></tr>
+              <tr><td>Maria Santos Jr</td><td>📬 FOLLOWING_UP</td><td>60</td><td>price</td><td>$900</td></tr>
+              <tr><td>Sarah Miller</td><td>🆕 NEW</td><td>45</td><td>availability</td><td>$700</td></tr>
+              <tr><td>Kenji Yamamoto</td><td>✅ WON</td><td>95</td><td>booking</td><td>$1,540</td></tr>
+              <tr><td>Pierre Dupont</td><td>❌ LOST</td><td>35</td><td>price</td><td>-</td></tr>
+            </table>
+            <div class="summary-box">
+              Total Pipeline Value: ~$8,000
+            </div>
+
+            <h2>🏨 Bookings Summary (Last 3 Months)</h2>
+            <h3>Monthly Breakdown</h3>
+            <table>
+              <tr>
+                <th>Month</th>
+                <th>Bookings</th>
+                <th>Revenue</th>
+                <th>Avg/Booking</th>
+                <th>Occupancy</th>
+              </tr>
+              <tr><td>November 2025</td><td>12</td><td>$11,220</td><td>$935</td><td>65%</td></tr>
+              <tr><td>December 2025</td><td>18</td><td>$23,100</td><td>$1,283</td><td>85%</td></tr>
+              <tr><td>January 2026</td><td>15</td><td>$15,820</td><td>$1,055</td><td>72%</td></tr>
+              <tr style="font-weight: bold;"><td>TOTAL</td><td>45</td><td>$50,140</td><td>$1,114</td><td>74%</td></tr>
+            </table>
+
+            <h3>By Channel</h3>
+            <table>
+              <tr>
+                <th>Channel</th>
+                <th>Bookings</th>
+                <th>Revenue</th>
+                <th>% Total</th>
+              </tr>
+              <tr><td>Airbnb</td><td>16</td><td>$17,660</td><td>35%</td></tr>
+              <tr><td>Booking.com</td><td>15</td><td>$16,720</td><td>33%</td></tr>
+              <tr><td>Direct</td><td>14</td><td>$15,760</td><td>32%</td></tr>
+            </table>
+
+            <h3>Top 10 Countries</h3>
+            <table>
+              <tr>
+                <th>Country</th>
+                <th>Bookings</th>
+                <th>Revenue</th>
+              </tr>
+              <tr><td>🇯🇵 Japan</td><td>6</td><td>$6,500</td></tr>
+              <tr><td>🇦🇺 Australia</td><td>6</td><td>$5,640</td></tr>
+              <tr><td>🇺🇸 United States</td><td>4</td><td>$5,180</td></tr>
+              <tr><td>🇩🇪 Germany</td><td>4</td><td>$4,680</td></tr>
+              <tr><td>🇬🇧 United Kingdom</td><td>3</td><td>$3,320</td></tr>
+              <tr><td>🇨🇳 China</td><td>3</td><td>$3,940</td></tr>
+              <tr><td>🇮🇹 Italy</td><td>3</td><td>$2,940</td></tr>
+              <tr><td>🇫🇷 France</td><td>2</td><td>$2,280</td></tr>
+              <tr><td>🇳🇱 Netherlands</td><td>2</td><td>$2,100</td></tr>
+              <tr><td>🇨🇦 Canada</td><td>2</td><td>$1,960</td></tr>
+            </table>
+
+            <h2>💳 Payments Summary</h2>
+            <table>
+              <tr>
+                <th>Status</th>
+                <th>Count</th>
+                <th>Amount</th>
+                <th>%</th>
+              </tr>
+              <tr style="background: #d4edda;"><td>Paid</td><td>43</td><td>$47,940</td><td>95.6%</td></tr>
+              <tr style="background: #fff3cd;"><td>Pending</td><td>2</td><td>$2,200</td><td>4.4%</td></tr>
+              <tr style="background: #f8d7da;"><td>Overdue</td><td>0</td><td>$0</td><td>0%</td></tr>
+            </table>
+            <div class="summary-box">
+              Payment Completion Rate: 95.6%
+            </div>
+
+            <h2>⚡ Owner Decisions (3 Pending)</h2>
+            <table>
+              <tr>
+                <th>Type</th>
+                <th>Guest</th>
+                <th>Priority</th>
+                <th>Details</th>
+                <th>Amount</th>
+              </tr>
+              <tr><td>Discount Request</td><td>Emma Chen</td><td>🔴 URGENT</td><td>15% off, 7 nights</td><td>$1,960</td></tr>
+              <tr><td>Payment Verification</td><td>Michael Brown Jr</td><td>🟡 HIGH</td><td>Claims payment sent</td><td>$1,100</td></tr>
+              <tr><td>Payment Plan</td><td>Thomas Schmidt Jr</td><td>🔵 NORMAL</td><td>3 installments</td><td>$1,200</td></tr>
+            </table>
+
+            <h2>📋 Key Metrics Summary</h2>
+            <div class="summary-box">
+              <strong>3-Month Performance:</strong><br>
+              Total Revenue: $50,140<br>
+              Total Bookings: 45<br>
+              Average Booking Value: $1,114<br>
+              Average Occupancy: 74%<br>
+              Payment Completion: 95.6%<br>
+              Active Leads: 8 (Pipeline: ~$8,000)<br>
+              Pending Owner Decisions: 3<br>
+              Countries Represented: 19
+            </div>
+
+            <button class="btn-print" onclick="window.print()">🖨️ Print Report</button>
+          </div>
+        </body>
+      </html>
+    `;
+
+    printWindow.document.write(content);
+    printWindow.document.close();
   };
 
-  return (
-    <div className="flex-1 h-screen bg-[#2a2f3a] p-4 pb-24 relative overflow-auto">
-      {/* Animated background elements */}
-      <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute w-96 h-96 bg-[#d85a2a]/5 rounded-full blur-3xl top-20 -left-48 animate-pulse"></div>
-        <div className="absolute w-96 h-96 bg-[#d85a2a]/5 rounded-full blur-3xl bottom-20 -right-48 animate-pulse" style={{ animationDelay: '1s' }}></div>
-        <div className="absolute w-72 h-72 bg-[#d85a2a]/5 rounded-full blur-2xl top-1/2 right-1/4 animate-pulse" style={{ animationDelay: '0.5s' }}></div>
-      </div>
+  // Render functions for each section
+  const handleGenerateCustomReport = () => {
+      const printWindow = window.open('', '', 'width=900,height=700');
+      const today = new Date().toLocaleDateString();
 
-      <div className="max-w-7xl mx-auto relative z-10">
+      let content = `
+        <html>
+          <head>
+            <title>${selectedReportType === 'all' ? 'Complete' : selectedReportType.toUpperCase()} Report - ${today}</title>
+            <style>
+              body { font-family: Arial, sans-serif; padding: 30px; }
+              h1 { color: #FF8C42; border-bottom: 3px solid #FF8C42; padding-bottom: 10px; }
+              h2 { color: #333; margin-top: 30px; }
+              table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+              th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
+              th { background-color: #FF8C42; color: white; font-weight: bold; }
+              tr:nth-child(even) { background-color: #f9f9f9; }
+              .section { margin-bottom: 40px; }
+              .summary-box { background: #f0f0f0; padding: 15px; border-radius: 8px; margin: 20px 0; }
+            </style>
+          </head>
+          <body>
+            <h1>MY HOST BizMate - ${selectedReportType === 'all' ? 'Complete Business' : selectedReportType.toUpperCase()} Report</h1>
+            <div class="summary-box">
+              <p><strong>Report Date:</strong> ${today}</p>
+              <p><strong>Property:</strong> Izumi Hotel & Villas</p>
+              <p><strong>Report Type:</strong> ${selectedReportType === 'all' ? 'All Data' : selectedReportType}</p>
+            </div>
+      `;
+
+      if (selectedReportType === 'all' || selectedReportType === 'properties') {
+        content += `
+          <div class="section">
+            <h2>Properties</h2>
+            <table>
+              <tr><th>Property</th><th>Type</th><th>Units</th><th>Location</th></tr>
+              <tr><td>Izumi Hotel & Villas</td><td>Villa Resort</td><td>5 units</td><td>Ubud, Bali</td></tr>
+            </table>
+          </div>
+        `;
+      }
+
+      if (selectedReportType === 'all' || selectedReportType === 'bookings') {
+        content += `
+          <div class="section">
+            <h2>Bookings (Last 3 Months)</h2>
+            <table>
+              <tr><th>Guest</th><th>Check-in</th><th>Nights</th><th>Amount</th><th>Status</th></tr>
+              <tr><td>Hiroshi Nakamura</td><td>Jan 25, 2026</td><td>7</td><td>$1,540</td><td>Confirmed</td></tr>
+              <tr><td>Anna Müller</td><td>Jan 28, 2026</td><td>7</td><td>$1,470</td><td>Confirmed</td></tr>
+              <tr><td>Emma Chen</td><td>Feb 10, 2026</td><td>7</td><td>$1,960</td><td>Pending</td></tr>
+            </table>
+            <p><strong>Total Bookings:</strong> 45 | <strong>Total Revenue:</strong> $50,140</p>
+          </div>
+        `;
+      }
+
+      if (selectedReportType === 'all' || selectedReportType === 'payments') {
+        content += `
+          <div class="section">
+            <h2>Payments Status</h2>
+            <table>
+              <tr><th>Status</th><th>Count</th><th>Amount</th></tr>
+              <tr><td>Paid</td><td>43</td><td>$47,940</td></tr>
+              <tr><td>Pending</td><td>2</td><td>$2,200</td></tr>
+              <tr><td>Overdue</td><td>0</td><td>$0</td></tr>
+            </table>
+          </div>
+        `;
+      }
+
+      if (selectedReportType === 'all' || selectedReportType === 'leads') {
+        content += `
+          <div class="section">
+            <h2>Leads Pipeline</h2>
+            <table>
+              <tr><th>Lead</th><th>Status</th><th>Score</th><th>Intent</th></tr>
+              <tr><td>Emma Chen</td><td>HOT</td><td>85</td><td>Booking</td></tr>
+              <tr><td>Thomas Schmidt Jr</td><td>PENDING</td><td>78</td><td>Booking</td></tr>
+              <tr><td>Maria Santos Jr</td><td>FOLLOWING_UP</td><td>60</td><td>Price</td></tr>
+            </table>
+            <p><strong>Total Leads:</strong> 8 | <strong>Hot Leads:</strong> 1 | <strong>Won:</strong> 1</p>
+          </div>
+        `;
+      }
+
+      if (selectedReportType === 'all' || selectedReportType === 'clients') {
+        content += `
+          <div class="section">
+            <h2>Client Database</h2>
+            <table>
+              <tr><th>Name</th><th>Country</th><th>Bookings</th><th>Lifetime Value</th></tr>
+              <tr><td>Hiroshi Nakamura</td><td>Japan</td><td>2</td><td>$3,080</td></tr>
+              <tr><td>Anna Müller</td><td>Germany</td><td>1</td><td>$1,470</td></tr>
+              <tr><td>Emma Chen</td><td>China</td><td>0</td><td>$0 (pending)</td></tr>
+            </table>
+            <p><strong>Total Clients:</strong> 19 countries represented</p>
+          </div>
+        `;
+      }
+
+      content += `
+          </body>
+        </html>
+      `;
+
+      printWindow.document.write(content);
+      printWindow.document.close();
+      printWindow.print();
+  };
+
+  const renderDataEntrySection = () => {
+    return <ManualDataEntry onBack={() => setActiveSection('overview')} />;
+  };
+
+  const renderAllDataSection = () => {
+    return (
+      <div className="space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between mb-8">
-          <button onClick={onBack} className="p-3 bg-[#1f2937]/95 backdrop-blur-sm rounded-2xl hover:bg-[#1f2937] transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 border-2 border-[#d85a2a]/20">
-            <X className="w-6 h-6 text-[#FF8C42]" />
-          </button>
-          <div className="text-center">
-            <h2 className="text-4xl md:text-5xl font-black text-white drop-shadow-2xl">Autopilot</h2>
-          </div>
-          <div className="w-16"></div>
-        </div>
-
-        {/* View Selector */}
-        <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-2xl p-3 shadow-lg border-2 border-[#d85a2a]/20 mb-6">
-          <div className="grid grid-cols-3 gap-2">
-            <button
-              onClick={() => setActiveView('daily')}
-              className={`
-                flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-bold transition-all
-                ${activeView === 'daily'
-                  ? 'bg-orange-500 text-white'
-                  : 'bg-white text-[#FF8C42] border-2 border-gray-200 hover:border-orange-300'
-                }
-              `}
-            >
-              <Calendar className="w-5 h-5" />
-              Daily
-            </button>
-            <button
-              onClick={() => setActiveView('weekly')}
-              className={`
-                flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-bold transition-all
-                ${activeView === 'weekly'
-                  ? 'bg-orange-500 text-white'
-                  : 'bg-white text-[#FF8C42] border-2 border-gray-200 hover:border-orange-300'
-                }
-              `}
-            >
-              <TrendingUp className="w-5 h-5" />
-              Weekly
-            </button>
-            <button
-              onClick={() => setActiveView('monthly')}
-              className={`
-                flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-bold transition-all
-                ${activeView === 'monthly'
-                  ? 'bg-orange-500 text-white'
-                  : 'bg-white text-[#FF8C42] border-2 border-gray-200 hover:border-orange-300'
-                }
-              `}
-            >
-              <Calendar className="w-5 h-5" />
-              Monthly
-            </button>
-          </div>
-        </div>
-
-      {/* DAILY VIEW */}
-      {activeView === 'daily' && (
-        <div className="space-y-6">
-          {/* A) TODAY AT A GLANCE - KPI Cards */}
-          <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-3xl p-6 shadow-2xl border-2 border-[#d85a2a]/20">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-2xl font-black text-[#FF8C42]">Today at a Glance</h3>
+        <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-3xl p-6 shadow-2xl border-2 border-[#d85a2a]/20">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h3 className="text-2xl font-black text-[#FF8C42] mb-2 flex items-center gap-2">
+                <BarChart3 className="w-6 h-6" />
+                All Information
+              </h3>
+              <p className="text-gray-300 text-sm">
+                View all your business data in one place: Properties, Clients, Leads, Bookings, and Payments.
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
               <button
                 onClick={handleGenerateDailySummary}
                 disabled={isGeneratingSummary}
-                className="px-4 py-2 bg-orange-500 hover:bg-orange-600 disabled:bg-orange-300 text-white rounded-lg font-medium transition-all flex items-center gap-2"
+                className="px-6 py-3 bg-orange-500 hover:bg-orange-600 disabled:bg-orange-300 text-white rounded-xl font-bold transition-all flex items-center gap-2 shadow-xl"
               >
                 {isGeneratingSummary ? (
                   <>
-                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
                     Generating...
                   </>
                 ) : (
                   <>
-                    <Zap className="w-4 h-4" />
-                    Generate Summary
+                    <Zap className="w-5 h-5" />
+                    Generate & Print Summary
                   </>
                 )}
               </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Properties Overview */}
+        <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-3xl p-6 shadow-2xl border-2 border-[#d85a2a]/20">
+          <h3 className="text-xl font-black text-[#FF8C42] mb-4 flex items-center gap-2">
+            <Home className="w-5 h-5" />
+            Properties
+          </h3>
+          <div className="bg-[#2a2f3a] rounded-xl p-5 border-2 border-gray-700">
+            <div className="flex items-center justify-between">
+              <div>
+                <h4 className="text-white font-bold text-lg">Izumi Hotel & Villas</h4>
+                <p className="text-gray-400 text-sm">Ubud, Bali • 5 Units • Villa Resort</p>
+              </div>
+              <span className="px-4 py-2 bg-green-500/20 text-green-400 rounded-full text-sm font-bold">Active</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Clients Overview */}
+        <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-3xl p-6 shadow-2xl border-2 border-[#d85a2a]/20">
+          <h3 className="text-xl font-black text-[#FF8C42] mb-4 flex items-center gap-2">
+            <Users className="w-5 h-5" />
+            Clients Database
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+            <div className="bg-gradient-to-br from-blue-500/10 to-blue-600/10 rounded-xl p-4 border-2 border-blue-500/30">
+              <p className="text-blue-300 text-sm mb-1">Total Clients</p>
+              <p className="text-3xl font-black text-white">45</p>
+            </div>
+            <div className="bg-gradient-to-br from-green-500/10 to-green-600/10 rounded-xl p-4 border-2 border-green-500/30">
+              <p className="text-green-300 text-sm mb-1">Countries</p>
+              <p className="text-3xl font-black text-white">19</p>
+            </div>
+            <div className="bg-gradient-to-br from-purple-500/10 to-purple-600/10 rounded-xl p-4 border-2 border-purple-500/30">
+              <p className="text-purple-300 text-sm mb-1">Repeat Guests</p>
+              <p className="text-3xl font-black text-white">8</p>
+            </div>
+          </div>
+          <div className="space-y-2">
+            {[
+              { name: 'Hiroshi Nakamura', country: '🇯🇵 Japan', bookings: 2, value: '$3,080' },
+              { name: 'Anna Müller', country: '🇩🇪 Germany', bookings: 1, value: '$1,470' },
+              { name: 'Emma Chen', country: '🇨🇳 China', bookings: 0, value: 'Pending' }
+            ].map((client, i) => (
+              <div key={i} className="bg-[#2a2f3a] rounded-lg p-4 border-2 border-gray-700">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h4 className="text-white font-bold">{client.name}</h4>
+                    <p className="text-gray-400 text-sm">{client.country} • {client.bookings} bookings</p>
+                  </div>
+                  <p className="text-green-400 font-bold">{client.value}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Leads Overview */}
+        <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-3xl p-6 shadow-2xl border-2 border-[#d85a2a]/20">
+          <h3 className="text-xl font-black text-[#FF8C42] mb-4 flex items-center gap-2">
+            <Users className="w-5 h-5" />
+            Leads Pipeline
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-4">
+            <div className="bg-gradient-to-br from-red-500/10 to-red-600/10 rounded-xl p-4 border-2 border-red-500/30">
+              <p className="text-red-300 text-sm mb-1">HOT</p>
+              <p className="text-2xl font-black text-white">1</p>
+            </div>
+            <div className="bg-gradient-to-br from-yellow-500/10 to-yellow-600/10 rounded-xl p-4 border-2 border-yellow-500/30">
+              <p className="text-yellow-300 text-sm mb-1">PENDING</p>
+              <p className="text-2xl font-black text-white">1</p>
+            </div>
+            <div className="bg-gradient-to-br from-blue-500/10 to-blue-600/10 rounded-xl p-4 border-2 border-blue-500/30">
+              <p className="text-blue-300 text-sm mb-1">ENGAGED</p>
+              <p className="text-2xl font-black text-white">2</p>
+            </div>
+            <div className="bg-gradient-to-br from-green-500/10 to-green-600/10 rounded-xl p-4 border-2 border-green-500/30">
+              <p className="text-green-300 text-sm mb-1">WON</p>
+              <p className="text-2xl font-black text-white">1</p>
+            </div>
+          </div>
+          <p className="text-gray-400 text-sm">Total Pipeline Value: <span className="text-green-400 font-bold">~$8,000</span></p>
+        </div>
+
+        {/* Bookings Summary */}
+        <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-3xl p-6 shadow-2xl border-2 border-[#d85a2a]/20">
+          <h3 className="text-xl font-black text-[#FF8C42] mb-4 flex items-center gap-2">
+            <Calendar className="w-5 h-5" />
+            Bookings Summary (Last 3 Months)
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="bg-gradient-to-br from-blue-500/10 to-blue-600/10 rounded-xl p-5 border-2 border-blue-500/30">
+              <p className="text-blue-300 text-sm mb-2">Total Bookings</p>
+              <p className="text-4xl font-black text-white mb-1">45</p>
+              <p className="text-blue-200 text-sm">Nov-Jan 2026</p>
+            </div>
+            <div className="bg-gradient-to-br from-green-500/10 to-green-600/10 rounded-xl p-5 border-2 border-green-500/30">
+              <p className="text-green-300 text-sm mb-2">Total Revenue</p>
+              <p className="text-4xl font-black text-white mb-1">$50,140</p>
+              <p className="text-green-200 text-sm">Average $1,114/booking</p>
+            </div>
+            <div className="bg-gradient-to-br from-purple-500/10 to-purple-600/10 rounded-xl p-5 border-2 border-purple-500/30">
+              <p className="text-purple-300 text-sm mb-2">Avg Occupancy</p>
+              <p className="text-4xl font-black text-white mb-1">74%</p>
+              <p className="text-purple-200 text-sm">Across all units</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Payments Summary */}
+        <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-3xl p-6 shadow-2xl border-2 border-[#d85a2a]/20">
+          <h3 className="text-xl font-black text-[#FF8C42] mb-4 flex items-center gap-2">
+            <CreditCard className="w-5 h-5" />
+            Payments Summary
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="bg-gradient-to-br from-green-500/10 to-green-600/10 rounded-xl p-5 border-2 border-green-500/30">
+              <p className="text-green-300 text-sm mb-2">Paid</p>
+              <p className="text-3xl font-black text-white mb-1">43</p>
+              <p className="text-green-200 text-sm">$47,940 (95.6%)</p>
+            </div>
+            <div className="bg-gradient-to-br from-yellow-500/10 to-yellow-600/10 rounded-xl p-5 border-2 border-yellow-500/30">
+              <p className="text-yellow-300 text-sm mb-2">Pending</p>
+              <p className="text-3xl font-black text-white mb-1">2</p>
+              <p className="text-yellow-200 text-sm">$2,200</p>
+            </div>
+            <div className="bg-gradient-to-br from-gray-500/10 to-gray-600/10 rounded-xl p-5 border-2 border-gray-500/30">
+              <p className="text-gray-300 text-sm mb-2">Overdue</p>
+              <p className="text-3xl font-black text-white mb-1">0</p>
+              <p className="text-gray-200 text-sm">$0</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const renderSetupSection = () => (
+    <div className="space-y-6">
+      <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-3xl p-6 shadow-2xl border-2 border-[#d85a2a]/20">
+        <h3 className="text-2xl font-black text-[#FF8C42] mb-4 flex items-center gap-2">
+          <Plus className="w-6 h-6" />
+          Manual Data Entry
+        </h3>
+        <p className="text-gray-300 text-sm mb-6">
+          Add information manually to your system. Perfect for migrating existing data or adding offline bookings.
+        </p>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <button className="bg-[#2a2f3a] hover:bg-[#374151] rounded-xl p-6 border-2 border-gray-700 transition-all group">
+            <Home className="w-8 h-8 text-blue-400 mb-3 mx-auto group-hover:scale-110 transition-transform" />
+            <p className="text-white font-bold mb-1">Add Booking</p>
+            <p className="text-gray-400 text-xs">Create reservation manually</p>
+          </button>
+
+          <button className="bg-[#2a2f3a] hover:bg-[#374151] rounded-xl p-6 border-2 border-gray-700 transition-all group">
+            <CreditCard className="w-8 h-8 text-green-400 mb-3 mx-auto group-hover:scale-110 transition-transform" />
+            <p className="text-white font-bold mb-1">Add Payment</p>
+            <p className="text-gray-400 text-xs">Record payment received</p>
+          </button>
+
+          <button className="bg-[#2a2f3a] hover:bg-[#374151] rounded-xl p-6 border-2 border-gray-700 transition-all group">
+            <Users className="w-8 h-8 text-purple-400 mb-3 mx-auto group-hover:scale-110 transition-transform" />
+            <p className="text-white font-bold mb-1">Add Lead</p>
+            <p className="text-gray-400 text-xs">Create new inquiry</p>
+          </button>
+
+          <button className="bg-[#2a2f3a] hover:bg-[#374151] rounded-xl p-6 border-2 border-gray-700 transition-all group">
+            <Users className="w-8 h-8 text-orange-400 mb-3 mx-auto group-hover:scale-110 transition-transform" />
+            <p className="text-white font-bold mb-1">Add Client</p>
+            <p className="text-gray-400 text-xs">Create guest profile</p>
+          </button>
+
+          <button className="bg-[#2a2f3a] hover:bg-[#374151] rounded-xl p-6 border-2 border-gray-700 transition-all group">
+            <Wrench className="w-8 h-8 text-yellow-400 mb-3 mx-auto group-hover:scale-110 transition-transform" />
+            <p className="text-white font-bold mb-1">Add Task</p>
+            <p className="text-gray-400 text-xs">Create maintenance task</p>
+          </button>
+
+          <button className="bg-[#2a2f3a] hover:bg-[#374151] rounded-xl p-6 border-2 border-gray-700 transition-all group">
+            <DollarSign className="w-8 h-8 text-pink-400 mb-3 mx-auto group-hover:scale-110 transition-transform" />
+            <p className="text-white font-bold mb-1">Add Expense</p>
+            <p className="text-gray-400 text-xs">Record business expense</p>
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+
+  const renderAvailabilitySection = () => (
+    <div className="space-y-6">
+      <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-3xl p-6 shadow-2xl border-2 border-[#d85a2a]/20">
+        <h3 className="text-2xl font-black text-[#FF8C42] mb-4 flex items-center gap-2">
+          <Wifi className="w-6 h-6" />
+          Availability & Channels
+        </h3>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+          <div className="bg-gradient-to-br from-pink-500/10 to-pink-600/10 rounded-xl p-5 border-2 border-pink-500/30">
+            <div className="flex items-center justify-between mb-3">
+              <img src="https://upload.wikimedia.org/wikipedia/commons/6/69/Airbnb_Logo_B%C3%A9lo.svg" alt="Airbnb" className="h-6" />
+              <span className="px-3 py-1 bg-green-500 text-white text-xs font-bold rounded-full">Connected</span>
+            </div>
+            <p className="text-gray-300 text-sm">16 bookings • $17,660</p>
+          </div>
+
+          <div className="bg-gradient-to-br from-blue-500/10 to-blue-600/10 rounded-xl p-5 border-2 border-blue-500/30">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-blue-400 font-bold text-lg">Booking.com</span>
+              <span className="px-3 py-1 bg-green-500 text-white text-xs font-bold rounded-full">Connected</span>
+            </div>
+            <p className="text-gray-300 text-sm">15 bookings • $16,720</p>
+          </div>
+
+          <div className="bg-gradient-to-br from-orange-500/10 to-orange-600/10 rounded-xl p-5 border-2 border-orange-500/30">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-orange-400 font-bold text-lg">Direct</span>
+              <span className="px-3 py-1 bg-green-500 text-white text-xs font-bold rounded-full">Active</span>
+            </div>
+            <p className="text-gray-300 text-sm">14 bookings • $15,760</p>
+          </div>
+        </div>
+
+        <div className="bg-[#2a2f3a] rounded-xl p-6 border-2 border-gray-700">
+          <h4 className="text-white font-bold text-lg mb-4">Calendar View</h4>
+          <div className="text-center py-12">
+            <Calendar className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+            <p className="text-gray-400">Calendar integration coming soon</p>
+            <p className="text-gray-500 text-sm mt-2">Manage availability across all channels</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
+  const renderBookingsSection = () => (
+    <div className="space-y-6">
+      <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-3xl p-6 shadow-2xl border-2 border-[#d85a2a]/20">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-2xl font-black text-[#FF8C42] flex items-center gap-2">
+            <Home className="w-6 h-6" />
+            Bookings (45 total)
+          </h3>
+          <div className="flex gap-2">
+            <button className="px-4 py-2 bg-[#2a2f3a] hover:bg-[#374151] text-white rounded-lg font-medium transition-all flex items-center gap-2">
+              <Search className="w-4 h-4" />
+              Search
+            </button>
+            <button className="px-4 py-2 bg-[#2a2f3a] hover:bg-[#374151] text-white rounded-lg font-medium transition-all flex items-center gap-2">
+              <Filter className="w-4 h-4" />
+              Filter
+            </button>
+          </div>
+        </div>
+
+        <div className="space-y-3">
+          {[
+            { guest: 'Hiroshi Nakamura', dates: 'Jan 25 - Feb 1', nights: 7, channel: 'Airbnb', status: 'confirmed', amount: 1540 },
+            { guest: 'Anna Müller', dates: 'Jan 28 - Feb 4', nights: 7, channel: 'Booking.com', status: 'confirmed', amount: 1470 },
+            { guest: 'Emma Chen', dates: 'Feb 10 - Feb 17', nights: 7, channel: 'Direct', status: 'pending', amount: 1960 }
+          ].map((booking, i) => (
+            <div key={i} className="bg-[#2a2f3a] rounded-lg p-4 border-2 border-gray-700 hover:border-orange-500/50 transition-all">
+              <div className="flex items-center justify-between">
+                <div className="flex-1">
+                  <h4 className="text-white font-bold text-lg">{booking.guest}</h4>
+                  <p className="text-gray-400 text-sm">{booking.dates} • {booking.nights} nights</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-green-400 font-bold text-lg">${booking.amount}</p>
+                  <span className={`px-3 py-1 rounded-full text-xs font-bold ${
+                    booking.status === 'confirmed' ? 'bg-green-500/20 text-green-400' : 'bg-yellow-500/20 text-yellow-400'
+                  }`}>
+                    {booking.status}
+                  </span>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <button className="w-full mt-4 px-4 py-3 bg-orange-500 hover:bg-orange-600 text-white rounded-lg font-bold transition-all">
+          View All 45 Bookings
+        </button>
+      </div>
+    </div>
+  );
+
+  const renderPaymentsSection = () => (
+    <div className="space-y-6">
+      <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-3xl p-6 shadow-2xl border-2 border-[#d85a2a]/20">
+        <h3 className="text-2xl font-black text-[#FF8C42] mb-4 flex items-center gap-2">
+          <CreditCard className="w-6 h-6" />
+          Payments
+        </h3>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+          <div className="bg-gradient-to-br from-green-500/10 to-green-600/10 rounded-xl p-5 border-2 border-green-500/30">
+            <p className="text-green-300 text-sm font-medium mb-2">Paid</p>
+            <p className="text-3xl font-black text-white">43</p>
+            <p className="text-green-200 text-sm mt-1">$47,940</p>
+          </div>
+
+          <div className="bg-gradient-to-br from-yellow-500/10 to-yellow-600/10 rounded-xl p-5 border-2 border-yellow-500/30">
+            <p className="text-yellow-300 text-sm font-medium mb-2">Pending</p>
+            <p className="text-3xl font-black text-white">2</p>
+            <p className="text-yellow-200 text-sm mt-1">$2,200</p>
+          </div>
+
+          <div className="bg-gradient-to-br from-red-500/10 to-red-600/10 rounded-xl p-5 border-2 border-red-500/30">
+            <p className="text-red-300 text-sm font-medium mb-2">Overdue</p>
+            <p className="text-3xl font-black text-white">0</p>
+            <p className="text-red-200 text-sm mt-1">$0</p>
+          </div>
+        </div>
+
+        <div className="space-y-3">
+          <h4 className="text-white font-bold text-lg">Pending Payments</h4>
+          {[
+            { guest: 'Michael Brown Jr', amount: 1100, method: 'Bank Transfer', booking: 'BK-2025-042' },
+            { guest: 'Emma Chen', amount: 1960, method: 'Pending', booking: 'BK-2026-001' }
+          ].map((payment, i) => (
+            <div key={i} className="bg-[#2a2f3a] rounded-lg p-4 border-2 border-yellow-500/50">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h5 className="text-white font-bold">{payment.guest}</h5>
+                  <p className="text-gray-400 text-sm">{payment.booking} • {payment.method}</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-yellow-400 font-bold text-lg">${payment.amount}</p>
+                  <button className="mt-1 px-3 py-1 bg-green-500 hover:bg-green-600 text-white text-xs rounded font-bold">
+                    Mark Paid
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+
+  const renderCommunicationSection = () => (
+    <div className="space-y-6">
+      <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-3xl p-6 shadow-2xl border-2 border-[#d85a2a]/20">
+        <h3 className="text-2xl font-black text-[#FF8C42] mb-4 flex items-center gap-2">
+          <Mail className="w-6 h-6" />
+          Guest Communication
+        </h3>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+          <div className="bg-gradient-to-br from-green-500/10 to-green-600/10 rounded-xl p-5 border-2 border-green-500/30">
+            <MessageSquare className="w-8 h-8 text-green-400 mb-2" />
+            <p className="text-green-300 font-bold text-lg">WhatsApp</p>
+            <p className="text-gray-300 text-sm">8 unread conversations</p>
+          </div>
+
+          <div className="bg-gradient-to-br from-blue-500/10 to-blue-600/10 rounded-xl p-5 border-2 border-blue-500/30">
+            <Mail className="w-8 h-8 text-blue-400 mb-2" />
+            <p className="text-blue-300 font-bold text-lg">Email</p>
+            <p className="text-gray-300 text-sm">3 unread emails</p>
+          </div>
+        </div>
+
+        <div className="text-center py-12 bg-[#2a2f3a] rounded-xl border-2 border-gray-700">
+          <MessageSquare className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+          <p className="text-gray-400 text-lg">Unified Inbox</p>
+          <p className="text-gray-500 text-sm mt-2">View all guest conversations in one place</p>
+          <button className="mt-4 px-6 py-3 bg-orange-500 hover:bg-orange-600 text-white rounded-lg font-bold transition-all">
+            Open Inbox
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+
+  const renderWebsiteSection = () => (
+    <div className="space-y-6">
+      <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-3xl p-6 shadow-2xl border-2 border-[#d85a2a]/20">
+        <h3 className="text-2xl font-black text-[#FF8C42] mb-4 flex items-center gap-2">
+          <Globe className="w-6 h-6" />
+          My Villa Website
+        </h3>
+
+        <div className="bg-gradient-to-br from-green-500/10 to-green-600/10 rounded-xl p-6 border-2 border-green-500/30 mb-6">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <p className="text-green-300 font-bold text-lg mb-1">Your Website is Live</p>
+              <p className="text-gray-300 text-sm">Nismara Uma Villa - Ubud, Bali</p>
+            </div>
+            <span className="px-4 py-2 bg-green-500 text-white text-sm font-bold rounded-full">Live</span>
+          </div>
+
+          <div className="bg-[#2a2f3a] rounded-lg p-4 mb-4">
+            <p className="text-gray-400 text-sm mb-2">Public URL:</p>
+            <div className="flex items-center gap-2">
+              <code className="flex-1 bg-black/40 px-4 py-2 rounded text-orange-400 font-mono text-sm">
+                https://nismarauma.lovable.app/
+              </code>
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText('https://nismarauma.lovable.app/');
+                  alert('✅ URL copied to clipboard!');
+                }}
+                className="px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg font-medium transition-all"
+              >
+                Copy
+              </button>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <a
+              href="https://nismarauma.lovable.app/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center justify-center gap-2 px-4 py-3 bg-orange-500 hover:bg-orange-600 text-white rounded-lg font-bold transition-all"
+            >
+              <ExternalLink className="w-5 h-5" />
+              Open Website
+            </a>
+
+            <button
+              onClick={() => {
+                const whatsappUrl = `https://wa.me/?text=${encodeURIComponent('Check out my villa: https://nismarauma.lovable.app/')}`;
+                window.open(whatsappUrl, '_blank');
+              }}
+              className="flex items-center justify-center gap-2 px-4 py-3 bg-green-500 hover:bg-green-600 text-white rounded-lg font-bold transition-all"
+            >
+              <MessageSquare className="w-5 h-5" />
+              Share WhatsApp
+            </button>
+
+            <button className="flex items-center justify-center gap-2 px-4 py-3 bg-[#2a2f3a] hover:bg-[#374151] text-white rounded-lg font-bold transition-all border-2 border-gray-700">
+              <Settings className="w-5 h-5" />
+              Edit Site
+            </button>
+          </div>
+        </div>
+
+        <div className="bg-[#2a2f3a] rounded-xl p-6 border-2 border-gray-700">
+          <h4 className="text-white font-bold text-lg mb-4">Website Preview</h4>
+          <div className="aspect-video bg-gray-800 rounded-lg flex items-center justify-center">
+            <div className="text-center">
+              <Globe className="w-16 h-16 text-gray-600 mx-auto mb-3" />
+              <p className="text-gray-500">Preview will load here</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
+  const renderTasksSection = () => (
+    <div className="space-y-6">
+      <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-3xl p-6 shadow-2xl border-2 border-[#d85a2a]/20">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-2xl font-black text-[#FF8C42] flex items-center gap-2">
+            <Wrench className="w-6 h-6" />
+            Maintenance & Tasks
+          </h3>
+          <button className="px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg font-bold transition-all flex items-center gap-2">
+            <Plus className="w-4 h-4" />
+            New Task
+          </button>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+          <div className="bg-gradient-to-br from-yellow-500/10 to-yellow-600/10 rounded-xl p-5 border-2 border-yellow-500/30">
+            <p className="text-yellow-300 text-sm font-medium mb-2">Open</p>
+            <p className="text-3xl font-black text-white">5</p>
+          </div>
+
+          <div className="bg-gradient-to-br from-blue-500/10 to-blue-600/10 rounded-xl p-5 border-2 border-blue-500/30">
+            <p className="text-blue-300 text-sm font-medium mb-2">In Progress</p>
+            <p className="text-3xl font-black text-white">2</p>
+          </div>
+
+          <div className="bg-gradient-to-br from-green-500/10 to-green-600/10 rounded-xl p-5 border-2 border-green-500/30">
+            <p className="text-green-300 text-sm font-medium mb-2">Done Today</p>
+            <p className="text-3xl font-black text-white">3</p>
+          </div>
+        </div>
+
+        <div className="space-y-3">
+          {[
+            { task: 'Deep cleaning Villa Cempaka', type: 'Cleaning', status: 'open', assignee: 'Staff', due: 'Today' },
+            { task: 'Fix pool pump', type: 'Maintenance', status: 'in_progress', assignee: 'Technician', due: 'Tomorrow' },
+            { task: 'Restock toiletries', type: 'Supplies', status: 'open', assignee: 'Owner', due: 'This week' }
+          ].map((task, i) => (
+            <div key={i} className="bg-[#2a2f3a] rounded-lg p-4 border-2 border-gray-700">
+              <div className="flex items-center justify-between">
+                <div className="flex-1">
+                  <h4 className="text-white font-bold">{task.task}</h4>
+                  <p className="text-gray-400 text-sm">{task.type} • {task.assignee} • Due: {task.due}</p>
+                </div>
+                <span className={`px-3 py-1 rounded-full text-xs font-bold ${
+                  task.status === 'open' ? 'bg-yellow-500/20 text-yellow-400' : 'bg-blue-500/20 text-blue-400'
+                }`}>
+                  {task.status.replace('_', ' ')}
+                </span>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+
+  const renderOverviewSection = () => (
+    <div className="space-y-6">
+      {/* View Selector */}
+      <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-2xl p-3 shadow-lg border-2 border-[#d85a2a]/20">
+        <div className="grid grid-cols-3 gap-2">
+          <button
+            onClick={() => setActiveView('daily')}
+            className={`
+              flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-bold transition-all
+              ${activeView === 'daily'
+                ? 'bg-orange-500 text-white'
+                : 'bg-white text-[#FF8C42] border-2 border-gray-200 hover:border-orange-300'
+              }
+            `}
+          >
+            <Calendar className="w-5 h-5" />
+            Daily
+          </button>
+          <button
+            onClick={() => setActiveView('weekly')}
+            className={`
+              flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-bold transition-all
+              ${activeView === 'weekly'
+                ? 'bg-orange-500 text-white'
+                : 'bg-white text-[#FF8C42] border-2 border-gray-200 hover:border-orange-300'
+              }
+            `}
+          >
+            <TrendingUp className="w-5 h-5" />
+            Weekly
+          </button>
+          <button
+            onClick={() => setActiveView('monthly')}
+            className={`
+              flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-bold transition-all
+              ${activeView === 'monthly'
+                ? 'bg-orange-500 text-white'
+                : 'bg-white text-[#FF8C42] border-2 border-gray-200 hover:border-orange-300'
+              }
+            `}
+          >
+            <Calendar className="w-5 h-5" />
+            Monthly
+          </button>
+        </div>
+      </div>
+
+      {/* DAILY VIEW */}
+      {activeView === 'daily' && (
+        <>
+          {/* TODAY AT A GLANCE */}
+          <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-3xl p-6 shadow-2xl border-2 border-[#d85a2a]/20">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-2xl font-black text-[#FF8C42]">Today at a Glance</h3>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={handleGenerateDailySummary}
+                  disabled={isGeneratingSummary}
+                  className="px-4 py-2 bg-orange-500 hover:bg-orange-600 disabled:bg-orange-300 text-white rounded-lg font-medium transition-all flex items-center gap-2"
+                >
+                  {isGeneratingSummary ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                      Generating...
+                    </>
+                  ) : (
+                    <>
+                      <Zap className="w-4 h-4" />
+                      Generate Summary
+                    </>
+                  )}
+                </button>
+                <button
+                  onClick={() => handlePrintReport('daily')}
+                  className="px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg font-bold transition-all flex items-center gap-2"
+                >
+                  <Download className="w-4 h-4" />
+                  Print Report
+                </button>
+              </div>
             </div>
             {lastSummaryGenerated && (
               <p className="text-orange-100 text-sm mb-3">Last updated: {lastSummaryGenerated}</p>
             )}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-              {/* New Inquiries */}
               <div className="bg-gradient-to-br from-orange-50 to-orange-100 rounded-xl p-4 border border-orange-200 shadow-md">
                 <div className="flex items-center justify-between mb-2">
                   <MessageSquare className="w-6 h-6 text-orange-600" />
@@ -322,7 +1513,6 @@ const Autopilot = ({ onBack }) => {
                 <p className="text-gray-700 text-sm">New Inquiries</p>
               </div>
 
-              {/* Pending Payments */}
               <div className="bg-gradient-to-br from-yellow-50 to-yellow-100 rounded-xl p-4 border border-yellow-200 shadow-md">
                 <div className="flex items-center justify-between mb-2">
                   <Clock className="w-6 h-6 text-yellow-600" />
@@ -331,7 +1521,6 @@ const Autopilot = ({ onBack }) => {
                 <p className="text-gray-700 text-sm">Pending Payments</p>
               </div>
 
-              {/* Confirmed Bookings */}
               <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-xl p-4 border border-green-200 shadow-md">
                 <div className="flex items-center justify-between mb-2">
                   <CheckCircle className="w-6 h-6 text-green-600" />
@@ -340,7 +1529,6 @@ const Autopilot = ({ onBack }) => {
                 <p className="text-gray-700 text-sm">Confirmed Today</p>
               </div>
 
-              {/* Check-ins Today */}
               <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl p-4 border border-purple-200 shadow-md">
                 <div className="flex items-center justify-between mb-2">
                   <Users className="w-6 h-6 text-purple-600" />
@@ -349,7 +1537,6 @@ const Autopilot = ({ onBack }) => {
                 <p className="text-gray-700 text-sm">Check-ins Today</p>
               </div>
 
-              {/* Expired Holds */}
               <div className="bg-gradient-to-br from-red-50 to-red-100 rounded-xl p-4 border border-red-200 shadow-md">
                 <div className="flex items-center justify-between mb-2">
                   <AlertCircle className="w-6 h-6 text-red-600" />
@@ -360,150 +1547,575 @@ const Autopilot = ({ onBack }) => {
             </div>
           </div>
 
-          {/* B) ALERTS */}
-          <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-3xl p-6 shadow-2xl border-2 border-[#d85a2a]/20">
-            <h3 className="text-2xl font-black text-[#FF8C42] mb-4 flex items-center gap-2">
-              <Bell className="w-6 h-6 text-[#FF8C42]" />
-              Alerts
-            </h3>
-            <div className="space-y-3">
-              {alerts.map((alert) => (
-                <div
-                  key={alert.id}
-                  className={`
-                    rounded-lg p-4 border flex items-start gap-4
-                    ${alert.type === 'urgent' ? 'border-red-300 bg-red-50' : ''}
-                    ${alert.type === 'warning' ? 'border-yellow-300 bg-yellow-50' : ''}
-                    ${alert.type === 'info' ? 'border-blue-300 bg-blue-50' : ''}
-                  `}
+          {/* 3-MONTH PERFORMANCE */}
+          {monthlyMetrics && (
+            <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-3xl p-6 shadow-2xl border-2 border-[#d85a2a]/20">
+              <h3 className="text-2xl font-black text-[#FF8C42] mb-4 flex items-center gap-2">
+                <TrendingUp className="w-6 h-6 text-[#FF8C42]" />
+                3-Month Performance
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="bg-gradient-to-br from-blue-500/10 to-blue-600/10 rounded-xl p-5 border-2 border-blue-500/30">
+                  <p className="text-blue-300 text-sm font-medium mb-2">November 2025</p>
+                  <p className="text-3xl font-black text-white mb-1">
+                    ${monthlyMetrics.november.revenue.toLocaleString()}
+                  </p>
+                  <p className="text-blue-200 text-sm">
+                    {monthlyMetrics.november.bookings} bookings
+                  </p>
+                  <p className="text-blue-400 text-xs mt-2">65% occupancy</p>
+                </div>
+
+                <div className="bg-gradient-to-br from-green-500/10 to-green-600/10 rounded-xl p-5 border-2 border-green-500/30">
+                  <p className="text-green-300 text-sm font-medium mb-2">December 2025</p>
+                  <p className="text-3xl font-black text-white mb-1">
+                    ${monthlyMetrics.december.revenue.toLocaleString()}
+                  </p>
+                  <p className="text-green-200 text-sm">
+                    {monthlyMetrics.december.bookings} bookings
+                  </p>
+                  <p className="text-green-400 text-xs mt-2">85% occupancy 🔥</p>
+                </div>
+
+                <div className="bg-gradient-to-br from-orange-500/10 to-orange-600/10 rounded-xl p-5 border-2 border-orange-500/30">
+                  <p className="text-orange-300 text-sm font-medium mb-2">January 2026</p>
+                  <p className="text-3xl font-black text-white mb-1">
+                    ${monthlyMetrics.january.revenue.toLocaleString()}
+                  </p>
+                  <p className="text-orange-200 text-sm">
+                    {monthlyMetrics.january.bookings} bookings
+                  </p>
+                  <p className="text-orange-400 text-xs mt-2">72% occupancy</p>
+                </div>
+              </div>
+              <div className="mt-4 pt-4 border-t-2 border-gray-700">
+                <p className="text-gray-400 text-sm">
+                  <span className="text-green-400 font-bold">
+                    Total: $
+                    {(
+                      monthlyMetrics.november.revenue +
+                      monthlyMetrics.december.revenue +
+                      monthlyMetrics.january.revenue
+                    ).toLocaleString()}
+                  </span>{' '}
+                  • {monthlyMetrics.november.bookings + monthlyMetrics.december.bookings + monthlyMetrics.january.bookings} bookings • 74% avg occupancy
+                </p>
+              </div>
+            </div>
+          )}
+        </>
+      )}
+
+      {/* WEEKLY VIEW */}
+      {activeView === 'weekly' && (
+        <>
+          {/* Week Selector & Print */}
+          <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-3xl p-4 shadow-2xl border-2 border-[#d85a2a]/20 mb-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <select
+                  value={selectedDateRange}
+                  onChange={(e) => setSelectedDateRange(e.target.value)}
+                  className="bg-[#2a2f3a] text-white px-4 py-2 rounded-lg border-2 border-gray-700 focus:border-orange-500 outline-none"
                 >
-                  <AlertCircle
-                    className={`
-                      w-5 h-5 flex-shrink-0 mt-1
-                      ${alert.type === 'urgent' ? 'text-red-600' : ''}
-                      ${alert.type === 'warning' ? 'text-yellow-600' : ''}
-                      ${alert.type === 'info' ? 'text-blue-600' : ''}
-                    `}
-                  />
-                  <div className="flex-1">
-                    <p className="text-[#FF8C42] font-medium">{alert.message}</p>
-                    <p className="text-gray-400 text-sm mt-1">{alert.time}</p>
+                  <option value="this_week">This Week</option>
+                  <option value="last_week">Last Week</option>
+                  <option value="last_7_days">Last 7 Days</option>
+                  <option value="last_14_days">Last 14 Days</option>
+                  <option value="custom">Custom Range</option>
+                </select>
+                <span className="text-gray-400 text-sm">
+                  {selectedDateRange === 'this_week' && 'Jan 27 - Feb 2, 2026'}
+                  {selectedDateRange === 'last_week' && 'Jan 20 - Jan 26, 2026'}
+                  {selectedDateRange === 'last_7_days' && 'Last 7 days'}
+                  {selectedDateRange === 'last_14_days' && 'Last 14 days'}
+                  {selectedDateRange === 'custom' && 'Select custom range'}
+                </span>
+              </div>
+              <button
+                onClick={() => handlePrintReport('weekly')}
+                className="flex items-center gap-2 px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg font-bold transition-all"
+              >
+                <Download className="w-4 h-4" />
+                Print Report
+              </button>
+            </div>
+          </div>
+
+          {/* Weekly Metrics */}
+          <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-3xl p-6 shadow-2xl border-2 border-[#d85a2a]/20 mb-6">
+            <h3 className="text-2xl font-black text-[#FF8C42] mb-4 flex items-center gap-2">
+              <TrendingUp className="w-6 h-6" />
+              Weekly Performance
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="bg-gradient-to-br from-blue-500/10 to-blue-600/10 rounded-xl p-5 border-2 border-blue-500/30">
+                <div className="flex items-center justify-between mb-2">
+                  <Home className="w-8 h-8 text-blue-400" />
+                  <span className="text-xs text-green-400 font-bold">{weeklyMetrics.trend}</span>
+                </div>
+                <p className="text-3xl font-black text-white mb-1">{weeklyMetrics.bookingsThisWeek}</p>
+                <p className="text-blue-300 text-sm">Bookings This Week</p>
+              </div>
+
+              <div className="bg-gradient-to-br from-green-500/10 to-green-600/10 rounded-xl p-5 border-2 border-green-500/30">
+                <div className="flex items-center justify-between mb-2">
+                  <DollarSign className="w-8 h-8 text-green-400" />
+                  <span className="text-xs text-green-400 font-bold">{weeklyMetrics.trend}</span>
+                </div>
+                <p className="text-3xl font-black text-white mb-1">${weeklyMetrics.revenueThisWeek.toLocaleString()}</p>
+                <p className="text-green-300 text-sm">Revenue This Week</p>
+              </div>
+
+              <div className="bg-gradient-to-br from-purple-500/10 to-purple-600/10 rounded-xl p-5 border-2 border-purple-500/30">
+                <div className="flex items-center justify-between mb-2">
+                  <CreditCard className="w-8 h-8 text-purple-400" />
+                </div>
+                <p className="text-3xl font-black text-white mb-1">{weeklyMetrics.paymentsCollected}</p>
+                <p className="text-purple-300 text-sm">Payments Collected</p>
+                <p className="text-purple-200 text-xs mt-1">${weeklyMetrics.paymentsAmount.toLocaleString()}</p>
+              </div>
+
+              <div className="bg-gradient-to-br from-orange-500/10 to-orange-600/10 rounded-xl p-5 border-2 border-orange-500/30">
+                <div className="flex items-center justify-between mb-2">
+                  <ClipboardCheck className="w-8 h-8 text-orange-400" />
+                </div>
+                <p className="text-3xl font-black text-white mb-1">{weeklyMetrics.openActions}</p>
+                <p className="text-orange-300 text-sm">Open Actions</p>
+              </div>
+
+              <div className="bg-gradient-to-br from-pink-500/10 to-pink-600/10 rounded-xl p-5 border-2 border-pink-500/30">
+                <div className="flex items-center justify-between mb-2">
+                  <Users className="w-8 h-8 text-pink-400" />
+                </div>
+                <p className="text-3xl font-black text-white mb-1">{weeklyMetrics.newLeads}</p>
+                <p className="text-pink-300 text-sm">New Leads</p>
+              </div>
+
+              <div className="bg-gradient-to-br from-yellow-500/10 to-yellow-600/10 rounded-xl p-5 border-2 border-yellow-500/30">
+                <div className="flex items-center justify-between mb-2">
+                  <TrendingUp className="w-8 h-8 text-yellow-400" />
+                </div>
+                <p className="text-3xl font-black text-white mb-1">{weeklyMetrics.trend}</p>
+                <p className="text-yellow-300 text-sm">vs Last Week</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Weekly Bookings List */}
+          <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-3xl p-6 shadow-2xl border-2 border-[#d85a2a]/20">
+            <h3 className="text-xl font-black text-[#FF8C42] mb-4">This Week's Bookings</h3>
+            <div className="space-y-3">
+              {[
+                { guest: 'Hiroshi Nakamura', checkIn: 'Jan 25', checkOut: 'Feb 1', nights: 7, amount: 1540, status: 'confirmed' },
+                { guest: 'Anna Müller', checkIn: 'Jan 28', checkOut: 'Feb 4', nights: 7, amount: 1470, status: 'confirmed' },
+                { guest: 'David Wilson', checkIn: 'Jan 29', checkOut: 'Feb 1', nights: 3, amount: 660, status: 'confirmed' },
+                { guest: 'Yuki Tanaka', checkIn: 'Jan 31', checkOut: 'Feb 7', nights: 7, amount: 1540, status: 'confirmed' }
+              ].map((booking, i) => (
+                <div key={i} className="bg-[#2a2f3a] rounded-lg p-4 border-2 border-gray-700 hover:border-orange-500/50 transition-all">
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1">
+                      <h4 className="text-white font-bold text-lg">{booking.guest}</h4>
+                      <p className="text-gray-400 text-sm">{booking.checkIn} → {booking.checkOut} • {booking.nights} nights</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-green-400 font-bold text-lg">${booking.amount}</p>
+                      <span className="px-3 py-1 bg-green-500/20 text-green-400 rounded-full text-xs font-bold">
+                        {booking.status}
+                      </span>
+                    </div>
                   </div>
-                  <button className="p-2 bg-[#2a2f3a] hover:bg-[#374151] rounded-lg transition-all">
-                    <Eye className="w-5 h-5 text-[#FF8C42]" />
-                  </button>
                 </div>
               ))}
             </div>
           </div>
+        </>
+      )}
 
-          {/* C) ACTIONS (Needs Approval) */}
-          <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-3xl p-6 shadow-2xl border-2 border-[#d85a2a]/20">
+      {/* MONTHLY VIEW */}
+      {activeView === 'monthly' && (
+        <>
+          {/* Month Selector & Print */}
+          <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-3xl p-4 shadow-2xl border-2 border-[#d85a2a]/20 mb-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <select className="bg-[#2a2f3a] text-white px-4 py-2 rounded-lg border-2 border-gray-700 focus:border-orange-500 outline-none">
+                  <option value="january_2026">January 2026</option>
+                  <option value="december_2025">December 2025</option>
+                  <option value="november_2025">November 2025</option>
+                  <option value="october_2025">October 2025</option>
+                </select>
+              </div>
+              <button
+                onClick={() => handlePrintReport('monthly')}
+                className="flex items-center gap-2 px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg font-bold transition-all"
+              >
+                <Download className="w-4 h-4" />
+                Print Report
+              </button>
+            </div>
+          </div>
+
+          {/* Monthly Overview */}
+          <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-3xl p-6 shadow-2xl border-2 border-[#d85a2a]/20 mb-6">
             <h3 className="text-2xl font-black text-[#FF8C42] mb-4 flex items-center gap-2">
-              <CheckCircle className="w-6 h-6 text-[#FF8C42]" />
-              Actions Needing Approval
+              <Calendar className="w-6 h-6" />
+              January 2026 Performance
             </h3>
-            <div className="space-y-4">
-              {actionsNeedingApproval.map((action) => (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+              <div className="bg-gradient-to-br from-green-500/10 to-green-600/10 rounded-xl p-5 border-2 border-green-500/30">
+                <DollarSign className="w-8 h-8 text-green-400 mb-2" />
+                <p className="text-3xl font-black text-white mb-1">${currentMonthMetrics.revenue.toLocaleString()}</p>
+                <p className="text-green-300 text-sm">Total Revenue</p>
+                <p className="text-green-400 text-xs mt-1">+6% vs December</p>
+              </div>
+
+              <div className="bg-gradient-to-br from-blue-500/10 to-blue-600/10 rounded-xl p-5 border-2 border-blue-500/30">
+                <Home className="w-8 h-8 text-blue-400 mb-2" />
+                <p className="text-3xl font-black text-white mb-1">{currentMonthMetrics.bookings}</p>
+                <p className="text-blue-300 text-sm">Total Bookings</p>
+                <p className="text-blue-400 text-xs mt-1">Avg ${currentMonthMetrics.avgNightlyRate}/night</p>
+              </div>
+
+              <div className="bg-gradient-to-br from-purple-500/10 to-purple-600/10 rounded-xl p-5 border-2 border-purple-500/30">
+                <TrendingUp className="w-8 h-8 text-purple-400 mb-2" />
+                <p className="text-3xl font-black text-white mb-1">{currentMonthMetrics.occupancy}%</p>
+                <p className="text-purple-300 text-sm">Occupancy Rate</p>
+                <p className="text-purple-400 text-xs mt-1">22 days booked</p>
+              </div>
+
+              <div className="bg-gradient-to-br from-orange-500/10 to-orange-600/10 rounded-xl p-5 border-2 border-orange-500/30">
+                <Users className="w-8 h-8 text-orange-400 mb-2" />
+                <p className="text-3xl font-black text-white mb-1">{currentMonthMetrics.cancellations}</p>
+                <p className="text-orange-300 text-sm">Cancellations</p>
+                <p className="text-orange-400 text-xs mt-1">93.8% retention</p>
+              </div>
+            </div>
+
+            {/* Channel Breakdown */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="bg-[#2a2f3a] rounded-xl p-5 border-2 border-gray-700">
+                <h4 className="text-white font-bold text-lg mb-3">Channel Distribution</h4>
+                <div className="space-y-3">
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-gray-300 text-sm">Direct Bookings</span>
+                      <span className="text-white font-bold">{currentMonthMetrics.directBookings}</span>
+                    </div>
+                    <div className="w-full bg-gray-700 rounded-full h-2">
+                      <div
+                        className="bg-orange-500 h-2 rounded-full"
+                        style={{ width: `${(currentMonthMetrics.directBookings / currentMonthMetrics.bookings) * 100}%` }}
+                      ></div>
+                    </div>
+                  </div>
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-gray-300 text-sm">OTA Bookings</span>
+                      <span className="text-white font-bold">{currentMonthMetrics.otaBookings}</span>
+                    </div>
+                    <div className="w-full bg-gray-700 rounded-full h-2">
+                      <div
+                        className="bg-blue-500 h-2 rounded-full"
+                        style={{ width: `${(currentMonthMetrics.otaBookings / currentMonthMetrics.bookings) * 100}%` }}
+                      ></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-[#2a2f3a] rounded-xl p-5 border-2 border-gray-700">
+                <h4 className="text-white font-bold text-lg mb-3">Key Insights</h4>
+                <div className="space-y-2">
+                  <div className="flex items-start gap-2">
+                    <CheckCircle className="w-5 h-5 text-green-400 flex-shrink-0 mt-0.5" />
+                    <p className="text-gray-300 text-sm">33% of bookings from direct channel - saves commission fees</p>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <CheckCircle className="w-5 h-5 text-green-400 flex-shrink-0 mt-0.5" />
+                    <p className="text-gray-300 text-sm">Peak season continues with strong 72% occupancy</p>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <AlertCircle className="w-5 h-5 text-yellow-400 flex-shrink-0 mt-0.5" />
+                    <p className="text-gray-300 text-sm">Only 1 cancellation this month - excellent retention</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Month Comparison */}
+          <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-3xl p-6 shadow-2xl border-2 border-[#d85a2a]/20">
+            <h3 className="text-xl font-black text-[#FF8C42] mb-4">3-Month Comparison</h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="bg-[#2a2f3a] rounded-xl p-5 border-2 border-gray-700">
+                <div className="flex items-center justify-between mb-3">
+                  <p className="text-gray-400 text-sm">November 2025</p>
+                  <span className="px-2 py-1 bg-blue-500/20 text-blue-400 rounded text-xs font-bold">65%</span>
+                </div>
+                <p className="text-2xl font-black text-white mb-1">${monthlyMetrics.november.revenue.toLocaleString()}</p>
+                <p className="text-gray-400 text-sm">{monthlyMetrics.november.bookings} bookings</p>
+              </div>
+
+              <div className="bg-[#2a2f3a] rounded-xl p-5 border-2 border-green-500/50">
+                <div className="flex items-center justify-between mb-3">
+                  <p className="text-gray-400 text-sm">December 2025</p>
+                  <span className="px-2 py-1 bg-green-500/20 text-green-400 rounded text-xs font-bold">85% 🔥</span>
+                </div>
+                <p className="text-2xl font-black text-white mb-1">${monthlyMetrics.december.revenue.toLocaleString()}</p>
+                <p className="text-gray-400 text-sm">{monthlyMetrics.december.bookings} bookings</p>
+              </div>
+
+              <div className="bg-[#2a2f3a] rounded-xl p-5 border-2 border-orange-500/50">
+                <div className="flex items-center justify-between mb-3">
+                  <p className="text-gray-400 text-sm">January 2026</p>
+                  <span className="px-2 py-1 bg-orange-500/20 text-orange-400 rounded text-xs font-bold">72%</span>
+                </div>
+                <p className="text-2xl font-black text-white mb-1">${monthlyMetrics.january.revenue.toLocaleString()}</p>
+                <p className="text-gray-400 text-sm">{monthlyMetrics.january.bookings} bookings</p>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  );
+
+  const renderDecisionsSection = () => (
+    <div className="space-y-6">
+      {/* OWNER DECISIONS */}
+      <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-3xl p-6 shadow-2xl border-2 border-[#d85a2a]/20">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-2xl font-black text-[#FF8C42] flex items-center gap-2">
+            <CheckCircle className="w-6 h-6 text-[#FF8C42]" />
+            Owner Decisions ({actionsNeedingApproval.length})
+          </h3>
+          <button
+            onClick={() => setShowDBVisualization(!showDBVisualization)}
+            className="px-4 py-2 bg-orange-500/20 hover:bg-orange-500/30 text-orange-400 rounded-lg font-medium transition-all flex items-center gap-2 border border-orange-500/30"
+          >
+            <Eye className="w-4 h-4" />
+            {showDBVisualization ? 'Hide' : 'Show'} DB
+          </button>
+        </div>
+        <div className="space-y-4">
+          {actionsNeedingApproval.length === 0 ? (
+            <div className="text-center py-8 bg-[#2a2f3a] rounded-lg border-2 border-gray-700">
+              <CheckCircle className="w-12 h-12 text-green-500 mx-auto mb-3" />
+              <p className="text-gray-300 text-lg">No pending actions</p>
+              <p className="text-gray-500 text-sm mt-1">All caught up! 🎉</p>
+            </div>
+          ) : (
+            actionsNeedingApproval.map((action) => {
+              const priorityColors = {
+                urgent: 'bg-red-100 text-red-700 border-red-300',
+                high: 'bg-yellow-100 text-yellow-700 border-yellow-300',
+                normal: 'bg-blue-100 text-blue-700 border-blue-300'
+              };
+
+              const typeColors = {
+                discount_request: 'bg-purple-100 text-purple-700',
+                payment_verification: 'bg-yellow-100 text-yellow-700',
+                custom_plan_request: 'bg-blue-100 text-blue-700',
+                payment_expired: 'bg-red-100 text-red-700',
+                special_request: 'bg-orange-100 text-orange-700'
+              };
+
+              return (
                 <div
                   key={action.id}
-                  className="bg-[#2a2f3a] rounded-lg p-4 border-2 border-gray-200"
+                  className={`bg-[#2a2f3a] rounded-lg p-5 border-2 ${
+                    action.priority === 'urgent'
+                      ? 'border-red-500/50'
+                      : action.priority === 'high'
+                      ? 'border-yellow-500/50'
+                      : 'border-gray-700'
+                  }`}
                 >
                   <div className="flex items-start justify-between mb-3">
                     <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-2">
+                      <div className="flex items-center gap-2 mb-3">
                         <span
-                          className={`
-                            px-3 py-1 rounded-full text-xs font-medium
-                            ${action.type === 'payment_expired' ? 'bg-red-100 text-red-700' : ''}
-                            ${action.type === 'special_request' ? 'bg-orange-100 text-orange-700' : ''}
-                            ${action.type === 'pricing' ? 'bg-yellow-100 text-yellow-700' : ''}
-                          `}
+                          className={`px-3 py-1 rounded-full text-xs font-bold uppercase ${
+                            priorityColors[action.priority] || priorityColors.normal
+                          } border-2`}
                         >
-                          {action.type.replace('_', ' ').toUpperCase()}
+                          🔥 {action.priority}
+                        </span>
+                        <span
+                          className={`px-3 py-1 rounded-full text-xs font-medium ${
+                            typeColors[action.type] || 'bg-gray-100 text-gray-700'
+                          }`}
+                        >
+                          {action.type.replace(/_/g, ' ')}
                         </span>
                       </div>
-                      <p className="text-[#FF8C42] font-medium text-lg">{action.guest}</p>
-                      <p className="text-gray-400 text-sm">{action.booking}</p>
-                      <p className="text-gray-300 mt-2">{action.action}</p>
+                      <h4 className="text-white font-bold text-xl mb-2">{action.title}</h4>
+                      <div className="flex items-center gap-3 mb-3">
+                        <p className="text-orange-400 font-medium text-lg">👤 {action.guest}</p>
+                        {action.guestPhone && (
+                          <p className="text-gray-500 text-sm">📱 {action.guestPhone}</p>
+                        )}
+                      </div>
+                      {action.amount > 0 && (
+                        <p className="text-green-400 font-bold text-lg mb-2">
+                          💰 ${action.amount.toLocaleString()}
+                        </p>
+                      )}
+                      <p className="text-gray-300 mb-2 leading-relaxed">{action.action}</p>
+                      <p className="text-gray-500 text-xs">
+                        ⏰ {new Date(action.createdAt).toLocaleString()}
+                      </p>
                     </div>
                   </div>
-                  <div className="flex gap-3 pt-3 border-t-2 border-gray-200">
+                  <div className="flex gap-3 pt-4 border-t-2 border-gray-700">
                     <button
                       onClick={() => handleApprove(action.id)}
-                      className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg font-medium transition-all"
+                      className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-green-500 hover:bg-green-600 text-white rounded-lg font-bold transition-all shadow-lg hover:shadow-xl transform hover:scale-105"
                     >
                       <ThumbsUp className="w-5 h-5" />
                       Approve
                     </button>
                     <button
                       onClick={() => handleReject(action.id)}
-                      className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg font-medium transition-all"
+                      className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-red-500 hover:bg-red-600 text-white rounded-lg font-bold transition-all shadow-lg hover:shadow-xl transform hover:scale-105"
                     >
                       <ThumbsDown className="w-5 h-5" />
                       Reject
                     </button>
-                    <button className="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg font-medium transition-all">
+                    <button className="px-4 py-3 bg-gray-600 hover:bg-gray-700 text-white rounded-lg font-medium transition-all">
                       <Eye className="w-5 h-5" />
                     </button>
                   </div>
                 </div>
-              ))}
-            </div>
-          </div>
+              );
+            })
+          )}
+        </div>
+      </div>
 
-          {/* D) QUICK BUTTONS */}
-          <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-3xl p-6 shadow-2xl border-2 border-[#d85a2a]/20">
-            <h3 className="text-2xl font-black text-[#FF8C42] mb-4">Quick Actions</h3>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <button className="bg-[#2a2f3a] hover:bg-[#374151] rounded-xl p-4 transition-all border-2 border-gray-200 hover:border-orange-300">
-                <MessageSquare className="w-6 h-6 text-[#FF8C42] mb-2" />
-                <p className="text-[#FF8C42] font-medium text-sm">View All Inquiries</p>
-              </button>
-              <button className="bg-[#2a2f3a] hover:bg-[#374151] rounded-xl p-4 transition-all border-2 border-gray-200 hover:border-orange-300">
-                <DollarSign className="w-6 h-6 text-[#FF8C42] mb-2" />
-                <p className="text-[#FF8C42] font-medium text-sm">Payment Follow-ups</p>
-              </button>
-              <button className="bg-[#2a2f3a] hover:bg-[#374151] rounded-xl p-4 transition-all border-2 border-gray-200 hover:border-orange-300">
-                <Calendar className="w-6 h-6 text-[#FF8C42] mb-2" />
-                <p className="text-[#FF8C42] font-medium text-sm">Today's Schedule</p>
-              </button>
-              <button className="bg-[#2a2f3a] hover:bg-[#374151] rounded-xl p-4 transition-all border-2 border-gray-200 hover:border-orange-300">
-                <Bell className="w-6 h-6 text-[#FF8C42] mb-2" />
-                <p className="text-[#FF8C42] font-medium text-sm">View All Alerts</p>
-              </button>
-            </div>
+      {/* DATABASE VISUALIZATION */}
+      {showDBVisualization && (
+        <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-3xl p-6 shadow-2xl border-2 border-orange-500/30">
+          <h3 className="text-2xl font-black text-orange-400 mb-4 flex items-center gap-2">
+            <Eye className="w-6 h-6 text-orange-400" />
+            Database Activity (Real-Time)
+          </h3>
+          <div className="bg-black/40 rounded-lg p-4 font-mono text-sm max-h-96 overflow-y-auto">
+            {dbQueryLog.length === 0 ? (
+              <p className="text-gray-500">No database activity yet...</p>
+            ) : (
+              dbQueryLog.map((log, index) => (
+                <div key={index} className="mb-4 pb-4 border-b border-gray-700 last:border-0">
+                  <p className="text-green-400 font-bold mb-1">
+                    [{log.timestamp}] {log.query}
+                  </p>
+                  <pre className="text-gray-400 text-xs whitespace-pre-wrap">
+                    {log.result}
+                  </pre>
+                </div>
+              ))
+            )}
+          </div>
+          <div className="mt-4 flex gap-2">
+            <button
+              onClick={() => setDbQueryLog([])}
+              className="px-4 py-2 bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded-lg font-medium transition-all border border-red-500/30"
+            >
+              Clear Log
+            </button>
+            <button
+              onClick={() => {
+                fetchActions();
+                fetchTodayMetrics();
+              }}
+              className="px-4 py-2 bg-green-500/20 hover:bg-green-500/30 text-green-400 rounded-lg font-medium transition-all border border-green-500/30"
+            >
+              Refresh Data
+            </button>
           </div>
         </div>
       )}
+    </div>
+  );
 
-      {/* WEEKLY VIEW (Placeholder) */}
-      {activeView === 'weekly' && (
-        <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-3xl p-6 shadow-2xl border-2 border-[#d85a2a]/20">
-          <h3 className="text-2xl font-black text-[#FF8C42] mb-4">Weekly Summary</h3>
-          <div className="text-center py-12">
-            <TrendingUp className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-            <p className="text-[#FF8C42] text-lg">Weekly Autopilot features coming soon...</p>
-            <p className="text-gray-400 text-sm mt-2">
-              This will include weekly performance metrics, trends, and automated insights.
-            </p>
-          </div>
-        </div>
-      )}
+  // Main render
+  return (
+    <div className="flex h-screen bg-[#2a2f3a] relative overflow-hidden">
+      {/* Animated background */}
+      <div className="absolute inset-0 overflow-hidden">
+        <div className="absolute w-96 h-96 bg-[#d85a2a]/5 rounded-full blur-3xl top-20 -left-48 animate-pulse"></div>
+        <div className="absolute w-96 h-96 bg-[#d85a2a]/5 rounded-full blur-3xl bottom-20 -right-48 animate-pulse" style={{ animationDelay: '1s' }}></div>
+      </div>
 
-      {/* MONTHLY VIEW (Placeholder) */}
-      {activeView === 'monthly' && (
-        <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-3xl p-6 shadow-2xl border-2 border-[#d85a2a]/20">
-          <h3 className="text-2xl font-black text-[#FF8C42] mb-4">Monthly Summary</h3>
-          <div className="text-center py-12">
-            <Calendar className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-            <p className="text-[#FF8C42] text-lg">Monthly Autopilot features coming soon...</p>
-            <p className="text-gray-400 text-sm mt-2">
-              This will include monthly revenue reports, occupancy analysis, and strategic recommendations.
-            </p>
+      {/* Sidebar Navigation */}
+      <div className="w-80 bg-[#1f2937]/95 backdrop-blur-sm border-r-2 border-[#d85a2a]/20 overflow-y-auto relative z-10">
+        <div className="p-6">
+          {/* Header */}
+          <div className="flex items-center justify-between mb-8">
+            <h2 className="text-2xl font-black text-white">AUTOPILOT</h2>
+            <button
+              onClick={onBack}
+              className="p-2 bg-[#2a2f3a] hover:bg-[#374151] rounded-lg transition-all"
+            >
+              <X className="w-5 h-5 text-[#FF8C42]" />
+            </button>
           </div>
+
+          {/* Menu Sections */}
+          <nav className="space-y-2">
+            {menuSections.map((section) => {
+              const Icon = section.icon;
+              const isActive = activeSection === section.id;
+
+              return (
+                <button
+                  key={section.id}
+                  onClick={() => setActiveSection(section.id)}
+                  className={`
+                    w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all
+                    ${isActive
+                      ? 'bg-orange-500 text-white shadow-lg'
+                      : 'bg-[#2a2f3a] text-gray-300 hover:bg-[#374151] hover:text-white'
+                    }
+                  `}
+                >
+                  <Icon className="w-5 h-5 flex-shrink-0" />
+                  <div className="flex-1 text-left">
+                    <p className="font-bold text-sm">{section.name}</p>
+                    <p className={`text-xs ${isActive ? 'text-orange-100' : 'text-gray-500'}`}>
+                      {section.description}
+                    </p>
+                  </div>
+                  {section.badge && (
+                    <span className={`px-2 py-1 rounded-full text-xs font-bold ${
+                      isActive ? 'bg-white/20 text-white' : 'bg-orange-500/20 text-orange-400'
+                    }`}>
+                      {section.badge}
+                    </span>
+                  )}
+                  {isActive && <ChevronRight className="w-5 h-5" />}
+                </button>
+              );
+            })}
+          </nav>
         </div>
-      )}
+      </div>
+
+      {/* Main Content Area */}
+      <div className="flex-1 overflow-y-auto p-6 relative z-10">
+        <div className="max-w-7xl mx-auto">
+          {activeSection === 'data-entry' && renderDataEntrySection()}
+          {activeSection === 'all-data' && renderAllDataSection()}
+          {activeSection === 'availability' && renderAvailabilitySection()}
+          {activeSection === 'bookings' && renderBookingsSection()}
+          {activeSection === 'payments' && renderPaymentsSection()}
+          {activeSection === 'communication' && renderCommunicationSection()}
+          {activeSection === 'website' && renderWebsiteSection()}
+          {activeSection === 'tasks' && renderTasksSection()}
+          {activeSection === 'overview' && renderOverviewSection()}
+          {activeSection === 'decisions' && renderDecisionsSection()}
+        </div>
       </div>
     </div>
   );

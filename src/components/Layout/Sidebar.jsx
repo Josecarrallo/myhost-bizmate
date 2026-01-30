@@ -38,7 +38,9 @@ import {
   PhoneCall,
   AlertCircle,
   Instagram,
-  Mail
+  Mail,
+  Zap,
+  ClipboardList
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -85,6 +87,10 @@ const Sidebar = ({ currentView, onNavigate, isOpen, onClose }) => {
       sectionIcon: LayoutDashboard,
       collapsible: true,
       items: [
+        // Autopilot sub-section
+        { id: 'autopilot-header', label: 'Autopilot', isSubHeader: true, icon: Zap },
+        { id: 'autopilot', label: 'Autopilot Dashboard', icon: Zap, indent: true },
+
         // Guest & Properties sub-section
         { id: 'guest-properties-header', label: 'Guest & Properties', isSubHeader: true, icon: Building2 },
         { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, indent: true },

@@ -684,7 +684,7 @@ const ManualDataEntry = ({ onBack }) => {
         )}
       </div>
     </div>
-    </div>
+  </div>
   );
 };
 
