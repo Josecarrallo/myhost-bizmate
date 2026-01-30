@@ -1470,10 +1470,31 @@ const Autopilot = ({ onBack }) => {
       {/* DAILY VIEW */}
       {activeView === 'daily' && (
         <>
-          {/* TODAY AT A GLANCE */}
-          <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-3xl p-6 shadow-2xl border-2 border-[#d85a2a]/20">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-2xl font-black text-[#FF8C42]">Today at a Glance</h3>
+          {/* Date Selector & Print */}
+          <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-3xl p-4 shadow-2xl border-2 border-[#d85a2a]/20 mb-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <select
+                  value={selectedDateRange}
+                  onChange={(e) => setSelectedDateRange(e.target.value)}
+                  className="bg-[#2a2f3a] text-white px-4 py-2 rounded-lg border-2 border-gray-700 focus:border-orange-500 outline-none"
+                >
+                  <option value="today">Today</option>
+                  <option value="yesterday">Yesterday</option>
+                  <option value="last_7_days">Last 7 Days</option>
+                  <option value="last_14_days">Last 14 Days</option>
+                  <option value="last_30_days">Last 30 Days</option>
+                  <option value="custom">Custom Range</option>
+                </select>
+                <span className="text-gray-400 text-sm">
+                  {selectedDateRange === 'today' && 'January 30, 2026'}
+                  {selectedDateRange === 'yesterday' && 'January 29, 2026'}
+                  {selectedDateRange === 'last_7_days' && 'Jan 24 - Jan 30, 2026'}
+                  {selectedDateRange === 'last_14_days' && 'Jan 17 - Jan 30, 2026'}
+                  {selectedDateRange === 'last_30_days' && 'Jan 1 - Jan 30, 2026'}
+                  {selectedDateRange === 'custom' && 'Select custom range'}
+                </span>
+              </div>
               <div className="flex items-center gap-2">
                 <button
                   onClick={handleGenerateDailySummary}
@@ -1501,6 +1522,14 @@ const Autopilot = ({ onBack }) => {
                 </button>
               </div>
             </div>
+          </div>
+
+          {/* Daily Performance Metrics */}
+          <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-3xl p-6 shadow-2xl border-2 border-[#d85a2a]/20">
+            <h3 className="text-2xl font-black text-[#FF8C42] mb-4 flex items-center gap-2">
+              <TrendingUp className="w-6 h-6" />
+              Daily Performance
+            </h3>
             {lastSummaryGenerated && (
               <p className="text-orange-100 text-sm mb-3">Last updated: {lastSummaryGenerated}</p>
             )}
@@ -1508,7 +1537,7 @@ const Autopilot = ({ onBack }) => {
               <div className="bg-gradient-to-br from-orange-50 to-orange-100 rounded-xl p-4 border border-orange-200 shadow-md">
                 <div className="flex items-center justify-between mb-2">
                   <MessageSquare className="w-6 h-6 text-orange-600" />
-                  <span className="text-3xl font-bold text-gray-900">{todayMetrics.newInquiries}</span>
+                  <span className="text-xl font-bold text-gray-900">{todayMetrics.newInquiries}</span>
                 </div>
                 <p className="text-gray-700 text-sm">New Inquiries</p>
               </div>
@@ -1516,7 +1545,7 @@ const Autopilot = ({ onBack }) => {
               <div className="bg-gradient-to-br from-yellow-50 to-yellow-100 rounded-xl p-4 border border-yellow-200 shadow-md">
                 <div className="flex items-center justify-between mb-2">
                   <Clock className="w-6 h-6 text-yellow-600" />
-                  <span className="text-3xl font-bold text-gray-900">{todayMetrics.pendingPayments}</span>
+                  <span className="text-xl font-bold text-gray-900">{todayMetrics.pendingPayments}</span>
                 </div>
                 <p className="text-gray-700 text-sm">Pending Payments</p>
               </div>
@@ -1524,7 +1553,7 @@ const Autopilot = ({ onBack }) => {
               <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-xl p-4 border border-green-200 shadow-md">
                 <div className="flex items-center justify-between mb-2">
                   <CheckCircle className="w-6 h-6 text-green-600" />
-                  <span className="text-3xl font-bold text-gray-900">{todayMetrics.confirmedBookings}</span>
+                  <span className="text-xl font-bold text-gray-900">{todayMetrics.confirmedBookings}</span>
                 </div>
                 <p className="text-gray-700 text-sm">Confirmed Today</p>
               </div>
@@ -1532,7 +1561,7 @@ const Autopilot = ({ onBack }) => {
               <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl p-4 border border-purple-200 shadow-md">
                 <div className="flex items-center justify-between mb-2">
                   <Users className="w-6 h-6 text-purple-600" />
-                  <span className="text-3xl font-bold text-gray-900">{todayMetrics.checkInsToday}</span>
+                  <span className="text-xl font-bold text-gray-900">{todayMetrics.checkInsToday}</span>
                 </div>
                 <p className="text-gray-700 text-sm">Check-ins Today</p>
               </div>
@@ -1540,9 +1569,73 @@ const Autopilot = ({ onBack }) => {
               <div className="bg-gradient-to-br from-red-50 to-red-100 rounded-xl p-4 border border-red-200 shadow-md">
                 <div className="flex items-center justify-between mb-2">
                   <AlertCircle className="w-6 h-6 text-red-600" />
-                  <span className="text-3xl font-bold text-gray-900">{todayMetrics.expiredHolds}</span>
+                  <span className="text-xl font-bold text-gray-900">{todayMetrics.expiredHolds}</span>
                 </div>
                 <p className="text-gray-700 text-sm">Expired Holds</p>
+              </div>
+            </div>
+
+            {/* Additional Daily Metrics */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-6">
+              <div className="bg-gradient-to-br from-green-500/10 to-green-600/10 rounded-xl p-5 border-2 border-green-500/30">
+                <div className="flex items-center justify-between mb-2">
+                  <DollarSign className="w-8 h-8 text-green-400" />
+                </div>
+                <p className="text-xl font-black text-white mb-1">$5,280</p>
+                <p className="text-green-300 text-sm">Revenue Today</p>
+                <p className="text-green-400 text-xs mt-1">+18% vs yesterday</p>
+              </div>
+
+              <div className="bg-gradient-to-br from-blue-500/10 to-blue-600/10 rounded-xl p-5 border-2 border-blue-500/30">
+                <div className="flex items-center justify-between mb-2">
+                  <Home className="w-8 h-8 text-blue-400" />
+                </div>
+                <p className="text-xl font-black text-white mb-1">3</p>
+                <p className="text-blue-300 text-sm">Bookings Confirmed</p>
+                <p className="text-blue-400 text-xs mt-1">Avg $1,760/booking</p>
+              </div>
+
+              <div className="bg-gradient-to-br from-purple-500/10 to-purple-600/10 rounded-xl p-5 border-2 border-purple-500/30">
+                <div className="flex items-center justify-between mb-2">
+                  <CreditCard className="w-8 h-8 text-purple-400" />
+                </div>
+                <p className="text-xl font-black text-white mb-1">2</p>
+                <p className="text-purple-300 text-sm">Payments Received</p>
+                <p className="text-purple-200 text-xs mt-1">$3,100 collected</p>
+              </div>
+            </div>
+
+            {/* Channel Distribution Today */}
+            <div className="mt-6 bg-[#2a2f3a] rounded-xl p-5 border-2 border-gray-700">
+              <h4 className="text-white font-bold text-lg mb-3">Today's Bookings by Channel</h4>
+              <div className="space-y-3">
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-gray-300 text-sm">Direct</span>
+                    <span className="text-white font-bold">1 booking • $1,960</span>
+                  </div>
+                  <div className="w-full bg-gray-700 rounded-full h-2">
+                    <div className="bg-orange-500 h-2 rounded-full" style={{ width: '33%' }}></div>
+                  </div>
+                </div>
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-gray-300 text-sm">Airbnb</span>
+                    <span className="text-white font-bold">1 booking • $1,540</span>
+                  </div>
+                  <div className="w-full bg-gray-700 rounded-full h-2">
+                    <div className="bg-pink-500 h-2 rounded-full" style={{ width: '33%' }}></div>
+                  </div>
+                </div>
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-gray-300 text-sm">Booking.com</span>
+                    <span className="text-white font-bold">1 booking • $1,780</span>
+                  </div>
+                  <div className="w-full bg-gray-700 rounded-full h-2">
+                    <div className="bg-blue-500 h-2 rounded-full" style={{ width: '34%' }}></div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -1654,7 +1747,7 @@ const Autopilot = ({ onBack }) => {
                   <Home className="w-8 h-8 text-blue-400" />
                   <span className="text-xs text-green-400 font-bold">{weeklyMetrics.trend}</span>
                 </div>
-                <p className="text-3xl font-black text-white mb-1">{weeklyMetrics.bookingsThisWeek}</p>
+                <p className="text-xl font-black text-white mb-1">{weeklyMetrics.bookingsThisWeek}</p>
                 <p className="text-blue-300 text-sm">Bookings This Week</p>
               </div>
 
@@ -1663,7 +1756,7 @@ const Autopilot = ({ onBack }) => {
                   <DollarSign className="w-8 h-8 text-green-400" />
                   <span className="text-xs text-green-400 font-bold">{weeklyMetrics.trend}</span>
                 </div>
-                <p className="text-3xl font-black text-white mb-1">${weeklyMetrics.revenueThisWeek.toLocaleString()}</p>
+                <p className="text-xl font-black text-white mb-1">${weeklyMetrics.revenueThisWeek.toLocaleString()}</p>
                 <p className="text-green-300 text-sm">Revenue This Week</p>
               </div>
 
@@ -1671,7 +1764,7 @@ const Autopilot = ({ onBack }) => {
                 <div className="flex items-center justify-between mb-2">
                   <CreditCard className="w-8 h-8 text-purple-400" />
                 </div>
-                <p className="text-3xl font-black text-white mb-1">{weeklyMetrics.paymentsCollected}</p>
+                <p className="text-xl font-black text-white mb-1">{weeklyMetrics.paymentsCollected}</p>
                 <p className="text-purple-300 text-sm">Payments Collected</p>
                 <p className="text-purple-200 text-xs mt-1">${weeklyMetrics.paymentsAmount.toLocaleString()}</p>
               </div>
@@ -1680,7 +1773,7 @@ const Autopilot = ({ onBack }) => {
                 <div className="flex items-center justify-between mb-2">
                   <ClipboardCheck className="w-8 h-8 text-orange-400" />
                 </div>
-                <p className="text-3xl font-black text-white mb-1">{weeklyMetrics.openActions}</p>
+                <p className="text-xl font-black text-white mb-1">{weeklyMetrics.openActions}</p>
                 <p className="text-orange-300 text-sm">Open Actions</p>
               </div>
 
@@ -1688,7 +1781,7 @@ const Autopilot = ({ onBack }) => {
                 <div className="flex items-center justify-between mb-2">
                   <Users className="w-8 h-8 text-pink-400" />
                 </div>
-                <p className="text-3xl font-black text-white mb-1">{weeklyMetrics.newLeads}</p>
+                <p className="text-xl font-black text-white mb-1">{weeklyMetrics.newLeads}</p>
                 <p className="text-pink-300 text-sm">New Leads</p>
               </div>
 
@@ -1696,7 +1789,7 @@ const Autopilot = ({ onBack }) => {
                 <div className="flex items-center justify-between mb-2">
                   <TrendingUp className="w-8 h-8 text-yellow-400" />
                 </div>
-                <p className="text-3xl font-black text-white mb-1">{weeklyMetrics.trend}</p>
+                <p className="text-xl font-black text-white mb-1">{weeklyMetrics.trend}</p>
                 <p className="text-yellow-300 text-sm">vs Last Week</p>
               </div>
             </div>
@@ -1765,28 +1858,28 @@ const Autopilot = ({ onBack }) => {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
               <div className="bg-gradient-to-br from-green-500/10 to-green-600/10 rounded-xl p-5 border-2 border-green-500/30">
                 <DollarSign className="w-8 h-8 text-green-400 mb-2" />
-                <p className="text-3xl font-black text-white mb-1">${currentMonthMetrics.revenue.toLocaleString()}</p>
+                <p className="text-xl font-black text-white mb-1">${currentMonthMetrics.revenue.toLocaleString('en-US')}</p>
                 <p className="text-green-300 text-sm">Total Revenue</p>
                 <p className="text-green-400 text-xs mt-1">+6% vs December</p>
               </div>
 
               <div className="bg-gradient-to-br from-blue-500/10 to-blue-600/10 rounded-xl p-5 border-2 border-blue-500/30">
                 <Home className="w-8 h-8 text-blue-400 mb-2" />
-                <p className="text-3xl font-black text-white mb-1">{currentMonthMetrics.bookings}</p>
+                <p className="text-xl font-black text-white mb-1">{currentMonthMetrics.bookings}</p>
                 <p className="text-blue-300 text-sm">Total Bookings</p>
                 <p className="text-blue-400 text-xs mt-1">Avg ${currentMonthMetrics.avgNightlyRate}/night</p>
               </div>
 
               <div className="bg-gradient-to-br from-purple-500/10 to-purple-600/10 rounded-xl p-5 border-2 border-purple-500/30">
                 <TrendingUp className="w-8 h-8 text-purple-400 mb-2" />
-                <p className="text-3xl font-black text-white mb-1">{currentMonthMetrics.occupancy}%</p>
+                <p className="text-xl font-black text-white mb-1">{currentMonthMetrics.occupancy}%</p>
                 <p className="text-purple-300 text-sm">Occupancy Rate</p>
                 <p className="text-purple-400 text-xs mt-1">22 days booked</p>
               </div>
 
               <div className="bg-gradient-to-br from-orange-500/10 to-orange-600/10 rounded-xl p-5 border-2 border-orange-500/30">
                 <Users className="w-8 h-8 text-orange-400 mb-2" />
-                <p className="text-3xl font-black text-white mb-1">{currentMonthMetrics.cancellations}</p>
+                <p className="text-xl font-black text-white mb-1">{currentMonthMetrics.cancellations}</p>
                 <p className="text-orange-300 text-sm">Cancellations</p>
                 <p className="text-orange-400 text-xs mt-1">93.8% retention</p>
               </div>
