@@ -29,7 +29,9 @@ import {
   Search,
   Filter,
   Download,
-  ClipboardList
+  ClipboardList,
+  FileText,
+  Printer
 } from 'lucide-react';
 import ManualDataEntry from '../ManualDataEntry/ManualDataEntry';
 
@@ -177,6 +179,13 @@ const Autopilot = ({ onBack }) => {
       name: 'Overview',
       icon: BarChart3,
       description: 'Daily/Weekly/Monthly',
+      badge: null
+    },
+    {
+      id: 'business-reports',
+      name: 'Business Reports',
+      icon: FileText,
+      description: 'Monthly performance reports',
       badge: null
     },
     {
@@ -1420,6 +1429,60 @@ const Autopilot = ({ onBack }) => {
     </div>
   );
 
+  const renderBusinessReportsSection = () => {
+    const handlePrint = () => {
+      const iframe = document.getElementById('business-report-frame');
+      if (iframe) {
+        iframe.contentWindow.print();
+      }
+    };
+
+    return (
+      <div className="space-y-6">
+        {/* Header with Print Button */}
+        <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-3xl p-6 shadow-2xl border-2 border-[#d85a2a]/20">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h3 className="text-2xl font-black text-[#FF8C42] flex items-center gap-2">
+                <FileText className="w-6 h-6" />
+                Business Reports - Nismara Uma Villa
+              </h3>
+              <p className="text-gray-300 text-sm mt-2">
+                Monthly performance analysis report
+              </p>
+            </div>
+            <button
+              onClick={handlePrint}
+              className="flex items-center gap-2 px-6 py-3 bg-orange-500 text-white rounded-xl font-bold hover:bg-orange-600 transition-all shadow-lg"
+            >
+              <Printer className="w-5 h-5" />
+              Print Report
+            </button>
+          </div>
+        </div>
+
+        {/* Report Display */}
+        <div className="bg-white rounded-3xl shadow-2xl border-2 border-gray-200" style={{ height: '1400px', overflowY: 'auto', overflowX: 'hidden' }}>
+          <div style={{ width: '1008px', height: '2520px', position: 'relative' }}>
+            <iframe
+              id="business-report-frame"
+              src="/business-reports/nismara-final.html"
+              style={{
+                width: '1400px',
+                height: '3500px',
+                border: 'none',
+                transform: 'scale(0.72)',
+                transformOrigin: '0 0',
+                pointerEvents: 'auto'
+              }}
+              title="Business Report"
+            />
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   const renderOverviewSection = () => (
     <div className="space-y-6">
       {/* View Selector */}
@@ -2199,6 +2262,7 @@ const Autopilot = ({ onBack }) => {
       <div className="flex-1 overflow-y-auto p-6 relative z-10">
         <div className="max-w-7xl mx-auto">
           {activeSection === 'data-entry' && renderDataEntrySection()}
+          {activeSection === 'business-reports' && renderBusinessReportsSection()}
           {activeSection === 'all-data' && renderAllDataSection()}
           {activeSection === 'availability' && renderAvailabilitySection()}
           {activeSection === 'bookings' && renderBookingsSection()}
