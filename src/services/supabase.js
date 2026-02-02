@@ -88,6 +88,62 @@ export const supabaseService = {
     return response.json();
   },
 
+  // =====================================================
+  // BOOKINGS - CRUD Operations
+  // =====================================================
+
+  // Get all bookings (with optional filters)
+  async getBookings(filters = {}) {
+    let url = `${SUPABASE_URL}/rest/v1/bookings?select=*&order=check_in.desc`;
+
+    // Apply filters
+    if (filters.status) {
+      url += `&status=eq.${filters.status}`;
+    }
+    if (filters.property_id) {
+      url += `&property_id=eq.${filters.property_id}`;
+    }
+    if (filters.tenant_id) {
+      url += `&tenant_id=eq.${filters.tenant_id}`;
+    }
+    if (filters.guest_name) {
+      url += `&guest_name=ilike.%${filters.guest_name}%`;
+    }
+    if (filters.check_in_gte) {
+      url += `&check_in=gte.${filters.check_in_gte}`;
+    }
+    if (filters.check_in_lte) {
+      url += `&check_in=lte.${filters.check_in_lte}`;
+    }
+
+    const response = await fetch(url, {
+      headers: supabaseHeaders
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to fetch bookings');
+    }
+
+    return response.json();
+  },
+
+  // Get single booking by ID
+  async getBooking(id) {
+    const response = await fetch(
+      `${SUPABASE_URL}/rest/v1/bookings?id=eq.${id}`,
+      {
+        headers: supabaseHeaders
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error('Failed to fetch booking');
+    }
+
+    const data = await response.json();
+    return data[0];
+  },
+
   // Create Booking
   async createBooking(bookingData) {
     const response = await fetch(`${SUPABASE_URL}/rest/v1/bookings`, {
@@ -102,6 +158,43 @@ export const supabaseService = {
     }
 
     return response.json();
+  },
+
+  // Update booking
+  async updateBooking(id, updates) {
+    const response = await fetch(
+      `${SUPABASE_URL}/rest/v1/bookings?id=eq.${id}`,
+      {
+        method: 'PATCH',
+        headers: supabaseHeaders,
+        body: JSON.stringify(updates)
+      }
+    );
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || 'Failed to update booking');
+    }
+
+    return response.json();
+  },
+
+  // Delete booking
+  async deleteBooking(id) {
+    const response = await fetch(
+      `${SUPABASE_URL}/rest/v1/bookings?id=eq.${id}`,
+      {
+        method: 'DELETE',
+        headers: supabaseHeaders
+      }
+    );
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || 'Failed to delete booking');
+    }
+
+    return true;
   },
 
   // =====================================================
@@ -443,6 +536,128 @@ export const supabaseService = {
     return () => {
       console.log('Unsubscribed from messages');
     };
+  },
+
+  // =====================================================
+  // BUSINESS REPORTS - Get data for owner reports
+  // =====================================================
+
+  // Get comprehensive business report data for an owner
+  async getOwnerBusinessReportData(ownerId) {
+    try {
+      // Get properties for this owner
+      const propertiesResponse = await fetch(
+        `${SUPABASE_URL}/rest/v1/properties?owner_id=eq.${ownerId}&select=*`,
+        { headers: supabaseHeaders }
+      );
+
+      if (!propertiesResponse.ok) throw new Error('Failed to fetch properties');
+      const properties = await propertiesResponse.json();
+
+      if (!properties || properties.length === 0) {
+        return {
+          owner: { id: ownerId },
+          properties: [],
+          bookings: [],
+          payments: [],
+          leads: [],
+          metrics: {
+            totalRevenue: 0,
+            totalBookings: 0,
+            occupancyRate: 0,
+            avgNightlyRate: 0,
+            totalNights: 0
+          }
+        };
+      }
+
+      const propertyIds = properties.map(p => p.id);
+
+
+      // Get all bookings, payments, and leads for these properties
+      const bookings = [];
+      const payments = [];
+      const leads = [];
+
+      for (const propId of propertyIds) {
+        // Get bookings for this property
+        const bookingsResponse = await fetch(
+          `${SUPABASE_URL}/rest/v1/bookings?property_id=eq.${propId}&select=*`,
+          { headers: supabaseHeaders }
+        );
+        if (bookingsResponse.ok) {
+          const propBookings = await bookingsResponse.json();
+          bookings.push(...propBookings);
+        }
+
+        // Get payments for this property
+        const paymentsResponse = await fetch(
+          `${SUPABASE_URL}/rest/v1/payments?property_id=eq.${propId}&select=*`,
+          { headers: supabaseHeaders }
+        );
+        if (paymentsResponse.ok) {
+          const propPayments = await paymentsResponse.json();
+          payments.push(...propPayments);
+        }
+
+        // Get leads for this property
+        const leadsResponse = await fetch(
+          `${SUPABASE_URL}/rest/v1/leads?property_id=eq.${propId}&select=*`,
+          { headers: supabaseHeaders }
+        );
+        if (leadsResponse.ok) {
+          const propLeads = await leadsResponse.json();
+          leads.push(...propLeads);
+        }
+      }
+
+      // Calculate metrics
+      // Total revenue from all bookings (not just payments)
+      const totalRevenue = bookings.reduce((sum, b) => sum + (b.total_price || 0), 0);
+
+      // All bookings regardless of status
+      const totalBookings = bookings.length;
+
+      // Calculate total nights and occupancy
+      const totalNights = bookings.reduce((sum, b) => {
+        if (b.check_in && b.check_out) {
+          const checkIn = new Date(b.check_in);
+          const checkOut = new Date(b.check_out);
+          const nights = Math.ceil((checkOut - checkIn) / (1000 * 60 * 60 * 24));
+          return sum + (nights > 0 ? nights : 0);
+        }
+        return sum;
+      }, 0);
+
+      // Calculate occupancy rate based on actual data
+      const daysInPeriod = 365; // Full year for better calculation
+      const totalPossibleNights = propertyIds.length * daysInPeriod;
+      const occupancyRate = totalPossibleNights > 0 && totalNights > 0
+        ? (totalNights / totalPossibleNights) * 100
+        : 0;
+
+      const avgNightlyRate = totalNights > 0 && totalRevenue > 0
+        ? totalRevenue / totalNights
+        : 0;
+
+      return {
+        owner: { id: ownerId },
+        properties,
+        bookings,
+        payments,
+        leads,
+        metrics: {
+          totalRevenue,
+          totalBookings,
+          occupancyRate: Math.round(occupancyRate * 10) / 10,
+          avgNightlyRate: Math.round(avgNightlyRate * 100) / 100,
+          totalNights
+        }
+      };
+    } catch (error) {
+      console.error('Error fetching business report data:', error);
+      throw error;
+    }
   }
 };
 
