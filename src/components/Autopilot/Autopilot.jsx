@@ -45,6 +45,8 @@ const Autopilot = ({ onBack }) => {
   const [selectedDateRange, setSelectedDateRange] = useState('this_week'); // for filtering
   const [selectedReportType, setSelectedReportType] = useState('all'); // for All Data section
   const [selectedProperty, setSelectedProperty] = useState('gita'); // for Business Reports (owner selection)
+  const [reportMode, setReportMode] = useState('static'); // static vs dynamic comparison
+  const [isGeneratingReport, setIsGeneratingReport] = useState(false);
 
   // Real data from Supabase (with fallback from INFORME_SUPABASE_IZUMI_HOTEL)
   const [todayMetrics, setTodayMetrics] = useState({
@@ -1438,7 +1440,8 @@ const Autopilot = ({ onBack }) => {
         email: 'nismaraumavilla@gmail.com',
         property: 'Nismara Uma Villa',
         villas: 1,
-        file: 'nismara-final.html',
+        fileStatic: 'nismara-final.html',
+        fileDynamic: 'nismara-dynamic.html',
         currency: 'IDR'
       },
       {
@@ -1447,12 +1450,14 @@ const Autopilot = ({ onBack }) => {
         email: 'josecarrallodelafuente@gmail.com',
         property: 'Izumi Hotel & Villas',
         villas: 8,
-        file: 'izumi-final.html',
+        fileStatic: 'izumi-final.html',
+        fileDynamic: 'izumi-dynamic.html',
         currency: 'USD'
       }
     ];
 
     const currentOwner = owners.find(o => o.id === selectedProperty);
+    const currentFile = reportMode === 'static' ? currentOwner.fileStatic : currentOwner.fileDynamic;
 
     const handlePrint = () => {
       const iframe = document.getElementById('business-report-frame');
@@ -1474,20 +1479,59 @@ const Autopilot = ({ onBack }) => {
             </div>
 
             <div className="flex items-center justify-between">
-              {/* Owner Selector */}
-              <div className="flex items-center gap-3">
-                <label className="text-gray-300 text-sm font-semibold">Select Owner:</label>
-                <select
-                  value={selectedProperty}
-                  onChange={(e) => setSelectedProperty(e.target.value)}
-                  className="bg-[#374151] text-white px-4 py-2 rounded-lg border-2 border-orange-500/30 focus:border-orange-500 focus:outline-none hover:border-orange-500/50 transition-all cursor-pointer"
-                >
-                  {owners.map(owner => (
-                    <option key={owner.id} value={owner.id}>
-                      {owner.name} - {owner.property} ({owner.villas} {owner.villas === 1 ? 'villa' : 'villas'})
-                    </option>
-                  ))}
-                </select>
+              <div className="flex items-center gap-4">
+                {/* Owner Selector */}
+                <div className="flex items-center gap-3">
+                  <label className="text-gray-300 text-sm font-semibold">Select Owner:</label>
+                  <select
+                    value={selectedProperty}
+                    onChange={(e) => setSelectedProperty(e.target.value)}
+                    className="bg-[#374151] text-white px-4 py-2 rounded-lg border-2 border-orange-500/30 focus:border-orange-500 focus:outline-none hover:border-orange-500/50 transition-all cursor-pointer"
+                  >
+                    {owners.map(owner => (
+                      <option key={owner.id} value={owner.id}>
+                        {owner.name} - {owner.property} ({owner.villas} {owner.villas === 1 ? 'villa' : 'villas'})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Static/Dynamic Toggle */}
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setReportMode('static')}
+                    className={`px-4 py-2 rounded-lg font-semibold transition-all ${
+                      reportMode === 'static'
+                        ? 'bg-blue-500 text-white shadow-lg'
+                        : 'bg-gray-600 text-gray-300 hover:bg-gray-500'
+                    }`}
+                  >
+                    Static
+                  </button>
+                  <button
+                    onClick={() => setReportMode('dynamic')}
+                    className={`px-4 py-2 rounded-lg font-semibold transition-all ${
+                      reportMode === 'dynamic'
+                        ? 'bg-green-500 text-white shadow-lg'
+                        : 'bg-gray-600 text-gray-300 hover:bg-gray-500'
+                    }`}
+                  >
+                    Dynamic
+                  </button>
+                </div>
+
+                {/* Generate Button */}
+                {reportMode === 'dynamic' && (
+                  <button
+                    onClick={() => {
+                      alert('Run in terminal: node generate-business-report-v2.cjs');
+                    }}
+                    className="flex items-center gap-2 px-4 py-2 bg-purple-500 text-white rounded-lg font-semibold hover:bg-purple-600 transition-all shadow-lg"
+                  >
+                    <Zap className="w-4 h-4" />
+                    Generate
+                  </button>
+                )}
               </div>
 
               <button
@@ -1505,9 +1549,9 @@ const Autopilot = ({ onBack }) => {
         <div className="bg-white rounded-3xl shadow-2xl border-2 border-gray-200" style={{ height: '1400px', overflowY: 'auto', overflowX: 'hidden' }}>
           <div style={{ width: '1008px', height: '2520px', position: 'relative' }}>
             <iframe
-              key={selectedProperty}
+              key={`${selectedProperty}-${reportMode}`}
               id="business-report-frame"
-              src={`/business-reports/${currentOwner.file}`}
+              src={`/business-reports/${currentFile}`}
               style={{
                 width: '1400px',
                 height: '3500px',
