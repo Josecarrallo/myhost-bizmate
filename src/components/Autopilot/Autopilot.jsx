@@ -44,6 +44,7 @@ const Autopilot = ({ onBack }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [selectedDateRange, setSelectedDateRange] = useState('this_week'); // for filtering
   const [selectedReportType, setSelectedReportType] = useState('all'); // for All Data section
+  const [selectedProperty, setSelectedProperty] = useState('gita'); // for Business Reports (owner selection)
 
   // Real data from Supabase (with fallback from INFORME_SUPABASE_IZUMI_HOTEL)
   const [todayMetrics, setTodayMetrics] = useState({
@@ -949,15 +950,15 @@ const Autopilot = ({ onBack }) => {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
             <div className="bg-gradient-to-br from-blue-500/10 to-blue-600/10 rounded-xl p-4 border-2 border-blue-500/30">
               <p className="text-blue-300 text-sm mb-1">Total Clients</p>
-              <p className="text-3xl font-black text-white">45</p>
+              <p className="text-2xl font-black text-white">45</p>
             </div>
             <div className="bg-gradient-to-br from-green-500/10 to-green-600/10 rounded-xl p-4 border-2 border-green-500/30">
               <p className="text-green-300 text-sm mb-1">Countries</p>
-              <p className="text-3xl font-black text-white">19</p>
+              <p className="text-2xl font-black text-white">19</p>
             </div>
             <div className="bg-gradient-to-br from-purple-500/10 to-purple-600/10 rounded-xl p-4 border-2 border-purple-500/30">
               <p className="text-purple-300 text-sm mb-1">Repeat Guests</p>
-              <p className="text-3xl font-black text-white">8</p>
+              <p className="text-2xl font-black text-white">8</p>
             </div>
           </div>
           <div className="space-y-2">
@@ -988,19 +989,19 @@ const Autopilot = ({ onBack }) => {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-4">
             <div className="bg-gradient-to-br from-red-500/10 to-red-600/10 rounded-xl p-4 border-2 border-red-500/30">
               <p className="text-red-300 text-sm mb-1">HOT</p>
-              <p className="text-2xl font-black text-white">1</p>
+              <p className="text-xl font-black text-white">1</p>
             </div>
             <div className="bg-gradient-to-br from-yellow-500/10 to-yellow-600/10 rounded-xl p-4 border-2 border-yellow-500/30">
               <p className="text-yellow-300 text-sm mb-1">PENDING</p>
-              <p className="text-2xl font-black text-white">1</p>
+              <p className="text-xl font-black text-white">1</p>
             </div>
             <div className="bg-gradient-to-br from-blue-500/10 to-blue-600/10 rounded-xl p-4 border-2 border-blue-500/30">
               <p className="text-blue-300 text-sm mb-1">ENGAGED</p>
-              <p className="text-2xl font-black text-white">2</p>
+              <p className="text-xl font-black text-white">2</p>
             </div>
             <div className="bg-gradient-to-br from-green-500/10 to-green-600/10 rounded-xl p-4 border-2 border-green-500/30">
               <p className="text-green-300 text-sm mb-1">WON</p>
-              <p className="text-2xl font-black text-white">1</p>
+              <p className="text-xl font-black text-white">1</p>
             </div>
           </div>
           <p className="text-gray-400 text-sm">Total Pipeline Value: <span className="text-green-400 font-bold">~$8,000</span></p>
@@ -1015,17 +1016,17 @@ const Autopilot = ({ onBack }) => {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="bg-gradient-to-br from-blue-500/10 to-blue-600/10 rounded-xl p-5 border-2 border-blue-500/30">
               <p className="text-blue-300 text-sm mb-2">Total Bookings</p>
-              <p className="text-4xl font-black text-white mb-1">45</p>
+              <p className="text-3xl font-black text-white mb-1">45</p>
               <p className="text-blue-200 text-sm">Nov-Jan 2026</p>
             </div>
             <div className="bg-gradient-to-br from-green-500/10 to-green-600/10 rounded-xl p-5 border-2 border-green-500/30">
               <p className="text-green-300 text-sm mb-2">Total Revenue</p>
-              <p className="text-4xl font-black text-white mb-1">$50,140</p>
+              <p className="text-3xl font-black text-white mb-1">$50,140</p>
               <p className="text-green-200 text-sm">Average $1,114/booking</p>
             </div>
             <div className="bg-gradient-to-br from-purple-500/10 to-purple-600/10 rounded-xl p-5 border-2 border-purple-500/30">
               <p className="text-purple-300 text-sm mb-2">Avg Occupancy</p>
-              <p className="text-4xl font-black text-white mb-1">74%</p>
+              <p className="text-3xl font-black text-white mb-1">74%</p>
               <p className="text-purple-200 text-sm">Across all units</p>
             </div>
           </div>
@@ -1040,17 +1041,17 @@ const Autopilot = ({ onBack }) => {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="bg-gradient-to-br from-green-500/10 to-green-600/10 rounded-xl p-5 border-2 border-green-500/30">
               <p className="text-green-300 text-sm mb-2">Paid</p>
-              <p className="text-3xl font-black text-white mb-1">43</p>
+              <p className="text-2xl font-black text-white mb-1">43</p>
               <p className="text-green-200 text-sm">$47,940 (95.6%)</p>
             </div>
             <div className="bg-gradient-to-br from-yellow-500/10 to-yellow-600/10 rounded-xl p-5 border-2 border-yellow-500/30">
               <p className="text-yellow-300 text-sm mb-2">Pending</p>
-              <p className="text-3xl font-black text-white mb-1">2</p>
+              <p className="text-2xl font-black text-white mb-1">2</p>
               <p className="text-yellow-200 text-sm">$2,200</p>
             </div>
             <div className="bg-gradient-to-br from-gray-500/10 to-gray-600/10 rounded-xl p-5 border-2 border-gray-500/30">
               <p className="text-gray-300 text-sm mb-2">Overdue</p>
-              <p className="text-3xl font-black text-white mb-1">0</p>
+              <p className="text-2xl font-black text-white mb-1">0</p>
               <p className="text-gray-200 text-sm">$0</p>
             </div>
           </div>
@@ -1430,6 +1431,29 @@ const Autopilot = ({ onBack }) => {
   );
 
   const renderBusinessReportsSection = () => {
+    const owners = [
+      {
+        id: 'gita',
+        name: 'Gita Pradnyana',
+        email: 'nismaraumavilla@gmail.com',
+        property: 'Nismara Uma Villa',
+        villas: 1,
+        file: 'nismara-final.html',
+        currency: 'IDR'
+      },
+      {
+        id: 'jose',
+        name: 'Jose Carrallo',
+        email: 'josecarrallodelafuente@gmail.com',
+        property: 'Izumi Hotel & Villas',
+        villas: 8,
+        file: 'izumi-final.html',
+        currency: 'USD'
+      }
+    ];
+
+    const currentOwner = owners.find(o => o.id === selectedProperty);
+
     const handlePrint = () => {
       const iframe = document.getElementById('business-report-frame');
       if (iframe) {
@@ -1439,25 +1463,41 @@ const Autopilot = ({ onBack }) => {
 
     return (
       <div className="space-y-6">
-        {/* Header with Print Button */}
+        {/* Header with Owner Selector and Print Button */}
         <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-3xl p-6 shadow-2xl border-2 border-[#d85a2a]/20">
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex flex-col gap-4">
             <div>
               <h3 className="text-2xl font-black text-[#FF8C42] flex items-center gap-2">
                 <FileText className="w-6 h-6" />
-                Business Reports - Nismara Uma Villa
+                Business Reports - {currentOwner.property}
               </h3>
-              <p className="text-gray-300 text-sm mt-2">
-                Monthly performance analysis report
-              </p>
             </div>
-            <button
-              onClick={handlePrint}
-              className="flex items-center gap-2 px-6 py-3 bg-orange-500 text-white rounded-xl font-bold hover:bg-orange-600 transition-all shadow-lg"
-            >
-              <Printer className="w-5 h-5" />
-              Print Report
-            </button>
+
+            <div className="flex items-center justify-between">
+              {/* Owner Selector */}
+              <div className="flex items-center gap-3">
+                <label className="text-gray-300 text-sm font-semibold">Select Owner:</label>
+                <select
+                  value={selectedProperty}
+                  onChange={(e) => setSelectedProperty(e.target.value)}
+                  className="bg-[#374151] text-white px-4 py-2 rounded-lg border-2 border-orange-500/30 focus:border-orange-500 focus:outline-none hover:border-orange-500/50 transition-all cursor-pointer"
+                >
+                  {owners.map(owner => (
+                    <option key={owner.id} value={owner.id}>
+                      {owner.name} - {owner.property} ({owner.villas} {owner.villas === 1 ? 'villa' : 'villas'})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <button
+                onClick={handlePrint}
+                className="flex items-center gap-2 px-5 py-2 bg-orange-500 text-white rounded-lg font-semibold hover:bg-orange-600 transition-all shadow-lg"
+              >
+                <Printer className="w-4 h-4" />
+                Print
+              </button>
+            </div>
           </div>
         </div>
 
@@ -1465,8 +1505,9 @@ const Autopilot = ({ onBack }) => {
         <div className="bg-white rounded-3xl shadow-2xl border-2 border-gray-200" style={{ height: '1400px', overflowY: 'auto', overflowX: 'hidden' }}>
           <div style={{ width: '1008px', height: '2520px', position: 'relative' }}>
             <iframe
+              key={selectedProperty}
               id="business-report-frame"
-              src="/business-reports/nismara-final.html"
+              src={`/business-reports/${currentOwner.file}`}
               style={{
                 width: '1400px',
                 height: '3500px',
@@ -1600,7 +1641,7 @@ const Autopilot = ({ onBack }) => {
               <div className="bg-gradient-to-br from-orange-50 to-orange-100 rounded-xl p-4 border border-orange-200 shadow-md">
                 <div className="flex items-center justify-between mb-2">
                   <MessageSquare className="w-6 h-6 text-orange-600" />
-                  <span className="text-xl font-bold text-gray-900">{todayMetrics.newInquiries}</span>
+                  <span className="text-lg font-bold text-gray-900">{todayMetrics.newInquiries}</span>
                 </div>
                 <p className="text-gray-700 text-sm">New Inquiries</p>
               </div>
@@ -1608,7 +1649,7 @@ const Autopilot = ({ onBack }) => {
               <div className="bg-gradient-to-br from-yellow-50 to-yellow-100 rounded-xl p-4 border border-yellow-200 shadow-md">
                 <div className="flex items-center justify-between mb-2">
                   <Clock className="w-6 h-6 text-yellow-600" />
-                  <span className="text-xl font-bold text-gray-900">{todayMetrics.pendingPayments}</span>
+                  <span className="text-lg font-bold text-gray-900">{todayMetrics.pendingPayments}</span>
                 </div>
                 <p className="text-gray-700 text-sm">Pending Payments</p>
               </div>
@@ -1616,7 +1657,7 @@ const Autopilot = ({ onBack }) => {
               <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-xl p-4 border border-green-200 shadow-md">
                 <div className="flex items-center justify-between mb-2">
                   <CheckCircle className="w-6 h-6 text-green-600" />
-                  <span className="text-xl font-bold text-gray-900">{todayMetrics.confirmedBookings}</span>
+                  <span className="text-lg font-bold text-gray-900">{todayMetrics.confirmedBookings}</span>
                 </div>
                 <p className="text-gray-700 text-sm">Confirmed Today</p>
               </div>
@@ -1624,7 +1665,7 @@ const Autopilot = ({ onBack }) => {
               <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl p-4 border border-purple-200 shadow-md">
                 <div className="flex items-center justify-between mb-2">
                   <Users className="w-6 h-6 text-purple-600" />
-                  <span className="text-xl font-bold text-gray-900">{todayMetrics.checkInsToday}</span>
+                  <span className="text-lg font-bold text-gray-900">{todayMetrics.checkInsToday}</span>
                 </div>
                 <p className="text-gray-700 text-sm">Check-ins Today</p>
               </div>
@@ -1632,7 +1673,7 @@ const Autopilot = ({ onBack }) => {
               <div className="bg-gradient-to-br from-red-50 to-red-100 rounded-xl p-4 border border-red-200 shadow-md">
                 <div className="flex items-center justify-between mb-2">
                   <AlertCircle className="w-6 h-6 text-red-600" />
-                  <span className="text-xl font-bold text-gray-900">{todayMetrics.expiredHolds}</span>
+                  <span className="text-lg font-bold text-gray-900">{todayMetrics.expiredHolds}</span>
                 </div>
                 <p className="text-gray-700 text-sm">Expired Holds</p>
               </div>
@@ -1644,7 +1685,7 @@ const Autopilot = ({ onBack }) => {
                 <div className="flex items-center justify-between mb-2">
                   <DollarSign className="w-8 h-8 text-green-400" />
                 </div>
-                <p className="text-xl font-black text-white mb-1">$5,280</p>
+                <p className="text-lg font-black text-white mb-1">$5,280</p>
                 <p className="text-green-300 text-sm">Revenue Today</p>
                 <p className="text-green-400 text-xs mt-1">+18% vs yesterday</p>
               </div>
@@ -1653,7 +1694,7 @@ const Autopilot = ({ onBack }) => {
                 <div className="flex items-center justify-between mb-2">
                   <Home className="w-8 h-8 text-blue-400" />
                 </div>
-                <p className="text-xl font-black text-white mb-1">3</p>
+                <p className="text-lg font-black text-white mb-1">3</p>
                 <p className="text-blue-300 text-sm">Bookings Confirmed</p>
                 <p className="text-blue-400 text-xs mt-1">Avg $1,760/booking</p>
               </div>
@@ -1662,7 +1703,7 @@ const Autopilot = ({ onBack }) => {
                 <div className="flex items-center justify-between mb-2">
                   <CreditCard className="w-8 h-8 text-purple-400" />
                 </div>
-                <p className="text-xl font-black text-white mb-1">2</p>
+                <p className="text-lg font-black text-white mb-1">2</p>
                 <p className="text-purple-300 text-sm">Payments Received</p>
                 <p className="text-purple-200 text-xs mt-1">$3,100 collected</p>
               </div>

@@ -208,21 +208,21 @@ const OwnerExecutiveSummary = ({ userName = 'José', onNavigate }) => {
             {kpis.map((kpi, index) => {
               const Icon = kpi.icon;
               return (
-                <div key={index} className={`bg-gradient-to-br ${kpi.color} rounded-xl p-4 sm:p-6 border border-[#d85a2a]/20 shadow-xl`}>
-                  <div className="flex items-start justify-between mb-3">
+                <div key={index} className={`bg-gradient-to-br ${kpi.color} rounded-xl p-3 sm:p-4 border border-[#d85a2a]/20 shadow-xl`}>
+                  <div className="flex items-center justify-between mb-2">
                     <p className="text-xs sm:text-sm text-white/80 font-medium">{kpi.label}</p>
-                    <Icon className="w-5 h-5 text-white/80" />
+                    <Icon className="w-4 h-4 sm:w-5 sm:h-5 text-white/80 flex-shrink-0" />
                   </div>
-                  <div className="flex items-baseline gap-2 mb-1">
-                    <span className="text-2xl sm:text-3xl font-bold text-white">{kpi.value}</span>
+                  <div className="mb-1">
+                    <span className="text-xl sm:text-2xl font-bold text-white block">{kpi.value}</span>
                     {kpi.change && (
-                      <span className="text-sm font-medium text-[#10b981]">
+                      <span className="text-xs sm:text-sm font-medium text-[#10b981] inline-block mt-1">
                         {kpi.change}
                       </span>
                     )}
                   </div>
                   {kpi.subtext && (
-                    <p className="text-sm text-white/70">{kpi.subtext}</p>
+                    <p className="text-xs sm:text-sm text-white/70">{kpi.subtext}</p>
                   )}
                 </div>
               );
