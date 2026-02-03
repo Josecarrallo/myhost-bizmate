@@ -1,199 +1,140 @@
-// Supabase configuration and API service
-// NOTE: Do not create client here to avoid multiple GoTrueClient instances
-// Use the client from '../lib/supabase' instead
-
-const SUPABASE_URL = 'https://jjpscimtxrudtepzwhag.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpqcHNjaW10eHJ1ZHRlcHp3aGFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI5NDMyMzIsImV4cCI6MjA3ODUxOTIzMn0._U_HwdF5-yT8-prJLzkdO_rGbNuu7Z3gpUQW0Q8zxa0';
-
-const supabaseHeaders = {
-  'apikey': SUPABASE_ANON_KEY,
-  'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-  'Content-Type': 'application/json',
-  'Prefer': 'return=representation'
-};
+// Supabase service - Refactored to use singleton client with JWT authentication
+// All queries now use the authenticated Supabase client for proper RLS support
+import { supabase } from '../lib/supabase';
 
 export const supabaseService = {
-  // Properties
+  // =====================================================
+  // PROPERTIES - CRUD Operations
+  // =====================================================
+
   async createProperty(data) {
-    const response = await fetch(`${SUPABASE_URL}/rest/v1/properties`, {
-      method: 'POST',
-      headers: supabaseHeaders,
-      body: JSON.stringify(data)
-    });
+    const { data: property, error } = await supabase
+      .from('properties')
+      .insert(data)
+      .select()
+      .single();
 
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || 'Failed to create property');
-    }
-
-    return response.json();
+    if (error) throw new Error(error.message || 'Failed to create property');
+    return property;
   },
 
-  async getProperties() {
-    const response = await fetch(`${SUPABASE_URL}/rest/v1/properties`, {
-      headers: supabaseHeaders
-    });
+  async getProperties(filters = {}) {
+    let query = supabase.from('properties').select('*');
 
-    if (!response.ok) {
-      throw new Error('Failed to fetch properties');
+    if (filters.owner_id) {
+      query = query.eq('owner_id', filters.owner_id);
+    }
+    if (filters.tenant_id) {
+      query = query.eq('tenant_id', filters.tenant_id);
     }
 
-    return response.json();
+    const { data, error } = await query;
+    if (error) throw new Error('Failed to fetch properties');
+    return data;
   },
 
-  // Booking Availability - CRITICAL FUNCTION
+  // =====================================================
+  // BOOKING AVAILABILITY & PRICING
+  // =====================================================
+
   async checkAvailability(propertyId, checkIn, checkOut) {
-    const response = await fetch(
-      `${SUPABASE_URL}/rest/v1/rpc/check_availability`,
-      {
-        method: 'POST',
-        headers: supabaseHeaders,
-        body: JSON.stringify({
-          p_property_id: propertyId,
-          p_check_in: checkIn,
-          p_check_out: checkOut
-        })
-      }
-    );
+    const { data, error } = await supabase.rpc('check_availability', {
+      p_property_id: propertyId,
+      p_check_in: checkIn,
+      p_check_out: checkOut
+    });
 
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || 'Failed to check availability');
-    }
-
-    return response.json();
+    if (error) throw new Error(error.message || 'Failed to check availability');
+    return data;
   },
 
-  // Calculate Booking Price - CRITICAL FUNCTION
   async calculateBookingPrice(propertyId, checkIn, checkOut, guests) {
-    const response = await fetch(
-      `${SUPABASE_URL}/rest/v1/rpc/calculate_booking_price`,
-      {
-        method: 'POST',
-        headers: supabaseHeaders,
-        body: JSON.stringify({
-          p_property_id: propertyId,
-          p_check_in: checkIn,
-          p_check_out: checkOut,
-          p_guests: guests
-        })
-      }
-    );
+    const { data, error } = await supabase.rpc('calculate_booking_price', {
+      p_property_id: propertyId,
+      p_check_in: checkIn,
+      p_check_out: checkOut,
+      p_guests: guests
+    });
 
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || 'Failed to calculate price');
-    }
-
-    return response.json();
+    if (error) throw new Error(error.message || 'Failed to calculate price');
+    return data;
   },
 
   // =====================================================
   // BOOKINGS - CRUD Operations
   // =====================================================
 
-  // Get all bookings (with optional filters)
   async getBookings(filters = {}) {
-    let url = `${SUPABASE_URL}/rest/v1/bookings?select=*&order=created_at.desc`;
+    let query = supabase
+      .from('bookings')
+      .select('*')
+      .order('created_at', { ascending: false });
 
-    // Apply filters
     if (filters.status) {
-      url += `&status=eq.${filters.status}`;
+      query = query.eq('status', filters.status);
     }
     if (filters.property_id) {
-      url += `&property_id=eq.${filters.property_id}`;
+      query = query.eq('property_id', filters.property_id);
     }
     if (filters.tenant_id) {
-      url += `&tenant_id=eq.${filters.tenant_id}`;
+      query = query.eq('tenant_id', filters.tenant_id);
     }
     if (filters.guest_name) {
-      url += `&guest_name=ilike.%${filters.guest_name}%`;
+      query = query.ilike('guest_name', `%${filters.guest_name}%`);
     }
     if (filters.check_in_gte) {
-      url += `&check_in=gte.${filters.check_in_gte}`;
+      query = query.gte('check_in', filters.check_in_gte);
     }
     if (filters.check_in_lte) {
-      url += `&check_in=lte.${filters.check_in_lte}`;
+      query = query.lte('check_in', filters.check_in_lte);
     }
 
-    const response = await fetch(url, {
-      headers: supabaseHeaders
-    });
-
-    if (!response.ok) {
-      throw new Error('Failed to fetch bookings');
-    }
-
-    return response.json();
+    const { data, error } = await query;
+    if (error) throw new Error('Failed to fetch bookings');
+    return data;
   },
 
-  // Get single booking by ID
   async getBooking(id) {
-    const response = await fetch(
-      `${SUPABASE_URL}/rest/v1/bookings?id=eq.${id}`,
-      {
-        headers: supabaseHeaders
-      }
-    );
+    const { data, error } = await supabase
+      .from('bookings')
+      .select('*')
+      .eq('id', id)
+      .single();
 
-    if (!response.ok) {
-      throw new Error('Failed to fetch booking');
-    }
-
-    const data = await response.json();
-    return data[0];
+    if (error) throw new Error('Failed to fetch booking');
+    return data;
   },
 
-  // Create Booking
   async createBooking(bookingData) {
-    const response = await fetch(`${SUPABASE_URL}/rest/v1/bookings`, {
-      method: 'POST',
-      headers: supabaseHeaders,
-      body: JSON.stringify(bookingData)
-    });
+    const { data, error } = await supabase
+      .from('bookings')
+      .insert(bookingData)
+      .select()
+      .single();
 
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || 'Failed to create booking');
-    }
-
-    return response.json();
+    if (error) throw new Error(error.message || 'Failed to create booking');
+    return data;
   },
 
-  // Update booking
   async updateBooking(id, updates) {
-    const response = await fetch(
-      `${SUPABASE_URL}/rest/v1/bookings?id=eq.${id}`,
-      {
-        method: 'PATCH',
-        headers: supabaseHeaders,
-        body: JSON.stringify(updates)
-      }
-    );
+    const { data, error } = await supabase
+      .from('bookings')
+      .update(updates)
+      .eq('id', id)
+      .select()
+      .single();
 
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || 'Failed to update booking');
-    }
-
-    return response.json();
+    if (error) throw new Error(error.message || 'Failed to update booking');
+    return data;
   },
 
-  // Delete booking
   async deleteBooking(id) {
-    const response = await fetch(
-      `${SUPABASE_URL}/rest/v1/bookings?id=eq.${id}`,
-      {
-        method: 'DELETE',
-        headers: supabaseHeaders
-      }
-    );
+    const { error } = await supabase
+      .from('bookings')
+      .delete()
+      .eq('id', id);
 
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || 'Failed to delete booking');
-    }
-
+    if (error) throw new Error(error.message || 'Failed to delete booking');
     return true;
   },
 
@@ -201,251 +142,195 @@ export const supabaseService = {
   // PAYMENTS - CRUD Operations
   // =====================================================
 
-  // Get all payments (with optional filters)
   async getPayments(filters = {}) {
-    let url = `${SUPABASE_URL}/rest/v1/payments?select=*&order=transaction_date.desc`;
+    let query = supabase
+      .from('payments')
+      .select('*')
+      .order('transaction_date', { ascending: false });
 
-    // Apply filters
     if (filters.status) {
-      url += `&status=eq.${filters.status}`;
+      query = query.eq('status', filters.status);
     }
     if (filters.payment_method) {
-      url += `&payment_method=eq.${filters.payment_method}`;
+      query = query.eq('payment_method', filters.payment_method);
     }
     if (filters.property_id) {
-      url += `&property_id=eq.${filters.property_id}`;
+      query = query.eq('property_id', filters.property_id);
     }
     if (filters.booking_id) {
-      url += `&booking_id=eq.${filters.booking_id}`;
+      query = query.eq('booking_id', filters.booking_id);
+    }
+    if (filters.tenant_id) {
+      query = query.eq('tenant_id', filters.tenant_id);
     }
 
-    const response = await fetch(url, {
-      headers: supabaseHeaders
-    });
-
-    if (!response.ok) {
-      throw new Error('Failed to fetch payments');
-    }
-
-    return response.json();
+    const { data, error } = await query;
+    if (error) throw new Error('Failed to fetch payments');
+    return data;
   },
 
-  // Get single payment by ID
   async getPayment(id) {
-    const response = await fetch(
-      `${SUPABASE_URL}/rest/v1/payments?id=eq.${id}`,
-      {
-        headers: supabaseHeaders
-      }
-    );
+    const { data, error } = await supabase
+      .from('payments')
+      .select('*')
+      .eq('id', id)
+      .single();
 
-    if (!response.ok) {
-      throw new Error('Failed to fetch payment');
-    }
-
-    const data = await response.json();
-    return data[0];
+    if (error) throw new Error('Failed to fetch payment');
+    return data;
   },
 
-  // Create new payment
   async createPayment(paymentData) {
-    const response = await fetch(`${SUPABASE_URL}/rest/v1/payments`, {
-      method: 'POST',
-      headers: supabaseHeaders,
-      body: JSON.stringify(paymentData)
-    });
+    const { data, error } = await supabase
+      .from('payments')
+      .insert(paymentData)
+      .select()
+      .single();
 
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || 'Failed to create payment');
-    }
-
-    return response.json();
+    if (error) throw new Error(error.message || 'Failed to create payment');
+    return data;
   },
 
-  // Update payment
   async updatePayment(id, updates) {
-    const response = await fetch(
-      `${SUPABASE_URL}/rest/v1/payments?id=eq.${id}`,
-      {
-        method: 'PATCH',
-        headers: supabaseHeaders,
-        body: JSON.stringify(updates)
-      }
-    );
+    const { data, error } = await supabase
+      .from('payments')
+      .update(updates)
+      .eq('id', id)
+      .select()
+      .single();
 
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || 'Failed to update payment');
-    }
-
-    return response.json();
+    if (error) throw new Error(error.message || 'Failed to update payment');
+    return data;
   },
 
-  // Delete payment
   async deletePayment(id) {
-    const response = await fetch(
-      `${SUPABASE_URL}/rest/v1/payments?id=eq.${id}`,
-      {
-        method: 'DELETE',
-        headers: supabaseHeaders
-      }
-    );
+    const { error } = await supabase
+      .from('payments')
+      .delete()
+      .eq('id', id);
 
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || 'Failed to delete payment');
-    }
-
+    if (error) throw new Error(error.message || 'Failed to delete payment');
     return true;
   },
 
-  // Get payment statistics
   async getPaymentStats(propertyId = null) {
-    const filters = propertyId ? `?property_id=eq.${propertyId}` : '';
+    // Note: These RPC functions need to exist in Supabase
+    // If they don't exist yet, this will fail gracefully
+    try {
+      const { data: totalRevenue, error: revenueError } = await supabase
+        .rpc('get_total_revenue', propertyId ? { p_property_id: propertyId } : {});
 
-    const [totalRevenue, pendingPayments, completedPayments] = await Promise.all([
-      fetch(
-        `${SUPABASE_URL}/rest/v1/rpc/get_total_revenue${propertyId ? '' : ''}`,
-        {
-          method: 'POST',
-          headers: supabaseHeaders,
-          body: JSON.stringify(propertyId ? { p_property_id: propertyId } : {})
-        }
-      ).then(r => r.json()),
+      const { data: pendingPayments, error: pendingError } = await supabase
+        .rpc('get_pending_payments_total', propertyId ? { p_property_id: propertyId } : {});
 
-      fetch(
-        `${SUPABASE_URL}/rest/v1/rpc/get_pending_payments_total${propertyId ? '' : ''}`,
-        {
-          method: 'POST',
-          headers: supabaseHeaders,
-          body: JSON.stringify(propertyId ? { p_property_id: propertyId } : {})
-        }
-      ).then(r => r.json()),
+      let completedQuery = supabase
+        .from('payments')
+        .select('id', { count: 'exact', head: true })
+        .eq('status', 'completed');
 
-      fetch(
-        `${SUPABASE_URL}/rest/v1/payments?select=count${filters}&status=eq.completed`,
-        {
-          headers: supabaseHeaders
-        }
-      ).then(r => r.json())
-    ]);
+      if (propertyId) {
+        completedQuery = completedQuery.eq('property_id', propertyId);
+      }
 
-    return {
-      totalRevenue,
-      pendingPayments,
-      completedCount: completedPayments?.[0]?.count || 0
-    };
+      const { count: completedCount, error: countError } = await completedQuery;
+
+      return {
+        totalRevenue: revenueError ? 0 : totalRevenue,
+        pendingPayments: pendingError ? 0 : pendingPayments,
+        completedCount: countError ? 0 : completedCount
+      };
+    } catch (error) {
+      console.error('Error fetching payment stats:', error);
+      return {
+        totalRevenue: 0,
+        pendingPayments: 0,
+        completedCount: 0
+      };
+    }
   },
 
   // =====================================================
   // MESSAGES - CRUD Operations
   // =====================================================
 
-  // Get all messages (with optional filters)
   async getMessages(filters = {}) {
-    let url = `${SUPABASE_URL}/rest/v1/messages?select=*&order=sent_at.desc`;
+    let query = supabase
+      .from('messages')
+      .select('*')
+      .order('sent_at', { ascending: false });
 
-    // Apply filters
     if (filters.status) {
-      url += `&status=eq.${filters.status}`;
+      query = query.eq('status', filters.status);
     }
     if (filters.ai_handled !== undefined) {
-      url += `&ai_handled=eq.${filters.ai_handled}`;
+      query = query.eq('ai_handled', filters.ai_handled);
     }
     if (filters.property_id) {
-      url += `&property_id=eq.${filters.property_id}`;
+      query = query.eq('property_id', filters.property_id);
     }
     if (filters.booking_id) {
-      url += `&booking_id=eq.${filters.booking_id}`;
+      query = query.eq('booking_id', filters.booking_id);
     }
     if (filters.conversation_id) {
-      url += `&conversation_id=eq.${filters.conversation_id}`;
+      query = query.eq('conversation_id', filters.conversation_id);
     }
     if (filters.platform) {
-      url += `&platform=eq.${filters.platform}`;
+      query = query.eq('platform', filters.platform);
+    }
+    if (filters.tenant_id) {
+      query = query.eq('tenant_id', filters.tenant_id);
     }
 
-    const response = await fetch(url, {
-      headers: supabaseHeaders
-    });
-
-    if (!response.ok) {
-      throw new Error('Failed to fetch messages');
-    }
-
-    return response.json();
+    const { data, error } = await query;
+    if (error) throw new Error('Failed to fetch messages');
+    return data;
   },
 
-  // Get single message by ID
   async getMessage(id) {
-    const response = await fetch(
-      `${SUPABASE_URL}/rest/v1/messages?id=eq.${id}`,
-      {
-        headers: supabaseHeaders
-      }
-    );
+    const { data, error } = await supabase
+      .from('messages')
+      .select('*')
+      .eq('id', id)
+      .single();
 
-    if (!response.ok) {
-      throw new Error('Failed to fetch message');
-    }
-
-    const data = await response.json();
-    return data[0];
+    if (error) throw new Error('Failed to fetch message');
+    return data;
   },
 
-  // Get conversation (all messages with same conversation_id)
   async getConversation(conversationId) {
-    const response = await fetch(
-      `${SUPABASE_URL}/rest/v1/messages?conversation_id=eq.${conversationId}&order=sent_at.asc`,
-      {
-        headers: supabaseHeaders
-      }
-    );
+    const { data, error } = await supabase
+      .from('messages')
+      .select('*')
+      .eq('conversation_id', conversationId)
+      .order('sent_at', { ascending: true });
 
-    if (!response.ok) {
-      throw new Error('Failed to fetch conversation');
-    }
-
-    return response.json();
+    if (error) throw new Error('Failed to fetch conversation');
+    return data;
   },
 
-  // Create new message
   async createMessage(messageData) {
-    const response = await fetch(`${SUPABASE_URL}/rest/v1/messages`, {
-      method: 'POST',
-      headers: supabaseHeaders,
-      body: JSON.stringify(messageData)
-    });
+    const { data, error } = await supabase
+      .from('messages')
+      .insert(messageData)
+      .select()
+      .single();
 
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || 'Failed to create message');
-    }
-
-    return response.json();
+    if (error) throw new Error(error.message || 'Failed to create message');
+    return data;
   },
 
-  // Update message (e.g., mark as read)
   async updateMessage(id, updates) {
-    const response = await fetch(
-      `${SUPABASE_URL}/rest/v1/messages?id=eq.${id}`,
-      {
-        method: 'PATCH',
-        headers: supabaseHeaders,
-        body: JSON.stringify(updates)
-      }
-    );
+    const { data, error } = await supabase
+      .from('messages')
+      .update(updates)
+      .eq('id', id)
+      .select()
+      .single();
 
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || 'Failed to update message');
-    }
-
-    return response.json();
+    if (error) throw new Error(error.message || 'Failed to update message');
+    return data;
   },
 
-  // Mark message as read
   async markMessageAsRead(id) {
     return this.updateMessage(id, {
       status: 'read',
@@ -453,88 +338,72 @@ export const supabaseService = {
     });
   },
 
-  // Mark all messages as read for a conversation
   async markConversationAsRead(conversationId) {
-    const response = await fetch(
-      `${SUPABASE_URL}/rest/v1/messages?conversation_id=eq.${conversationId}`,
-      {
-        method: 'PATCH',
-        headers: supabaseHeaders,
-        body: JSON.stringify({
-          status: 'read',
-          read_at: new Date().toISOString()
-        })
-      }
-    );
+    const { data, error } = await supabase
+      .from('messages')
+      .update({
+        status: 'read',
+        read_at: new Date().toISOString()
+      })
+      .eq('conversation_id', conversationId)
+      .select();
 
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || 'Failed to mark conversation as read');
-    }
-
-    return response.json();
+    if (error) throw new Error(error.message || 'Failed to mark conversation as read');
+    return data;
   },
 
-  // Delete message
   async deleteMessage(id) {
-    const response = await fetch(
-      `${SUPABASE_URL}/rest/v1/messages?id=eq.${id}`,
-      {
-        method: 'DELETE',
-        headers: supabaseHeaders
-      }
-    );
+    const { error } = await supabase
+      .from('messages')
+      .delete()
+      .eq('id', id);
 
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || 'Failed to delete message');
-    }
-
+    if (error) throw new Error(error.message || 'Failed to delete message');
     return true;
   },
 
-  // Get message statistics
   async getMessageStats(propertyId = null) {
-    const [unreadCount, aiHandledCount] = await Promise.all([
-      fetch(
-        `${SUPABASE_URL}/rest/v1/rpc/get_unread_messages_count`,
-        {
-          method: 'POST',
-          headers: supabaseHeaders,
-          body: JSON.stringify(propertyId ? { p_property_id: propertyId } : {})
-        }
-      ).then(r => r.json()),
+    try {
+      const { data: unreadCount, error: unreadError } = await supabase
+        .rpc('get_unread_messages_count', propertyId ? { p_property_id: propertyId } : {});
 
-      fetch(
-        `${SUPABASE_URL}/rest/v1/rpc/get_ai_handled_messages_count`,
-        {
-          method: 'POST',
-          headers: supabaseHeaders,
-          body: JSON.stringify(propertyId ? { p_property_id: propertyId } : {})
-        }
-      ).then(r => r.json())
-    ]);
+      const { data: aiHandledCount, error: aiError } = await supabase
+        .rpc('get_ai_handled_messages_count', propertyId ? { p_property_id: propertyId } : {});
 
-    return {
-      unreadCount,
-      aiHandledCount
-    };
+      return {
+        unreadCount: unreadError ? 0 : unreadCount,
+        aiHandledCount: aiError ? 0 : aiHandledCount
+      };
+    } catch (error) {
+      console.error('Error fetching message stats:', error);
+      return {
+        unreadCount: 0,
+        aiHandledCount: 0
+      };
+    }
   },
 
-  // Subscribe to new messages (Realtime)
   subscribeToMessages(callback, filters = {}) {
-    // Note: This requires Supabase Realtime to be enabled
-    // Returns an unsubscribe function
-    const channel = `messages${filters.property_id ? `:property_id=eq.${filters.property_id}` : ''}`;
+    // Subscribe to realtime changes on messages table
+    const channel = supabase
+      .channel('messages-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'messages',
+          filter: filters.property_id ? `property_id=eq.${filters.property_id}` : undefined
+        },
+        (payload) => {
+          callback(payload);
+        }
+      )
+      .subscribe();
 
-    // This is a placeholder - actual implementation would use Supabase Realtime client
-    // For now, we'll use polling as a fallback
-    console.log('Realtime subscriptions require Supabase Realtime client library');
-    console.log('Channel:', channel);
-
-    // Return a cleanup function
+    // Return unsubscribe function
     return () => {
-      console.log('Unsubscribed from messages');
+      supabase.removeChannel(channel);
     };
   },
 
@@ -542,17 +411,15 @@ export const supabaseService = {
   // BUSINESS REPORTS - Get data for owner reports
   // =====================================================
 
-  // Get comprehensive business report data for an owner
   async getOwnerBusinessReportData(ownerId) {
     try {
       // Get properties for this owner
-      const propertiesResponse = await fetch(
-        `${SUPABASE_URL}/rest/v1/properties?owner_id=eq.${ownerId}&select=*`,
-        { headers: supabaseHeaders }
-      );
+      const { data: properties, error: propError } = await supabase
+        .from('properties')
+        .select('*')
+        .eq('owner_id', ownerId);
 
-      if (!propertiesResponse.ok) throw new Error('Failed to fetch properties');
-      const properties = await propertiesResponse.json();
+      if (propError) throw new Error('Failed to fetch properties');
 
       if (!properties || properties.length === 0) {
         return {
@@ -573,53 +440,33 @@ export const supabaseService = {
 
       const propertyIds = properties.map(p => p.id);
 
+      // Get all bookings for these properties
+      const { data: bookings, error: bookingsError } = await supabase
+        .from('bookings')
+        .select('*')
+        .in('property_id', propertyIds);
 
-      // Get all bookings, payments, and leads for these properties
-      const bookings = [];
-      const payments = [];
-      const leads = [];
+      if (bookingsError) throw new Error('Failed to fetch bookings');
 
-      for (const propId of propertyIds) {
-        // Get bookings for this property
-        const bookingsResponse = await fetch(
-          `${SUPABASE_URL}/rest/v1/bookings?property_id=eq.${propId}&select=*`,
-          { headers: supabaseHeaders }
-        );
-        if (bookingsResponse.ok) {
-          const propBookings = await bookingsResponse.json();
-          bookings.push(...propBookings);
-        }
+      // Get all payments for these properties
+      const { data: payments, error: paymentsError } = await supabase
+        .from('payments')
+        .select('*')
+        .in('property_id', propertyIds);
 
-        // Get payments for this property
-        const paymentsResponse = await fetch(
-          `${SUPABASE_URL}/rest/v1/payments?property_id=eq.${propId}&select=*`,
-          { headers: supabaseHeaders }
-        );
-        if (paymentsResponse.ok) {
-          const propPayments = await paymentsResponse.json();
-          payments.push(...propPayments);
-        }
+      if (paymentsError) throw new Error('Failed to fetch payments');
 
-        // Get leads for this property
-        const leadsResponse = await fetch(
-          `${SUPABASE_URL}/rest/v1/leads?property_id=eq.${propId}&select=*`,
-          { headers: supabaseHeaders }
-        );
-        if (leadsResponse.ok) {
-          const propLeads = await leadsResponse.json();
-          leads.push(...propLeads);
-        }
-      }
+      // Get all leads for these properties
+      const { data: leads, error: leadsError } = await supabase
+        .from('leads')
+        .select('*')
+        .in('property_id', propertyIds);
 
       // Calculate metrics
-      // Total revenue from all bookings (not just payments)
-      const totalRevenue = bookings.reduce((sum, b) => sum + (b.total_price || 0), 0);
+      const totalRevenue = (bookings || []).reduce((sum, b) => sum + (b.total_price || 0), 0);
+      const totalBookings = (bookings || []).length;
 
-      // All bookings regardless of status
-      const totalBookings = bookings.length;
-
-      // Calculate total nights and occupancy
-      const totalNights = bookings.reduce((sum, b) => {
+      const totalNights = (bookings || []).reduce((sum, b) => {
         if (b.check_in && b.check_out) {
           const checkIn = new Date(b.check_in);
           const checkOut = new Date(b.check_out);
@@ -629,8 +476,7 @@ export const supabaseService = {
         return sum;
       }, 0);
 
-      // Calculate occupancy rate based on actual data
-      const daysInPeriod = 365; // Full year for better calculation
+      const daysInPeriod = 365;
       const totalPossibleNights = propertyIds.length * daysInPeriod;
       const occupancyRate = totalPossibleNights > 0 && totalNights > 0
         ? (totalNights / totalPossibleNights) * 100
@@ -643,9 +489,9 @@ export const supabaseService = {
       return {
         owner: { id: ownerId },
         properties,
-        bookings,
-        payments,
-        leads,
+        bookings: bookings || [],
+        payments: payments || [],
+        leads: leadsError ? [] : (leads || []),
         metrics: {
           totalRevenue,
           totalBookings,
@@ -658,7 +504,89 @@ export const supabaseService = {
       console.error('Error fetching business report data:', error);
       throw error;
     }
+  },
+
+  // =====================================================
+  // LEADS - CRUD Operations
+  // =====================================================
+
+  async getLeads(filters = {}) {
+    let query = supabase
+      .from('leads')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (filters.status) {
+      query = query.eq('status', filters.status);
+    }
+    if (filters.property_id) {
+      query = query.eq('property_id', filters.property_id);
+    }
+    if (filters.tenant_id) {
+      query = query.eq('tenant_id', filters.tenant_id);
+    }
+
+    const { data, error } = await query;
+    if (error) throw new Error('Failed to fetch leads');
+    return data;
+  },
+
+  async createLead(leadData) {
+    const { data, error } = await supabase
+      .from('leads')
+      .insert(leadData)
+      .select()
+      .single();
+
+    if (error) throw new Error(error.message || 'Failed to create lead');
+    return data;
+  },
+
+  async updateLead(id, updates) {
+    const { data, error } = await supabase
+      .from('leads')
+      .update(updates)
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) throw new Error(error.message || 'Failed to update lead');
+    return data;
+  },
+
+  // =====================================================
+  // VILLAS - Read Operations
+  // =====================================================
+
+  async getVillas(filters = {}) {
+    let query = supabase.from('villas').select('*');
+
+    if (filters.tenant_id) {
+      query = query.eq('tenant_id', filters.tenant_id);
+    }
+
+    const { data, error } = await query;
+    if (error) throw new Error('Failed to fetch villas');
+    return data;
+  },
+
+  // =====================================================
+  // GUESTS - Read Operations
+  // =====================================================
+
+  async getGuests(filters = {}) {
+    let query = supabase.from('guests').select('*');
+
+    if (filters.tenant_id) {
+      query = query.eq('tenant_id', filters.tenant_id);
+    }
+
+    const { data, error } = await query;
+    if (error) throw new Error('Failed to fetch guests');
+    return data;
   }
 };
 
-export { SUPABASE_URL, SUPABASE_ANON_KEY };
+// Export URLs for backwards compatibility (if needed)
+export const SUPABASE_URL = 'https://jjpscimtxrudtepzwhag.supabase.co';
+export const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpqcHNjaW10eHJ1ZHRlcHp3aGFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI5NDMyMzIsImV4cCI6MjA3ODUxOTIzMn0._U_HwdF5-yT8-prJLzkdO_rGbNuu7Z3gpUQW0Q8zxa0';

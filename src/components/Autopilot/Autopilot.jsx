@@ -35,6 +35,7 @@ import {
 } from 'lucide-react';
 import ManualDataEntry from '../ManualDataEntry/ManualDataEntry';
 import { useAuth } from '../../contexts/AuthContext';
+import { supabase } from '../../lib/supabase';
 
 const Autopilot = ({ onBack }) => {
   const { userData } = useAuth();
@@ -267,22 +268,22 @@ const Autopilot = ({ onBack }) => {
     if (!TENANT_ID) return;
 
     try {
-      const headers = {
-        'apikey': SUPABASE_KEY,
-        'Authorization': `Bearer ${SUPABASE_KEY}`
-      };
+      // Use Supabase client (automatically includes JWT token from session)
+      const { data: bookings, error } = await supabase
+        .from('bookings')
+        .select('id')
+        .eq('tenant_id', TENANT_ID);
 
-      // Count bookings
-      const bookingsRes = await fetch(
-        `${SUPABASE_URL}/rest/v1/bookings?tenant_id=eq.${TENANT_ID}&select=id`,
-        { headers }
-      );
-      const bookings = await bookingsRes.json();
+      if (error) {
+        console.error('Error loading bookings count:', error);
+        setRealCounts(prev => ({ ...prev, loading: false }));
+        return;
+      }
 
       setRealCounts({
-        totalClients: bookings.length, // Same as bookings for now (unique guests later)
+        totalClients: bookings?.length || 0,
         totalLeads: 0, // TODO: Add leads count
-        totalBookings: bookings.length,
+        totalBookings: bookings?.length || 0,
         totalPayments: 0, // TODO: Add payments count
         loading: false
       });
@@ -1230,7 +1231,7 @@ const Autopilot = ({ onBack }) => {
           </button>
           <h3 className="text-2xl font-black text-[#FF8C42] flex items-center gap-2">
             <Home className="w-6 h-6" />
-            Bookings (45 total)
+            Bookings ({realCounts.totalBookings} total)
           </h3>
           <div className="flex gap-2">
             <button className="px-4 py-2 bg-[#2a2f3a] hover:bg-[#374151] text-white rounded-lg font-medium transition-all flex items-center gap-2">
