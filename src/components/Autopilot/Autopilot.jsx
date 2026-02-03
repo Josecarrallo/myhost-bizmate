@@ -59,6 +59,15 @@ const Autopilot = ({ onBack }) => {
     expiredHolds: 0
   });
 
+  // Real counts from Supabase
+  const [realCounts, setRealCounts] = useState({
+    totalClients: 0,
+    totalLeads: 0,
+    totalBookings: 0,
+    totalPayments: 0,
+    loading: true
+  });
+
   const [alerts, setAlerts] = useState([
     {
       id: 1,
@@ -221,7 +230,7 @@ const Autopilot = ({ onBack }) => {
       name: 'Bookings',
       icon: Home,
       description: 'All reservations',
-      badge: '45 total'
+      badge: `${realCounts.totalClients || 0} total`
     },
     {
       id: 'payments',
@@ -253,13 +262,44 @@ const Autopilot = ({ onBack }) => {
     }
   ];
 
+  // Load real counts from Supabase
+  const loadRealCounts = async () => {
+    if (!TENANT_ID) return;
+
+    try {
+      const headers = {
+        'apikey': SUPABASE_KEY,
+        'Authorization': `Bearer ${SUPABASE_KEY}`
+      };
+
+      // Count bookings
+      const bookingsRes = await fetch(
+        `${SUPABASE_URL}/rest/v1/bookings?tenant_id=eq.${TENANT_ID}&select=id`,
+        { headers }
+      );
+      const bookings = await bookingsRes.json();
+
+      setRealCounts({
+        totalClients: bookings.length, // Same as bookings for now (unique guests later)
+        totalLeads: 0, // TODO: Add leads count
+        totalBookings: bookings.length,
+        totalPayments: 0, // TODO: Add payments count
+        loading: false
+      });
+    } catch (error) {
+      console.error('Error loading real counts:', error);
+      setRealCounts(prev => ({ ...prev, loading: false }));
+    }
+  };
+
   // Load data on mount
   useEffect(() => {
+    loadRealCounts();
     fetchTodayMetrics();
     fetchAlerts();
     fetchActions();
     fetchMonthlyMetrics();
-  }, []);
+  }, [TENANT_ID]);
 
   // Helper functions
   const formatTimeAgo = (timestamp) => {
@@ -637,7 +677,7 @@ const Autopilot = ({ onBack }) => {
               Status: Active
             </div>
 
-            <h2>👥 Clients Database (45 Total)</h2>
+            <h2>👥 Clients Database ({realCounts.totalClients} Total)</h2>
             <table>
               <tr>
                 <th>Name</th>
@@ -653,7 +693,7 @@ const Autopilot = ({ onBack }) => {
               <tr><td colspan="4" style="text-align: center; color: #999;">... 40 more clients</td></tr>
             </table>
             <div class="summary-box">
-              Total Clients: 45 | Countries Represented: 19 | Repeat Guests: 8
+              Total Clients: {realCounts.totalClients} | Bookings: {realCounts.totalBookings}
             </div>
 
             <h2>📈 Leads Pipeline (8 Active)</h2>
@@ -690,7 +730,7 @@ const Autopilot = ({ onBack }) => {
               <tr><td>November 2025</td><td>12</td><td>$11,220</td><td>$935</td><td>65%</td></tr>
               <tr><td>December 2025</td><td>18</td><td>$23,100</td><td>$1,283</td><td>85%</td></tr>
               <tr><td>January 2026</td><td>15</td><td>$15,820</td><td>$1,055</td><td>72%</td></tr>
-              <tr style="font-weight: bold;"><td>TOTAL</td><td>45</td><td>$50,140</td><td>$1,114</td><td>74%</td></tr>
+              <tr style="font-weight: bold;"><td>TOTAL</td><td>{realCounts.totalBookings}</td><td>$50,140</td><td>$1,114</td><td>74%</td></tr>
             </table>
 
             <h3>By Channel</h3>
@@ -759,7 +799,7 @@ const Autopilot = ({ onBack }) => {
             <div class="summary-box">
               <strong>3-Month Performance:</strong><br>
               Total Revenue: $50,140<br>
-              Total Bookings: 45<br>
+              Total Bookings: {realCounts.totalBookings}<br>
               Average Booking Value: $1,114<br>
               Average Occupancy: 74%<br>
               Payment Completion: 95.6%<br>
@@ -830,7 +870,7 @@ const Autopilot = ({ onBack }) => {
               <tr><td>Anna Müller</td><td>Jan 28, 2026</td><td>7</td><td>$1,470</td><td>Confirmed</td></tr>
               <tr><td>Emma Chen</td><td>Feb 10, 2026</td><td>7</td><td>$1,960</td><td>Pending</td></tr>
             </table>
-            <p><strong>Total Bookings:</strong> 45 | <strong>Total Revenue:</strong> $50,140</p>
+            <p><strong>Total Bookings:</strong> {realCounts.totalBookings} | <strong>Total Revenue:</strong> $50,140</p>
           </div>
         `;
       }
@@ -962,7 +1002,7 @@ const Autopilot = ({ onBack }) => {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
             <div className="bg-gradient-to-br from-blue-500/10 to-blue-600/10 rounded-xl p-4 border-2 border-blue-500/30">
               <p className="text-blue-300 text-sm mb-1">Total Clients</p>
-              <p className="text-2xl font-black text-white">45</p>
+              <p className="text-2xl font-black text-white">{realCounts.totalClients}</p>
             </div>
             <div className="bg-gradient-to-br from-green-500/10 to-green-600/10 rounded-xl p-4 border-2 border-green-500/30">
               <p className="text-green-300 text-sm mb-1">Countries</p>
@@ -1028,7 +1068,7 @@ const Autopilot = ({ onBack }) => {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="bg-gradient-to-br from-blue-500/10 to-blue-600/10 rounded-xl p-5 border-2 border-blue-500/30">
               <p className="text-blue-300 text-sm mb-2">Total Bookings</p>
-              <p className="text-3xl font-black text-white mb-1">45</p>
+              <p className="text-3xl font-black text-white mb-1">{realCounts.totalBookings}</p>
               <p className="text-blue-200 text-sm">Nov-Jan 2026</p>
             </div>
             <div className="bg-gradient-to-br from-green-500/10 to-green-600/10 rounded-xl p-5 border-2 border-green-500/30">
