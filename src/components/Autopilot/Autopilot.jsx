@@ -1271,7 +1271,7 @@ const Autopilot = ({ onBack }) => {
         </div>
 
         <button className="w-full mt-4 px-4 py-3 bg-orange-500 hover:bg-orange-600 text-white rounded-lg font-bold transition-all">
-          View All 45 Bookings
+          View All {realCounts.totalBookings} Bookings
         </button>
       </div>
     </div>
