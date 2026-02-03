@@ -24,3 +24,6 @@ apply-*.js
 # MCP Server credentials
 .claude/mcp/n8n/.env
 claude_desktop_config.json
+
+# n8n workflows with API keys - DO NOT COMMIT (backup in Google Drive)
+src/n8n_worlkflow_claude/*.json
