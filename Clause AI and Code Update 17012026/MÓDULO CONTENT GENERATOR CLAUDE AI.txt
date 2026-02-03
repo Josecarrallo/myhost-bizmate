@@ -1,180 +1,159 @@
-DOCUMENTO OFICIAL — CLAUDE AI (N8N WORKFLOWS)
-MÓDULO: CONTENT GENERATOR
-PROYECTO: MY HOST – BizMate
-ESTADO: DEFINITIVO / LISTO PARA IMPLEMENTAR
-ALCANCE: BACKEND / AUTOMATION ONLY (n8n)
-REGLA CRÍTICA: SIMPLICIDAD. FLUJO LINEAL. SIN SOBREINGENIERÍA.
+## Module 1 – Cinematic AI Content Creation (for villa & hotel owners)
 
-================================================================
-0. ACLARACIÓN IMPORTANTE (LECTURA OBLIGATORIA)
-================================================================
-Cuando este documento habla de “NODOS”, se refiere a:
-BLOQUES DE UN WORKFLOW EN N8N.
+The **Content Creation Module** of MYHOST Bizmate transforms the videos your team already shoots on their phones into **short, vertical, cinematic clips**, ready for Instagram, TikTok and WhatsApp – without agencies, freelancers or complex productions. In today’s Bali market, where booking decisions increasingly happen on social media, having constant, high‑quality content is no longer optional: it’s what separates fully booked villas from those that get ignored. 
+---
 
-Un NODO = un paso del flujo.
-Un WORKFLOW = nodos conectados en orden.
+### 1. What this module actually does
 
-Ejemplo mental:
-Webhook → Validar → IA → Guardar → Responder
+Instead of hiring a videographer every time you need new content, your team can:
 
-NO diseñar UI.
-NO añadir lógica innecesaria.
-NO dividir en múltiples workflows en esta fase.
+- Shoot simple mobile videos: rooms, pool, breakfast, staff, sunsets, activities, design details, etc. [web:165][web:169][web:174][web:177]  
+- Send them to MYHOST Bizmate (e.g. via WhatsApp or your owner dashboard).  
+- Receive, within minutes, **social‑media‑ready clips** with enhanced color, lighting and storytelling, plus sales copy and optimized hashtags.
 
-================================================================
-1. QUÉ ES EL CONTENT GENERATOR
-================================================================
-El Content Generator es un módulo de generación automática de contenido
-para marketing en hospitality (hoteles, villas, retreats).
+The system uses advanced AI:
 
-NO es solo copywriting.
-ES un generador estructurado que:
-- entiende contexto operativo y comercial
-- genera contenido por canal
-- devuelve resultados estructurados (JSON)
-- guarda borradores
-- puede ser disparado por humanos o por otros agentes AI
+- **Content analysis**  
+  A model like Claude analyzes the video, detects what’s in it (infinity pool, rice fields, interiors, brunch, family, couple, etc.) and classifies the overall vibe (romantic, family, luxury, detox, digital nomad). [web:169][web:173][web:178]
 
-Vive en: MARKETING & GROWTH
-Se integra con: OSIRIS / LUMINA / BANYU
+- **Cinematic visual enhancement**  
+  A video AI engine such as Wan/Wanda 2.6 re‑renders the clip to improve color, lighting and motion, while preserving the real architecture and layout of your villa – no fake rooms, no misleading views. [web:15][web:171][web:176]
 
-================================================================
-2. QUÉ TIENE QUE HACER (COMPORTAMIENTO)
-================================================================
-Para cada solicitud, el sistema debe:
+- **Copy that actually sells the experience**  
+  The AI generates short, punchy copy that highlights what makes your property special for that specific audience (couples, families, nomads, groups, retreats), in the language you choose. It also suggests hashtags aligned with Bali travel trends and your niche. [web:169][web:170][web:173][web:178]
 
-1. Recibir una petición de contenido
-2. Validar y normalizar inputs
-3. Generar contenido con IA (Claude)
-4. Devolver el contenido estructurado
-5. Guardar el resultado como DRAFT
-6. (Opcional) Enviar preview por WhatsApp / Email
+---
 
-NO publicar automáticamente.
+### 2. How the solution will work (functional view)
 
-================================================================
-3. INPUTS DEL WORKFLOW (DATA CONTRACT)
-================================================================
-El Webhook de entrada recibe este JSON mínimo:
+The process is designed to be **very simple** for staff and managers, backed by a robust infrastructure:
 
-{
-  "property_id": "string",
-  "property_name": "string",
-  "channel": "instagram | tiktok | website | email | whatsapp | ads",
-  "content_type": "post | reel | story | carousel | email | landing",
-  "objective": "bookings | awareness | last_minute | upsell",
-  "tone": "luxury | warm | playful | professional | minimal",
-  "language": "en | es | id",
-  "cta": "Book now | Contact us | Discover more",
-  "context": {
-    "occupancy": "low | medium | high",
-    "season": "low | high | peak",
-    "event": "string | null"
-  }
-}
+1. **Staff recording**  
+   - Staff or the owner records a short mobile video (10–30 seconds): villa walkthrough, sunrise by the pool, breakfast being served, the team at work, etc. [web:165][web:169][web:174]
 
-Si falta algún campo:
-- usar valores por defecto
-- NO fallar el workflow
+2. **Sending to MYHOST Bizmate**  
+   - The video is sent via **WhatsApp Business** to a dedicated number for the property, or uploaded via the MYHOST Bizmate interface.  
+   - Along with the video, the user selects:
+     - Content language (e.g. English, Spanish, French).  
+     - Marketing objective (drive direct bookings, attract couples, families, wellness guests, retreat groups, etc.).
 
-================================================================
-4. OUTPUT OBLIGATORIO (STRUCTURED)
-================================================================
-Claude DEBE devolver siempre JSON estructurado.
-NO texto libre.
+3. **Automatic orchestration**  
+   - MYHOST Bizmate receives the video and triggers an **n8n workflow**.  
+   - The flow:
+     - Downloads the video.  
+     - Calls the backend so **Claude** can analyze the content and prepare the “creative plan” (style, script, video‑AI prompt, captions, hashtags).  
+     - Sends the video and instructions to **Wan/Wanda 2.6** to enhance the visuals.  
+     - Pipes the result through **Shotstack** to add logo, audio and on‑screen text when needed.
 
-{
-  "title": "string",
-  "hook": "string",
-  "body_copy": "string",
-  "cta": "string",
-  "hashtags_or_keywords": ["string"],
-  "visual_guidelines": ["string"],
-  "recommended_variants": {
-    "instagram": "string",
-    "email": "string",
-    "website": "string"
-  }
-}
+4. **Review and approval**  
+   - The system generates a **preview link** and sends it to the owner/marketing team (via WhatsApp or web dashboard).  
+   - The owner can approve, request changes, or discard the clip.
 
-Si el output no es válido:
-- retry 1 vez
-- si falla → fallback + log
+5. **Publishing to social media**  
+   - Once approved, the video and text can be automatically published or scheduled on:
+     - Instagram Reels / Stories.  
+     - TikTok.  
+     - Other supported platforms through **Ayrshare** or a similar social posting API. [web:170][web:173][web:175]
 
-================================================================
-5. WORKFLOW N8N — NODOS EXACTOS
-================================================================
-El workflow debe implementarse como una cadena LINEAL de nodos:
+---
 
-NODO 1 — Webhook
-- Tipo: Webhook Trigger
-- Método: POST
-- Recibe el JSON de entrada
+### 3. Products / tools required for this module
 
-NODO 2 — Validate & Defaults
-- Tipo: Set / IF
-- Validar campos obligatorios
-- Aplicar defaults si faltan datos
+From a technical standpoint, the Content Creation Module is built on the following components:
 
-NODO 3 — Claude AI
-- Tipo: AI / HTTP (según integración)
-- Rol: Hospitality Marketing Expert
-- Instrucción:
-  “Generate marketing content for hospitality.
-   Return ONLY valid JSON following the schema provided.”
+**Orchestration & business logic**
 
-NODO 4 — Parse & Validate Output
-- Tipo: IF / Function
-- Verificar que el JSON contiene todos los campos
-- Si no → retry o fallback
+- **n8n**  
+  - Orchestrates the entire flow: video ingestion, AI calls, enhancement, post‑production and publishing. [web:68][web:72]  
+  - Enables a multi‑tenant setup (many villas, one shared infrastructure). [web:113][web:121]
 
-NODO 5 — Save Draft
-- Tipo: Supabase / Google Sheets / DB
-- Guardar:
-  - input
-  - output
-  - status = "draft"
-  - timestamp
+- **MYHOST Bizmate Backend**  
+  - Exposes internal endpoints to:
+    - Call Claude with the right prompts.  
+    - Manage languages, marketing goals and per‑villa configuration.  
+    - Store the full history of generated videos and performance stats.
 
-NODO 6 — Optional Notification
-- Tipo: WhatsApp (BANYU) o Email
-- Enviar preview si se solicita
+**Language & vision AI**
 
-NODO 7 — Respond to Webhook
-- Tipo: Respond to Webhook
-- Devolver el JSON generado al frontend
+- **Claude (API)**  
+  - Analyzes the video (via frames/metadata) and produces:
+    - Scene description.  
+    - Content “vibe” (romantic, family, luxury, etc.).  
+    - Technical prompt for the video AI engine (style, lighting, motion).  
+    - Copy/caption and hashtags tailored to the goal and language. [web:169][web:170][web:173][web:178]
 
-================================================================
-6. INTEGRACIÓN CON AGENTIC AI
-================================================================
-Este workflow puede ser disparado por:
+- **Claude Code**  
+  - Used internally by the dev team to:
+    - Generate and refine microservice code.  
+    - Create and evolve n8n workflows faster and more safely.
 
-- Usuario humano (Marketing)
-- OSIRIS (baja ocupación)
-- LUMINA (oportunidad de venta)
-- Market Intelligence (evento / demanda)
+**Video engine & post‑production**
 
-Ejemplo:
-OSIRIS detecta baja ocupación → trigger Content Generator
-LUMINA detecta lead caliente → trigger Content Generator
+- **Wan/Wanda 2.6 (via API)**  
+  - Video AI engine that:
+    - Enhances color and lighting.  
+    - Applies a modern cinematic look (perfect for travel/social content).  
+    - Preserves the real structure of the villa (no fake rooms or misleading views). [web:15][web:171][web:176]
 
-================================================================
-7. REGLAS IMPORTANTES
-================================================================
-- SIEMPRE generar DRAFT primero
-- NO publicar automáticamente
-- Lenguaje hospitality premium
-- NO inventar precios ni promociones
-- CTA alineado con objetivo
-- Contenido reutilizable multicanal
+- **Shotstack API**  
+  - Cloud video editing service used to:
+    - Add the villa’s logo and brand elements.  
+    - Insert licensed music.  
+    - Overlay short text (promotions, USPs, calls to action). [web:72]
 
-================================================================
-8. OBJETIVO FINAL
-================================================================
-Reducir trabajo manual de marketing.
-Activar contenido basado en contexto real.
-Permitir escalado sin añadir equipo.
+**Input & output channels**
 
-================================================================
-FIN DEL DOCUMENTO — EJECUTAR SIN INTERPRETAR
-================================================================
+- **WhatsApp Business API** (Twilio, 360dialog, Meta Cloud, etc.)  
+  - Main channel for staff to send videos and receive previews, using an app they already use daily.
+
+- **Ayrshare API** (or similar)  
+  - For posting and scheduling content on Instagram, TikTok and other networks.
+
+**Storage & delivery**
+
+- **Object Storage (Supabase, S3 or similar)**  
+  - Stores:
+    - Raw videos uploaded by staff.  
+    - Final videos generated by the AI.  
+  - Provides URLs consumed by n8n, Wan/Wanda and Shotstack during processing.
+
+---
+
+### 4. Key benefits for Bali villa marketing
+
+In a destination like Bali, visual competition is intense: every day new villas show infinity pools, floating breakfasts and jungle views.
+
+This module gives you several advantages:
+
+- **Speed and consistency**  
+  You can generate new content every week using day‑to‑day videos, without organizing full shoots or coordinating agencies. You keep a steady stream of Reels, Stories and TikToks, which is exactly what today’s algorithms reward. 
+
+- **Visual quality aligned with the market**  
+  Video AI engines like Wan/Wanda 2.6 are optimized for short, mobile‑first clips with smooth motion and strong color, the type of content that performs best for travel inspiration. 
+
+- **Message tailored to your ideal guest**  
+  It’s not just a pretty video: the copy is adapted to your target (romantic couples, families, digital nomads, wellness guests, etc.) and to your source markets (e.g. French, Spanish, Australian), in the right language and tone. - 
+
+**Lower production costs**  
+  You replace much of the traditional agency work with an automated pipeline:
+
+  - Fewer full‑day shoots.  
+  - Fewer manual editing hours.  
+  - Less dependency on external creators whenever you need something new. 
+
+- **Smarter use of content you already have**  
+  You unlock the value of all the clips your team is already capturing: check‑ins, breakfasts, flowers, cleaning, sunsets… Instead of staying hidden in someone’s camera roll, they become polished marketing assets. 
+
+---
+
+### 5. Clear pitch for villa owners & marketing
+
+Long version (for website or presentation):
+
+> “MYHOST Bizmate’s Content Creation Module turns the casual mobile videos your team already records into cinematic, social‑ready content. Our AI analyzes each video, enhances light, color and pacing, and writes the copy that actually sells the experience (in your guests’ language), with the right hashtags for Bali. No agencies, no complicated shoots, no waiting on external creators. Your villa can publish fresh Reels, Stories and TikToks every single week, so more people fall in love with your property before they ever land in Bali.”
+
+Short version (for slides or brochure):
+
+> “Turn your staff’s mobile videos into cinematic, high‑converting Instagram and TikTok content – in minutes, without agencies.”
+
+In short, this module is designed so that **your villa is always visible and desirable on social media**, using what you already have (your team, your property, your daily life) and letting AI handle the heavy lifting: analyzing, editing, beautifying and writing.

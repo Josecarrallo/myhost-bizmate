@@ -1,0 +1,263 @@
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Inter:wght@300;400;500;600&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Warm, natural color palette for boutique hospitality */
+    --background: 40 33% 98%;
+    --foreground: 25 20% 15%;
+
+    --card: 40 30% 97%;
+    --card-foreground: 25 20% 15%;
+
+    --popover: 40 30% 97%;
+    --popover-foreground: 25 20% 15%;
+
+    /* Earthy terracotta as primary accent */
+    --primary: 18 45% 45%;
+    --primary-foreground: 40 30% 98%;
+
+    /* Soft sage green secondary */
+    --secondary: 100 20% 92%;
+    --secondary-foreground: 100 25% 25%;
+
+    /* Warm muted tones */
+    --muted: 35 20% 93%;
+    --muted-foreground: 25 15% 45%;
+
+    /* Pool blue accent */
+    --accent: 200 55% 45%;
+    --accent-foreground: 40 30% 98%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 35 25% 88%;
+    --input: 35 25% 88%;
+    --ring: 18 45% 45%;
+
+    --radius: 0.5rem;
+
+    /* Custom villa colors */
+    --cream: 40 33% 96%;
+    --ivory: 45 40% 94%;
+    --sand: 35 30% 85%;
+    --terracotta: 18 45% 45%;
+    --terracotta-light: 18 40% 60%;
+    --wood-dark: 25 35% 22%;
+    --wood-medium: 25 30% 35%;
+    --sage: 100 20% 40%;
+    --sage-light: 100 25% 92%;
+    --pool-blue: 200 55% 45%;
+    --gold-soft: 40 50% 55%;
+
+    /* Typography */
+    --font-display: 'Playfair Display', Georgia, serif;
+    --font-body: 'Inter', system-ui, sans-serif;
+
+    /* Shadows */
+    --shadow-soft: 0 4px 20px -4px hsl(25 20% 15% / 0.08);
+    --shadow-medium: 0 8px 30px -6px hsl(25 20% 15% / 0.12);
+    --shadow-large: 0 20px 50px -12px hsl(25 20% 15% / 0.15);
+
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 240 5.3% 26.1%;
+    --sidebar-primary: 240 5.9% 10%;
+    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-accent: 240 4.8% 95.9%;
+    --sidebar-accent-foreground: 240 5.9% 10%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+
+  .dark {
+    --background: 25 20% 8%;
+    --foreground: 40 30% 95%;
+
+    --card: 25 20% 10%;
+    --card-foreground: 40 30% 95%;
+
+    --popover: 25 20% 10%;
+    --popover-foreground: 40 30% 95%;
+
+    --primary: 18 50% 55%;
+    --primary-foreground: 25 20% 8%;
+
+    --secondary: 100 15% 18%;
+    --secondary-foreground: 100 25% 85%;
+
+    --muted: 25 15% 18%;
+    --muted-foreground: 35 15% 65%;
+
+    --accent: 200 50% 50%;
+    --accent-foreground: 25 20% 8%;
+
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 25 15% 20%;
+    --input: 25 15% 20%;
+    --ring: 18 50% 55%;
+
+    --sidebar-background: 240 5.9% 10%;
+    --sidebar-foreground: 240 4.8% 95.9%;
+    --sidebar-primary: 224.3 76.3% 48%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 240 3.7% 15.9%;
+    --sidebar-accent-foreground: 240 4.8% 95.9%;
+    --sidebar-border: 240 3.7% 15.9%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-family: var(--font-body);
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-display);
+    @apply tracking-tight;
+  }
+}
+
+@layer components {
+  /* Hero button variant */
+  .btn-hero {
+    @apply inline-flex items-center justify-center px-8 py-4 text-base font-medium tracking-wide transition-all duration-300 ease-out;
+    background-color: hsl(var(--primary));
+    color: hsl(var(--primary-foreground));
+    border: 1px solid transparent;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .btn-hero:hover {
+    background-color: hsl(var(--wood-dark));
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-medium);
+  }
+
+  .btn-hero-outline {
+    @apply inline-flex items-center justify-center px-8 py-4 text-base font-medium tracking-wide transition-all duration-300 ease-out;
+    background-color: transparent;
+    color: hsl(var(--primary-foreground));
+    border: 1px solid hsl(var(--primary-foreground) / 0.5);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .btn-hero-outline:hover {
+    background-color: hsl(var(--primary-foreground) / 0.1);
+    border-color: hsl(var(--primary-foreground));
+  }
+
+  /* Section spacing */
+  .section-padding {
+    @apply py-16 md:py-24 lg:py-32;
+  }
+
+  .section-padding-sm {
+    @apply py-12 md:py-16 lg:py-20;
+  }
+
+  /* Container */
+  .container-villa {
+    @apply mx-auto px-6 md:px-8 lg:px-12 max-w-7xl;
+  }
+
+  /* Image overlays */
+  .image-overlay {
+    @apply absolute inset-0;
+    background: linear-gradient(
+      to bottom,
+      hsl(25 20% 15% / 0.2) 0%,
+      hsl(25 20% 15% / 0.4) 100%
+    );
+  }
+
+  .image-overlay-light {
+    @apply absolute inset-0;
+    background: linear-gradient(
+      to bottom,
+      hsl(25 20% 15% / 0.1) 0%,
+      hsl(25 20% 15% / 0.25) 100%
+    );
+  }
+
+  /* Typography utilities */
+  .text-display {
+    font-family: var(--font-display);
+  }
+
+  .text-body {
+    font-family: var(--font-body);
+  }
+
+  /* Elegant separator */
+  .elegant-separator {
+    @apply relative w-16 h-px mx-auto my-8;
+    background: linear-gradient(
+      to right,
+      transparent,
+      hsl(var(--primary) / 0.6),
+      transparent
+    );
+  }
+
+  /* Gallery image hover */
+  .gallery-image {
+    @apply overflow-hidden;
+  }
+
+  .gallery-image img {
+    @apply transition-transform duration-700 ease-out;
+  }
+
+  .gallery-image:hover img {
+    transform: scale(1.05);
+  }
+}
+
+@layer utilities {
+  /* Fade in animation */
+  .animate-fade-in {
+    animation: fadeIn 0.8s ease-out forwards;
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  /* Subtle parallax effect placeholder */
+  .parallax-bg {
+    background-attachment: fixed;
+    background-position: center;
+    background-size: cover;
+  }
+
+  @media (max-width: 768px) {
+    .parallax-bg {
+      background-attachment: scroll;
+    }
+  }
+}

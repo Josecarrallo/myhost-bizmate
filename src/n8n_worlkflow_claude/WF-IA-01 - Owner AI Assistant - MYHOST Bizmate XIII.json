@@ -31,7 +31,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Configuración del input\n// Si viene del webhook, usar esos datos\n// Si es manual, usar datos de prueba\n\nlet input = $input.first()?.json || {};\n\n// Datos por defecto para pruebas manuales\nconst tenant_id = input.tenant_id || '00000000-0000-0000-0000-000000000000';\nconst user_id = input.user_id || '00000000-0000-0000-0000-000000000001';\nconst message = input.message || '¿Cómo va mi negocio esta semana?';\n\nconst today = new Date().toISOString().split('T')[0];\n\nreturn [{ \n  json: { \n    tenant_id, \n    user_id, \n    message,\n    today \n  } \n}];"
+        "jsCode": "// Configuración del input\n// Si viene del webhook, usar esos datos\n// Si es manual, usar datos de prueba\n\nlet input = $input.first()?.json || {};\n\n// Datos por defecto para pruebas manuales\nconst tenant_id = input.tenant_id || 'c24393db-d318-4d75-8bbf-0fa240b9c1db';\nconst user_id = input.user_id || 'c24393db-d318-4d75-8bbf-0fa240b9c1db';\nconst message = input.message || '¿Cómo va mi negocio esta semana?';\n\nconst today = new Date().toISOString().split('T')[0];\n\nreturn [{ \n  json: { \n    tenant_id, \n    user_id, \n    message,\n    today \n  } \n}];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -132,7 +132,7 @@
           "parameters": [
             {
               "name": "x-api-key",
-              "value": "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"
+              "value": "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"
             },
             {
               "name": "anthropic-version",
@@ -175,7 +175,7 @@
     },
     {
       "parameters": {
-        "tableId": "ai_chat_history",
+        "tableId": "ai_chat_history_old",
         "fieldsUi": {
           "fieldValues": [
             {
@@ -183,20 +183,20 @@
               "fieldValue": "={{ $json.tenant_id }}"
             },
             {
-              "fieldId": "user_id",
-              "fieldValue": "={{ $json.user_id }}"
-            },
-            {
               "fieldId": "message",
               "fieldValue": "={{ $json.message }}"
             },
             {
-              "fieldId": "answer",
+              "fieldId": "response",
               "fieldValue": "={{ $json.answer }}"
             },
             {
               "fieldId": "suggested_actions",
-              "fieldValue": "={{ JSON.stringify($json.suggested_actions) }}"
+              "fieldValue": "= {{ $json.suggested_actions }}"
+            },
+            {
+              "fieldId": "user_id",
+              "fieldValue": "={{ $json.user_id }}"
             }
           ]
         }
@@ -241,8 +241,12 @@
               "fieldValue": "={{ $('Save Chat History').item.json.tenant_id }}"
             },
             {
-              "fieldId": "action_type",
+              "fieldId": "action",
               "fieldValue": "owner_ai_assistant"
+            },
+            {
+              "fieldId": "resource_type",
+              "fieldValue": "ai_chat"
             }
           ]
         }
@@ -387,11 +391,13 @@
       ]
     }
   },
-  "active": true,
+  "active": false,
   "settings": {
-    "executionOrder": "v1"
+    "executionOrder": "v1",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
   },
-  "versionId": "a3673587-fc31-4723-8b64-a77845ecef2c",
+  "versionId": "43556264-e56f-4bc3-8f5a-8e3b5e46f790",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "ca7bc7f182c365457ea4a94a4dc2efe81c23590ab8904858ce5cabfbdd56e40f"

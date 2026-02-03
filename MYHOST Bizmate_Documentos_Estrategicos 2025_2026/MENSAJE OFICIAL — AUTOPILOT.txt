@@ -1,0 +1,147 @@
+MENSAJE OFICIAL — AUTOPILOT (VISIÓN + MENÚ DETALLADO)
+PROYECTO: MYHOST BizMate
+
+==============================
+PARTE 1 — QUÉ ES AUTOPILOT
+==============================
+
+Autopilot NO es un sistema nuevo.
+Autopilot NO duplica lógica.
+Autopilot es una VISTA SIMPLIFICADA (modo fácil) de MyHost BizMate.
+
+Todo lo que hay detrás de Autopilot YA existe o se está construyendo en MyHost BizMate:
+- Base de datos (Supabase)
+- Bookings
+- Payments
+- Guests
+- Channels (Airbnb / Booking / Direct)
+- WhatsApp / Email
+- Flujos n8n
+- Autopilot Actions
+- LUMINA / OSIRIS / etc.
+
+Autopilot usa TODA esta infraestructura,
+pero la presenta de forma simple y clara
+para villa / hotel owners poco técnicos.
+
+Objetivo de Autopilot:
+Que el owner pueda hacer “lo que ya hace hoy”
+(día a día, semana, mes),
+pero de forma organizada, automática
+y sin perder nada.
+
+Autopilot es la puerta de entrada a MyHost BizMate.
+El owner puede vivir solo en Autopilot,
+y más adelante descubrir el resto del sistema.
+
+Regla clave:
+- Autopilot = interfaz
+- MyHost BizMate = cerebro + motor
+- No se crea lógica nueva en Autopilot
+- Todo mapea a entidades reales de BizMate
+
+==============================
+PARTE 2 — MENÚ FINAL DE AUTOPILOT
+(QUÉ INCLUYE CADA OPCIÓN)
+==============================
+
+AUTOPILOT — OWNER VIEW
+
+1) Setup & Data Entry
+- Property profile: nombre, ubicación, contacto
+- Units: villas / habitaciones (nombre + capacidad)
+- Base rates: precio/noche por unidad
+- Policies simples: check-in/out, cancelación, mascotas
+- Manual add booking / manual add payment (para pilotos)
+Objetivo: “Aquí meto mis datos y empiezo.”
+
+2) Availability & Channels
+- Estado de canales: Airbnb / Booking / Direct (Connected / Not connected)
+- Calendar view simple por unidad
+- Block / unblock fechas manualmente
+Objetivo: “Aquí veo disponibilidad y conexiones.”
+
+3) Bookings
+- Listado de reservas:
+  - pasadas, actuales y futuras
+- Datos clave:
+  - guest, fechas, noches, canal, status, importe
+- Acciones básicas:
+  - ver detalle, cambiar estado, cancelar si aplica
+Objetivo: “Aquí están todas mis reservas.”
+
+4) Payments
+- Estado de pagos por booking:
+  - paid / pending / partial
+- Método de pago (etiqueta):
+  - cash / bank transfer / card
+- Listas:
+  - pending payments / overdue
+- Acción:
+  - mark as paid / request confirmation
+Objetivo: “Aquí controlo el dinero y no pierdo pagos.”
+
+5) Guest Communication
+- Inbox unificado (WhatsApp principal, email secundario)
+- Conversaciones ligadas a guest / booking
+- Templates rápidos:
+  - confirmación, pago, seguimiento
+- Estados:
+  - waiting guest / waiting owner / resolved
+Objetivo: “Aquí no se me pierde ningún mensaje.”
+
+6) My Villa Website
+- Link público a la landing page
+- Acciones:
+  - open / copy / share por WhatsApp
+- Preview rápido (fotos + descripción)
+- Edición básica v1:
+  - fotos, texto, precios
+Objetivo: “Aquí está mi web lista para enviar a clientes.”
+
+7) Maintenance & Tasks
+- Lista de tareas:
+  - cleaning, maintenance, supplies
+- Estados:
+  - open / in progress / done
+- Asignación:
+  - owner / staff
+- Fecha límite + notas
+Objetivo: “Aquí gestiono la operación diaria.”
+
+8) Overview
+- Tabs: Daily / Weekly / Monthly
+- Daily:
+  - inquiries, check-ins, pagos pendientes, alertas
+- Weekly:
+  - reservas confirmadas, pagos cobrados, acciones abiertas
+- Monthly:
+  - revenue estimado, ocupación estimada, cancelaciones
+Objetivo: “En 30 segundos sé cómo va el negocio.”
+
+9) Owner Decisions
+- Lista de autopilot_actions pendientes
+- Tipos:
+  - discount request
+  - payment plan
+  - cancellation exception
+  - payment verification
+  - date change
+- Cada acción muestra:
+  - guest + booking + resumen + urgencia
+- Acciones:
+  - Approve / Reject (conecta con flujos existentes)
+Objetivo: “El sistema trabaja solo y me pide decisiones cuando toca.”
+
+==============================
+IDEA FINAL (IMPORTANTE)
+==============================
+
+Autopilot es:
+“Lo que hago cada día, cada semana y cada mes,
+pero organizado, automatizado
+y sin que nada se me escape.”
+
+Esto está CERRADO a nivel conceptual.
+Ahora toca ejecución en frontend
+conectado directamente a MyHost BizMate.

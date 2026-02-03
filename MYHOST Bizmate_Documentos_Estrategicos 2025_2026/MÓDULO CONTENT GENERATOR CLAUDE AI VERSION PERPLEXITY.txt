@@ -1,0 +1,281 @@
+Contexto general (MYHOST Bizmate)
+
+MYHOST Bizmate es un SaaS para villa owners en Bali.
+En este módulo, el owner puede:
+- Hacer una foto (o vídeo corto) de su villa, o
+- Escribir solo un texto (descripción),
+y el sistema debe:
+- Generar un vídeo vertical corto tipo Reel/TikTok usando Wan/Fal.ai.
+- Generar el texto (caption), CTA y hashtags usando Claude.
+- Guardar todo en Supabase (para histórico y escalado futuro).
+- Enviar el vídeo de prueba al owner por WhatsApp.
+
+Tu papel (Claude) es:
+1) Ser el “cerebro creativo” (contenido social).
+2) Ayudar a definir el flujo n8n (nodos, orden, payloads).
+3) Ayudar a definir las tablas adecuadas en Supabase para este módulo.
+
+────────────────────────────────────────
+1. Herramientas que vamos a usar
+────────────────────────────────────────
+
+- n8n: orquestación del flujo.
+- Claude (API): idea del vídeo + caption + CTA + hashtags + notas para Wan.
+- Wan vía Fal.ai: generación de vídeo (image-to-video vertical 9:16, modelo `fal-ai/wan-i2v`).
+- WhatsApp Business API: envío del vídeo generado al owner (Twilio, 360dialog o Meta Cloud).
+- Supabase:
+  - Storage (opcional en esta fase) para guardar el vídeo resultado.
+  - Base de datos con tablas específicas de este módulo.
+
+────────────────────────────────────────
+2. Tablas Supabase adecuadas para este módulo
+────────────────────────────────────────
+
+Queremos algo simple pero útil para esta fase:
+
+A) Tabla `media_jobs`
+- Objetivo: registrar cada “job” de generación de vídeo desde foto/texto, para trazabilidad.
+
+Campos:
+- id: uuid PK default gen_random_uuid()
+- property_id: text                          -- id de la propiedad/villa
+- input_media_url: text                      -- URL de la foto/vídeo original (puede ser Supabase u otro)
+- has_media: boolean                         -- true si había media_url, false si solo texto
+- media_description: text                    -- descripción usada para Claude
+- language: text                             -- 'en' | 'es' | 'id'
+- objective: text                            -- 'bookings' | 'awareness' | 'last_minute' | 'upsell'
+- target_audience: text                      -- 'couples' | 'families' | etc.
+- status: text                               -- 'received' | 'processing' | 'ready' | 'error'
+- final_video_url: text                      -- URL del vídeo final (Supabase o Fal)
+- caption: text                              -- texto final generado por Claude
+- cta: text                                  -- CTA generado por Claude
+- hashtags: text[]                           -- hashtags sin '#'
+- vibe: text                                 -- vibe devuelta por Claude
+- platform_focus: text                       -- 'instagram_reels' | 'tiktok' | 'whatsapp_status'
+- clauded_output: jsonb                      -- JSON completo devuelto por Claude
+- error_message: text                        -- descripción del error si status = 'error'
+- owner_whatsapp: text                       -- número del owner usado en el envío de prueba
+- created_at: timestamptz default now()
+- updated_at: timestamptz default now()
+
+B) Tabla `social_posts`
+- Objetivo: utilizarla después para programar/publicar (ya dejamos la base lista).
+
+Campos:
+- id: uuid PK default gen_random_uuid()
+- property_id: text
+- media_job_id: uuid                         -- referencia al media_jobs.id (relación lógica)
+- platform: text                             -- 'instagram' | 'tiktok'
+- status: text                               -- 'draft' | 'approved' | 'scheduled' | 'published' | 'failed'
+- language: text                             -- 'en' | 'es' | 'id'
+- objective: text                            -- 'bookings' | 'awareness' | 'last_minute' | 'upsell'
+- media_type: text                           -- 'video'
+- video_url: text                            -- normalmente misma que final_video_url
+- caption: text
+- cta: text
+- hashtags: text[]
+- vibe: text
+- platform_focus: text                       -- de Claude, para referencia
+- scheduled_at: timestamptz                  -- para publicación futura
+- published_at: timestamptz                  -- cuando se publica de verdad
+- instagram_post_id: text                    -- devuelto por Instagram API
+- tiktok_video_id: text                      -- devuelto por TikTok API
+- created_at: timestamptz default now()
+- updated_at: timestamptz default now()
+
+Índices recomendados:
+- En `media_jobs`:
+  - index_media_jobs_property_status ON media_jobs(property_id, status);
+- En `social_posts`:
+  - index_social_posts_property_status ON social_posts(property_id, status);
+  - index_social_posts_scheduled_status ON social_posts(status, scheduled_at);
+
+────────────────────────────────────────
+3. Prompt para Claude (creativo)
+────────────────────────────────────────
+
+System Prompt:
+
+You are a specialized Bali hospitality social media content strategist.
+Your job is to transform a raw mobile photo or short video of a villa or hotel into a high-converting vertical social media clip concept for Instagram Reels, TikTok and WhatsApp status.
+
+The input you receive will always include:
+- A textual description of what appears in the media (`media_description`).
+- Basic property context:
+  - `property_name`
+  - `location` in Bali
+  - `target_audience` (couples, families, digital_nomads, retreats, etc.)
+  - `language`
+  - `objective` (bookings, awareness, last_minute, upsell)
+  - `platform_focus` (instagram_reels, tiktok, whatsapp_status)
+  - `extra_context` (optional)
+
+Your tasks:
+1. Analyze the scene and classify the vibe (romantic, family, luxury, detox, digital_nomad, wellness, etc.).
+2. Propose a short vertical video concept (5–25 seconds) that can be built from this media: structure, suggested “camera moves” and on-screen text moments.
+3. Write one main caption optimized for Instagram/TikTok in the requested language, adapted to Bali travelers (organic, no clickbait, no fake promises).
+4. Propose a strong CTA aligned with the objective (e.g., “Reserva directo por WhatsApp”, “Save this villa for your next trip”).
+5. Generate a set of hashtags relevant to Bali, the property type and the chosen audience.
+6. Provide technical notes for the video engine Wan/Fal.ai (style, color, pacing, transitions, music feel) that we will use as prompt for the model `fal-ai/wan-i2v` (image-to-video, vertical 9:16).
+
+Hard rules:
+- Always answer in valid JSON only.
+- Do not include any explanation, comments or code fences.
+- Do not invent features the property does not have.
+- Tone: warm, aspirational and clear, never pushy.
+- Adapt language strictly to the `language` field in the input.
+- Assume the final format is vertical 9:16.
+
+JSON schema you MUST follow:
+
+{
+  "scene_summary": "string – 1–2 sentences describing what you see in the media and the feeling it creates",
+  "vibe": "string – e.g. romantic, family, luxury, digital_nomad, wellness, detox",
+  "audience": "string – main type of guest this content targets (e.g. couples, families, digital_nomads, retreat_groups)",
+  "platform_focus": "string – one of: instagram_reels, tiktok, whatsapp_status",
+  "video_concept": {
+    "title": "string – internal name for the idea, short and clear",
+    "duration_seconds": "integer – suggested length between 5 and 25",
+    "structure": [
+      {
+        "time_segment": "string – e.g. \"0-3s\", \"3-7s\"",
+        "visual_direction": "string – what should be shown or emphasized in this segment using the available media (camera move, zoom, pan, etc.)",
+        "onscreen_text": "string – very short on-screen text for this moment, or \"\" if none"
+      }
+    ]
+  },
+  "caption": "string – final caption text in the requested language, ready to publish, including emojis if helpful but not mandatory",
+  "cta": "string – call to action aligned with the marketing objective and the Bali travel context",
+  "hashtags": [
+    "string – hashtags without the # character, focused on Bali, the area, and the guest type"
+  ],
+  "notes_for_video_engine": "string – technical hints for the Wan/Fal.ai image-to-video model: camera movement, style, color grading, pacing, type of music/ambience, making sure it stays realistic to a Bali villa and vertical 9:16 framing"
+}
+
+If any field in the input is missing, make reasonable assumptions but keep them realistic for villas and hotels in Bali.
+
+────────────────────────────────────────
+4. Flujo n8n completo (MVP) con Supabase + WhatsApp
+────────────────────────────────────────
+
+Nombre del workflow: `media_to_video_whatsapp_test`
+
+Objetivo:
+- Entrada: foto (media_url) o solo texto (text_description).
+- Proceso: Claude idea + Wan vídeo.
+- Persistencia: guardar info en `media_jobs`.
+- Salida: enviar el vídeo por WhatsApp.
+
+Nodos:
+
+1) Webhook (Trigger)
+   - Método: POST.
+   - URL: `/media-to-video`.
+   - Body esperado:
+     {
+       "property_id": "villa_123",
+       "property_name": "Villa Suerte",
+       "language": "es",
+       "objective": "bookings",
+       "platform_focus": "instagram_reels",
+       "target_audience": "parejas",
+       "media_url": "https://.../raw_media/foto.jpg",          // opcional
+       "text_description": "Foto de piscina infinita...",       // opcional
+       "owner_whatsapp": "+628123456789"
+     }
+
+2) Function / Set – `Prepare Media Description`
+   - Si `text_description` existe y no está vacía → usarla.
+   - Si no hay `text_description` pero sí `media_url` → usar:
+     "Photo or short video of a Bali villa (no detailed description provided)."
+   - Output: campo `media_description`.
+
+3) Supabase Insert – `Create Media Job (received)`
+   - Inserta en `media_jobs`:
+     - property_id
+     - input_media_url = media_url (puede ser null)
+     - has_media = true/false según exista media_url
+     - media_description
+     - language
+     - objective
+     - target_audience
+     - platform_focus
+     - status = 'received'
+     - owner_whatsapp
+   - Guarda `media_job_id` para el resto del flujo.
+
+4) Set – `Prepare Claude Input`
+   - Construye JSON:
+     {
+       "property_id": "={{$json.property_id}}",
+       "property_name": "={{$json.property_name}}",
+       "location": "Bali",
+       "language": "={{$json.language}}",
+       "objective": "={{$json.objective}}",
+       "platform_focus": "={{$json.platform_focus}}",
+       "target_audience": "={{$json.target_audience}}",
+       "media_description": "={{$json.media_description}}",
+       "extra_context": ""
+     }
+
+5) HTTP Request – `Call Claude Creative`
+   - POST a la API de Claude.
+   - Body: model + system (prompt) + messages con el JSON anterior.
+   - Parsear la respuesta a JSON con el schema definido.
+
+6) Supabase Update – `Update Media Job (processing)`
+   - Actualiza `media_jobs`:
+     - status = 'processing'
+     - clauded_output = JSON completo devuelto por Claude
+     - vibe = json.vibe
+     - platform_focus = json.platform_focus
+     - caption = json.caption
+     - cta = json.cta
+     - hashtags = json.hashtags
+
+7) HTTP Request – `Call Wan Fal i2v`
+   - Solo si `has_media = true`.
+   - POST a Fal `fal-ai/wan-i2v` con:
+     {
+       "image_url": "={{$json.input_media_url}}",
+       "prompt": "={{$json.notes_for_video_engine}}",
+       "aspect_ratio": "9:16"
+     }
+   - Extraer `video_url` del resultado.
+
+8) (Opcional) Subir vídeo a Supabase – `Upload Final Video`
+   - Descargar `video_url` si hace falta.
+   - Subir a bucket `final_videos`.
+   - Obtener `final_video_url` (si no quieres usar directamente el link de Fal).
+
+9) Supabase Update – `Update Media Job (ready)`
+   - Actualiza `media_jobs`:
+     - status = 'ready'
+     - final_video_url = `video_url` o `final_video_url`
+
+10) WhatsApp Send – `Send WhatsApp Video`
+   - Enviar mensaje a `owner_whatsapp`:
+     - Vídeo: link = final_video_url o video_url.
+     - Caption: caption + CTA + hashtags (formateados).
+
+11) Respond to Webhook – `Return Response`
+   - Respuesta JSON:
+     {
+       "status": "ok",
+       "message": "Video generated and sent via WhatsApp",
+       "media_job_id": "={{$json.media_job_id}}",
+       "video_url": "={{$json.final_video_url}}"
+     }
+
+────────────────────────────────────────
+5. Resumen de lo que se espera de ti (Claude)
+
+- Respetar el System Prompt y el schema JSON al milímetro.
+- Generar:
+  - Vibe, video_concept, caption, cta, hashtags.
+  - notes_for_video_engine útil para Wan/Fal.ai (image-to-video 9:16, estilo Bali).
+- Mantener el idioma según `language`.
+- Permitir que n8n:
+  - Guarde tu salida en `media_jobs`.
+  - Use tus notas para llamar a Wan.
+  - Use tu caption/CTA/hashtags para el mensaje de WhatsApp ahora y para `social_posts` más adelante.

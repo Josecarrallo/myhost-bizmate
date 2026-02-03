@@ -1,0 +1,205 @@
+📦 DOCUMENTO 2 — CLAUDE AI (n8n)
+PROYECTO: MY HOST BizMate
+MÓDULO: AUTOPILOT
+FASE: 1 — DAILY
+ALCANCE: DETALLE TÉCNICO NODO A NODO (n8n)
+REGLA CRÍTICA: IMPLEMENTAR TAL CUAL · SIN AÑADIDOS · SIN OPTIMIZACIONES PREMATURAS
+
+========================================================
+WF-D1 — ALWAYS-ON INQUIRIES
+========================================================
+OBJETIVO:
+Responder mensajes 24/7, capturar leads y dar sensación de presencia inmediata.
+
+TRIGGER:
+Webhook (POST)
+Endpoint: /autopilot/inquiry
+
+INPUT ESPERADO:
+{
+  tenant_id,
+  property_id,
+  channel,            // whatsapp | instagram | web
+  contact_name,
+  contact_phone,
+  message_text,
+  timestamp
+}
+
+NODOS (LINEAL):
+
+NODO 1 — Webhook Trigger
+- Método: POST
+- Recibe JSON de entrada
+
+NODO 2 — Validate & Normalize
+- Tipo: Set / IF
+- Validar tenant_id y property_id
+- Normalizar message_text
+- Si falta algún campo → aplicar default, NO fallar
+
+NODO 3 — Lead Upsert (Supabase)
+- Buscar lead por contact_phone + property_id
+- Si existe → update last_message + updated_at
+- Si no existe → create lead
+- Estado inicial: new
+
+NODO 4 — Intent Detection (RULE-BASED)
+- NO usar IA aquí
+- Keywords simples:
+  booking / availability / price / dates
+- Clasificar:
+  booking_intent | info | other
+
+NODO 5 — Auto Reply (Template)
+- Canal: mismo que entrada
+- Mensaje humano y corto
+- Idioma simple (si se puede detectar)
+Ejemplo:
+“Thanks for your message! We’ve received it and will get back to you shortly. Could you please share your dates and number of guests?”
+
+NODO 6 — Emit Internal Event (Set)
+- Si intent = booking_intent
+- Crear payload:
+  { event: "booking_intent", lead_id }
+
+NODO 7 — Log Activity (Supabase)
+- autopilot_activity = inquiry_handled
+- Guardar timestamp
+
+NODO 8 — Respond to Webhook
+- Status 200
+- Body: { success: true }
+
+========================================================
+WF-D2 — PAYMENT PROTECTION
+========================================================
+OBJETIVO:
+Evitar reservas sin pagar, reducir presión del owner y liberar fechas automáticamente.
+
+TRIGGER:
+Webhook interno o app
+Endpoint: /autopilot/payment/start
+
+INPUT:
+{
+  tenant_id,
+  property_id,
+  booking_id,
+  guest_contact,
+  amount,
+  currency
+}
+
+REGLAS:
+- HOLD_DURATION_HOURS = 24
+- REMINDER_1 = +6h
+- REMINDER_2 = +20h
+
+NODOS:
+
+NODO 1 — Webhook Trigger
+
+NODO 2 — Load Booking (Supabase)
+- Fetch booking por booking_id
+
+NODO 3 — Update Booking Status
+- status = pending_payment
+- expiry_at = now + HOLD_DURATION
+
+NODO 4 — Send Payment Instructions
+- Canal: WhatsApp / Email
+- Incluir:
+  - amount
+  - currency
+  - instrucciones
+  - deadline claro
+
+NODO 5 — Wait Node (6h)
+- Si payment_received = false → continuar
+
+NODO 6 — Reminder #1
+- Mensaje amable recordatorio
+
+NODO 7 — Wait Node (14h adicionales)
+- Total 20h desde inicio
+
+NODO 8 — Reminder #2
+- Mensaje claro de expiración próxima
+
+NODO 9 — Final Check
+IF payment_received:
+  - status = confirmed
+  - notify guest + owner
+ELSE:
+  - status = expired
+  - release dates
+  - notify guest + owner
+
+NODO 10 — Log Actions (Supabase)
+
+========================================================
+WF-D3 — DAILY OWNER SUMMARY
+========================================================
+OBJETIVO:
+Dar claridad diaria sin que el owner piense.
+
+TRIGGER:
+Cron Daily (ej. 18:00 local)
+
+NODOS:
+
+NODO 1 — Cron Trigger
+
+NODO 2 — Query Daily Metrics (Supabase)
+- new_inquiries_today
+- pending_payments
+- confirmed_bookings_today
+- checkins_today
+- expired_holds_today
+
+NODO 3 — Build Summary JSON
+{
+  date,
+  metrics: { ... },
+  alerts: [ ... ]
+}
+
+NODO 4 — Save daily_summary (Supabase)
+- Vinculado a tenant_id + property_id
+
+NODO 5 — Optional Notification
+- WhatsApp message al owner (resumen corto)
+
+NODO 6 — Log Completion
+
+========================================================
+WF-D4 — REVIEW / ISSUE WATCH (OPCIONAL)
+========================================================
+OBJETIVO:
+Detectar problemas temprano.
+
+TRIGGER:
+Cron Daily o input manual desde app
+
+NODOS:
+1. Trigger
+2. Check new issues / reviews
+3. IF negative:
+   - create alert
+   - notify owner
+4. Log
+
+========================================================
+REGLAS FINALES (OBLIGATORIAS)
+========================================================
+- No mezclar workflows
+- No añadir lógica no descrita
+- No optimizar antes de validar
+- Guardar siempre estado en Supabase
+- Autopilot DAILY debe funcionar solo
+
+========================================================
+FIN DEL DOCUMENTO 2
+ESTE DOCUMENTO ES PARA EJECUTAR, NO INTERPRETAR
+========================================================

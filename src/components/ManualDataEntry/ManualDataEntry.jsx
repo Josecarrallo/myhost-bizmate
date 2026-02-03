@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   ClipboardList,
   UserPlus,
@@ -13,7 +13,8 @@ import {
   Users,
   Home,
   CreditCard,
-  AlertCircle
+  AlertCircle,
+  ArrowLeft
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabaseService } from '../../services/supabase';
@@ -38,11 +39,25 @@ const ManualDataEntry = ({ onBack }) => {
   const [filterProperty, setFilterProperty] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
   const [searchGuest, setSearchGuest] = useState('');
+  const [searchInput, setSearchInput] = useState(''); // Separate input value from filter
 
   // Edit/Delete modals
   const [editingBooking, setEditingBooking] = useState(null);
   const [deletingBooking, setDeletingBooking] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isSavingEdit, setIsSavingEdit] = useState(false);
+
+  // Edit form state
+  const [editForm, setEditForm] = useState({
+    guestName: '',
+    guestPhone: '',
+    guestEmail: '',
+    checkIn: '',
+    checkOut: '',
+    guests: '2',
+    totalAmount: '',
+    status: 'hold'
+  });
 
   // Form states
   const [leadForm, setLeadForm] = useState({
@@ -147,7 +162,7 @@ const ManualDataEntry = ({ onBack }) => {
 
   // Handle property selection change
   const handlePropertyChange = (propertyId) => {
-    setBookingForm(prev => ({ ...prev, propertyId, villaId: '' }));
+    setBookingForm(prev => ({ ...prev, propertyId, villaId: '', totalAmount: '' }));
     if (propertyId) {
       loadVillasForProperty(propertyId);
     } else {
@@ -155,9 +170,45 @@ const ManualDataEntry = ({ onBack }) => {
     }
   };
 
+  // Calculate total amount automatically
+  const calculateTotalAmount = () => {
+    const { checkIn, checkOut, villaId } = bookingForm;
+
+    if (!checkIn || !checkOut || !villaId) {
+      return;
+    }
+
+    // Calculate nights
+    const checkInDate = new Date(checkIn);
+    const checkOutDate = new Date(checkOut);
+    const nights = Math.ceil((checkOutDate - checkInDate) / (1000 * 60 * 60 * 24));
+
+    if (nights <= 0) {
+      return;
+    }
+
+    // Find selected villa
+    const selectedVilla = villas.find(v => v.id === villaId);
+    if (!selectedVilla || !selectedVilla.base_price) {
+      return;
+    }
+
+    // Calculate total
+    const totalAmount = selectedVilla.base_price * nights;
+    setBookingForm(prev => ({ ...prev, totalAmount: totalAmount.toString() }));
+  };
+
+  // Auto-calculate when villa, check-in, or check-out changes
+  useEffect(() => {
+    calculateTotalAmount();
+  }, [bookingForm.villaId, bookingForm.checkIn, bookingForm.checkOut, villas]);
+
   // Load bookings for the owner
   const loadBookings = async () => {
-    if (!userData?.id) return;
+    if (!userData?.id) {
+      console.warn('❌ No userData.id - cannot load bookings');
+      return;
+    }
 
     try {
       setIsLoadingBookings(true);
@@ -179,13 +230,26 @@ const ManualDataEntry = ({ onBack }) => {
         filters.guest_name = searchGuest;
       }
 
+      console.log('🔍 Loading bookings with filters:', filters);
+
       // Fetch bookings
       const bookingsData = await supabaseService.getBookings(filters);
+
+      console.log(`✅ Loaded ${bookingsData.length} bookings:`, bookingsData.map(b => ({
+        guest: b.guest_name,
+        checkIn: b.check_in,
+        tenant: b.tenant_id
+      })));
+
       setBookings(bookingsData);
 
     } catch (error) {
-      console.error('Error loading bookings:', error);
-      setErrorMessage('Failed to load bookings');
+      console.error('❌ Error loading bookings:', error);
+      const errorMsg = error.message || 'Failed to load bookings. Please try again.';
+      setErrorMessage(errorMsg);
+
+      // Auto-clear error after 5 seconds
+      setTimeout(() => setErrorMessage(''), 5000);
     } finally {
       setIsLoadingBookings(false);
     }
@@ -197,6 +261,11 @@ const ManualDataEntry = ({ onBack }) => {
       loadBookings();
     }
   }, [activeTab, filterProperty, filterStatus, searchGuest, userData]);
+
+  // Manual search trigger (not automatic)
+  const handleSearch = () => {
+    setSearchGuest(searchInput);
+  };
 
   // Handle delete booking
   const handleDeleteBooking = async () => {
@@ -220,10 +289,19 @@ const ManualDataEntry = ({ onBack }) => {
     }
   };
 
-  // Handle edit booking (open modal)
+  // Handle edit booking (open modal with pre-filled form)
   const handleEditBooking = (booking) => {
     setEditingBooking(booking);
-    // TODO: Open edit modal with pre-filled form
+    setEditForm({
+      guestName: booking.guest_name || '',
+      guestPhone: booking.guest_phone || '',
+      guestEmail: booking.guest_email || '',
+      checkIn: booking.check_in || '',
+      checkOut: booking.check_out || '',
+      guests: booking.guests?.toString() || '2',
+      totalAmount: booking.total_price?.toString() || '',
+      status: booking.status || 'hold'
+    });
   };
 
   // Handle form submissions
@@ -288,7 +366,7 @@ const ManualDataEntry = ({ onBack }) => {
         currency: currency,
         status: bookingForm.status === 'hold' ? 'pending_payment' : 'confirmed',
         payment_status: bookingForm.status === 'confirmed' ? 'paid' : 'pending',
-        channel: 'manual',
+        channel: 'direct', // Manual entries are considered direct bookings
         source: 'autopilot',
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
@@ -299,6 +377,11 @@ const ManualDataEntry = ({ onBack }) => {
 
       // Success!
       setSuccessMessage(`Booking created successfully! Guest: ${bookingForm.guestName}, ${nights} nights`);
+
+      // Reload bookings if we're on view-bookings tab
+      if (activeTab === 'view-bookings' || activeTab === 'booking') {
+        loadBookings();
+      }
 
       // Reset form (keep propertyId if only one property)
       setBookingForm({
@@ -315,6 +398,11 @@ const ManualDataEntry = ({ onBack }) => {
         status: 'hold'
       });
 
+      // Auto-switch to View/Edit Bookings tab to see the new booking
+      setTimeout(() => {
+        setActiveTab('view-bookings');
+      }, 1500);
+
       // Clear success message after 5 seconds
       setTimeout(() => setSuccessMessage(''), 5000);
 
@@ -323,6 +411,70 @@ const ManualDataEntry = ({ onBack }) => {
       setErrorMessage(error.message || 'Failed to create booking. Please try again.');
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  // Handle update booking
+  const handleUpdateBooking = async (e) => {
+    e.preventDefault();
+
+    if (!editingBooking) return;
+
+    // Clear previous messages
+    setSuccessMessage('');
+    setErrorMessage('');
+    setIsSavingEdit(true);
+
+    try {
+      // Calculate number of nights
+      const checkInDate = new Date(editForm.checkIn);
+      const checkOutDate = new Date(editForm.checkOut);
+      const nights = Math.ceil((checkOutDate - checkInDate) / (1000 * 60 * 60 * 24));
+
+      if (nights <= 0) {
+        throw new Error('Check-out date must be after check-in date');
+      }
+
+      // Prepare updated booking data
+      const updatedData = {
+        guest_name: editForm.guestName,
+        guest_email: editForm.guestEmail,
+        guest_phone: editForm.guestPhone,
+        check_in: editForm.checkIn,
+        check_out: editForm.checkOut,
+        guests: parseInt(editForm.guests),
+        nights: nights,
+        total_price: parseFloat(editForm.totalAmount),
+        status: editForm.status === 'hold' ? 'pending_payment' : 'confirmed',
+        payment_status: editForm.status === 'confirmed' ? 'paid' : (editForm.status === 'partial' ? 'partial' : 'pending'),
+        updated_at: new Date().toISOString()
+      };
+
+      console.log('🔄 Updating booking:', editingBooking.id, updatedData);
+
+      // Call Supabase service
+      await supabaseService.updateBooking(editingBooking.id, updatedData);
+
+      // Success!
+      setSuccessMessage(`Booking updated successfully! Guest: ${editForm.guestName}`);
+
+      // Close modal
+      setEditingBooking(null);
+
+      // Clear search filter before reloading to avoid CORS errors
+      setSearchQuery('');
+
+      // Reload bookings without search filter
+      loadBookings();
+
+      // Clear success message after 5 seconds
+      setTimeout(() => setSuccessMessage(''), 5000);
+
+    } catch (error) {
+      console.error('Error updating booking:', error);
+      setErrorMessage(error.message || 'Failed to update booking. Please try again.');
+    } finally {
+      setIsSavingEdit(false);
     }
   };
 
@@ -349,29 +501,55 @@ const ManualDataEntry = ({ onBack }) => {
   ];
 
   return (
-    <div className="flex-1 h-screen bg-[#2a2f3a] p-4 pb-24 relative overflow-auto">
+    <div className="w-full h-full bg-[#2a2f3a] p-4 relative overflow-auto">
       {/* Animated background elements */}
-      <div className="absolute inset-0 overflow-hidden">
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute w-96 h-96 bg-[#d85a2a]/5 rounded-full blur-3xl top-20 -left-48 animate-pulse"></div>
         <div className="absolute w-96 h-96 bg-[#d85a2a]/5 rounded-full blur-3xl bottom-20 -right-48 animate-pulse" style={{ animationDelay: '1s' }}></div>
         <div className="absolute w-72 h-72 bg-[#d85a2a]/5 rounded-full blur-2xl top-1/2 right-1/4 animate-pulse" style={{ animationDelay: '0.5s' }}></div>
       </div>
 
-      <div className="max-w-7xl mx-auto relative z-10">
+      <div className="w-full h-full relative z-10">
         {/* Header */}
-        <div className="flex items-center justify-between mb-8">
-          <button onClick={onBack} className="p-3 bg-[#1f2937]/95 backdrop-blur-sm rounded-2xl hover:bg-[#1f2937] transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 border-2 border-[#d85a2a]/20">
-            <X className="w-6 h-6 text-[#FF8C42]" />
+        <div className="flex items-center justify-between mb-4">
+          <button onClick={onBack} className="p-2 bg-[#1f2937]/95 backdrop-blur-sm rounded-xl hover:bg-orange-500 transition-all border border-[#d85a2a]/20">
+            <ArrowLeft className="w-5 h-5 text-[#FF8C42]" />
           </button>
           <div className="text-center">
-            <h2 className="text-4xl md:text-5xl font-black text-white drop-shadow-2xl">Manual Data Entry</h2>
+            <h2 className="text-3xl font-black text-white drop-shadow-2xl">AUTOPILOT - Manual Data Entry</h2>
           </div>
-          <div className="w-16"></div>
+          <div className="w-12"></div>
         </div>
 
+        {/* Global Success/Error Messages */}
+        {successMessage && (
+          <div className="bg-green-500/20 border-2 border-green-500 rounded-xl p-3 flex items-center gap-3 mb-4">
+            <CheckCircle className="w-6 h-6 text-green-400" />
+            <p className="text-green-100 font-medium">{successMessage}</p>
+          </div>
+        )}
+
+        {errorMessage && (
+          <div className="bg-red-500/20 border-2 border-red-500 rounded-xl p-3 mb-4">
+            <div className="flex items-center gap-3">
+              <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0" />
+              <p className="text-red-100 font-medium flex-1">{errorMessage}</p>
+              <button
+                onClick={() => {
+                  setErrorMessage('');
+                  loadBookings();
+                }}
+                className="px-3 py-1.5 bg-red-500 hover:bg-red-600 text-white rounded-lg text-sm font-medium transition-all"
+              >
+                Reintentar
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Tab Navigation */}
-        <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-2xl p-3 shadow-lg border-2 border-[#d85a2a]/20 mb-6">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-2">
+        <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-2xl p-2 shadow-lg border-2 border-[#d85a2a]/20 mb-4">
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-2">
             {tabs.map((tab) => {
               const Icon = tab.icon;
               return (
@@ -396,7 +574,7 @@ const ManualDataEntry = ({ onBack }) => {
         </div>
 
         {/* Tab Content */}
-        <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-3xl p-6 shadow-2xl border-2 border-[#d85a2a]/20">
+        <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-2xl p-4 shadow-2xl border-2 border-[#d85a2a]/20">
 
           {/* TAB: View/Edit Bookings */}
           {activeTab === 'view-bookings' && (
@@ -407,7 +585,7 @@ const ManualDataEntry = ({ onBack }) => {
               </h3>
 
               {/* Filters */}
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-4">
+              <div className="grid grid-cols-1 md:grid-cols-5 gap-3 mb-4">
                 {/* Property Filter */}
                 <select
                   value={filterProperty}
@@ -434,14 +612,17 @@ const ManualDataEntry = ({ onBack }) => {
                   <option value="cancelled">Cancelled</option>
                 </select>
 
-                {/* Search Guest */}
-                <input
-                  type="text"
-                  placeholder="Search guest name..."
-                  value={searchGuest}
-                  onChange={(e) => setSearchGuest(e.target.value)}
-                  className="px-4 py-2 bg-[#2a2f3a] border-2 border-gray-200 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:border-orange-300"
-                />
+                {/* Search Guest (no auto-search to avoid CORS errors) */}
+                <div className="md:col-span-2 flex gap-2">
+                  <input
+                    type="text"
+                    placeholder="Search guest name (press Enter)..."
+                    value={searchInput}
+                    onChange={(e) => setSearchInput(e.target.value)}
+                    onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
+                    className="flex-1 px-4 py-2 bg-[#2a2f3a] border-2 border-gray-200 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:border-orange-300"
+                  />
+                </div>
 
                 {/* Clear Filters */}
                 <button
@@ -449,6 +630,8 @@ const ManualDataEntry = ({ onBack }) => {
                     setFilterProperty('');
                     setFilterStatus('');
                     setSearchGuest('');
+                    setSearchInput('');
+                    loadBookings();
                   }}
                   className="px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-xl font-medium transition-all"
                 >
@@ -469,17 +652,17 @@ const ManualDataEntry = ({ onBack }) => {
                 <>
                   <div className="bg-[#2a2f3a] rounded-xl overflow-hidden border-2 border-gray-200">
                     <div className="overflow-x-auto">
-                      <table className="w-full">
+                      <table className="w-full table-fixed">
                         <thead className="bg-orange-500">
                           <tr>
-                            <th className="px-4 py-3 text-left text-white font-bold">Guest</th>
-                            <th className="px-4 py-3 text-left text-white font-bold">Property</th>
-                            <th className="px-4 py-3 text-left text-white font-bold">Check-in</th>
-                            <th className="px-4 py-3 text-left text-white font-bold">Check-out</th>
-                            <th className="px-4 py-3 text-left text-white font-bold">Nights</th>
-                            <th className="px-4 py-3 text-left text-white font-bold">Status</th>
-                            <th className="px-4 py-3 text-left text-white font-bold">Price</th>
-                            <th className="px-4 py-3 text-left text-white font-bold">Actions</th>
+                            <th className="w-[18%] px-4 py-3 text-left text-white font-bold">Guest</th>
+                            <th className="w-[15%] px-4 py-3 text-left text-white font-bold">Property</th>
+                            <th className="w-[11%] px-4 py-3 text-left text-white font-bold">Check-in</th>
+                            <th className="w-[11%] px-4 py-3 text-left text-white font-bold">Check-out</th>
+                            <th className="w-[7%] px-4 py-3 text-center text-white font-bold">Nights</th>
+                            <th className="w-[12%] px-4 py-3 text-left text-white font-bold">Status</th>
+                            <th className="w-[12%] px-4 py-3 text-right text-white font-bold">Price</th>
+                            <th className="w-[14%] px-4 py-3 text-center text-white font-bold">Actions</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -495,15 +678,15 @@ const ManualDataEntry = ({ onBack }) => {
                                 key={booking.id}
                                 className={`border-b border-gray-700 ${index % 2 === 0 ? 'bg-[#2a2f3a]' : 'bg-[#1f2937]'} hover:bg-[#374151] transition-colors`}
                               >
-                                <td className="px-4 py-3 text-white">{booking.guest_name}</td>
-                                <td className="px-4 py-3 text-gray-300 text-sm">
+                                <td className="px-4 py-3 text-white font-medium truncate">{booking.guest_name}</td>
+                                <td className="px-4 py-3 text-gray-300 text-sm truncate">
                                   {properties.find(p => p.id === booking.property_id)?.name || 'N/A'}
                                 </td>
-                                <td className="px-4 py-3 text-gray-300">{booking.check_in}</td>
-                                <td className="px-4 py-3 text-gray-300">{booking.check_out}</td>
-                                <td className="px-4 py-3 text-white font-bold">{booking.nights}</td>
+                                <td className="px-4 py-3 text-gray-300 text-sm">{booking.check_in}</td>
+                                <td className="px-4 py-3 text-gray-300 text-sm">{booking.check_out}</td>
+                                <td className="px-4 py-3 text-white font-bold text-center">{booking.nights}</td>
                                 <td className="px-4 py-3">
-                                  <span className={`px-2 py-1 rounded-full text-xs font-bold ${
+                                  <span className={`px-3 py-1 rounded-full text-xs font-bold inline-block ${
                                     booking.status === 'confirmed' ? 'bg-green-500 text-white' :
                                     booking.status === 'pending_payment' ? 'bg-yellow-500 text-black' :
                                     booking.status === 'cancelled' ? 'bg-red-500 text-white' :
@@ -512,11 +695,11 @@ const ManualDataEntry = ({ onBack }) => {
                                     {booking.status}
                                   </span>
                                 </td>
-                                <td className="px-4 py-3 text-white font-bold">
+                                <td className="px-4 py-3 text-white font-bold text-right">
                                   {booking.currency} {booking.total_price?.toLocaleString()}
                                 </td>
                                 <td className="px-4 py-3">
-                                  <div className="flex gap-2">
+                                  <div className="flex gap-2 justify-center">
                                     <button
                                       onClick={() => handleEditBooking(booking)}
                                       className="px-3 py-1 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-sm font-medium transition-all"
@@ -772,13 +955,13 @@ const ManualDataEntry = ({ onBack }) => {
                   value={bookingForm.propertyId}
                   onChange={(e) => handlePropertyChange(e.target.value)}
                   disabled={isLoadingProperties}
-                  className="w-full px-4 py-3 bg-white/10 border border-white/30 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-white/50 disabled:opacity-50"
+                  className="w-full px-4 py-3 bg-[#2a2f3a] border-2 border-gray-200 rounded-xl text-[#FF8C42] focus:outline-none focus:border-orange-300 disabled:opacity-50 [&>option]:bg-[#1f2937] [&>option]:text-white"
                 >
-                  <option value="">
+                  <option value="" className="bg-[#1f2937] text-gray-400">
                     {isLoadingProperties ? 'Loading properties...' : 'Select a property'}
                   </option>
                   {properties.map(property => (
-                    <option key={property.id} value={property.id}>
+                    <option key={property.id} value={property.id} className="bg-[#1f2937] text-white">
                       {property.name}
                     </option>
                   ))}
@@ -793,13 +976,13 @@ const ManualDataEntry = ({ onBack }) => {
                   value={bookingForm.villaId}
                   onChange={(e) => setBookingForm({...bookingForm, villaId: e.target.value})}
                   disabled={!bookingForm.propertyId || villas.length === 0}
-                  className="w-full px-4 py-3 bg-white/10 border border-white/30 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-white/50 disabled:opacity-50"
+                  className="w-full px-4 py-3 bg-[#2a2f3a] border-2 border-gray-200 rounded-xl text-[#FF8C42] focus:outline-none focus:border-orange-300 disabled:opacity-50 [&>option]:bg-[#1f2937] [&>option]:text-white"
                 >
-                  <option value="">
+                  <option value="" className="bg-[#1f2937] text-gray-400">
                     {!bookingForm.propertyId ? 'Select property first' : villas.length === 0 ? 'Loading villas...' : 'Select a villa'}
                   </option>
                   {villas.map(villa => (
-                    <option key={villa.id} value={villa.id}>
+                    <option key={villa.id} value={villa.id} className="bg-[#1f2937] text-white">
                       {villa.name} - {villa.currency} {villa.base_price?.toLocaleString()}/night
                     </option>
                   ))}
@@ -862,17 +1045,18 @@ const ManualDataEntry = ({ onBack }) => {
                 </div>
               </div>
 
-              {/* Status */}
+              {/* Payment Status */}
               <div className="md:col-span-2">
-                <label className="block text-[#FF8C42] font-medium mb-2">Booking Status *</label>
+                <label className="block text-[#FF8C42] font-medium mb-2">Payment Status *</label>
                 <select
                   required
                   value={bookingForm.status}
                   onChange={(e) => setBookingForm({...bookingForm, status: e.target.value})}
-                  className="w-full px-4 py-3 bg-white/10 border border-white/30 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-white/50"
+                  className="w-full px-4 py-3 bg-[#2a2f3a] border-2 border-gray-200 rounded-xl text-[#FF8C42] focus:outline-none focus:border-orange-300 [&>option]:bg-[#1f2937] [&>option]:text-white"
                 >
-                  <option value="hold">Hold (Pending Payment)</option>
-                  <option value="confirmed">Confirmed (Paid)</option>
+                  <option value="hold">Hold - Pending Payment</option>
+                  <option value="confirmed">Confirmed - Fully Paid</option>
+                  <option value="partial">Partial - Deposit Received</option>
                 </select>
               </div>
             </div>
@@ -1125,6 +1309,146 @@ const ManualDataEntry = ({ onBack }) => {
           </form>
         )}
       </div>
+
+      {/* Edit Booking Modal */}
+      {editingBooking && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4 overflow-y-auto">
+          <div className="bg-[#1f2937] rounded-2xl p-6 max-w-2xl w-full border-2 border-orange-500 my-8">
+            <h3 className="text-2xl font-bold text-orange-400 mb-6">Editar Booking</h3>
+
+            <form onSubmit={handleUpdateBooking} className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Guest Name */}
+                <div className="md:col-span-2">
+                  <label className="block text-[#FF8C42] font-medium mb-2">Nombre del Huésped *</label>
+                  <input
+                    type="text"
+                    required
+                    value={editForm.guestName}
+                    onChange={(e) => setEditForm({...editForm, guestName: e.target.value})}
+                    className="w-full px-4 py-3 bg-[#2a2f3a] border-2 border-gray-200 rounded-xl text-[#FF8C42] placeholder-gray-400 focus:outline-none focus:border-orange-300"
+                    placeholder="ej. John Smith"
+                  />
+                </div>
+
+                {/* Guest Phone */}
+                <div>
+                  <label className="block text-[#FF8C42] font-medium mb-2">Teléfono *</label>
+                  <input
+                    type="tel"
+                    required
+                    value={editForm.guestPhone}
+                    onChange={(e) => setEditForm({...editForm, guestPhone: e.target.value})}
+                    className="w-full px-4 py-3 bg-[#2a2f3a] border-2 border-gray-200 rounded-xl text-[#FF8C42] placeholder-gray-400 focus:outline-none focus:border-orange-300"
+                    placeholder="+62 812 3456 7890"
+                  />
+                </div>
+
+                {/* Guest Email */}
+                <div>
+                  <label className="block text-[#FF8C42] font-medium mb-2">Email *</label>
+                  <input
+                    type="email"
+                    required
+                    value={editForm.guestEmail}
+                    onChange={(e) => setEditForm({...editForm, guestEmail: e.target.value})}
+                    className="w-full px-4 py-3 bg-[#2a2f3a] border-2 border-gray-200 rounded-xl text-[#FF8C42] placeholder-gray-400 focus:outline-none focus:border-orange-300"
+                    placeholder="guest@email.com"
+                  />
+                </div>
+
+                {/* Check-in */}
+                <div>
+                  <label className="block text-[#FF8C42] font-medium mb-2">Check-in *</label>
+                  <input
+                    type="date"
+                    required
+                    value={editForm.checkIn}
+                    onChange={(e) => setEditForm({...editForm, checkIn: e.target.value})}
+                    className="w-full px-4 py-3 bg-[#2a2f3a] border-2 border-gray-200 rounded-xl text-[#FF8C42] focus:outline-none focus:border-orange-300"
+                  />
+                </div>
+
+                {/* Check-out */}
+                <div>
+                  <label className="block text-[#FF8C42] font-medium mb-2">Check-out *</label>
+                  <input
+                    type="date"
+                    required
+                    value={editForm.checkOut}
+                    onChange={(e) => setEditForm({...editForm, checkOut: e.target.value})}
+                    className="w-full px-4 py-3 bg-[#2a2f3a] border-2 border-gray-200 rounded-xl text-[#FF8C42] focus:outline-none focus:border-orange-300"
+                  />
+                </div>
+
+                {/* Guests */}
+                <div>
+                  <label className="block text-[#FF8C42] font-medium mb-2">Huéspedes *</label>
+                  <input
+                    type="number"
+                    required
+                    min="1"
+                    max="20"
+                    value={editForm.guests}
+                    onChange={(e) => setEditForm({...editForm, guests: e.target.value})}
+                    className="w-full px-4 py-3 bg-[#2a2f3a] border-2 border-gray-200 rounded-xl text-[#FF8C42] focus:outline-none focus:border-orange-300"
+                  />
+                </div>
+
+                {/* Total Amount */}
+                <div>
+                  <label className="block text-[#FF8C42] font-medium mb-2">Precio Total *</label>
+                  <input
+                    type="number"
+                    required
+                    min="0"
+                    step="0.01"
+                    value={editForm.totalAmount}
+                    onChange={(e) => setEditForm({...editForm, totalAmount: e.target.value})}
+                    className="w-full px-4 py-3 bg-[#2a2f3a] border-2 border-gray-200 rounded-xl text-[#FF8C42] focus:outline-none focus:border-orange-300"
+                  />
+                </div>
+
+                {/* Payment Status */}
+                <div className="md:col-span-2">
+                  <label className="block text-[#FF8C42] font-medium mb-2">Estado de Pago *</label>
+                  <select
+                    required
+                    value={editForm.status}
+                    onChange={(e) => setEditForm({...editForm, status: e.target.value})}
+                    className="w-full px-4 py-3 bg-[#2a2f3a] border-2 border-gray-200 rounded-xl text-[#FF8C42] focus:outline-none focus:border-orange-300 [&>option]:bg-[#1f2937] [&>option]:text-white"
+                  >
+                    <option value="hold">Hold - Pending Payment</option>
+                    <option value="confirmed">Confirmed - Fully Paid</option>
+                    <option value="partial">Partial - Deposit Received</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Buttons */}
+              <div className="flex gap-3 pt-4">
+                <button
+                  type="button"
+                  onClick={() => setEditingBooking(null)}
+                  disabled={isSavingEdit}
+                  className="flex-1 px-4 py-3 bg-gray-600 hover:bg-gray-700 text-white rounded-xl font-medium transition-all"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSavingEdit}
+                  className={`flex-1 px-4 py-3 bg-orange-500 hover:bg-orange-600 text-white rounded-xl font-medium transition-all ${
+                    isSavingEdit ? 'opacity-50 cursor-not-allowed' : ''
+                  }`}
+                >
+                  {isSavingEdit ? 'Guardando...' : 'Guardar Cambios'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* Delete Confirmation Modal */}
       {deletingBooking && (

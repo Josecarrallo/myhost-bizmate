@@ -13,7 +13,7 @@ import {
   ThumbsUp,
   ThumbsDown,
   Eye,
-  X,
+  ArrowLeft,
   Settings,
   Wifi,
   Home,
@@ -886,7 +886,7 @@ const Autopilot = ({ onBack }) => {
   };
 
   const renderDataEntrySection = () => {
-    return <ManualDataEntry onBack={() => setActiveSection('overview')} />;
+    return <ManualDataEntry onBack={() => setActiveSection('all-data')} />;
   };
 
   const renderAllDataSection = () => {
@@ -895,8 +895,14 @@ const Autopilot = ({ onBack }) => {
         {/* Header */}
         <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-3xl p-6 shadow-2xl border-2 border-[#d85a2a]/20">
           <div className="flex items-center justify-between mb-4">
-            <div>
-              <h3 className="text-2xl font-black text-[#FF8C42] mb-2 flex items-center gap-2">
+            <button
+              onClick={() => setActiveSection('all-data')}
+              className="p-2 bg-[#1f2937]/95 backdrop-blur-sm rounded-xl hover:bg-orange-500 transition-all border border-[#d85a2a]/20"
+            >
+              <ArrowLeft className="w-5 h-5 text-[#FF8C42]" />
+            </button>
+            <div className="flex-1 text-center">
+              <h3 className="text-2xl font-black text-[#FF8C42] mb-2 flex items-center gap-2 justify-center">
                 <BarChart3 className="w-6 h-6" />
                 All Information
               </h3>
@@ -1116,10 +1122,19 @@ const Autopilot = ({ onBack }) => {
   const renderAvailabilitySection = () => (
     <div className="space-y-6">
       <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-3xl p-6 shadow-2xl border-2 border-[#d85a2a]/20">
-        <h3 className="text-2xl font-black text-[#FF8C42] mb-4 flex items-center gap-2">
-          <Wifi className="w-6 h-6" />
-          Availability & Channels
-        </h3>
+        <div className="flex items-center justify-between mb-4">
+          <button
+            onClick={() => setActiveSection('all-data')}
+            className="p-2 bg-[#1f2937]/95 backdrop-blur-sm rounded-xl hover:bg-orange-500 transition-all border border-[#d85a2a]/20"
+          >
+            <ArrowLeft className="w-5 h-5 text-[#FF8C42]" />
+          </button>
+          <h3 className="text-2xl font-black text-[#FF8C42] flex items-center gap-2">
+            <Wifi className="w-6 h-6" />
+            Availability & Channels
+          </h3>
+          <div className="w-12"></div>
+        </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
           <div className="bg-gradient-to-br from-pink-500/10 to-pink-600/10 rounded-xl p-5 border-2 border-pink-500/30">
@@ -1163,6 +1178,12 @@ const Autopilot = ({ onBack }) => {
     <div className="space-y-6">
       <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-3xl p-6 shadow-2xl border-2 border-[#d85a2a]/20">
         <div className="flex items-center justify-between mb-4">
+          <button
+            onClick={() => setActiveSection('all-data')}
+            className="p-2 bg-[#1f2937]/95 backdrop-blur-sm rounded-xl hover:bg-orange-500 transition-all border border-[#d85a2a]/20"
+          >
+            <ArrowLeft className="w-5 h-5 text-[#FF8C42]" />
+          </button>
           <h3 className="text-2xl font-black text-[#FF8C42] flex items-center gap-2">
             <Home className="w-6 h-6" />
             Bookings (45 total)
@@ -1214,10 +1235,19 @@ const Autopilot = ({ onBack }) => {
   const renderPaymentsSection = () => (
     <div className="space-y-6">
       <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-3xl p-6 shadow-2xl border-2 border-[#d85a2a]/20">
-        <h3 className="text-2xl font-black text-[#FF8C42] mb-4 flex items-center gap-2">
-          <CreditCard className="w-6 h-6" />
-          Payments
-        </h3>
+        <div className="flex items-center justify-between mb-4">
+          <button
+            onClick={() => setActiveSection('all-data')}
+            className="p-2 bg-[#1f2937]/95 backdrop-blur-sm rounded-xl hover:bg-orange-500 transition-all border border-[#d85a2a]/20"
+          >
+            <ArrowLeft className="w-5 h-5 text-[#FF8C42]" />
+          </button>
+          <h3 className="text-2xl font-black text-[#FF8C42] flex items-center gap-2">
+            <CreditCard className="w-6 h-6" />
+            Payments
+          </h3>
+          <div className="w-12"></div>
+        </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
           <div className="bg-gradient-to-br from-green-500/10 to-green-600/10 rounded-xl p-5 border-2 border-green-500/30">
@@ -1268,10 +1298,19 @@ const Autopilot = ({ onBack }) => {
   const renderCommunicationSection = () => (
     <div className="space-y-6">
       <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-3xl p-6 shadow-2xl border-2 border-[#d85a2a]/20">
-        <h3 className="text-2xl font-black text-[#FF8C42] mb-4 flex items-center gap-2">
-          <Mail className="w-6 h-6" />
-          Guest Communication
-        </h3>
+        <div className="flex items-center justify-between mb-4">
+          <button
+            onClick={() => setActiveSection('all-data')}
+            className="p-2 bg-[#1f2937]/95 backdrop-blur-sm rounded-xl hover:bg-orange-500 transition-all border border-[#d85a2a]/20"
+          >
+            <ArrowLeft className="w-5 h-5 text-[#FF8C42]" />
+          </button>
+          <h3 className="text-2xl font-black text-[#FF8C42] flex items-center gap-2">
+            <Mail className="w-6 h-6" />
+            Guest Communication
+          </h3>
+          <div className="w-12"></div>
+        </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
           <div className="bg-gradient-to-br from-green-500/10 to-green-600/10 rounded-xl p-5 border-2 border-green-500/30">
@@ -1302,10 +1341,19 @@ const Autopilot = ({ onBack }) => {
   const renderWebsiteSection = () => (
     <div className="space-y-6">
       <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-3xl p-6 shadow-2xl border-2 border-[#d85a2a]/20">
-        <h3 className="text-2xl font-black text-[#FF8C42] mb-4 flex items-center gap-2">
-          <Globe className="w-6 h-6" />
-          My Villa Website
-        </h3>
+        <div className="flex items-center justify-between mb-4">
+          <button
+            onClick={() => setActiveSection('all-data')}
+            className="p-2 bg-[#1f2937]/95 backdrop-blur-sm rounded-xl hover:bg-orange-500 transition-all border border-[#d85a2a]/20"
+          >
+            <ArrowLeft className="w-5 h-5 text-[#FF8C42]" />
+          </button>
+          <h3 className="text-2xl font-black text-[#FF8C42] flex items-center gap-2">
+            <Globe className="w-6 h-6" />
+            My Villa Website
+          </h3>
+          <div className="w-12"></div>
+        </div>
 
         <div className="bg-gradient-to-br from-green-500/10 to-green-600/10 rounded-xl p-6 border-2 border-green-500/30 mb-6">
           <div className="flex items-center justify-between mb-4">
@@ -1380,14 +1428,22 @@ const Autopilot = ({ onBack }) => {
     <div className="space-y-6">
       <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-3xl p-6 shadow-2xl border-2 border-[#d85a2a]/20">
         <div className="flex items-center justify-between mb-4">
+          <button
+            onClick={() => setActiveSection('all-data')}
+            className="p-2 bg-[#1f2937]/95 backdrop-blur-sm rounded-xl hover:bg-orange-500 transition-all border border-[#d85a2a]/20"
+          >
+            <ArrowLeft className="w-5 h-5 text-[#FF8C42]" />
+          </button>
           <h3 className="text-2xl font-black text-[#FF8C42] flex items-center gap-2">
             <Wrench className="w-6 h-6" />
             Maintenance & Tasks
           </h3>
-          <button className="px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg font-bold transition-all flex items-center gap-2">
-            <Plus className="w-4 h-4" />
-            New Task
-          </button>
+          <div className="flex gap-2">
+            <button className="px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg font-bold transition-all flex items-center gap-2">
+              <Plus className="w-4 h-4" />
+              New Task
+            </button>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
@@ -1471,11 +1527,18 @@ const Autopilot = ({ onBack }) => {
         {/* Header with Owner Selector and Print Button */}
         <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-3xl p-6 shadow-2xl border-2 border-[#d85a2a]/20">
           <div className="flex flex-col gap-4">
-            <div>
+            <div className="flex items-center justify-between">
+              <button
+                onClick={() => setActiveSection('all-data')}
+                className="p-2 bg-[#1f2937]/95 backdrop-blur-sm rounded-xl hover:bg-orange-500 transition-all border border-[#d85a2a]/20"
+              >
+                <ArrowLeft className="w-5 h-5 text-[#FF8C42]" />
+              </button>
               <h3 className="text-2xl font-black text-[#FF8C42] flex items-center gap-2">
                 <FileText className="w-6 h-6" />
                 Business Reports - {currentOwner.property}
               </h3>
+              <div className="w-12"></div>
             </div>
 
             <div className="flex items-center justify-between">
@@ -1547,16 +1610,16 @@ const Autopilot = ({ onBack }) => {
 
         {/* Report Display */}
         <div className="bg-white rounded-3xl shadow-2xl border-2 border-gray-200" style={{ height: '1400px', overflowY: 'auto', overflowX: 'hidden' }}>
-          <div style={{ width: '1008px', height: '2520px', position: 'relative' }}>
+          <div style={{ width: '100%', height: '2520px', position: 'relative' }}>
             <iframe
               key={`${selectedProperty}-${reportMode}`}
               id="business-report-frame"
               src={`/business-reports/${currentFile}`}
               style={{
-                width: '1400px',
+                width: '100%',
                 height: '3500px',
                 border: 'none',
-                transform: 'scale(0.72)',
+                transform: 'scale(1.1)',
                 transformOrigin: '0 0',
                 pointerEvents: 'auto'
               }}
@@ -1572,6 +1635,16 @@ const Autopilot = ({ onBack }) => {
     <div className="space-y-6">
       {/* View Selector */}
       <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-2xl p-3 shadow-lg border-2 border-[#d85a2a]/20">
+        <div className="flex items-center justify-between mb-3">
+          <button
+            onClick={() => setActiveSection('all-data')}
+            className="p-2 bg-[#1f2937]/95 backdrop-blur-sm rounded-xl hover:bg-orange-500 transition-all border border-[#d85a2a]/20"
+          >
+            <ArrowLeft className="w-5 h-5 text-[#FF8C42]" />
+          </button>
+          <h3 className="text-xl font-black text-[#FF8C42]">Overview</h3>
+          <div className="w-12"></div>
+        </div>
         <div className="grid grid-cols-3 gap-2">
           <button
             onClick={() => setActiveView('daily')}
@@ -2127,17 +2200,25 @@ const Autopilot = ({ onBack }) => {
       {/* OWNER DECISIONS */}
       <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-3xl p-6 shadow-2xl border-2 border-[#d85a2a]/20">
         <div className="flex items-center justify-between mb-4">
+          <button
+            onClick={() => setActiveSection('all-data')}
+            className="p-2 bg-[#1f2937]/95 backdrop-blur-sm rounded-xl hover:bg-orange-500 transition-all border border-[#d85a2a]/20"
+          >
+            <ArrowLeft className="w-5 h-5 text-[#FF8C42]" />
+          </button>
           <h3 className="text-2xl font-black text-[#FF8C42] flex items-center gap-2">
             <CheckCircle className="w-6 h-6 text-[#FF8C42]" />
             Owner Decisions ({actionsNeedingApproval.length})
           </h3>
-          <button
-            onClick={() => setShowDBVisualization(!showDBVisualization)}
-            className="px-4 py-2 bg-orange-500/20 hover:bg-orange-500/30 text-orange-400 rounded-lg font-medium transition-all flex items-center gap-2 border border-orange-500/30"
-          >
+          <div className="flex gap-2">
+            <button
+              onClick={() => setShowDBVisualization(!showDBVisualization)}
+              className="px-4 py-2 bg-orange-500/20 hover:bg-orange-500/30 text-orange-400 rounded-lg font-medium transition-all flex items-center gap-2 border border-orange-500/30"
+            >
             <Eye className="w-4 h-4" />
             {showDBVisualization ? 'Hide' : 'Show'} DB
           </button>
+          </div>
         </div>
         <div className="space-y-4">
           {actionsNeedingApproval.length === 0 ? (
@@ -2290,16 +2371,16 @@ const Autopilot = ({ onBack }) => {
       </div>
 
       {/* Sidebar Navigation */}
-      <div className="w-80 bg-[#1f2937]/95 backdrop-blur-sm border-r-2 border-[#d85a2a]/20 overflow-y-auto relative z-10">
+      <div className={`w-80 bg-[#1f2937]/95 backdrop-blur-sm border-r-2 border-[#d85a2a]/20 overflow-y-auto relative z-10 ${activeSection === 'all-data' ? '' : 'hidden'}`}>
         <div className="p-6">
           {/* Header */}
           <div className="flex items-center justify-between mb-8">
             <h2 className="text-2xl font-black text-white">AUTOPILOT</h2>
             <button
               onClick={onBack}
-              className="p-2 bg-[#2a2f3a] hover:bg-[#374151] rounded-lg transition-all"
+              className="p-2 bg-[#1f2937]/95 backdrop-blur-sm rounded-xl hover:bg-orange-500 transition-all border border-[#d85a2a]/20"
             >
-              <X className="w-5 h-5 text-[#FF8C42]" />
+              <ArrowLeft className="w-5 h-5 text-[#FF8C42]" />
             </button>
           </div>
 
@@ -2344,8 +2425,8 @@ const Autopilot = ({ onBack }) => {
       </div>
 
       {/* Main Content Area */}
-      <div className="flex-1 overflow-y-auto p-6 relative z-10">
-        <div className="max-w-7xl mx-auto">
+      <div className="flex-1 overflow-y-auto p-2 relative z-10">
+        <div className="max-w-[96%] mx-auto">
           {activeSection === 'data-entry' && renderDataEntrySection()}
           {activeSection === 'business-reports' && renderBusinessReportsSection()}
           {activeSection === 'all-data' && renderAllDataSection()}

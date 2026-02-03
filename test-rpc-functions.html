@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Test Supabase RPC Functions</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      max-width: 900px;
+      margin: 50px auto;
+      padding: 20px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+    }
+    .container {
+      background: rgba(255,255,255,0.1);
+      backdrop-filter: blur(10px);
+      border-radius: 15px;
+      padding: 30px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+    }
+    button {
+      background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: bold;
+      margin: 5px;
+      transition: transform 0.2s;
+    }
+    button:hover {
+      transform: scale(1.05);
+    }
+    #output {
+      background: rgba(0,0,0,0.3);
+      padding: 20px;
+      border-radius: 8px;
+      margin-top: 20px;
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+      max-height: 400px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+    }
+    .success { color: #4ade80; }
+    .error { color: #f87171; }
+    .info { color: #60a5fa; }
+    h1 { margin-top: 0; }
+    .status {
+      padding: 10px;
+      border-radius: 8px;
+      margin: 10px 0;
+      font-size: 13px;
+    }
+    .status.connected { background: rgba(74, 222, 128, 0.2); border: 1px solid #4ade80; }
+    .status.error { background: rgba(248, 113, 113, 0.2); border: 1px solid #f87171; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🧪 Test Supabase RPC Functions</h1>
+    <p>This test will verify if the RPC functions are accessible from the browser.</p>
+
+    <div id="connection-status"></div>
+
+    <div>
+      <button onclick="testConnection()">1. Test Connection</button>
+      <button onclick="testGetPropertyReportData()">2. Test get_property_report_data</button>
+      <button onclick="testGetMonthlyBreakdown()">3. Test get_monthly_breakdown</button>
+      <button onclick="testGetPropertiesForAutoReports()">4. Test get_properties_for_auto_reports</button>
+      <button onclick="clearOutput()">Clear Output</button>
+    </div>
+
+    <div id="output">Waiting for tests...</div>
+  </div>
+
+  <script>
+    const SUPABASE_URL = 'https://jjpscimtxrudtepzwhag.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpqcHNjaW10eHJ1ZHRlcHp3aGFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI5NDMyMzIsImV4cCI6MjA3ODUxOTIzMn0._U_HwdF5-yT8-prJLzkdO_rGbNuu7Z3gpUQW0Q8zxa0';
+
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    function log(message, type = 'info') {
+      const output = document.getElementById('output');
+      const timestamp = new Date().toLocaleTimeString();
+      const colorClass = type === 'error' ? 'error' : type === 'success' ? 'success' : 'info';
+      output.innerHTML += `<span class="${colorClass}">[${timestamp}] ${message}</span>\n`;
+      output.scrollTop = output.scrollHeight;
+    }
+
+    function clearOutput() {
+      document.getElementById('output').innerHTML = 'Output cleared.\n';
+    }
+
+    async function testConnection() {
+      log('Testing connection to Supabase...', 'info');
+
+      try {
+        const { data, error } = await supabase
+          .from('properties')
+          .select('id, name')
+          .limit(1);
+
+        if (error) {
+          log(`❌ Connection test FAILED: ${error.message}`, 'error');
+          updateConnectionStatus(false);
+        } else {
+          log(`✅ Connection successful! Found ${data ? data.length : 0} properties.`, 'success');
+          if (data && data.length > 0) {
+            log(`Sample property: ${JSON.stringify(data[0], null, 2)}`, 'info');
+          }
+          updateConnectionStatus(true);
+        }
+      } catch (err) {
+        log(`❌ Exception: ${err.message}`, 'error');
+        updateConnectionStatus(false);
+      }
+    }
+
+    function updateConnectionStatus(connected) {
+      const statusDiv = document.getElementById('connection-status');
+      if (connected) {
+        statusDiv.className = 'status connected';
+        statusDiv.innerHTML = '✅ Connected to Supabase';
+      } else {
+        statusDiv.className = 'status error';
+        statusDiv.innerHTML = '❌ Connection failed';
+      }
+    }
+
+    async function testGetPropertyReportData() {
+      log('\n=== Testing get_property_report_data ===', 'info');
+
+      // First get a property ID
+      const { data: properties } = await supabase.from('properties').select('id, name').limit(1);
+
+      if (!properties || properties.length === 0) {
+        log('❌ No properties found to test with', 'error');
+        return;
+      }
+
+      const testPropertyId = properties[0].id;
+      log(`Using property: ${properties[0].name} (${testPropertyId})`, 'info');
+
+      try {
+        log('Calling supabase.rpc("get_property_report_data", {...})...', 'info');
+
+        const { data, error } = await supabase.rpc('get_property_report_data', {
+          p_property_id: testPropertyId,
+          p_start_date: '2025-01-01',
+          p_end_date: '2025-12-31'
+        });
+
+        if (error) {
+          log(`❌ RPC call FAILED: ${error.message}`, 'error');
+          log(`Error details: ${JSON.stringify(error, null, 2)}`, 'error');
+        } else {
+          log('✅ RPC call successful!', 'success');
+          log(`Response data: ${JSON.stringify(data, null, 2)}`, 'success');
+        }
+      } catch (err) {
+        log(`❌ Exception: ${err.message}`, 'error');
+      }
+    }
+
+    async function testGetMonthlyBreakdown() {
+      log('\n=== Testing get_monthly_breakdown ===', 'info');
+
+      const { data: properties } = await supabase.from('properties').select('id, name').limit(1);
+
+      if (!properties || properties.length === 0) {
+        log('❌ No properties found to test with', 'error');
+        return;
+      }
+
+      const testPropertyId = properties[0].id;
+      log(`Using property: ${properties[0].name} (${testPropertyId})`, 'info');
+
+      try {
+        log('Calling supabase.rpc("get_monthly_breakdown", {...})...', 'info');
+
+        const { data, error } = await supabase.rpc('get_monthly_breakdown', {
+          p_property_id: testPropertyId,
+          p_start_date: '2025-01-01',
+          p_end_date: '2025-12-31'
+        });
+
+        if (error) {
+          log(`❌ RPC call FAILED: ${error.message}`, 'error');
+          log(`Error details: ${JSON.stringify(error, null, 2)}`, 'error');
+        } else {
+          log('✅ RPC call successful!', 'success');
+          log(`Response data: ${JSON.stringify(data, null, 2)}`, 'success');
+        }
+      } catch (err) {
+        log(`❌ Exception: ${err.message}`, 'error');
+      }
+    }
+
+    async function testGetPropertiesForAutoReports() {
+      log('\n=== Testing get_properties_for_auto_reports ===', 'info');
+
+      try {
+        log('Calling supabase.rpc("get_properties_for_auto_reports")...', 'info');
+
+        const { data, error } = await supabase.rpc('get_properties_for_auto_reports');
+
+        if (error) {
+          log(`❌ RPC call FAILED: ${error.message}`, 'error');
+          log(`Error details: ${JSON.stringify(error, null, 2)}`, 'error');
+        } else {
+          log('✅ RPC call successful!', 'success');
+          log(`Found ${data ? data.length : 0} properties with auto-reports enabled`, 'success');
+          log(`Response data: ${JSON.stringify(data, null, 2)}`, 'success');
+        }
+      } catch (err) {
+        log(`❌ Exception: ${err.message}`, 'error');
+      }
+    }
+
+    // Auto-test connection on load
+    window.addEventListener('load', () => {
+      setTimeout(testConnection, 500);
+    });
+  </script>
+</body>
+</html>

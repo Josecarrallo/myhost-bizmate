@@ -1,0 +1,796 @@
+{
+  "name": "AUTOPILOT - Actions Approve Reject V2",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "autopilot/action",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "31077ac9-9189-4124-9ac1-4173922b2053",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -1008,
+        -64
+      ],
+      "webhookId": "autopilot-action-v3"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $('Webhook').item.json.body.action }}",
+                    "rightValue": "approve",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "e449833c-1b96-424f-a8b3-2b8ad43c9e61"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "approve"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $('Webhook').item.json.body.action }}",
+                    "rightValue": "reject",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "989df515-1b68-4f1f-a7eb-68128073ab8d"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "reject"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "4dbd9c4e-e6ce-49d0-9ee6-0a6ad52f3364",
+      "name": "Route Action",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        -624,
+        -64
+      ]
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "=https://jjpscimtxrudtepzwhag.supabase.co/rest/v1/autopilot_actions?id=eq.{{ $('Webhook').item.json.body.action_id }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpqcHNjaW10eHJ1ZHRlcHp3aGFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI5NDMyMzIsImV4cCI6MjA3ODUxOTIzMn0._U_HwdF5-yT8-prJLzkdO_rGbNuu7Z3gpUQW0Q8zxa0"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=representation"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\"status\": \"approved\", \"approved_at\": \"{{ $now.toISO() }}\"}",
+        "options": {}
+      },
+      "id": "16b94b81-d44c-4d66-ae3b-68e915938e02",
+      "name": "Approve in Supabase",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        496,
+        -48
+      ]
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "=https://jjpscimtxrudtepzwhag.supabase.co/rest/v1/autopilot_actions?id=eq.{{ $('Webhook').item.json.body.action_id }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpqcHNjaW10eHJ1ZHRlcHp3aGFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI5NDMyMzIsImV4cCI6MjA3ODUxOTIzMn0._U_HwdF5-yT8-prJLzkdO_rGbNuu7Z3gpUQW0Q8zxa0"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=representation"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\"status\": \"rejected\", \"rejected_at\": \"{{ $now.toISO() }}\", \"rejection_reason\": \"{{ $('Webhook').item.json.body.reason || '' }}\"}",
+        "options": {}
+      },
+      "id": "d4258ec3-d859-4309-a397-a4e60b8b7129",
+      "name": "Reject in Supabase",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        512,
+        272
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\"success\": true, \"action\": \"approved\", \"action_id\": \"{{ $('Webhook').item.json.body.action_id }}\"}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              }
+            ]
+          }
+        }
+      },
+      "id": "5344fbad-f783-4e87-8943-2bb0d8bf254f",
+      "name": "Respond Approved",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        720,
+        -48
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\"success\": true, \"action\": \"rejected\", \"action_id\": \"{{ $('Webhook').item.json.body.action_id }}\"}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              }
+            ]
+          }
+        }
+      },
+      "id": "1792555c-81d7-4533-8011-3d1b398091bd",
+      "name": "Respond Rejected",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        928,
+        272
+      ]
+    },
+    {
+      "parameters": {
+        "url": "=https://jjpscimtxrudtepzwhag.supabase.co/rest/v1/autopilot_actions?id=eq.{{ $('Webhook').item.json.body.action_id }}&select=*",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpqcHNjaW10eHJ1ZHRlcHp3aGFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI5NDMyMzIsImV4cCI6MjA3ODUxOTIzMn0._U_HwdF5-yT8-prJLzkdO_rGbNuu7Z3gpUQW0Q8zxa0"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        -816,
+        -64
+      ],
+      "id": "d8d92bc1-5259-4a6e-8677-a524fe6742c4",
+      "name": "Load action"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.action_type }}",
+                    "rightValue": "payment_verification",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "7f1ce363-c02c-432a-a739-34ccc60d477b"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "payment_verification"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "c96a5222-0bc8-4160-83e8-1f5a969051af",
+                    "leftValue": "={{ $json.action_type }}",
+                    "rightValue": "custom_plan_request",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "custom_plan_request"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "02e669e1-db79-4b03-b7fe-5ac29473e149",
+                    "leftValue": "={{ $json.action_type }}",
+                    "rightValue": "cancellation_exception",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "cancellation_exception"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra"
+        }
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        -416,
+        -288
+      ],
+      "id": "9e443f77-da1c-4f0b-ba04-c72d13c0ada2",
+      "name": "payment_verification"
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "=https://jjpscimtxrudtepzwhag.supabase.co/rest/v1/bookings?id=eq.{{ $json.related_id }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpqcHNjaW10eHJ1ZHRlcHp3aGFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI5NDMyMzIsImV4cCI6MjA3ODUxOTIzMn0._U_HwdF5-yT8-prJLzkdO_rGbNuu7Z3gpUQW0Q8zxa0"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=representation"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\"payment_expiry_at\": \"{{ $now.plus({hours: 24}).toISO() }}\"}",
+        "options": {}
+      },
+      "id": "27264354-c03a-45aa-9685-5956a44c4f9b",
+      "name": "Extend Hold 24h",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        -80,
+        -480
+      ],
+      "typeVersion": 4.2
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.chakrahq.com/v1/ext/plugin/whatsapp/2e45a0bd-8600-41b4-ac92-599d59d6221c/api/v19.0/944855278702577/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer qiu1Z9eA3i2hhNjVM3Dm7QEK1Ey6iKQUE5IDWJlsFSAqXk5OlmQoD6DhqEwv9TOdgOVRWSYLWGxm6HfCs2LeCuwiU8Poqrw2Rgmvih0iEawZhoL6TTmMjVjvDUw2WuygAQgQ1vIeLCreDAKOGymGQCuR5bUYDHrRQQrvoMZLYwHw0LaGhFUuf4GxLpQbV3AQj8JDjhP2MzsCUYT4EVCARX6cODl1d1udr4pITGOmHQ793MUBtptq4XCvC8OGD3g"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"messaging_product\": \"whatsapp\",\n  \"to\": \"{{ $('Load action').first().json.details.guest_phone }}\",\n  \"type\": \"text\",\n  \"text\": {\n    \"body\": \"VERIFICACION DE PAGO\\n\\nGuest: {{ $('Load action').first().json.details.guest_name }}\\nProperty: {{ $('Load action').first().json.details.property_name }}\\nFechas: {{ $('Load action').first().json.details.check_in }} to {{ $('Load action').first().json.details.check_out }}\\nMonto: ${{ $('Load action').first().json.details.amount }}\\n\\nThank you! We've extended your booking hold by 24 hours while we verify your payment.\\n\\nWe'll confirm once payment is verified.\"\n  }\n}",
+        "options": {}
+      },
+      "id": "a8ebe60e-d7a4-4b1f-8d0e-de20905e4d3d",
+      "name": "Notify Guest WhatsApp",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        112,
+        -480
+      ],
+      "typeVersion": 4.2
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "=https://jjpscimtxrudtepzwhag.supabase.co/rest/v1/bookings?id=eq.{{ $json.related_id }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpqcHNjaW10eHJ1ZHRlcHp3aGFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI5NDMyMzIsImV4cCI6MjA3ODUxOTIzMn0._U_HwdF5-yT8-prJLzkdO_rGbNuu7Z3gpUQW0Q8zxa0"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=representation"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"payment_plan\": {\n    \"type\": \"custom\",\n    \"installments\": 2,\n    \"first_payment\": {{ $('Load action').first().json.details.first_payment || 0 }},\n    \"second_payment\": {{ $('Load action').first().json.details.second_payment || 0 }},\n    \"second_payment_due\": \"{{ $('Load action').first().json.details.second_payment_due || '' }}\"\n  }\n}",
+        "options": {}
+      },
+      "id": "ad23d9fa-1724-4e85-87f9-8ffc5914eee9",
+      "name": "Update Booking Plan",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        -80,
+        -272
+      ],
+      "typeVersion": 4.2
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.chakrahq.com/v1/ext/plugin/whatsapp/2e45a0bd-8600-41b4-ac92-599d59d6221c/api/v19.0/944855278702577/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer qiu1Z9eA3i2hhNjVM3Dm7QEK1Ey6iKQUE5IDWJlsFSAqXk5OlmQoD6DhqEwv9TOdgOVRWSYLWGxm6HfCs2LeCuwiU8Poqrw2Rgmvih0iEawZhoL6TTmMjVjvDUw2WuygAQgQ1vIeLCreDAKOGymGQCuR5bUYDHrRQQrvoMZLYwHw0LaGhFUuf4GxLpQbV3AQj8JDjhP2MzsCUYT4EVCARX6cODl1d1udr4pITGOmHQ793MUBtptq4XCvC8OGD3g"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"messaging_product\": \"whatsapp\",\n  \"to\": \"{{ $('Load action').first().json.details.guest_phone }}\",\n  \"type\": \"text\",\n  \"text\": {\n    \"body\": \"PLAN DE PAGO APROBADO\\n\\nGuest: {{ $('Load action').first().json.details.guest_name }}\\nProperty: {{ $('Load action').first().json.details.property_name }}\\nFechas: {{ $('Load action').first().json.details.check_in }} to {{ $('Load action').first().json.details.check_out }}\\n\\nFirst payment: ${{ $('Load action').first().json.details.first_payment }}\\nSecond payment: ${{ $('Load action').first().json.details.second_payment }} (due {{ $('Load action').first().json.details.second_payment_due }})\\nTotal: ${{ $('Load action').first().json.details.total_price }}\\n\\nPlease complete your first payment to confirm your booking.\"\n  }\n}",
+        "options": {}
+      },
+      "id": "7a73c872-4bdf-4560-809a-384e75f27d4e",
+      "name": "WhatsApp Plan Approved",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        128,
+        -272
+      ],
+      "typeVersion": 4.2
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "=https://jjpscimtxrudtepzwhag.supabase.co/rest/v1/bookings?id=eq.{{ $json.related_id }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpqcHNjaW10eHJ1ZHRlcHp3aGFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI5NDMyMzIsImV4cCI6MjA3ODUxOTIzMn0._U_HwdF5-yT8-prJLzkdO_rGbNuu7Z3gpUQW0Q8zxa0"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=representation"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"status\": \"cancelled\",\n  \"payment_status\": \"refunded\",\n  \"notes\": \"Refund approved - Amount: {{ $json.details.amount }}\"\n}",
+        "options": {}
+      },
+      "id": "593189ee-de40-4ba6-a201-4e767bfda736",
+      "name": "Process Refund",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        -64,
+        0
+      ],
+      "typeVersion": 4.2
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.chakrahq.com/v1/ext/plugin/whatsapp/2e45a0bd-8600-41b4-ac92-599d59d6221c/api/v19.0/944855278702577/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer qiu1Z9eA3i2hhNjVM3Dm7QEK1Ey6iKQUE5IDWJlsFSAqXk5OlmQoD6DhqEwv9TOdgOVRWSYLWGxm6HfCs2LeCuwiU8Poqrw2Rgmvih0iEawZhoL6TTmMjVjvDUw2WuygAQgQ1vIeLCreDAKOGymGQCuR5bUYDHrRQQrvoMZLYwHw0LaGhFUuf4GxLpQbV3AQj8JDjhP2MzsCUYT4EVCARX6cODl1d1udr4pITGOmHQ793MUBtptq4XCvC8OGD3g"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"messaging_product\": \"whatsapp\",\n  \"to\": \"{{ $('Load action').first().json.details.guest_phone }}\",\n  \"type\": \"text\",\n  \"text\": {\n    \"body\": \"CANCELACION APROBADA\\n\\nGuest: {{ $('Load action').first().json.details.guest_name }}\\nProperty: {{ $('Load action').first().json.details.property_name }}\\nFechas: {{ $('Load action').first().json.details.check_in }} to {{ $('Load action').first().json.details.check_out }}\\nMonto reembolso: ${{ $('Load action').first().json.details.amount }}\\n\\nWe understand emergencies happen. Your cancellation exception has been approved.\\n\\nA refund will be processed within 5-7 business days.\\n\\nWe hope to welcome you in the future.\"\n  }\n}",
+        "options": {}
+      },
+      "id": "490f4e7d-0a74-4179-917d-4282d7340532",
+      "name": "WhatsApp Refund Approved",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        144,
+        0
+      ],
+      "typeVersion": 4.2
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.chakrahq.com/v1/ext/plugin/whatsapp/2e45a0bd-8600-41b4-ac92-599d59d6221c/api/v19.0/944855278702577/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer qiu1Z9eA3i2hhNjVM3Dm7QEK1Ey6iKQUE5IDWJlsFSAqXk5OlmQoD6DhqEwv9TOdgOVRWSYLWGxm6HfCs2LeCuwiU8Poqrw2Rgmvih0iEawZhoL6TTmMjVjvDUw2WuygAQgQ1vIeLCreDAKOGymGQCuR5bUYDHrRQQrvoMZLYwHw0LaGhFUuf4GxLpQbV3AQj8JDjhP2MzsCUYT4EVCARX6cODl1d1udr4pITGOmHQ793MUBtptq4XCvC8OGD3g"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({\n  \"messaging_product\": \"whatsapp\",\n  \"to\": \"34619794604\",\n  \"type\": \"text\",\n  \"text\": {\n    \"body\": \"❌ *ACCION RECHAZADA*\\n\\n📋 \" + $json.title + \"\\n🏷️ Tipo: \" + $json.action_type + \"\\n👤 Huesped: \" + ($json.details.guest_name || 'No especificado') + \"\\n📱 Telefono: \" + ($json.details.guest_phone || 'No disponible') + \"\\n💰 Monto: $\" + ($json.details.amount || '0') + \"\\n\\n📝 Motivo rechazo: \" + ($('Webhook').item.json.body.reason || 'Sin motivo') + \"\\n\\n⚠️ Contacta al huesped manualmente.\"\n  }\n}) }}",
+        "options": {}
+      },
+      "id": "757d277a-6d46-4cc3-a362-f71edb036b3e",
+      "name": "Send WhatsApp to Owner",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        720,
+        272
+      ],
+      "typeVersion": 4.2
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.chakrahq.com/v1/ext/plugin/whatsapp/2e45a0bd-8600-41b4-ac92-599d59d6221c/api/v19.0/944855278702577/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer qiu1Z9eA3i2hhNjVM3Dm7QEK1Ey6iKQUE5IDWJlsFSAqXk5OlmQoD6DhqEwv9TOdgOVRWSYLWGxm6HfCs2LeCuwiU8Poqrw2Rgmvih0iEawZhoL6TTmMjVjvDUw2WuygAQgQ1vIeLCreDAKOGymGQCuR5bUYDHrRQQrvoMZLYwHw0LaGhFUuf4GxLpQbV3AQj8JDjhP2MzsCUYT4EVCARX6cODl1d1udr4pITGOmHQ793MUBtptq4XCvC8OGD3g"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"messaging_product\": \"whatsapp\",\n  \"to\": \"{{ $('Load action').first().json.details.guest_phone }}\",\n  \"type\": \"text\",\n  \"text\": {\n    \"body\": \"CONFLICTO DE FECHAS RESUELTO\\n\\nGuest: {{ $('Load action').first().json.details.guest_name }}\\nProperty: {{ $('Load action').first().json.details.property_name }}\\nFechas solicitadas: {{ $('Load action').first().json.details.requested_check_in }} to {{ $('Load action').first().json.details.requested_check_out }}\\n\\nLamentablemente las fechas solicitadas no estan disponibles.\\n\\nFechas alternativas disponibles:\\n- {{ $('Load action').first().json.details.alternative_dates[0].check_in }} to {{ $('Load action').first().json.details.alternative_dates[0].check_out }}\\n- {{ $('Load action').first().json.details.alternative_dates[1].check_in }} to {{ $('Load action').first().json.details.alternative_dates[1].check_out }}\\n\\nPor favor contactenos para confirmar nuevas fechas.\"\n  }\n}",
+        "options": {}
+      },
+      "id": "89f7e647-d5ff-456c-8634-cfba6b248184",
+      "name": "WhatsApp Date Conflict Approved",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        640,
+        -512
+      ],
+      "typeVersion": 4.2
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.chakrahq.com/v1/ext/plugin/whatsapp/2e45a0bd-8600-41b4-ac92-599d59d6221c/api/v19.0/944855278702577/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer qiu1Z9eA3i2hhNjVM3Dm7QEK1Ey6iKQUE5IDWJlsFSAqXk5OlmQoD6DhqEwv9TOdgOVRWSYLWGxm6HfCs2LeCuwiU8Poqrw2Rgmvih0iEawZhoL6TTmMjVjvDUw2WuygAQgQ1vIeLCreDAKOGymGQCuR5bUYDHrRQQrvoMZLYwHw0LaGhFUuf4GxLpQbV3AQj8JDjhP2MzsCUYT4EVCARX6cODl1d1udr4pITGOmHQ793MUBtptq4XCvC8OGD3g"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"messaging_product\": \"whatsapp\",\n  \"to\": \"{{ $('Load action').first().json.details.guest_phone }}\",\n  \"type\": \"text\",\n  \"text\": {\n    \"body\": \"DESCUENTO APROBADO\\n\\nGuest: {{ $('Load action').first().json.details.guest_name }}\\nProperty: {{ $('Load action').first().json.details.property_name }}\\nFechas: {{ $('Load action').first().json.details.check_in }} to {{ $('Load action').first().json.details.check_out }}\\nNoches: {{ $('Load action').first().json.details.nights }}\\n\\nPrecio original: ${{ $('Load action').first().json.details.original_price }}\\nDescuento: {{ $('Load action').first().json.details.discount_percent }}%\\nPrecio final: ${{ $('Load action').first().json.details.final_price }}\\n\\nPor favor complete el pago para confirmar su reserva.\"\n  }\n}",
+        "options": {}
+      },
+      "id": "255f2e2d-0f8d-4ef6-9b62-2d75ccd796ad",
+      "name": "WhatsApp Pricing Exception Approved",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        640,
+        -304
+      ],
+      "typeVersion": 4.2
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Load action",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route Action": {
+      "main": [
+        [
+          {
+            "node": "payment_verification",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Reject in Supabase",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Approve in Supabase": {
+      "main": [
+        [
+          {
+            "node": "Respond Approved",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Reject in Supabase": {
+      "main": [
+        [
+          {
+            "node": "Send WhatsApp to Owner",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Load action": {
+      "main": [
+        [
+          {
+            "node": "Route Action",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extend Hold 24h": {
+      "main": [
+        [
+          {
+            "node": "Notify Guest WhatsApp",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "payment_verification": {
+      "main": [
+        [
+          {
+            "node": "Extend Hold 24h",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Update Booking Plan",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Process Refund",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Approve in Supabase",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notify Guest WhatsApp": {
+      "main": [
+        [
+          {
+            "node": "Approve in Supabase",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Booking Plan": {
+      "main": [
+        [
+          {
+            "node": "WhatsApp Plan Approved",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process Refund": {
+      "main": [
+        [
+          {
+            "node": "WhatsApp Refund Approved",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WhatsApp Plan Approved": {
+      "main": [
+        [
+          {
+            "node": "Approve in Supabase",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WhatsApp Refund Approved": {
+      "main": [
+        [
+          {
+            "node": "Approve in Supabase",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send WhatsApp to Owner": {
+      "main": [
+        [
+          {
+            "node": "Respond Rejected",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "ed3e5725-e467-46fa-81d5-bbea6470309d",
+  "meta": {
+    "instanceId": "ca7bc7f182c365457ea4a94a4dc2efe81c23590ab8904858ce5cabfbdd56e40f"
+  },
+  "id": "GuHQkHb21GlowIZl",
+  "tags": []
+}

@@ -1,0 +1,363 @@
+{
+  "name": "WF-SP-02 LUMINA Lead Intelligence - MYHOST Bizmate",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "lumina-analyze",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-lumina",
+      "name": "1. Webhook POST",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        304
+      ],
+      "webhookId": "lumina-analyze"
+    },
+    {
+      "parameters": {},
+      "id": "manual-trigger",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        512
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $input.first().json;\nconst body = input.body || input;\n\nconst lead_id = body.lead_id || null;\nconst tenant_id = body.tenant_id || 'c24393db-d318-4d75-8bbf-0fa240b9c1db';\nconst property_id = body.property_id || '18711359-1378-4d12-9ea6-fb31c0b1bac2';\n\nconst lead = {\n  id: lead_id,\n  name: body.name || body.lead_name || 'Unknown',\n  phone: body.phone || null,\n  email: body.email || null,\n  channel: body.channel || 'unknown',\n  source: body.source || body.channel || 'direct',\n  language: body.language || 'en'\n};\n\nconst current_state = body.state || body.lead_status || body.status || 'NEW';\nconst has_booking = body.has_booking || body.booked || current_state === 'BOOKED' || false;\nconst intent = body.intent || 'info';\nconst score = body.score || body.intent_score || 10;\nconst last_contacted_at = body.last_contacted_at || null;\nconst followup_count = body.followup_count || body.followup_step || 0;\nconst last_message = body.message || body.last_message || null;\n\nconst booking_context = {\n  check_in: body.check_in || null,\n  check_out: body.check_out || null,\n  guests: body.guests || null,\n  booking_id: body.booking_id || null\n};\n\nlet days_since_contact = 0;\nif (last_contacted_at) {\n  const last = new Date(last_contacted_at);\n  const now = new Date();\n  days_since_contact = Math.floor((now - last) / (1000 * 60 * 60 * 24));\n}\n\nreturn {\n  json: {\n    tenant_id,\n    property_id,\n    lead,\n    current_state,\n    has_booking,\n    intent,\n    score,\n    followup_count,\n    days_since_contact,\n    last_message,\n    booking_context,\n    timestamp: new Date().toISOString()\n  }\n};"
+      },
+      "id": "normalize-lead",
+      "name": "2. Normalize Lead Event",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        240,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const leadData = $input.first().json;\n\nconst businessContext = {\n  occupancy_rate: 0.59,\n  is_high_season: false,\n  avg_lead_time_days: 14,\n  conversion_rate: 0.15\n};\n\nconst context = {\n  lead_id: leadData.lead.id,\n  lead_name: leadData.lead.name,\n  lead_channel: leadData.lead.channel,\n  lead_language: leadData.lead.language,\n  current_state: leadData.current_state,\n  has_booking: leadData.has_booking,\n  intent: leadData.intent,\n  score: leadData.score,\n  followup_count: leadData.followup_count,\n  days_since_contact: leadData.days_since_contact,\n  occupancy_rate: businessContext.occupancy_rate,\n  is_high_season: businessContext.is_high_season,\n  booking_context: leadData.booking_context,\n  tenant_id: leadData.tenant_id,\n  property_id: leadData.property_id,\n  timestamp: leadData.timestamp\n};\n\nreturn { json: context };"
+      },
+      "id": "build-context",
+      "name": "3. Build Lumina Context",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        480,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Analyze this lead and decide the next action.\n\nLEAD DATA:\n- Name: {{ $json.lead_name }}\n- Channel: {{ $json.lead_channel }}\n- Current State: {{ $json.current_state }}\n- Has Booking: {{ $json.has_booking }}\n- Intent: {{ $json.intent }}\n- Score: {{ $json.score }}\n- Followup Count: {{ $json.followup_count }}\n- Days Since Contact: {{ $json.days_since_contact }}\n\nBUSINESS CONTEXT:\n- Occupancy: {{ $json.occupancy_rate }}\n- High Season: {{ $json.is_high_season }}\n\nRespond ONLY with JSON:\n{\"lead_status\":\"booked|interested|cold|not_fit\",\"next_action\":\"guest_journey|followup|close|reengage\",\"recommended_channel\":\"whatsapp|voice|none\",\"urgency\":\"low|medium|high\",\"reason\":\"brief\"}",
+        "options": {
+          "systemMessage": "You are LUMINA, Lead Intelligence Orchestrator.\n\nRULES:\n1. IF has_booking=true: lead_status=booked, next_action=guest_journey, urgency=high\n2. IF intent=booking OR score>=40: lead_status=interested, next_action=followup, urgency=high\n3. IF intent=availability/price OR score>=20: lead_status=interested, next_action=followup, urgency=medium\n4. IF days_since_contact>7 AND followup_count>=5: lead_status=cold, next_action=close, urgency=low\n5. IF days_since_contact>7 AND followup_count<5: lead_status=cold, next_action=reengage, urgency=low\n6. DEFAULT: lead_status=interested, next_action=followup, urgency=medium\n\nCHANNEL: Use whatsapp for follow-ups. Use voice channel only if original was voice.\n\nOUTPUT: Valid JSON only. No explanations."
+        }
+      },
+      "id": "lumina-ai",
+      "name": "4. LUMINA AI Decision",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [
+        720,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4o-mini"
+        },
+        "options": {
+          "temperature": 0.1
+        }
+      },
+      "id": "openai-model",
+      "name": "OpenAI GPT-4o-mini",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        720,
+        624
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "hlVVk9ThwmKbr4yS",
+          "name": "OpenAi account 4"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const context = $('3. Build Lumina Context').first().json;\nconst aiOutput = $('4. LUMINA AI Decision').first().json.output || '';\n\nlet decision;\n\ntry {\n  const jsonMatch = aiOutput.match(/\\{[\\s\\S]*\\}/);\n  if (jsonMatch) {\n    decision = JSON.parse(jsonMatch[0]);\n  } else {\n    throw new Error('No JSON');\n  }\n} catch (e) {\n  if (context.has_booking) {\n    decision = { lead_status: 'booked', next_action: 'guest_journey', recommended_channel: 'none', urgency: 'high', reason: 'Booking completed' };\n  } else if (context.score >= 40 || context.intent === 'booking') {\n    decision = { lead_status: 'interested', next_action: 'followup', recommended_channel: 'whatsapp', urgency: 'high', reason: 'High intent' };\n  } else if (context.days_since_contact > 7 && context.followup_count >= 5) {\n    decision = { lead_status: 'cold', next_action: 'close', recommended_channel: 'none', urgency: 'low', reason: 'Unresponsive' };\n  } else {\n    decision = { lead_status: 'interested', next_action: 'followup', recommended_channel: 'whatsapp', urgency: 'medium', reason: 'Standard followup' };\n  }\n}\n\nreturn {\n  json: {\n    lead_id: context.lead_id,\n    tenant_id: context.tenant_id,\n    property_id: context.property_id,\n    lead_status: decision.lead_status,\n    next_action: decision.next_action,\n    recommended_channel: decision.recommended_channel,\n    urgency: decision.urgency,\n    reason: decision.reason,\n    context: { lead_name: context.lead_name, lead_channel: context.lead_channel, intent: context.intent, score: context.score },\n    timestamp: new Date().toISOString()\n  }\n};"
+      },
+      "id": "parse-decision",
+      "name": "5. Parse AI Decision",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        960,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.next_action }}",
+                    "rightValue": "guest_journey",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "BOOKED"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.next_action }}",
+                    "rightValue": "followup",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "FOLLOWUP"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.next_action }}",
+                    "rightValue": "reengage",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "REENGAGE"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.next_action }}",
+                    "rightValue": "close",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "CLOSE"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "decision-router",
+      "name": "6. Decision Router",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.3,
+      "position": [
+        1200,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ success: true, lead_id: $json.lead_id, decision: { lead_status: $json.lead_status, next_action: $json.next_action, channel: $json.recommended_channel, urgency: $json.urgency, reason: $json.reason }, timestamp: $json.timestamp }) }}",
+        "options": {}
+      },
+      "id": "respond-webhook",
+      "name": "9. Respond",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1680,
+        400
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "1. Webhook POST": {
+      "main": [
+        [
+          {
+            "node": "2. Normalize Lead Event",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "2. Normalize Lead Event",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "2. Normalize Lead Event": {
+      "main": [
+        [
+          {
+            "node": "3. Build Lumina Context",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "3. Build Lumina Context": {
+      "main": [
+        [
+          {
+            "node": "4. LUMINA AI Decision",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "4. LUMINA AI Decision": {
+      "main": [
+        [
+          {
+            "node": "5. Parse AI Decision",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI GPT-4o-mini": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "4. LUMINA AI Decision",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "5. Parse AI Decision": {
+      "main": [
+        [
+          {
+            "node": "6. Decision Router",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "6. Decision Router": {
+      "main": [
+        [
+          {
+            "node": "9. Respond",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "9. Respond",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "9. Respond",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "9. Respond",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
+  },
+  "versionId": "44cefe50-9b4f-434e-84cc-d1ec8d5e0ce1",
+  "meta": {
+    "instanceId": "ca7bc7f182c365457ea4a94a4dc2efe81c23590ab8904858ce5cabfbdd56e40f"
+  },
+  "id": "EtrQnkgWqqbvRjEB",
+  "tags": []
+}

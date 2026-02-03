@@ -1,0 +1,182 @@
+📦 CAJA ÚNICA — MÓDULO 2
+CULTURAL & WELCOME PACK
+PROYECTO: MY HOST BizMate
+ESTADO: DEFINIDO / LISTO PARA IMPLEMENTAR (V1)
+ALCANCE: BACKEND + AUTOMATION (n8n) + IA
+REGLA CLAVE: UTILIDAD REAL, LOCALIZACIÓN EXACTA, TONO RESPETUOSO.
+NO GUÍA GENÉRICA. NO BLOG.
+
+================================================
+1. QUÉ ES EL CULTURAL & WELCOME PACK
+================================================
+El Cultural & Welcome Pack es un módulo que genera automáticamente una guía personalizada para cada huésped, basada en la localización exacta de su villa en Bali.
+
+Objetivo:
+- Que el huésped llegue informado, tranquilo y respetuoso con la cultura local
+- Reducir fricciones, dudas y errores típicos
+- Mejorar experiencia, reviews y percepción de calidad
+
+El pack es:
+- Personalizado por villa
+- Adaptado al idioma del huésped
+- Anclado a la ubicación real (radio 1–2 km)
+- Claro, práctico y amable
+
+================================================
+2. DÓNDE VIVE EN EL PRODUCTO
+================================================
+- Módulo: Guest Experience / Welcome
+- Integrado con: BANYU (Guest Comms) + OSIRIS (Owner Insight)
+- Puede dispararse:
+  - Antes del check-in
+  - En la confirmación de reserva
+  - Bajo demanda por el owner
+
+================================================
+3. ORQUESTACIÓN TÉCNICA (ARQUITECTURA)
+================================================
+- Orquestador: n8n
+- Inteligencia: Claude (API)
+- Datos base:
+  - property_id
+  - coordenadas / address
+  - idioma del huésped
+- Output: guía estructurada (JSON → PDF / link / WhatsApp)
+
+================================================
+4. CONTENIDO QUE DEBE GENERAR (SECCIONES)
+================================================
+
+4.1 LOGÍSTICA LOCAL (RADIO 1–2 KM)
+Generar lista contextualizada de:
+- Supermercados y minimarkets cercanos
+  (Pepito, Indomaret, Alfamart, Frestive, etc.)
+- ATMs seguros
+  (BCA, Mandiri, BNI, BRI; preferiblemente en supermercados/sucursales)
+- Farmacias y clínicas fiables
+- Dónde comprar SIM card
+  (Telkomsel, XL, Indosat; tiendas oficiales + precios orientativos)
+
+Formato:
+- Idioma del huésped
+- Tiempo estimado:
+  “5 min andando / 3 min en moto”
+- Recomendaciones claras (no solo listado)
+
+------------------------------------------------
+
+4.2 GUÍA CULTURAL BÁSICA DE BALI
+Explicación sencilla y respetuosa de:
+- Qué son las ofrendas (canang) y por qué no se pisan
+- Comportamiento en templos:
+  - respeto
+  - fotos
+  - drones
+  - ceremonias
+- Bali como cultura viva, no decorado turístico
+
+Tono:
+- Amable
+- Acompañante
+- No moralizante
+
+------------------------------------------------
+
+4.3 CÓMO VESTIRSE PARA TEMPLOS Y CEREMONIAS
+Explicar claramente:
+- Sarong (piernas cubiertas)
+- Sash (cintura)
+- Hombros cubiertos
+- Ropa modesta
+
+Incluir:
+- Que muchos templos prestan/alquilan sarong
+- Que llevar el propio es más respetuoso
+- Dónde comprar sarong cerca (mercados / tiendas)
+- Rango de precios orientativo
+
+------------------------------------------------
+
+4.4 MINI “FIRST TIME IN BALI”
+Adaptado a la zona de la villa (Ubud, Canggu, Seminyak, etc.):
+- Tráfico y scooters
+- Uso de Gojek / Grab
+- Dinero y efectivo
+- Tips básicos de salud
+- Dónde encontrar clínica cercana
+
+================================================
+5. WORKFLOW N8N — V1 (LINEAL)
+================================================
+
+NODO 1 — Trigger
+- Webhook / evento de reserva / acción manual
+
+NODO 2 — Load Context
+- property_id
+- coordenadas
+- zona
+- idioma huésped
+
+NODO 3 — Claude AI
+Rol:
+“Bali Local Guide & Cultural Assistant”
+Instrucciones:
+- Generar guía clara, respetuosa y práctica
+- Adaptada a localización exacta
+- En idioma solicitado
+- Output estructurado (JSON)
+
+NODO 4 — Validate Output
+- Verificar que todas las secciones existen
+- Si falta algo → fallback
+
+NODO 5 — Save Pack
+- Guardar en DB / Storage:
+  - property_id
+  - idioma
+  - contenido
+  - timestamp
+
+NODO 6 — Delivery
+- Enviar por:
+  - WhatsApp (BANYU)
+  - Email
+  - Link compartible
+
+================================================
+6. OUTPUT (FORMATO ESTRUCTURADO)
+================================================
+Claude debe devolver SIEMPRE JSON:
+
+{
+  "local_logistics": {...},
+  "cultural_guidelines": {...},
+  "temple_dress_code": {...},
+  "first_time_bali": {...}
+}
+
+NO texto libre.
+
+================================================
+7. BENEFICIOS CLAVE (PRODUCTO)
+================================================
+- Mejor experiencia desde el día 0
+- Menos preguntas repetitivas al staff
+- Menos errores culturales
+- Mejores reviews
+- Diferenciación clara frente a villas genéricas
+- Escalable y multi-idioma
+
+================================================
+8. PRINCIPIOS IMPORTANTES
+================================================
+- No guías genéricas
+- No copiar blogs
+- Siempre localización exacta
+- Siempre tono humano
+- Siempre respeto cultural
+
+================================================
+FIN — DOCUMENTO OFICIAL
+EJECUTAR SIN INTERPRETAR

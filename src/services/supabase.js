@@ -94,7 +94,7 @@ export const supabaseService = {
 
   // Get all bookings (with optional filters)
   async getBookings(filters = {}) {
-    let url = `${SUPABASE_URL}/rest/v1/bookings?select=*&order=check_in.desc`;
+    let url = `${SUPABASE_URL}/rest/v1/bookings?select=*&order=created_at.desc`;
 
     // Apply filters
     if (filters.status) {

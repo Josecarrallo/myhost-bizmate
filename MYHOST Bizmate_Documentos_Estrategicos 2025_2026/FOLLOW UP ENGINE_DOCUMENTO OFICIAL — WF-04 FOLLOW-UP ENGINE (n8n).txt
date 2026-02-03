@@ -1,0 +1,112 @@
+FOLLOW UP ENGINE
+DOCUMENTO OFICIAL — WF-04 FOLLOW-UP ENGINE (n8n)
+PROYECTO: MYHOST BizMate
+OBJETIVO: Recuperar leads “no-booked” de forma automática y elegante
+REGLA CLAVE: LUMINA decide → FOLLOW-UP ejecuta (secuencias)
+
+================================================
+1) CUÁNDO SE ACTIVA (TRIGGERS)
+================================================
+Trigger principal (desde LUMINA):
+- lead_status = interested | warm | no_reply | cold (pero reengage permitido)
+- booking_status = not_booked
+
+Triggers secundarios:
+- lead_created y no hay respuesta en X minutos
+- last_message_from_lead y no hay respuesta del host en X tiempo
+- lead_dormant (sin actividad N horas/días)
+
+================================================
+2) INPUT (DATA CONTRACT)
+================================================
+{
+  "lead_id": "string",
+  "channel_origin": "whatsapp | instagram | web | voice | ota",
+  "contact": {
+    "name": "string|null",
+    "phone": "string|null",
+    "email": "string|null"
+  },
+  "lead_status": "interested | warm | cold",
+  "property_id": "string",
+  "conversation_context": "string|null",
+  "last_interaction_at": "iso_datetime",
+  "language": "en|es|id",
+  "preferences": {
+    "preferred_channel": "whatsapp|voice|email",
+    "do_not_contact": false
+  },
+  "risk_rules": {
+    "mode": "safe|autopilot",
+    "requires_approval": true
+  }
+}
+
+================================================
+3) QUÉ HACE (COMPORTAMIENTO)
+================================================
+- Ejecuta una SECUENCIA por etapas (touchpoints)
+- Decide qué canal usar (WhatsApp por defecto)
+- Genera mensajes cortos y útiles (no spam)
+- Registra resultados (replied / booked / no_response / stop)
+- Se detiene si:
+  - lead responde
+  - lead reserva
+  - lead dice STOP / no contact
+  - se alcanzan límites
+
+================================================
+4) SECUENCIA RECOMENDADA (SIMPLE + EFECTIVA)
+================================================
+SEQUENCE A (estándar):
+T+2h  : Follow-up #1 (value + simple question)
+T+24h : Follow-up #2 (gentle reminder + help)
+T+72h : Follow-up #3 (last check + close loop)
+T+7d  : Optional re-engage (soft)
+
+Reglas:
+- Max 3–4 intentos por lead
+- 1–2 mensajes por 24h máximo
+- Si responde → STOP sequence y devolver control a BANYU/KORA
+
+================================================
+5) MENSAJES (TIPOS, NO COPY FINAL)
+================================================
+- Helpful: “Can I help you choose dates / room?”
+- Urgency soft: “Small availability this week”
+- Close loop: “No worries, I’ll close this for now”
+
+Lenguaje:
+- claro, amable, premium
+- sin presión, sin inventar precios
+
+================================================
+6) N8N — NODOS (WORKFLOW LINEAL)
+================================================
+NODO 1  Trigger (Webhook/Event desde LUMINA)
+NODO 2  Load Lead State (DB/Sheets)
+NODO 3  Sequence Step Selector (según última etapa + timers)
+NODO 4  Claude Message Generator (output JSON: message + intent)
+NODO 5  Policy Check (SAFE: draft / approval)
+NODO 6  Send via BANYU (WhatsApp) OR trigger KORA (voice)
+NODO 7  Wait/Delay (hasta siguiente touchpoint)
+NODO 8  Check for Reply/Booking (event listener / polling)
+NODO 9  Stop or Continue
+NODO 10 Log outcome (audit)
+
+================================================
+7) OUTPUT / LOG (OBLIGATORIO)
+================================================
+Guardar por cada touchpoint:
+- lead_id, step_number, channel_used, message, status(sent/draft/approved),
+- reply_detected, booking_detected, stop_reason, timestamps
+
+================================================
+8) REGLAS DE SEGURIDAD
+================================================
+- Si do_not_contact = true → no enviar nada
+- Si lead dice STOP → marcar do_not_contact = true
+- SAFE mode por defecto: mensajes externos en DRAFT si así lo decides
+- Kill switch: followup_enabled = true/false
+
+FIN WF-04

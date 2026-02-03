@@ -1,0 +1,142 @@
+📦 DOCUMENTO 1 — CLAUDE AI (n8n)
+PROYECTO: MY HOST BizMate
+MÓDULO: AUTOPILOT
+ROL DE ESTE DOCUMENTO: CONTEXTO MAESTRO DE ARQUITECTURA Y FLUJOS
+ALCANCE: BACKEND / AUTOMATION ONLY (n8n)
+REGLA CRÍTICA: IMPLEMENTAR POR FASES · FLUJOS LINEALES · SIN SOBREINGENIERÍA
+
+========================================================
+1) CONTEXTO GENERAL
+========================================================
+MY HOST BizMate es una plataforma para villa owners no técnicos
+(WhatsApp / Instagram first, gestión manual, alta presión operativa).
+
+El módulo AUTOPILOT automatiza el trabajo real del owner:
+- responder mensajes
+- controlar pagos
+- gestionar reservas
+- dar claridad diaria / semanal / mensual
+
+Autopilot NO es un agente conversacional.
+Autopilot es una **capa de workflows automáticos**.
+
+========================================================
+2) ARQUITECTURA GENERAL
+========================================================
+
+Frontend (ClaudeCode / App)
+→ llama webhooks n8n
+→ lee resultados desde Supabase
+
+n8n (TU RESPONSABILIDAD)
+→ ejecuta flujos automáticos
+→ orquesta mensajes, pagos, resúmenes
+→ escribe estados y summaries en Supabase
+
+Supabase
+→ base de datos única
+→ estados, logs, summaries
+→ punto de integración app ↔ n8n
+
+========================================================
+3) ESTRUCTURA DE AUTOPILOT
+========================================================
+Autopilot se divide en 3 niveles lógicos:
+
+- DAILY    → operación y urgencia
+- WEEKLY   → control, prevención, planificación
+- MONTHLY  → claridad financiera
+
+IMPORTANTE:
+La implementación es POR FASES.
+Ahora mismo SOLO se ejecuta FASE 1 (DAILY).
+
+========================================================
+4) MAPA GLOBAL DE WORKFLOWS
+========================================================
+
+FASE 1 — AUTOPILOT DAILY (IMPLEMENTAR AHORA)
+- WF-D1 — Always-On Inquiries
+- WF-D2 — Payment Protection
+- WF-D3 — Daily Owner Summary
+- WF-D4 — Review / Issue Watch (opcional)
+
+FASE 2 — AUTOPILOT WEEKLY (DESPUÉS)
+- WF-W1 — Weekly Business Check
+- WF-W2 — Weekly Ops Checklist
+
+FASE 3 — AUTOPILOT MONTHLY (DESPUÉS)
+- WF-M1 — Monthly Close & Report
+
+Workflow transversal:
+- WF-A1 — Approval Executor (ejecuta acciones aprobadas desde la app)
+
+========================================================
+5) PRINCIPIOS DE DISEÑO (NO NEGOCIABLES)
+========================================================
+- 1 workflow = 1 responsabilidad
+- Flujos lineales (7–10 nodos máx.)
+- Multi-tenant siempre (tenant_id, property_id)
+- Todo estado debe guardarse en Supabase
+- Nada de lógica de UI
+- Evitar “AI tools” complejas con doble llamada
+- Usar IA solo cuando aporte valor real (copy, resumen)
+
+========================================================
+6) DATA CONTRACT GENERAL
+========================================================
+Todos los workflows trabajan con estos conceptos:
+
+ENTRADAS:
+- Webhooks (WhatsApp, IG, App)
+- Eventos internos (booking_created, payment_received)
+- Cron jobs (daily / weekly / monthly)
+
+ESTADOS CLAVE:
+- Lead: new / contacted / closed
+- Booking: hold / pending_payment / confirmed / expired / cancelled
+- Payment: pending / received / failed
+- Autopilot item: done / needs_approval / alert
+
+SALIDAS:
+- Records en Supabase:
+  - daily_summary
+  - weekly_summary
+  - monthly_summary
+  - autopilot_actions
+  - logs / alerts
+
+========================================================
+7) FASE 1 — AUTOPILOT DAILY (RESUMEN)
+========================================================
+Autopilot Daily cubre el trabajo diario REAL del owner.
+
+Incluye:
+- Responder mensajes 24/7
+- Capturar leads
+- Controlar pagos y expiraciones
+- Generar resumen diario simple
+
+Estos workflows:
+- se disparan por eventos o cron
+- NO requieren intervención humana
+- alimentan directamente la pantalla Autopilot / Daily
+
+El detalle nodo a nodo de cada workflow
+se entregará en documentos siguientes.
+
+========================================================
+8) REGLA DE IMPLEMENTACIÓN
+========================================================
+Implementar FASE 1 completa.
+Validar.
+Solo después avanzar a Weekly y Monthly.
+
+NO anticipar.
+NO mezclar fases.
+NO añadir features no descritas.
+
+========================================================
+FIN DEL DOCUMENTO
+ESTE ES EL CONTEXTO MAESTRO PARA CLAUDE AI (n8n)
+========================================================

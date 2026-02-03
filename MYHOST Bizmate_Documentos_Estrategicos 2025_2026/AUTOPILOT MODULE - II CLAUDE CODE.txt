@@ -1,0 +1,219 @@
+📦 DOCUMENTO — CLAUDE CODE (APP)
+PROYECTO: MY HOST BizMate
+MÓDULO: AUTOPILOT + MANUAL DATA ENTRY (INTRO MODE)
+ALCANCE: FRONTEND + INTEGRACIÓN SUPABASE + WEBHOOKS n8n
+REGLA CRÍTICA: EXPERIENCIA SIMPLE PARA OWNERS · SIN TECNICISMOS · IMPLEMENTAR POR FASES
+
+========================================================
+1) OBJETIVO DEL TRABAJO (CLAUDE CODE)
+========================================================
+Construir dentro de la app:
+A) Un menú nuevo “Autopilot” con 3 vistas (Daily/Weekly/Monthly).
+B) Un módulo “Manual Data Entry” para introducir datos manuales (porque muchos owners trabajan por WhatsApp/IG y no tienen web/PMS).
+C) Integración con Supabase (leer/escribir) y con n8n (webhooks) para ejecutar Autopilot.
+
+IMPORTANTE:
+- En esta fase, implementamos COMPLETO Autopilot DAILY.
+- Weekly/Monthly pueden quedar como “Coming soon” hasta que existan sus summaries/workflows.
+
+========================================================
+2) MENÚ (NAVEGACIÓN) — DEFINITIVO
+========================================================
+Añadir en el menú lateral izquierdo (nivel 1):
+
+1) Manual Data Entry  (ruta: /manual-entry)
+2) Autopilot          (ruta padre: /autopilot)
+   - Daily            (/autopilot/daily)
+   - Weekly           (/autopilot/weekly)  [coming soon si no hay backend]
+   - Monthly          (/autopilot/monthly) [coming soon si no hay backend]
+
+Opcional (si cabe visualmente):
+- Badge “NEW” en Autopilot durante el piloto de 30 días.
+
+========================================================
+3) MANUAL DATA ENTRY — PANTALLA Y FORMULARIOS (CRÍTICO)
+========================================================
+Propósito:
+- Permitir que el owner registre manualmente lo que hoy vive en WhatsApp / cabeza / Excel.
+- Esto alimenta Supabase para que Autopilot funcione incluso sin integraciones.
+
+La pantalla /manual-entry debe tener 4 tabs (o cards):
+
+TAB A) Add Lead / Inquiry
+Campos mínimos:
+- property_id (selector)
+- channel: whatsapp | instagram | walk-in | other
+- guest_name
+- phone / whatsapp
+- dates (from/to) opcional
+- pax opcional
+- note (texto corto)
+Acción:
+- Insert/Upsert lead en Supabase
+Post:
+- Mostrar “Saved ✅”
+
+TAB B) Add Booking / Hold
+Campos mínimos:
+- property_id
+- guest_name
+- phone
+- check_in, check_out
+- total_amount + currency
+- status: hold | pending_payment | confirmed
+Acción:
+- Insert booking en Supabase
+- SI status = pending_payment → disparar webhook n8n /autopilot/payment/start
+
+TAB C) Update Payment
+Campos mínimos:
+- booking_id (selector)
+- payment_status: pending | received | failed
+- amount_paid
+- method: bank_transfer | cash | other
+- note
+Acción:
+- Update payment/booking en Supabase
+- Si payment_status = received → marcar booking confirmed (si aplica)
+  (y opcional: notificar n8n)
+
+TAB D) Add Task (Ops)
+Campos mínimos:
+- property_id
+- category: maintenance | purchase | admin
+- title
+- priority: low|med|high
+- due_date (opcional)
+Acción:
+- Insert task en Supabase
+
+UX:
+- Formularios ultra simples, mobile-first
+- Botón claro “Save”
+- Confirmación visual
+
+========================================================
+4) AUTOPILOT — DAILY (PANTALLA PRINCIPAL A IMPLEMENTAR YA)
+========================================================
+Ruta: /autopilot/daily
+
+Objetivo de UX:
+- “1 mirada = tranquilidad”
+- Nada de dashboards complejos
+- Lenguaje humano (no técnico)
+
+Estructura de la pantalla:
+
+A) Today at a glance (KPI cards 4–6)
+- New inquiries today
+- Pending payments
+- Confirmed bookings today
+- Check-ins today
+(+ opcional: Expired holds)
+
+Fuente:
+- Supabase table/view: daily_summary (por tenant/property)
+Fallback:
+- Si no existe daily_summary → mostrar “No data yet” + botón “Run Daily Summary” (opcional)
+
+B) Alerts (lista corta)
+- Expired holds
+- Pending payment > 24h
+- Conflicts (si existe)
+- Issues/reviews (si existe)
+Fuente:
+- Supabase alerts/autopilot_alerts
+
+C) Actions (needs approval)
+- Lista de items con estado needs_approval
+- Cada item tiene:
+  - title
+  - short description
+  - [Approve] [Ignore]
+Integración:
+- Approve → POST a n8n webhook /autopilot/approve con action_id + payload
+- Ignore  → update status en Supabase (ignored)
+
+D) Quick Buttons (muy importante)
+- “Add Booking / Payment” → link directo a /manual-entry tab Booking o Payment
+- “Add Lead” → link directo a /manual-entry tab Lead
+
+========================================================
+5) AUTOPILOT — WEEKLY / MONTHLY (IMPLEMENTACIÓN POR FASES)
+========================================================
+/autopilot/weekly
+- Mostrar placeholder “Coming soon”
+- Estructura preparada:
+  - weekly_summary (KPI simples)
+  - weekly_actions (needs_approval)
+  - ops checklist (tasks)
+
+ /autopilot/monthly
+- Placeholder “Coming soon”
+- Estructura preparada:
+  - monthly_summary (revenue, guests, occupancy, delta)
+
+IMPORTANTE:
+No bloquear el release por weekly/monthly.
+Daily es el MVP.
+
+========================================================
+6) INTEGRACIONES TÉCNICAS (SUPABASE + n8n)
+========================================================
+A) Supabase (lecturas)
+- daily_summary (Daily UI)
+- autopilot_actions (needs_approval)
+- alerts/autopilot_alerts
+- leads, bookings, payments, tasks (para manual entry y tablas)
+
+B) Supabase (escrituras)
+- Manual Data Entry inserts/updates
+- Actions “ignored”
+- Tasks status updates
+
+C) n8n Webhooks (llamadas desde la app)
+Configurar env vars:
+- N8N_AUTOPILOT_BASE_URL
+- N8N_AUTOPILOT_TOKEN (si aplica)
+
+Endpoints esperados:
+- POST /autopilot/payment/start    (cuando booking status = pending_payment)
+- POST /autopilot/approve          (cuando user aprueba acción)
+(Opcional)
+- POST /autopilot/inquiry          (si la app también envía inquiries)
+
+D) Multi-tenant
+- Cada request incluye tenant_id + property_id.
+- Nunca llamar n8n sin esos campos.
+
+========================================================
+7) COPY / TONO (MUY IMPORTANTE PARA NO ASUSTAR)
+========================================================
+No usar:
+- agents
+- workflows
+- n8n
+- AI
+
+Usar:
+- “Autopilot”
+- “Today summary”
+- “Needs approval”
+- “Pending payments”
+- “We handled X for you”
+
+========================================================
+8) CRITERIOS DE ACEPTACIÓN (CHECKLIST)
+========================================================
+MVP (fase Daily):
+1) Menú muestra Manual Data Entry y Autopilot.
+2) Manual Data Entry permite crear lead y booking y task.
+3) Si booking se guarda como pending_payment → se llama /autopilot/payment/start.
+4) Autopilot/Daily lee daily_summary y lo muestra.
+5) Autopilot/Daily lista actions needs_approval.
+6) Approve llama /autopilot/approve; Ignore marca ignored en Supabase.
+7) Todo funciona mobile-first.
+
+========================================================
+FIN — IMPLEMENTAR SIN INTERPRETAR
+========================================================

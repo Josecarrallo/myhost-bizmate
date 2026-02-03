@@ -1,0 +1,65 @@
+# CONTEXTO DEL PROYECTO
+
+Estoy desarrollando MY HOST BizMate, un SaaS para hoteles boutique en Bali. Izumi Hotel es el piloto.
+
+## IDs Importantes
+- Tenant ID: c24393db-d318-4d75-8bbf-0fa240b9c1db
+- Property ID: 18711359-1378-4d12-9ea6-fb31c0b1bac2
+- n8n: https://n8n-production-bb2d.up.railway.app
+- Supabase: https://jjpscimtxrudtepzwhag.supabase.co
+
+## Estado Actual de OSIRIS
+- Workflow: WF-IA-01 - OSIRIS AI Assistant (ID: iAMo7NdzYkJxJUkP)
+- Webhook: POST /webhook/ai/chat
+- Estado: Funcionando básico (chat conectado a frontend)
+- Guarda historial en: ai_chat_history_old (temporal)
+
+## Lo que hay que hacer hoy
+
+Completar OSIRIS MVP según el documento OSIRIS_PROXIMOS_PASOS.md:
+
+### 1. Soporte Multilenguaje
+Añadir al system prompt de Claude la regla LANGUAGE RULE para que responda en el mismo idioma del usuario (EN/ES/ID).
+
+### 2. Implementar 6 Tools
+- T01: get_dashboard_stats → RPC get_osiris_stats(tenant_id)
+- T02: list_pending_payments → Query SQL payments + bookings
+- T03: list_checkins_checkouts → Query SQL bookings por fecha
+- T04: list_bookings → Query SQL bookings con filtros
+- T05: get_active_alerts → RPC get_active_alerts(tenant_id)
+- T06: propose_whatsapp_reminder → Solo construye payload, no ejecuta
+
+### 3. Output JSON Estructurado
+Claude debe devolver siempre este formato:
+{
+  "reply": "texto en idioma del usuario",
+  "agent": "osiris",
+  "intent": "insight|list|action",
+  "kpis": [...],
+  "table": {...},
+  "actions": [...],
+  "meta": {...}
+}
+
+### 4. Logging
+- Cambiar de ai_chat_history_old a ai_chat_history_v2
+- Mejorar audit_logs con sources y intent
+
+### 5. Tests
+- Test 1: Inglés + KPIs (intent: insight)
+- Test 2: Español + Tabla pagos (intent: list)
+- Test 3: Indonesio + Acción WhatsApp (intent: action)
+
+## Reglas Críticas
+- NO crear tablas nuevas en Supabase
+- NO ejecutar acciones desde /ai/chat (solo proponer)
+- NO modificar sin mi aprobación explícita
+- Usar SIEMPRE las migraciones para cambios en Supabase
+
+## Archivos de Referencia
+- BRIEF_OSIRIS_MVP_21_ENERO_2026.md (especificación completa)
+- OSIRIS_PROXIMOS_PASOS.md (plan de implementación)
+- SUPABASE_SCHEMA_DOCUMENTATION.md (esquema de base de datos)
+
+## Primera Acción
+Empieza verificando que ai_chat_history_v2 existe en Supabase y tiene los campos correctos (tenant_id, session_id, message, response, context_mode, kpis_snapshot, actions_suggested). Muéstrame el schema actual antes de hacer cualquier cambio.

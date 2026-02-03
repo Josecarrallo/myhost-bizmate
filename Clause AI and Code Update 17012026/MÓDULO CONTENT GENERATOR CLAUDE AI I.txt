@@ -1,0 +1,159 @@
+## Módulo 1 – AI Content Creation Cinematográfico (para villa owners, marketing y equipo técnico)
+
+El **Módulo de Content Creation** de MYHOST Bizmate convierte los vídeos que tu equipo ya graba con el móvil en **piezas cortas, verticales y cinematográficas**, listas para Instagram, TikTok y WhatsApp, sin depender de agencias externas ni de creadores caros. En el mercado actual de Bali, donde la decisión de reserva se toma cada vez más en redes sociales, tener contenido constante y atractivo ya no es opcional: es lo que diferencia a las villas que están siempre llenas de las que pasan desapercibidas. [web:165][web:169][web:170][web:175][web:177][web:178]
+
+---
+
+### 1. Qué hace exactamente este módulo
+
+En vez de contratar un videógrafo cada vez que quieres contenido nuevo, tu equipo puede:
+
+- Grabar vídeos sencillos con el móvil: habitaciones, piscina, desayuno, staff, atardeceres, actividades, detalles de diseño, etc. [web:165][web:169][web:174][web:177]  
+- Enviarlos a MYHOST Bizmate (por ejemplo desde WhatsApp o desde tu panel).  
+- Recibir, en minutos, **clips optimizados para redes**, con mejor color, luz y narrativa, y acompañados de textos de venta y hashtags adecuados.
+
+El sistema utiliza IA avanzada:
+
+- **Análisis del contenido**  
+  Un modelo como Claude analiza el vídeo, detecta qué se ve (piscina infinita, arrozales, interiores, brunch, familia, pareja, etc.) y clasifica la “vibra” del contenido (romántico, familiar, lujo, detox, digital nomad). [web:169][web:173][web:178]
+
+- **Mejora visual cinematográfica**  
+  Un motor de vídeo tipo Wan/Wanda 2.6 reinterpreta el clip para mejorar color, iluminación y movimiento, manteniendo la arquitectura y los elementos reales de la villa, sin transformaciones irreales que dañen la confianza. [web:15][web:171][web:176]  
+
+- **Texto que vende la experiencia**  
+  La IA genera un texto breve y directo que resalta lo que hace especial a tu villa para ese tipo de huésped (parejas, familias, nómadas, grupos de amigos, retiros) y lo hace en el idioma que tú elijas. También sugiere hashtags alineados con tendencias de viaje y con Bali. [web:169][web:170][web:173][web:178]
+
+---
+
+### 2. Cómo va a ser la solución (visión funcional)
+
+El proceso está diseñado para ser **muy simple** para el staff y el gerente, pero respaldado por una infraestructura robusta:
+
+1. **Grabación por el staff**  
+   - El staff o el owner graba un vídeo corto (10–30 segundos) con el móvil: un paseo por la villa, el amanecer, el desayuno, el equipo trabajando, etc. [web:165][web:169][web:174]
+
+2. **Envío a MYHOST Bizmate**  
+   - El vídeo se envía vía **WhatsApp Business** a un número asignado a la villa, o se sube mediante la interfaz de MYHOST Bizmate.  
+   - Junto con el vídeo, el usuario selecciona:
+     - Idioma del contenido (ej. inglés, español, francés).  
+     - Objetivo de marketing (más reservas directas, parejas, familias, wellness, retiro, etc.).
+
+3. **Orquestación automática**  
+   - MYHOST Bizmate recibe el vídeo y dispara un **workflow en n8n**.  
+   - El flujo:
+     - Descarga el vídeo.  
+     - Llama al backend para que **Claude** analice el contenido y prepare el “plan creativo” (estilo, guion, prompt para IA de vídeo, captions, hashtags).  
+     - Envía el vídeo y las instrucciones a **Wan/Wanda 2.6** para mejorar la estética.  
+     - Pasa el resultado por **Shotstack** para añadir logo, audio y texto si corresponde.  
+
+4. **Revisión y aprobación**  
+   - El sistema genera un enlace de **preview** y se lo envía al owner/marketing (por WhatsApp o panel web).  
+   - El owner puede aprobar, pedir cambios o descartar el clip.
+
+5. **Publicación en redes**  
+   - Una vez aprobado, el vídeo y el texto se pueden publicar automáticamente o programar en:
+     - Instagram Reels / Stories.  
+     - TikTok.  
+     - Otras plataformas compatibles, mediante **Ayrshare** u otra API de publicación. [web:170][web:173][web:175]
+
+---
+
+### 3. Productos / herramientas que necesitamos para este módulo
+
+A nivel técnico, el Módulo de Content Creation se construye sobre los siguientes componentes:
+
+**Orquestación y lógica de negocio**
+
+- **n8n**  
+  - Orquesta todo el flujo: recepción del vídeo, llamadas a IA, mejora, postproducción y publicación. [web:68][web:72]  
+  - Permite escalar la solución de forma multi‑tenant (muchas villas, una infraestructura compartida). [web:113][web:121]
+
+- **Backend MYHOST Bizmate**  
+  - Expone endpoints internos para:
+    - Llamar a Claude con los prompts adecuados.  
+    - Controlar idiomas, objetivos de marketing y configuración por villa.  
+    - Guardar el histórico de vídeos y estadísticas.
+
+**IA de lenguaje y visión**
+
+- **Claude (API)**  
+  - Analiza el vídeo (vía frames o metadatos) y genera:
+    - Descripción de la escena.  
+    - “Vibe” del contenido (romántico, familiar, lujo, etc.).  
+    - Prompt técnico para el motor de vídeo AI (estilo, luz, movimiento).  
+    - Copy/caption y hashtags adaptados al objetivo y al idioma. [web:169][web:170][web:173][web:178]
+
+- **Claude Code**  
+  - Se utiliza internamente por el equipo para:
+    - Generar y refinar el código de los microservicios.  
+    - Crear y modificar workflows de n8n de forma rápida.
+
+**Motor de vídeo y postproducción**
+
+- **Wan/Wanda 2.6 (vía API)**  
+  - Motor de vídeo AI que:
+    - Mejora el color y la iluminación.  
+    - Aplica una estética cinematográfica moderna (ideal para travel content).  
+    - Mantiene la estructura real de la villa (no inventa habitaciones o vistas ficticias). [web:15][web:171][web:176]
+
+- **Shotstack API**  
+  - Servicio de edición en la nube para:
+    - Añadir el logo de la villa.  
+    - Insertar música de librería.  
+    - Incluir texto superpuesto (promos, llamadas a la acción). [web:72]
+
+**Canales de entrada y salida**
+
+- **WhatsApp Business API** (Twilio, 360dialog, Meta Cloud, etc.)  
+  - Canal principal para que el staff envíe vídeos y reciba previews, usando una herramienta que ya usan cada día.
+
+- **Ayrshare API** (u otro publicador social)  
+  - Publicación y programación de contenido en Instagram, TikTok y otros canales.
+
+**Almacenamiento y entrega**
+
+- **Storage (Supabase, S3 u otro)**  
+  - Guarda:
+    - Vídeos originales subidos por el staff.  
+    - Vídeos finales generados por la IA.  
+  - Expone URLs que n8n, Wan/Wanda y Shotstack consumen durante el proceso.
+
+---
+
+### 4. Beneficios clave para marketing en Bali
+
+En destinos como Bali, la competencia visual es brutal: cada día aparecen nuevas villas mostrando piscinas infinitas, desayunos flotantes y vistas a la jungla. [web:165][web:169][web:174][web:177]
+
+Este módulo te da varias ventajas:
+
+- **Velocidad y consistencia**  
+  Puedes producir contenido nuevo cada semana usando vídeos del día a día, sin organizar sesiones de rodaje ni coordinar con agencias. Mantienes un calendario constante de Reels, Stories y TikToks, que es lo que más premian los algoritmos hoy. [web:169][web:170][web:173][web:175]
+
+- **Calidad visual alineada con el mercado**  
+  Los motores de vídeo AI como Wan/Wanda 2.6 están diseñados para generar clips cortos, fluidos y con buena luz/color, justo el tipo de contenido que funciona para travel inspiration y alojamiento en móviles. [web:15][web:171][web:176]
+
+- **Mensaje adaptado al huésped ideal**  
+  No es sólo un vídeo bonito: el texto se adapta a tu tipo de cliente (romántico, familiar, nómada) y al mercado objetivo (por ejemplo, franceses, españoles, australianos), usando el idioma y el tono adecuado. [web:169][web:173][web:178]
+
+- **Ahorro en coste de producción**  
+  Sustituye buena parte del trabajo de una agencia de contenidos por un flujo automatizado:
+  - Menos días de rodaje.  
+  - Menos horas de edición manual.  
+  - Menos dependencia de un creador externo cada vez que quieres algo nuevo. [web:169][web:171][web:176]
+
+- **Uso realista del material existente**  
+  Aprovechas todo lo que tu equipo ya graba: vídeos de check‑in, desayunos, flores, limpiezas, sunsets… que normalmente se pierden en el carrete y aquí se convierten en marketing profesional. [web:165][web:169][web:174]
+
+---
+
+### 5. Mensaje muy claro para villa owners y marketing
+
+Versión larga (para presentación o web):
+
+> “El Módulo de Content Creation de MYHOST Bizmate convierte los vídeos caseros que tu equipo ya graba con el móvil en contenido cinematográfico listo para redes sociales. Nuestra IA analiza el vídeo, mejora la luz, el color y el ritmo, y además escribe el texto que vende la experiencia (en el idioma de tus huéspedes), con los hashtags correctos para Bali. Sin agencias, sin rodajes complicados y sin depender de un creador externo, tu villa puede publicar cada semana nuevos Reels, Stories y TikToks que hacen que más gente se enamore de tu propiedad antes de reservar.”
+
+Versión corta (para slide o brochure):
+
+> “Convierte los vídeos del móvil de tu staff en contenido cinematográfico y vendible para Instagram y TikTok, en minutos y sin agencias.”
+
+En resumen, este módulo está pensado para que **tu villa esté siempre presente y atractiva en redes**, usando lo que ya tienes (tu equipo, tu propiedad, tu día a día) y dejando a la IA la parte más pesada: analizar, editar, embellecer y escribir.
