@@ -10,8 +10,9 @@ if (!supabaseUrl || !supabaseAnonKey) {
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     autoRefreshToken: true,
-    persistSession: true, // Keep session within same browser tab
+    persistSession: true,
     detectSessionInUrl: true,
-    storage: window.sessionStorage // Use sessionStorage instead of localStorage
+    storageKey: 'sb-jjpscimtxrudtepzwhag-auth-token',
+    storage: window.localStorage // Changed from sessionStorage to fix JWT token passing to RLS
   }
 });
