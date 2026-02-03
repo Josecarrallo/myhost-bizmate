@@ -37,7 +37,7 @@ import ManualDataEntry from '../ManualDataEntry/ManualDataEntry';
 
 const Autopilot = ({ onBack }) => {
   // Navigation between 9 sections
-  const [activeSection, setActiveSection] = useState('all-data');
+  const [activeSection, setActiveSection] = useState('menu'); // Start with menu visible
   const [activeView, setActiveView] = useState('daily'); // for Overview section
   const [isGeneratingSummary, setIsGeneratingSummary] = useState(false);
   const [lastSummaryGenerated, setLastSummaryGenerated] = useState(null);
@@ -886,7 +886,7 @@ const Autopilot = ({ onBack }) => {
   };
 
   const renderDataEntrySection = () => {
-    return <ManualDataEntry onBack={() => setActiveSection('all-data')} />;
+    return <ManualDataEntry onBack={() => setActiveSection('menu')} />;
   };
 
   const renderAllDataSection = () => {
@@ -896,7 +896,7 @@ const Autopilot = ({ onBack }) => {
         <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-3xl p-6 shadow-2xl border-2 border-[#d85a2a]/20">
           <div className="flex items-center justify-between mb-4">
             <button
-              onClick={() => setActiveSection('all-data')}
+              onClick={() => setActiveSection('menu')}
               className="p-2 bg-[#1f2937]/95 backdrop-blur-sm rounded-xl hover:bg-orange-500 transition-all border border-[#d85a2a]/20"
             >
               <ArrowLeft className="w-5 h-5 text-[#FF8C42]" />
@@ -1124,7 +1124,7 @@ const Autopilot = ({ onBack }) => {
       <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-3xl p-6 shadow-2xl border-2 border-[#d85a2a]/20">
         <div className="flex items-center justify-between mb-4">
           <button
-            onClick={() => setActiveSection('all-data')}
+            onClick={() => setActiveSection('menu')}
             className="p-2 bg-[#1f2937]/95 backdrop-blur-sm rounded-xl hover:bg-orange-500 transition-all border border-[#d85a2a]/20"
           >
             <ArrowLeft className="w-5 h-5 text-[#FF8C42]" />
@@ -1179,7 +1179,7 @@ const Autopilot = ({ onBack }) => {
       <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-3xl p-6 shadow-2xl border-2 border-[#d85a2a]/20">
         <div className="flex items-center justify-between mb-4">
           <button
-            onClick={() => setActiveSection('all-data')}
+            onClick={() => setActiveSection('menu')}
             className="p-2 bg-[#1f2937]/95 backdrop-blur-sm rounded-xl hover:bg-orange-500 transition-all border border-[#d85a2a]/20"
           >
             <ArrowLeft className="w-5 h-5 text-[#FF8C42]" />
@@ -1237,7 +1237,7 @@ const Autopilot = ({ onBack }) => {
       <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-3xl p-6 shadow-2xl border-2 border-[#d85a2a]/20">
         <div className="flex items-center justify-between mb-4">
           <button
-            onClick={() => setActiveSection('all-data')}
+            onClick={() => setActiveSection('menu')}
             className="p-2 bg-[#1f2937]/95 backdrop-blur-sm rounded-xl hover:bg-orange-500 transition-all border border-[#d85a2a]/20"
           >
             <ArrowLeft className="w-5 h-5 text-[#FF8C42]" />
@@ -1300,7 +1300,7 @@ const Autopilot = ({ onBack }) => {
       <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-3xl p-6 shadow-2xl border-2 border-[#d85a2a]/20">
         <div className="flex items-center justify-between mb-4">
           <button
-            onClick={() => setActiveSection('all-data')}
+            onClick={() => setActiveSection('menu')}
             className="p-2 bg-[#1f2937]/95 backdrop-blur-sm rounded-xl hover:bg-orange-500 transition-all border border-[#d85a2a]/20"
           >
             <ArrowLeft className="w-5 h-5 text-[#FF8C42]" />
@@ -1343,7 +1343,7 @@ const Autopilot = ({ onBack }) => {
       <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-3xl p-6 shadow-2xl border-2 border-[#d85a2a]/20">
         <div className="flex items-center justify-between mb-4">
           <button
-            onClick={() => setActiveSection('all-data')}
+            onClick={() => setActiveSection('menu')}
             className="p-2 bg-[#1f2937]/95 backdrop-blur-sm rounded-xl hover:bg-orange-500 transition-all border border-[#d85a2a]/20"
           >
             <ArrowLeft className="w-5 h-5 text-[#FF8C42]" />
@@ -1429,7 +1429,7 @@ const Autopilot = ({ onBack }) => {
       <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-3xl p-6 shadow-2xl border-2 border-[#d85a2a]/20">
         <div className="flex items-center justify-between mb-4">
           <button
-            onClick={() => setActiveSection('all-data')}
+            onClick={() => setActiveSection('menu')}
             className="p-2 bg-[#1f2937]/95 backdrop-blur-sm rounded-xl hover:bg-orange-500 transition-all border border-[#d85a2a]/20"
           >
             <ArrowLeft className="w-5 h-5 text-[#FF8C42]" />
@@ -1529,7 +1529,7 @@ const Autopilot = ({ onBack }) => {
           <div className="flex flex-col gap-4">
             <div className="flex items-center justify-between">
               <button
-                onClick={() => setActiveSection('all-data')}
+                onClick={() => setActiveSection('menu')}
                 className="p-2 bg-[#1f2937]/95 backdrop-blur-sm rounded-xl hover:bg-orange-500 transition-all border border-[#d85a2a]/20"
               >
                 <ArrowLeft className="w-5 h-5 text-[#FF8C42]" />
@@ -1637,7 +1637,7 @@ const Autopilot = ({ onBack }) => {
       <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-2xl p-3 shadow-lg border-2 border-[#d85a2a]/20">
         <div className="flex items-center justify-between mb-3">
           <button
-            onClick={() => setActiveSection('all-data')}
+            onClick={() => setActiveSection('menu')}
             className="p-2 bg-[#1f2937]/95 backdrop-blur-sm rounded-xl hover:bg-orange-500 transition-all border border-[#d85a2a]/20"
           >
             <ArrowLeft className="w-5 h-5 text-[#FF8C42]" />
@@ -2201,7 +2201,7 @@ const Autopilot = ({ onBack }) => {
       <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-3xl p-6 shadow-2xl border-2 border-[#d85a2a]/20">
         <div className="flex items-center justify-between mb-4">
           <button
-            onClick={() => setActiveSection('all-data')}
+            onClick={() => setActiveSection('menu')}
             className="p-2 bg-[#1f2937]/95 backdrop-blur-sm rounded-xl hover:bg-orange-500 transition-all border border-[#d85a2a]/20"
           >
             <ArrowLeft className="w-5 h-5 text-[#FF8C42]" />
@@ -2371,7 +2371,7 @@ const Autopilot = ({ onBack }) => {
       </div>
 
       {/* Sidebar Navigation */}
-      <div className={`w-80 bg-[#1f2937]/95 backdrop-blur-sm border-r-2 border-[#d85a2a]/20 overflow-y-auto relative z-10 ${activeSection === 'all-data' ? '' : 'hidden'}`}>
+      <div className={`w-80 bg-[#1f2937]/95 backdrop-blur-sm border-r-2 border-[#d85a2a]/20 overflow-y-auto relative z-10 ${activeSection === 'menu' ? '' : 'hidden'}`}>
         <div className="p-6">
           {/* Header */}
           <div className="flex items-center justify-between mb-8">
