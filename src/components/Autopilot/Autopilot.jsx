@@ -34,8 +34,10 @@ import {
   Printer
 } from 'lucide-react';
 import ManualDataEntry from '../ManualDataEntry/ManualDataEntry';
+import { useAuth } from '../../contexts/AuthContext';
 
 const Autopilot = ({ onBack }) => {
+  const { userData } = useAuth();
   // Navigation between 9 sections
   const [activeSection, setActiveSection] = useState('menu'); // Start with menu visible
   const [activeView, setActiveView] = useState('daily'); // for Overview section
@@ -165,8 +167,10 @@ const Autopilot = ({ onBack }) => {
 
   const SUPABASE_URL = 'https://jjpscimtxrudtepzwhag.supabase.co';
   const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpqcHNjaW10eHJ1ZHRlcHp3aGFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI5NDMyMzIsImV4cCI6MjA3ODUxOTIzMn0._U_HwdF5-yT8-prJLzkdO_rGbNuu7Z3gpUQW0Q8zxa0';
-  const TENANT_ID = 'c24393db-d318-4d75-8bbf-0fa240b9c1db';
-  const PROPERTY_ID = '18711359-1378-4d12-9ea6-fb31c0b1bac2';
+
+  // DYNAMIC TENANT ID - Use logged in user's ID
+  const TENANT_ID = userData?.id || 'c24393db-d318-4d75-8bbf-0fa240b9c1db'; // Fallback to Jose for backwards compatibility
+  const PROPERTY_ID = '18711359-1378-4d12-9ea6-fb31c0b1bac2'; // TODO: Make this dynamic too
 
   // AUTOPILOT MENU - 10 Sections
   const menuSections = [
