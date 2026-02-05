@@ -790,8 +790,8 @@ export default function App() {
           </div>
         );
 
-      // AI SYSTEMS (Global chat with all agents)
-      case 'ai-systems':
+      // BIZMATE AI (Global chat with all agents)
+      case 'bizmate-ai':
         return <AISystems onBack={() => setCurrentView('overview')} />;
 
       // OSIRIS.AI (Operations & Control)

@@ -49,11 +49,10 @@ const Sidebar = ({ currentView, onNavigate, isOpen, onClose }) => {
   const [expandedSections, setExpandedSections] = useState({
     'overview': true,
     'operations': false,
-    'lumina-ai': false,
+    'sales-leads': false,
     'customer-communications': false,
     'marketing-growth': false,
-    'market-intelligence': false,
-    'revenue': false,
+    'bizmate-ai': false,
     'settings': false
   });
 
@@ -73,6 +72,7 @@ const Sidebar = ({ currentView, onNavigate, isOpen, onClose }) => {
   };
 
   const menuItems = [
+    // 1. OVERVIEW
     {
       sectionId: 'overview',
       sectionLabel: 'OVERVIEW',
@@ -81,6 +81,7 @@ const Sidebar = ({ currentView, onNavigate, isOpen, onClose }) => {
       isDirectLink: true,
       items: []
     },
+    // 2. OPERATIONS
     {
       sectionId: 'operations',
       sectionLabel: 'OPERATIONS',
@@ -89,7 +90,7 @@ const Sidebar = ({ currentView, onNavigate, isOpen, onClose }) => {
       items: [
         // Autopilot sub-section
         { id: 'autopilot-header', label: 'Autopilot', isSubHeader: true, icon: Zap },
-        { id: 'autopilot', label: 'Autopilot Dashboard', icon: Zap, indent: true },
+        { id: 'autopilot', label: 'Dashboard', icon: Zap, indent: true },
 
         // Guest & Properties sub-section
         { id: 'guest-properties-header', label: 'Guest & Properties', isSubHeader: true, icon: Building2 },
@@ -103,17 +104,18 @@ const Sidebar = ({ currentView, onNavigate, isOpen, onClose }) => {
         { id: 'issues-tasks', label: 'Issues & Tasks', icon: AlertCircle, indent: true },
         { id: 'messages', label: 'Messages', icon: MessageSquare, indent: true },
 
-        // Control sub-section
-        { id: 'control-header', label: 'Control', isSubHeader: true, icon: Bot },
-        { id: 'ai-monitor', label: 'AI Monitor', icon: Activity, indent: true },
-        { id: 'osiris-alerts', label: 'Alerts / Exceptions', icon: Bell, indent: true },
-        { id: 'workflows', label: 'Workflows & Automations', icon: Workflow, indent: true },
-        { id: 'osiris-audit-log', label: 'Logs / Audit', icon: FileText, indent: true }
+        // Revenue & Pricing sub-section (MOVED from main menu)
+        { id: 'revenue-pricing-header', label: 'Revenue & Pricing', isSubHeader: true, icon: DollarSign },
+        { id: 'payments', label: 'Payments', icon: CreditCard, indent: true },
+        { id: 'smartPricing', label: 'Smart Pricing', icon: DollarSign, indent: true },
+        { id: 'reports', label: 'Reports', icon: BarChart3, indent: true },
+        { id: 'channelIntegration', label: 'Channel Integration', icon: Repeat, indent: true }
       ]
     },
+    // 3. SALES AND LEADS
     {
-      sectionId: 'lumina-ai',
-      sectionLabel: 'SALES & LEADS',
+      sectionId: 'sales-leads',
+      sectionLabel: 'SALES AND LEADS',
       sectionIcon: Target,
       collapsible: true,
       items: [
@@ -125,83 +127,64 @@ const Sidebar = ({ currentView, onNavigate, isOpen, onClose }) => {
         { id: 'leads-templates', label: 'Templates', icon: FileText }
       ]
     },
+    // 4. CUSTOMER COMMUNICATIONS
     {
       sectionId: 'customer-communications',
       sectionLabel: 'CUSTOMER COMMUNICATIONS',
       sectionIcon: MessageSquare,
       collapsible: true,
       items: [
-        { id: 'whatsapp-header', label: 'WhatsApp Assistant', isSubHeader: true, icon: MessageSquare },
-        { id: 'banyu-inbox', label: 'Live Inbox', icon: Inbox, indent: true },
+        { id: 'whatsapp-header', label: 'BANYU (WhatsApp Agent)', isSubHeader: true, icon: MessageSquare },
         { id: 'banyu-guest-journey', label: 'Guest Journey', icon: CalendarCheck, indent: true },
         { id: 'banyu-templates', label: 'Templates', icon: FileText, indent: true },
         { id: 'banyu-logs', label: 'Logs', icon: Activity, indent: true },
 
-        { id: 'voice-header', label: 'Voice Assistant', isSubHeader: true, icon: PhoneCall },
+        { id: 'voice-header', label: 'KORA (Voice AI)', isSubHeader: true, icon: PhoneCall },
         { id: 'kora-calls-inbox', label: 'Calls Inbox', icon: Inbox, indent: true },
         { id: 'kora-call-logs', label: 'Call Logs', icon: Phone, indent: true },
         { id: 'kora-scripts', label: 'Scripts', icon: FileText, indent: true },
-
-        { id: 'social-header', label: 'Instagram / Social DM', isSubHeader: true, icon: Instagram },
-        { id: 'social-inbox', label: 'Inbox', icon: Inbox, indent: true },
-        { id: 'social-templates', label: 'Templates', icon: FileText, indent: true },
-
-        { id: 'web-header', label: 'Web / Chat / Email', isSubHeader: true, icon: Mail },
-        { id: 'web-inbox', label: 'Inbox', icon: Inbox, indent: true },
-        { id: 'web-automations', label: 'Automations', icon: Workflow, indent: true },
-        { id: 'web-logs', label: 'Logs', icon: Activity, indent: true }
+        { id: 'kora-analytics', label: 'Analytics', icon: BarChart3, indent: true },
+        { id: 'kora-settings', label: 'Settings', icon: Settings, indent: true }
       ]
     },
+    // 5. MARKETING & GROWTH
     {
       sectionId: 'marketing-growth',
       sectionLabel: 'MARKETING & GROWTH',
       sectionIcon: Megaphone,
       collapsible: true,
       items: [
-        { id: 'marketing-overview', label: 'Overview', icon: PieChart },
-        { id: 'my-site', label: 'My Site (Website Builder)', icon: Globe },
-        { id: 'website-ads', label: 'Website & Ads', icon: TrendingUp },
-        { id: 'content-planner', label: 'Content Planner (AI)', icon: CalendarCheck },
-        { id: 'reviews', label: 'Reviews', icon: Star },
-        { id: 'insights', label: 'Insights', icon: BarChart3 },
-        { id: 'crm', label: 'Guest Database / CRM', icon: Users },
-        { id: 'segmentation', label: 'Guest Segmentation', icon: Target },
-        { id: 'booking-engine', label: 'Booking Engine Config', icon: Calendar },
-        { id: 'digital-checkin', label: 'Digital Check-in Setup', icon: CheckCircle }
+        // Marketing Campaigns sub-section
+        { id: 'marketing-campaigns-header', label: 'Marketing Campaigns', isSubHeader: true, icon: Megaphone },
+        { id: 'marketing-overview', label: 'Overview', icon: PieChart, indent: true },
+        { id: 'content-planner', label: 'Content Planner', icon: CalendarCheck, indent: true },
+        { id: 'social-publisher', label: 'Social Publisher', icon: Instagram, indent: true },
+        { id: 'meta-ads', label: 'Meta Ads', icon: Target, indent: true },
+        { id: 'website-ads', label: 'Website Ads', icon: TrendingUp, indent: true },
+
+        // Market Intelligence sub-section (MOVED from main menu)
+        { id: 'market-intelligence-header', label: 'Market Intelligence', isSubHeader: true, icon: Brain },
+        { id: 'competitors-snapshot', label: 'Competitors Snapshot', icon: Target, indent: true },
+        { id: 'bali-market-trends', label: 'Bali Market Trends', icon: TrendingUp, indent: true },
+        { id: 'intelligence-alerts', label: 'Alerts', icon: Bell, indent: true },
+        { id: 'ai-recommendations', label: 'AI Recommendations', icon: Lightbulb, indent: true },
+
+        // Guest Analytics sub-section
+        { id: 'guest-analytics-header', label: 'Guest Analytics', isSubHeader: true, icon: Users },
+        { id: 'segmentation', label: 'Guest Segmentation', icon: Target, indent: true },
+        { id: 'guest-analytics', label: 'Guest Analytics', icon: BarChart3, indent: true }
       ]
     },
+    // 6. BIZMATE AI
     {
-      sectionId: 'revenue',
-      sectionLabel: 'REVENUE & PRICING',
-      sectionIcon: DollarSign,
-      collapsible: true,
-      items: [
-        { id: 'payments', label: 'Payments', icon: CreditCard },
-        { id: 'smartPricing', label: 'Smart Pricing', icon: DollarSign },
-        { id: 'reports', label: 'Reports', icon: BarChart3 },
-        { id: 'channelIntegration', label: 'Channel Integration', icon: Repeat }
-      ]
-    },
-    {
-      sectionId: 'market-intelligence',
-      sectionLabel: 'MARKET INTELLIGENCE',
-      sectionIcon: Brain,
-      collapsible: true,
-      items: [
-        { id: 'competitors-snapshot', label: 'Competitors Snapshot', icon: Target },
-        { id: 'bali-market-trends', label: 'Bali Market Trends', icon: TrendingUp },
-        { id: 'intelligence-alerts', label: 'Alerts', icon: Bell },
-        { id: 'ai-recommendations', label: 'AI Recommendations', icon: Lightbulb }
-      ]
-    },
-    {
-      sectionId: 'ai-systems',
-      sectionLabel: 'AI SYSTEMS',
+      sectionId: 'bizmate-ai',
+      sectionLabel: 'BIZMATE AI',
       sectionIcon: Sparkles,
       collapsible: false,
       isDirectLink: true,
       items: []
     },
+    // 7. SETTINGS
     {
       sectionId: 'settings',
       sectionLabel: 'SETTINGS',
