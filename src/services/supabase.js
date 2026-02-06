@@ -584,6 +584,42 @@ export const supabaseService = {
     const { data, error } = await query;
     if (error) throw new Error('Failed to fetch guests');
     return data;
+  },
+
+  // =====================================================
+  // TASKS (Autopilot Actions) - CRUD Operations
+  // =====================================================
+
+  async createTask(taskData) {
+    const { data, error } = await supabase
+      .from('autopilot_actions')
+      .insert(taskData)
+      .select()
+      .single();
+
+    if (error) throw new Error(error.message || 'Failed to create task');
+    return data;
+  },
+
+  async getTasks(filters = {}) {
+    let query = supabase
+      .from('autopilot_actions')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (filters.tenant_id) {
+      query = query.eq('tenant_id', filters.tenant_id);
+    }
+    if (filters.property_id) {
+      query = query.eq('property_id', filters.property_id);
+    }
+    if (filters.status) {
+      query = query.eq('status', filters.status);
+    }
+
+    const { data, error } = await query;
+    if (error) throw new Error('Failed to fetch tasks');
+    return data;
   }
 };
 

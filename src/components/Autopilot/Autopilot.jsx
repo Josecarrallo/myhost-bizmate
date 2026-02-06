@@ -69,6 +69,10 @@ const Autopilot = ({ onBack }) => {
     loading: true
   });
 
+  // All bookings for detailed view
+  const [allBookings, setAllBookings] = useState([]);
+  const [bookingSearchQuery, setBookingSearchQuery] = useState('');
+
   const [alerts, setAlerts] = useState([
     {
       id: 1,
@@ -268,17 +272,20 @@ const Autopilot = ({ onBack }) => {
     if (!TENANT_ID) return;
 
     try {
-      // Use Supabase client (automatically includes JWT token from session)
+      // Load full booking details for the table
       const { data: bookings, error } = await supabase
         .from('bookings')
-        .select('id')
-        .eq('tenant_id', TENANT_ID);
+        .select('*')
+        .eq('tenant_id', TENANT_ID)
+        .order('created_at', { ascending: false });
 
       if (error) {
-        console.error('Error loading bookings count:', error);
+        console.error('Error loading bookings:', error);
         setRealCounts(prev => ({ ...prev, loading: false }));
         return;
       }
+
+      setAllBookings(bookings || []);
 
       setRealCounts({
         totalClients: bookings?.length || 0,
@@ -485,20 +492,26 @@ const Autopilot = ({ onBack }) => {
 
       if (response.ok) {
         const data = await response.json();
-        // Only update if we have valid data, otherwise keep fallback values
-        if (data && (data.new_inquiries > 0 || data.pending_payments > 0 || data.confirmed_bookings > 0)) {
-          setTodayMetrics({
-            newInquiries: data.new_inquiries || 0,
-            pendingPayments: data.pending_payments || 0,
-            confirmedBookings: data.confirmed_bookings || 0,
-            checkInsToday: data.checkins_today || 0,
-            expiredHolds: data.expired_holds || 0
-          });
-        }
-        // If data is all zeros or empty, keep the fallback values from initial state
+        console.log('📊 get_daily_summary response:', data);
+
+        // Map the fields correctly from Supabase function response
+        // Function returns: bookings_today, check_ins_today, check_outs_today, revenue_today, alerts_active, payments_pending
+        setTodayMetrics({
+          newInquiries: 0, // TODO: Add leads_today to function
+          pendingPayments: data.payments_pending || 0,
+          confirmedBookings: data.bookings_today || 0,
+          checkInsToday: data.check_ins_today || 0,
+          expiredHolds: 0 // TODO: Add to function if needed
+        });
+
+        console.log('✅ Metrics updated:', {
+          bookings: data.bookings_today,
+          checkIns: data.check_ins_today,
+          payments: data.payments_pending
+        });
       }
     } catch (error) {
-      console.error('Error fetching metrics:', error);
+      console.error('❌ Error fetching metrics:', error);
       // On error, keep fallback values
     } finally {
       setIsLoading(false);
@@ -1066,7 +1079,7 @@ const Autopilot = ({ onBack }) => {
             <Calendar className="w-5 h-5" />
             Bookings Summary (Last 3 Months)
           </h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
             <div className="bg-gradient-to-br from-blue-500/10 to-blue-600/10 rounded-xl p-5 border-2 border-blue-500/30">
               <p className="text-blue-300 text-sm mb-2">Total Bookings</p>
               <p className="text-3xl font-black text-white mb-1">{realCounts.totalBookings}</p>
@@ -1081,6 +1094,66 @@ const Autopilot = ({ onBack }) => {
               <p className="text-purple-300 text-sm mb-2">Avg Occupancy</p>
               <p className="text-3xl font-black text-white mb-1">74%</p>
               <p className="text-purple-200 text-sm">Across all units</p>
+            </div>
+          </div>
+
+          {/* Detailed Bookings Table */}
+          <div className="mt-6 border-t-2 border-[#d85a2a]/20 pt-6">
+            <h4 className="text-lg font-bold text-white mb-4">All Bookings ({allBookings.length})</h4>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-gray-700">
+                    <th className="text-left text-gray-400 font-semibold p-3">Guest Name</th>
+                    <th className="text-left text-gray-400 font-semibold p-3">Check In</th>
+                    <th className="text-left text-gray-400 font-semibold p-3">Check Out</th>
+                    <th className="text-right text-gray-400 font-semibold p-3">Total</th>
+                    <th className="text-center text-gray-400 font-semibold p-3">Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {allBookings.length === 0 ? (
+                    <tr>
+                      <td colSpan="5" className="text-center text-gray-500 p-8">
+                        No bookings found
+                      </td>
+                    </tr>
+                  ) : (
+                    allBookings.map((booking) => (
+                      <tr key={booking.id} className="border-b border-gray-800 hover:bg-[#2a2f3a] transition-colors">
+                        <td className="text-white p-3 font-medium">{booking.guest_name || 'N/A'}</td>
+                        <td className="text-gray-300 p-3">
+                          {booking.check_in ? new Date(booking.check_in).toLocaleDateString('en-US', {
+                            month: 'short',
+                            day: 'numeric',
+                            year: 'numeric'
+                          }) : 'N/A'}
+                        </td>
+                        <td className="text-gray-300 p-3">
+                          {booking.check_out ? new Date(booking.check_out).toLocaleDateString('en-US', {
+                            month: 'short',
+                            day: 'numeric',
+                            year: 'numeric'
+                          }) : 'N/A'}
+                        </td>
+                        <td className="text-right text-green-400 p-3 font-bold">
+                          ${booking.total_price?.toLocaleString() || '0'}
+                        </td>
+                        <td className="text-center p-3">
+                          <span className={`px-3 py-1 rounded-full text-xs font-bold ${
+                            booking.status === 'confirmed' ? 'bg-green-500/20 text-green-400' :
+                            booking.status === 'pending' ? 'bg-yellow-500/20 text-yellow-400' :
+                            booking.status === 'cancelled' ? 'bg-red-500/20 text-red-400' :
+                            'bg-gray-500/20 text-gray-400'
+                          }`}>
+                            {booking.status || 'unknown'}
+                          </span>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
             </div>
           </div>
         </div>
@@ -1234,45 +1307,79 @@ const Autopilot = ({ onBack }) => {
             Bookings ({realCounts.totalBookings} total)
           </h3>
           <div className="flex gap-2">
-            <button className="px-4 py-2 bg-[#2a2f3a] hover:bg-[#374151] text-white rounded-lg font-medium transition-all flex items-center gap-2">
-              <Search className="w-4 h-4" />
-              Search
-            </button>
-            <button className="px-4 py-2 bg-[#2a2f3a] hover:bg-[#374151] text-white rounded-lg font-medium transition-all flex items-center gap-2">
-              <Filter className="w-4 h-4" />
-              Filter
-            </button>
+            <div className="relative flex-1 max-w-md">
+              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Search by guest name, date (e.g. 'Jan 2026'), or amount..."
+                value={bookingSearchQuery}
+                onChange={(e) => setBookingSearchQuery(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 bg-[#2a2f3a] border-2 border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-orange-500 transition-all"
+              />
+            </div>
           </div>
         </div>
 
         <div className="space-y-3">
-          {[
-            { guest: 'Hiroshi Nakamura', dates: 'Jan 25 - Feb 1', nights: 7, channel: 'Airbnb', status: 'confirmed', amount: 1540 },
-            { guest: 'Anna Müller', dates: 'Jan 28 - Feb 4', nights: 7, channel: 'Booking.com', status: 'confirmed', amount: 1470 },
-            { guest: 'Emma Chen', dates: 'Feb 10 - Feb 17', nights: 7, channel: 'Direct', status: 'pending', amount: 1960 }
-          ].map((booking, i) => (
-            <div key={i} className="bg-[#2a2f3a] rounded-lg p-4 border-2 border-gray-700 hover:border-orange-500/50 transition-all">
-              <div className="flex items-center justify-between">
-                <div className="flex-1">
-                  <h4 className="text-white font-bold text-lg">{booking.guest}</h4>
-                  <p className="text-gray-400 text-sm">{booking.dates} • {booking.nights} nights</p>
-                </div>
-                <div className="text-right">
-                  <p className="text-green-400 font-bold text-lg">${booking.amount}</p>
-                  <span className={`px-3 py-1 rounded-full text-xs font-bold ${
-                    booking.status === 'confirmed' ? 'bg-green-500/20 text-green-400' : 'bg-yellow-500/20 text-yellow-400'
-                  }`}>
-                    {booking.status}
-                  </span>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
+          {(() => {
+            // Filter bookings based on search query
+            const filteredBookings = allBookings.filter((booking) => {
+              if (!bookingSearchQuery) return true;
 
-        <button className="w-full mt-4 px-4 py-3 bg-orange-500 hover:bg-orange-600 text-white rounded-lg font-bold transition-all">
-          View All {realCounts.totalBookings} Bookings
-        </button>
+              const query = bookingSearchQuery.toLowerCase();
+              const guestName = (booking.guest_name || '').toLowerCase();
+              const checkIn = booking.check_in ? new Date(booking.check_in).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }).toLowerCase() : '';
+              const checkOut = booking.check_out ? new Date(booking.check_out).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }).toLowerCase() : '';
+              const amount = (booking.total_price || '').toString();
+
+              return guestName.includes(query) ||
+                     checkIn.includes(query) ||
+                     checkOut.includes(query) ||
+                     amount.includes(query);
+            });
+
+            if (filteredBookings.length === 0) {
+              return (
+                <div className="text-center text-gray-500 py-8">
+                  {bookingSearchQuery ? `No bookings found for "${bookingSearchQuery}"` : 'No bookings found'}
+                </div>
+              );
+            }
+
+            return filteredBookings.map((booking) => {
+              const checkIn = booking.check_in ? new Date(booking.check_in) : null;
+              const checkOut = booking.check_out ? new Date(booking.check_out) : null;
+              const nights = checkIn && checkOut
+                ? Math.ceil((checkOut - checkIn) / (1000 * 60 * 60 * 24))
+                : 0;
+              const dateRange = checkIn && checkOut
+                ? `${checkIn.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })} - ${checkOut.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`
+                : 'N/A';
+
+              return (
+                <div key={booking.id} className="bg-[#2a2f3a] rounded-lg p-4 border-2 border-gray-700 hover:border-orange-500/50 transition-all">
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1">
+                      <h4 className="text-white font-bold text-lg">{booking.guest_name || 'N/A'}</h4>
+                      <p className="text-gray-400 text-sm">{dateRange} • {nights} nights</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-green-400 font-bold text-lg">${booking.total_price?.toLocaleString() || '0'}</p>
+                      <span className={`px-3 py-1 rounded-full text-xs font-bold ${
+                        booking.status === 'confirmed' ? 'bg-green-500/20 text-green-400' :
+                        booking.status === 'pending' ? 'bg-yellow-500/20 text-yellow-400' :
+                        booking.status === 'cancelled' ? 'bg-red-500/20 text-red-400' :
+                        'bg-gray-500/20 text-gray-400'
+                      }`}>
+                        {booking.status || 'unknown'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              );
+            });
+          })()}
+        </div>
       </div>
     </div>
   );

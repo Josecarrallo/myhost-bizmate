@@ -305,22 +305,64 @@ const ManualDataEntry = ({ onBack }) => {
   };
 
   // Handle form submissions
-  const handleSubmitLead = (e) => {
+  const handleSubmitLead = async (e) => {
     e.preventDefault();
-    console.log('Submitting lead:', leadForm);
-    // TODO: Call webhook /webhook/inbound-lead-v3
-    alert('Lead submitted successfully! (Demo mode)');
-    // Reset form
-    setLeadForm({
-      name: '',
-      phone: '',
-      email: '',
-      message: '',
-      checkIn: '',
-      checkOut: '',
-      guests: '2',
-      source: 'manual'
-    });
+
+    // Clear previous messages
+    setSuccessMessage('');
+    setErrorMessage('');
+    setIsSubmitting(true);
+
+    try {
+      // Validate user is logged in
+      if (!userData || !userData.id) {
+        throw new Error('You must be logged in to create a lead');
+      }
+
+      // Prepare lead data for Supabase
+      const leadData = {
+        tenant_id: userData.id,
+        name: leadForm.name,
+        phone: leadForm.phone,
+        email: leadForm.email || null,
+        notes: leadForm.message || null,  // 'message' campo del form → 'notes' columna DB
+        check_in: leadForm.checkIn || null,
+        check_out: leadForm.checkOut || null,
+        guests: leadForm.guests ? parseInt(leadForm.guests) : 2,
+        source: 'manual',
+        status: 'new',
+        created_at: new Date().toISOString()
+      };
+
+      console.log('📋 Creating lead:', leadData);
+
+      // Call Supabase service
+      const result = await supabaseService.createLead(leadData);
+
+      // Success!
+      setSuccessMessage(`Lead created successfully! Contact: ${leadForm.name}`);
+
+      // Reset form
+      setLeadForm({
+        name: '',
+        phone: '',
+        email: '',
+        message: '',
+        checkIn: '',
+        checkOut: '',
+        guests: '2',
+        source: 'manual'
+      });
+
+      // Clear success message after 5 seconds
+      setTimeout(() => setSuccessMessage(''), 5000);
+
+    } catch (error) {
+      console.error('Error creating lead:', error);
+      setErrorMessage(error.message || 'Failed to create lead. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleSubmitBooking = async (e) => {
@@ -478,18 +520,147 @@ const ManualDataEntry = ({ onBack }) => {
     }
   };
 
-  const handleSubmitPayment = (e) => {
+  const handleSubmitPayment = async (e) => {
     e.preventDefault();
-    console.log('Submitting payment:', paymentForm);
-    // TODO: Update booking payment in Supabase
-    alert('Payment updated successfully! (Demo mode)');
+
+    // Clear previous messages
+    setSuccessMessage('');
+    setErrorMessage('');
+    setIsSubmitting(true);
+
+    try {
+      // Validate user is logged in
+      if (!userData || !userData.id) {
+        throw new Error('You must be logged in to record a payment');
+      }
+
+      // Validate required fields
+      if (!paymentForm.bookingId) {
+        throw new Error('Please select a booking');
+      }
+      if (!paymentForm.amount || parseFloat(paymentForm.amount) <= 0) {
+        throw new Error('Please enter a valid payment amount');
+      }
+
+      // Prepare payment data for Supabase
+      const paymentData = {
+        tenant_id: userData.id,
+        booking_id: paymentForm.bookingId,
+        amount: parseFloat(paymentForm.amount),
+        payment_method: paymentForm.paymentMethod,
+        transaction_date: paymentForm.paymentDate,
+        status: 'completed',
+        notes: paymentForm.notes || '',
+        created_at: new Date().toISOString()
+      };
+
+      console.log('💳 Recording payment:', paymentData);
+
+      // Call Supabase service
+      const result = await supabaseService.createPayment(paymentData);
+
+      // Optionally update booking payment status
+      // Get booking to check if fully paid
+      const booking = bookings.find(b => b.id === paymentForm.bookingId);
+      if (booking && parseFloat(paymentForm.amount) >= booking.total_price) {
+        await supabaseService.updateBooking(paymentForm.bookingId, {
+          payment_status: 'paid',
+          updated_at: new Date().toISOString()
+        });
+      }
+
+      // Success!
+      setSuccessMessage(`Payment recorded successfully! Amount: $${paymentForm.amount}`);
+
+      // Reset form
+      setPaymentForm({
+        bookingId: '',
+        amount: '',
+        paymentMethod: 'bank_transfer',
+        paymentDate: new Date().toISOString().split('T')[0],
+        notes: ''
+      });
+
+      // Clear success message after 5 seconds
+      setTimeout(() => setSuccessMessage(''), 5000);
+
+    } catch (error) {
+      console.error('Error recording payment:', error);
+      setErrorMessage(error.message || 'Failed to record payment. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  const handleSubmitTask = (e) => {
+  const handleSubmitTask = async (e) => {
     e.preventDefault();
-    console.log('Submitting task:', taskForm);
-    // TODO: Insert into Supabase autopilot_actions table
-    alert('Task created successfully! (Demo mode)');
+
+    // Clear previous messages
+    setSuccessMessage('');
+    setErrorMessage('');
+    setIsSubmitting(true);
+
+    try {
+      // Validate user is logged in
+      if (!userData || !userData.id) {
+        throw new Error('You must be logged in to create a task');
+      }
+
+      // Validate required fields
+      if (!taskForm.title) {
+        throw new Error('Please enter a task title');
+      }
+      if (!taskForm.category) {
+        throw new Error('Please select a task category');
+      }
+
+      // Get first property if not specified
+      const propertyId = properties.length > 0 ? properties[0].id : null;
+      if (!propertyId) {
+        throw new Error('No property found. Please create a property first.');
+      }
+
+      // Prepare task data for Supabase (autopilot_actions table)
+      const taskData = {
+        tenant_id: userData.id,              // REQUIRED
+        property_id: propertyId,             // REQUIRED
+        action_type: taskForm.category,      // REQUIRED (housekeeping, maintenance, inventory)
+        title: taskForm.title,               // REQUIRED
+        description: taskForm.description || null,
+        priority: taskForm.priority || 'medium',
+        due_date: taskForm.dueDate || null
+        // assigned_to NO EXISTE en la tabla
+        // status: 'pending' (auto-default)
+        // created_at, updated_at (auto-generated)
+      };
+
+      console.log('✅ Creating task:', taskData);
+
+      // Call Supabase service
+      const result = await supabaseService.createTask(taskData);
+
+      // Success!
+      setSuccessMessage(`Task created successfully! Title: ${taskForm.title}`);
+
+      // Reset form
+      setTaskForm({
+        title: '',
+        category: 'housekeeping',
+        priority: 'medium',
+        assignedTo: '',
+        dueDate: '',
+        description: ''
+      });
+
+      // Clear success message after 5 seconds
+      setTimeout(() => setSuccessMessage(''), 5000);
+
+    } catch (error) {
+      console.error('Error creating task:', error);
+      setErrorMessage(error.message || 'Failed to create task. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const tabs = [
@@ -1223,7 +1394,7 @@ const ManualDataEntry = ({ onBack }) => {
                   required
                   value={taskForm.category}
                   onChange={(e) => setTaskForm({...taskForm, category: e.target.value})}
-                  className="w-full px-4 py-3 bg-white/10 border border-white/30 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-white/50"
+                  className="w-full px-4 py-3 bg-[#2a2f3a] border-2 border-gray-200 rounded-xl text-[#FF8C42] focus:outline-none focus:border-orange-300 [&>option]:bg-[#1f2937] [&>option]:text-white"
                 >
                   <option value="housekeeping">Housekeeping</option>
                   <option value="maintenance">Maintenance</option>
@@ -1241,7 +1412,7 @@ const ManualDataEntry = ({ onBack }) => {
                   required
                   value={taskForm.priority}
                   onChange={(e) => setTaskForm({...taskForm, priority: e.target.value})}
-                  className="w-full px-4 py-3 bg-white/10 border border-white/30 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-white/50"
+                  className="w-full px-4 py-3 bg-[#2a2f3a] border-2 border-gray-200 rounded-xl text-[#FF8C42] focus:outline-none focus:border-orange-300 [&>option]:bg-[#1f2937] [&>option]:text-white"
                 >
                   <option value="low">Low</option>
                   <option value="medium">Medium</option>

@@ -19,22 +19,37 @@ export const dataService = {
   },
 
   // Obtener estadísticas del dashboard
-  async getDashboardStats() {
+  async getDashboardStats(tenantId = 'c24393db-d318-4d75-8bbf-0fa240b9c1db') {
     const { data, error } = await supabase
-      .rpc('get_dashboard_stats');
+      .rpc('get_dashboard_stats', { p_tenant_id: tenantId });
 
     if (error) {
       console.error('Error fetching dashboard stats:', error);
       return null;
     }
 
-    return data[0]; // Retorna el primer registro
+    // Function returns TABLE, so data is an array
+    if (!data || data.length === 0) {
+      return null;
+    }
+
+    const row = data[0]; // Get first row from TABLE result
+
+    // Map field names from Supabase function to what the component expects
+    return {
+      total_revenue: row?.total_revenue || 0,
+      occupancy_rate: row?.occupancy_rate || 0,
+      active_bookings: row?.active_bookings || 0,
+      total_properties: row?.total_villas || 0,
+      avg_nightly_rate: row?.avg_daily_rate || 0,
+      revpar: row?.revpar || 0
+    };
   },
 
   // Check-ins de hoy
-  async getTodayCheckIns() {
+  async getTodayCheckIns(tenantId = 'c24393db-d318-4d75-8bbf-0fa240b9c1db') {
     const { data, error } = await supabase
-      .rpc('get_today_checkins');
+      .rpc('get_today_checkins', { p_tenant_id: tenantId });
 
     if (error) {
       console.error('Error fetching check-ins:', error);
@@ -45,9 +60,9 @@ export const dataService = {
   },
 
   // Check-outs de hoy
-  async getTodayCheckOuts() {
+  async getTodayCheckOuts(tenantId = 'c24393db-d318-4d75-8bbf-0fa240b9c1db') {
     const { data, error } = await supabase
-      .rpc('get_today_checkouts');
+      .rpc('get_today_checkouts', { p_tenant_id: tenantId });
 
     if (error) {
       console.error('Error fetching check-outs:', error);
@@ -58,9 +73,9 @@ export const dataService = {
   },
 
   // Alertas activas
-  async getActiveAlerts() {
+  async getActiveAlerts(tenantId = 'c24393db-d318-4d75-8bbf-0fa240b9c1db') {
     const { data, error } = await supabase
-      .rpc('get_active_alerts');
+      .rpc('get_active_alerts', { p_tenant_id: tenantId });
 
     if (error) {
       console.error('Error fetching alerts:', error);
