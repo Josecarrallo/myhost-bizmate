@@ -1,546 +1,436 @@
 import React, { useState, useEffect } from 'react';
 import {
-  Lightbulb,
-  TrendingUp,
-  Home,
   Calendar,
   DollarSign,
-  AlertCircle,
-  CreditCard,
-  Package,
-  Users,
-  Target,
-  MessageSquare,
-  PhoneCall,
-  Eye,
-  ArrowRight,
-  Inbox,
-  Phone,
-  Clock
+  TrendingUp,
+  Home,
+  Filter
 } from 'lucide-react';
+import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ComposedChart } from 'recharts';
 import { dataService } from '../../services/data';
+import { useAuth } from '../../contexts/AuthContext';
 
-const OwnerExecutiveSummary = ({ userName = 'José', onNavigate }) => {
-  const [loading, setLoading] = useState(true);
-  const [stats, setStats] = useState(null);
-  const [checkIns, setCheckIns] = useState([]);
-  const [checkOuts, setCheckOuts] = useState([]);
-  const [alerts, setAlerts] = useState([]);
-  const [aiStats, setAiStats] = useState({
-    lumina: null,
-    banyu: null,
-    kora: null,
-    osiris: null
+const OwnerExecutiveSummary = ({ userName = 'Owner', onNavigate }) => {
+  const { user } = useAuth();
+  const tenantId = user?.id;
+
+  // Date range state
+  const [dateRange, setDateRange] = useState({
+    start: '2026-01-01',
+    end: '2026-12-31',
+    label: '2026 (Full Year)'
   });
 
-  useEffect(() => {
-    loadDashboardData();
-  }, []);
+  // Custom date inputs
+  const [customStart, setCustomStart] = useState('2026-01-01');
+  const [customEnd, setCustomEnd] = useState('2026-12-31');
 
-  const loadDashboardData = async () => {
+  // Data state
+  const [stats, setStats] = useState(null);
+  const [currency, setCurrency] = useState('USD');
+  const [loading, setLoading] = useState(true);
+
+  // Reset state when user changes
+  useEffect(() => {
+    if (!tenantId) {
+      // User logged out or changed - reset all state
+      setStats(null);
+      setCurrency('USD');
+      setLoading(true);
+    }
+  }, [tenantId]);
+
+  useEffect(() => {
+    if (tenantId) {
+      loadOverviewData();
+    }
+  }, [tenantId, dateRange]);
+
+  const loadOverviewData = async () => {
     setLoading(true);
     try {
-      const [statsData, checkInsData, checkOutsData, alertsData, luminaData, banyuData, koraData, osirisData] = await Promise.all([
-        dataService.getDashboardStats(),
-        dataService.getTodayCheckIns(),
-        dataService.getTodayCheckOuts(),
-        dataService.getActiveAlerts(),
-        dataService.getLuminaStats(),
-        dataService.getBanyuStats(),
-        dataService.getKoraStats(),
-        dataService.getOsirisStats()
-      ]);
+      // Get property currency
+      const properties = await dataService.getProperties();
+      const userProperty = properties.find(p => p.owner_id === tenantId);
+      if (userProperty?.currency) {
+        setCurrency(userProperty.currency);
+      }
 
-      setStats(statsData);
-      setCheckIns(checkInsData);
-      setCheckOuts(checkOutsData);
-      setAlerts(alertsData);
-      setAiStats({
-        lumina: luminaData,
-        banyu: banyuData,
-        kora: koraData,
-        osiris: osirisData
-      });
+      // Get overview stats
+      const overviewData = await dataService.getOverviewStats(
+        tenantId,
+        dateRange.start,
+        dateRange.end
+      );
+
+      setStats(overviewData);
     } catch (error) {
-      console.error('Error loading dashboard:', error);
+      console.error('Error loading overview:', error);
     } finally {
       setLoading(false);
     }
   };
 
-  // Get current time for greeting
-  const getGreeting = () => {
-    const hour = new Date().getHours();
-    if (hour < 12) return 'Good morning';
-    if (hour < 18) return 'Good afternoon';
-    return 'Good evening';
+  const formatCurrency = (amount) => {
+    if (!amount) return '0';
+
+    switch (currency) {
+      case 'IDR':
+        return `Rp ${Math.round(amount).toLocaleString('id-ID')}`;
+      case 'EUR':
+        return `€${Math.round(amount).toLocaleString('de-DE')}`;
+      case 'USD':
+      default:
+        return `$${Math.round(amount).toLocaleString('en-US')}`;
+    }
+  };
+
+  const handleCustomDateChange = () => {
+    if (customStart && customEnd) {
+      setDateRange({
+        start: customStart,
+        end: customEnd,
+        label: 'Custom Range'
+      });
+    }
   };
 
   if (loading) {
     return (
       <div className="flex-1 bg-[#2a2f3a] flex items-center justify-center">
-        <div className="text-white text-2xl font-bold">Loading dashboard...</div>
+        <div className="text-white text-xl font-semibold">Loading overview...</div>
       </div>
     );
   }
 
-  // KPIs from real data
-  const kpis = [
-    {
-      label: 'Total Revenue',
-      value: `$${stats?.total_revenue?.toLocaleString() || '0'}`,
-      change: '+12%',
-      subtext: 'All time',
-      trend: 'up',
-      icon: DollarSign,
-      color: 'from-[#1f2937] to-[#374151]'
-    },
-    {
-      label: 'Occupancy Rate',
-      value: `${stats?.occupancy_rate || 0}%`,
-      change: '+5%',
-      subtext: 'Active bookings',
-      trend: 'up',
-      icon: TrendingUp,
-      color: 'from-[#1f2937] to-[#374151]'
-    },
-    {
-      label: 'Active Bookings',
-      value: stats?.active_bookings || 0,
-      change: '+3',
-      subtext: 'Confirmed',
-      trend: 'up',
-      icon: Calendar,
-      color: 'from-[#1f2937] to-[#374151]'
-    },
-    {
-      label: 'Properties',
-      value: stats?.total_properties || 0,
-      change: '',
-      subtext: 'Active listings',
-      trend: 'up',
-      icon: Home,
-      color: 'from-[#1f2937] to-[#374151]'
-    }
-  ];
-
-  // Action Queue from real data
-  const actionQueue = [
-    ...(checkOuts.length > 0
-      ? [
-          {
-            icon: Package,
-            label: `${checkOuts.length} Check-out${checkOuts.length > 1 ? 's' : ''} today`,
-            time: 'Today',
-            status: 'Pending',
-            statusColor: 'orange',
-            details: checkOuts.map((c) => c.guest_name).join(', ')
-          }
-        ]
-      : []),
-    ...alerts.map((alert) => ({
-      icon: alert.severity === 'warning' ? AlertCircle : CreditCard,
-      label: alert.message,
-      time: new Date(alert.created_at).toLocaleTimeString('en-US', {
-        hour: '2-digit',
-        minute: '2-digit'
-      }),
-      status: alert.severity === 'warning' ? 'Needs Action' : 'Info',
-      statusColor: alert.severity === 'warning' ? 'orange' : 'blue',
-      alert: alert.severity === 'warning'
-    }))
-  ];
-
   return (
-    <div className="flex-1 bg-gray-900 overflow-auto relative">
-      {/* Animated background elements */}
-      <div className="absolute inset-0 overflow-hidden">
+    <div className="flex-1 bg-[#2a2f3a] overflow-auto p-6 relative">
+      {/* Animated background - mismo que Autopilot */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute w-96 h-96 bg-[#d85a2a]/5 rounded-full blur-3xl top-20 -left-48 animate-pulse"></div>
         <div className="absolute w-96 h-96 bg-[#d85a2a]/5 rounded-full blur-3xl bottom-20 -right-48 animate-pulse" style={{ animationDelay: '1s' }}></div>
-        <div className="absolute w-72 h-72 bg-[#d85a2a]/5 rounded-full blur-2xl top-1/2 right-1/4 animate-pulse" style={{ animationDelay: '0.5s' }}></div>
       </div>
 
-      {/* Content wrapper with relative z-index */}
       <div className="relative z-10">
-        {/* Main Content */}
-        <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto">
-          {/* Greeting */}
-          <h2 className="text-3xl sm:text-4xl font-black text-white mb-2">
-            {getGreeting()}, {userName}
-          </h2>
-          <p className="text-lg sm:text-xl text-white/90 font-semibold mb-6 sm:mb-8">
-            Owner Executive Summary - {new Date().toLocaleDateString('en-US', {
-              weekday: 'long',
-              year: 'numeric',
-              month: 'long',
-              day: 'numeric'
-            })}
-          </p>
-
-          {/* AI Snapshot Card */}
-          <div className="bg-[#1f2937] border border-[#d85a2a]/20 rounded-xl p-4 sm:p-6 mb-6 sm:mb-8">
-            <div className="flex flex-col sm:flex-row items-start justify-between gap-4">
-              <div className="flex items-start gap-3 sm:gap-4 flex-1 w-full">
-                <div className="p-2 bg-gradient-to-r from-[#d85a2a] to-[#f5a524] rounded-lg flex-shrink-0">
-                  <Lightbulb className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <h3 className="text-lg sm:text-xl font-semibold text-white mb-2">
-                    MyHost AI - Today's Snapshot
-                  </h3>
-                  <p className="text-white/90 text-base leading-relaxed mb-1">
-                    You have {stats?.active_bookings || 0} active booking{stats?.active_bookings !== 1 ? 's' : ''} with an occupancy rate of {stats?.occupancy_rate || 0}%.
-                    {checkIns.length > 0 && ` ${checkIns.length} guest${checkIns.length > 1 ? 's are' : ' is'} checking in today.`}
-                  </p>
-                  <p className="text-white/90 text-base leading-relaxed">
-                    Total revenue: ${stats?.total_revenue?.toLocaleString() || '0'}. Average nightly rate: ${stats?.avg_nightly_rate?.toFixed(0) || '0'}.
-                  </p>
-                </div>
-              </div>
-              <button className="w-full sm:w-auto px-4 py-2 bg-gradient-to-r from-[#d85a2a] to-[#f5a524] hover:opacity-90 text-white rounded-lg font-medium text-sm whitespace-nowrap transition-colors flex-shrink-0">
-                Ask MyHost AI
-              </button>
-            </div>
+      {/* Header with Date Range Selector */}
+      <div className="mb-6">
+        <div className="flex justify-between items-center mb-4">
+          <div>
+            <h1 className="text-3xl font-black text-[#FF8C42]">Overview</h1>
+            <p className="text-gray-300 mt-1">
+              <span className="text-orange-400 font-semibold">{userName}</span> • Revenue & Performance Analytics
+            </p>
           </div>
+          <Filter className="w-6 h-6 text-orange-400" />
+        </div>
 
-          {/* KPI Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6 sm:mb-8">
-            {kpis.map((kpi, index) => {
-              const Icon = kpi.icon;
-              return (
-                <div key={index} className={`bg-gradient-to-br ${kpi.color} rounded-xl p-3 sm:p-4 border border-[#d85a2a]/20 shadow-xl`}>
-                  <div className="flex items-center justify-between mb-2">
-                    <p className="text-xs sm:text-sm text-white/80 font-medium">{kpi.label}</p>
-                    <Icon className="w-4 h-4 sm:w-5 sm:h-5 text-white/80 flex-shrink-0" />
-                  </div>
-                  <div className="mb-1">
-                    <span className="text-xl sm:text-2xl font-bold text-white block">{kpi.value}</span>
-                    {kpi.change && (
-                      <span className="text-xs sm:text-sm font-medium text-[#10b981] inline-block mt-1">
-                        {kpi.change}
-                      </span>
-                    )}
-                  </div>
-                  {kpi.subtext && (
-                    <p className="text-xs sm:text-sm text-white/70">{kpi.subtext}</p>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-
-          {/* 4 AI Agents Section */}
-          <div className="mb-6 sm:mb-8">
-            <h3 className="text-xl sm:text-2xl font-bold text-white mb-4 flex items-center gap-2">
-              <Lightbulb className="w-6 h-6 text-[#FF8C42]" />
-              Your AI Team (4 Agents)
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              {/* LUMINA.AI */}
-              <button
-                onClick={() => onNavigate?.('leads-inbox')}
-                className="bg-gradient-to-br from-purple-500/20 to-pink-500/20 border border-purple-500/30 rounded-xl p-5 hover:scale-105 transition-all text-left group"
-              >
-                <div className="flex items-start justify-between mb-3">
-                  <div className="p-2 bg-purple-500/20 rounded-lg">
-                    <Target className="w-6 h-6 text-purple-300" />
-                  </div>
-                  <ArrowRight className="w-5 h-5 text-white/40 group-hover:text-white/80 transition-colors" />
-                </div>
-                <h4 className="text-lg font-bold text-white mb-1">🌟 LUMINA.AI</h4>
-                <p className="text-sm text-white/80 mb-3">Sales & Leads</p>
-                <div className="space-y-1">
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="text-white/60">New Leads</span>
-                    <span className="text-purple-300 font-bold">{aiStats.lumina?.new_leads || 0}</span>
-                  </div>
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="text-white/60">In Pipeline</span>
-                    <span className="text-purple-300 font-bold">{aiStats.lumina?.in_pipeline || 0}</span>
-                  </div>
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="text-white/60">Follow-ups</span>
-                    <span className="text-orange-300 font-bold">{aiStats.lumina?.pending_followups || 0}</span>
-                  </div>
-                </div>
-              </button>
-
-              {/* BANYU.AI */}
-              <button
-                onClick={() => onNavigate?.('guest-communications')}
-                className="bg-gradient-to-br from-green-500/20 to-emerald-500/20 border border-green-500/30 rounded-xl p-5 hover:scale-105 transition-all text-left group"
-              >
-                <div className="flex items-start justify-between mb-3">
-                  <div className="p-2 bg-green-500/20 rounded-lg">
-                    <MessageSquare className="w-6 h-6 text-green-300" />
-                  </div>
-                  <ArrowRight className="w-5 h-5 text-white/40 group-hover:text-white/80 transition-colors" />
-                </div>
-                <h4 className="text-lg font-bold text-white mb-1">💧 BANYU.AI</h4>
-                <p className="text-sm text-white/80 mb-3">WhatsApp Concierge</p>
-                <div className="space-y-1">
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="text-white/60">Messages Today</span>
-                    <span className="text-green-300 font-bold">{aiStats.banyu?.messages_today || 0}</span>
-                  </div>
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="text-white/60">Active Conversations</span>
-                    <span className="text-green-300 font-bold">{aiStats.banyu?.active_conversations || 0}</span>
-                  </div>
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="text-white/60">Response Time</span>
-                    <span className="text-blue-300 font-bold">
-                      {aiStats.banyu?.avg_response_time_minutes ? `${aiStats.banyu.avg_response_time_minutes.toFixed(1)}min` : 'N/A'}
-                    </span>
-                  </div>
-                </div>
-              </button>
-
-              {/* KORA.AI */}
-              <button
-                onClick={() => onNavigate?.('kora-call-logs')}
-                className="bg-gradient-to-br from-blue-500/20 to-indigo-500/20 border border-blue-500/30 rounded-xl p-5 hover:scale-105 transition-all text-left group"
-              >
-                <div className="flex items-start justify-between mb-3">
-                  <div className="p-2 bg-blue-500/20 rounded-lg">
-                    <PhoneCall className="w-6 h-6 text-blue-300" />
-                  </div>
-                  <ArrowRight className="w-5 h-5 text-white/40 group-hover:text-white/80 transition-colors" />
-                </div>
-                <h4 className="text-lg font-bold text-white mb-1">📞 KORA.AI</h4>
-                <p className="text-sm text-white/80 mb-3">Voice Concierge</p>
-                <div className="space-y-1">
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="text-white/60">Calls Today</span>
-                    <span className="text-blue-300 font-bold">{aiStats.kora?.calls_today || 0}</span>
-                  </div>
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="text-white/60">Avg Duration</span>
-                    <span className="text-blue-300 font-bold">
-                      {aiStats.kora?.avg_duration_seconds ? `${Math.floor(aiStats.kora.avg_duration_seconds / 60)}:${String(aiStats.kora.avg_duration_seconds % 60).padStart(2, '0')}` : 'N/A'}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="text-white/60">Sentiment</span>
-                    <span className="text-green-300 font-bold">
-                      {aiStats.kora?.positive_sentiment_pct ? `😊 ${aiStats.kora.positive_sentiment_pct}%` : 'N/A'}
-                    </span>
-                  </div>
-                </div>
-              </button>
-
-              {/* OSIRIS.AI */}
-              <button
-                onClick={() => onNavigate?.('agents-monitor')}
-                className="bg-gradient-to-br from-orange-500/20 to-red-500/20 border border-orange-500/30 rounded-xl p-5 hover:scale-105 transition-all text-left group"
-              >
-                <div className="flex items-start justify-between mb-3">
-                  <div className="p-2 bg-orange-500/20 rounded-lg">
-                    <Eye className="w-6 h-6 text-orange-300" />
-                  </div>
-                  <ArrowRight className="w-5 h-5 text-white/40 group-hover:text-white/80 transition-colors" />
-                </div>
-                <h4 className="text-lg font-bold text-white mb-1">👁️ OSIRIS.AI</h4>
-                <p className="text-sm text-white/80 mb-3">Operations & Control</p>
-                <div className="space-y-1">
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="text-white/60">Active Workflows</span>
-                    <span className="text-orange-300 font-bold">{aiStats.osiris?.active_workflows || 0}</span>
-                  </div>
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="text-white/60">Alerts</span>
-                    <span className="text-red-300 font-bold">{aiStats.osiris?.active_alerts || 0}</span>
-                  </div>
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="text-white/60">System Health</span>
-                    <span className={`font-bold ${
-                      aiStats.osiris?.system_health === 'good' ? 'text-green-300' :
-                      aiStats.osiris?.system_health === 'warning' ? 'text-orange-300' :
-                      'text-red-300'
-                    }`}>
-                      {aiStats.osiris?.system_health === 'good' ? '✓ Good' :
-                       aiStats.osiris?.system_health === 'warning' ? '⚠ Warning' :
-                       aiStats.osiris?.system_health === 'error' ? '✗ Error' : 'Unknown'}
-                    </span>
-                  </div>
-                </div>
-              </button>
+        {/* Date Range Selector */}
+        <div className="mt-4 p-4 bg-[#1f2937]/95 backdrop-blur-sm rounded-lg border-2 border-[#d85a2a]/20">
+          <p className="text-sm font-medium text-orange-400 mb-3">📅 Custom Date Range</p>
+          <div className="flex gap-3 items-end flex-wrap">
+            <div className="flex-1 min-w-[140px]">
+              <label className="text-xs text-gray-300 mb-1 block">Start Date</label>
+              <input
+                id="overview-start-date"
+                type="date"
+                defaultValue={customStart}
+                onChange={(e) => setCustomStart(e.target.value)}
+                className="w-full px-3 py-2 bg-[#2a2f3a] border border-orange-500/30 rounded-lg text-sm text-white focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+              />
             </div>
-          </div>
-
-          {/* Activity Feed */}
-          <div className="mb-6 sm:mb-8">
-            <h3 className="text-xl sm:text-2xl font-semibold text-white mb-4">Recent Activity</h3>
-            <div className="bg-[#1f2937] rounded-xl border border-[#d85a2a]/20 overflow-hidden">
-              <div className="divide-y divide-[#d85a2a]/10">
-                {/* Activity 1 */}
-                <div className="p-4 hover:bg-[#d85a2a]/5 transition-colors flex items-start gap-3">
-                  <div className="p-2 bg-purple-500/20 rounded-lg flex-shrink-0">
-                    <Inbox className="w-5 h-5 text-purple-300" />
-                  </div>
-                  <div className="flex-1">
-                    <p className="text-white font-medium">New lead from Instagram</p>
-                    <p className="text-white/60 text-sm">Sarah Johnson inquiring about honeymoon package → added to LUMINA Inbox</p>
-                    <p className="text-white/40 text-xs mt-1">2 minutes ago</p>
-                  </div>
-                  <span className="px-2 py-1 bg-green-500/20 text-green-300 rounded text-xs font-medium">New</span>
-                </div>
-
-                {/* Activity 2 */}
-                <div className="p-4 hover:bg-[#d85a2a]/5 transition-colors flex items-start gap-3">
-                  <div className="p-2 bg-blue-500/20 rounded-lg flex-shrink-0">
-                    <Phone className="w-5 h-5 text-blue-300" />
-                  </div>
-                  <div className="flex-1">
-                    <p className="text-white font-medium">KORA call summary created</p>
-                    <p className="text-white/60 text-sm">Michael Chen called about villa availability → lead qualified and sent to LUMINA</p>
-                    <p className="text-white/40 text-xs mt-1">15 minutes ago</p>
-                  </div>
-                  <span className="px-2 py-1 bg-blue-500/20 text-blue-300 rounded text-xs font-medium">Qualified</span>
-                </div>
-
-                {/* Activity 3 */}
-                <div className="p-4 hover:bg-[#d85a2a]/5 transition-colors flex items-start gap-3">
-                  <div className="p-2 bg-orange-500/20 rounded-lg flex-shrink-0">
-                    <Clock className="w-5 h-5 text-orange-300" />
-                  </div>
-                  <div className="flex-1">
-                    <p className="text-white font-medium">Follow-up message scheduled</p>
-                    <p className="text-white/60 text-sm">LUMINA scheduled WhatsApp follow-up for Emma Watson tomorrow at 10 AM</p>
-                    <p className="text-white/40 text-xs mt-1">1 hour ago</p>
-                  </div>
-                  <span className="px-2 py-1 bg-orange-500/20 text-orange-300 rounded text-xs font-medium">Scheduled</span>
-                </div>
-
-                {/* Activity 4 */}
-                <div className="p-4 hover:bg-[#d85a2a]/5 transition-colors flex items-start gap-3">
-                  <div className="p-2 bg-green-500/20 rounded-lg flex-shrink-0">
-                    <MessageSquare className="w-5 h-5 text-green-300" />
-                  </div>
-                  <div className="flex-1">
-                    <p className="text-white font-medium">Guest Journey message sent</p>
-                    <p className="text-white/60 text-sm">BANYU sent pre-arrival info to David Miller (check-in tomorrow)</p>
-                    <p className="text-white/40 text-xs mt-1">2 hours ago</p>
-                  </div>
-                  <span className="px-2 py-1 bg-green-500/20 text-green-300 rounded text-xs font-medium">Sent</span>
-                </div>
-
-                {/* Activity 5 */}
-                <div className="p-4 hover:bg-[#d85a2a]/5 transition-colors flex items-start gap-3">
-                  <div className="p-2 bg-red-500/20 rounded-lg flex-shrink-0">
-                    <AlertCircle className="w-5 h-5 text-red-300" />
-                  </div>
-                  <div className="flex-1">
-                    <p className="text-white font-medium">Owner alert generated</p>
-                    <p className="text-white/60 text-sm">OSIRIS detected payment pending for booking #1234 → requires attention</p>
-                    <p className="text-white/40 text-xs mt-1">3 hours ago</p>
-                  </div>
-                  <span className="px-2 py-1 bg-red-500/20 text-red-300 rounded text-xs font-medium">Alert</span>
-                </div>
-              </div>
+            <div className="flex-1 min-w-[140px]">
+              <label className="text-xs text-gray-300 mb-1 block">End Date</label>
+              <input
+                id="overview-end-date"
+                type="date"
+                defaultValue={customEnd}
+                onChange={(e) => setCustomEnd(e.target.value)}
+                className="w-full px-3 py-2 bg-[#2a2f3a] border border-orange-500/30 rounded-lg text-sm text-white focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+              />
             </div>
-          </div>
-
-          {/* Today's Activity */}
-          {checkIns.length > 0 && (
-            <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-xl p-6 mb-6 border border-[#d85a2a]/20 shadow-xl">
-              <h3 className="text-xl font-bold text-[#FF8C42] mb-4 flex items-center gap-2">
-                <Calendar className="w-6 h-6" />
-                Check-ins Today ({checkIns.length})
-              </h3>
-              <div className="space-y-3">
-                {checkIns.map((checkin) => (
-                  <div key={checkin.booking_id} className="bg-[#2a2f3a] rounded-lg p-4 border border-[#d85a2a]/20">
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <p className="font-bold text-[#FF8C42]">{checkin.guest_name}</p>
-                        <p className="text-sm text-white/80">{checkin.property_name}</p>
-                        <p className="text-xs text-white/60 mt-1">
-                          {checkin.guests} guest{checkin.guests > 1 ? 's' : ''} • {checkin.nights} night{checkin.nights > 1 ? 's' : ''}
-                        </p>
-                      </div>
-                      <span className="px-3 py-1 bg-[#10b981]/20 text-[#10b981] rounded-full text-xs font-bold">
-                        Today
-                      </span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Action Queue */}
-          {actionQueue.length > 0 && (
-            <div className="bg-[#1f2937] rounded-xl border border-[#d85a2a]/20 shadow-xl">
-              <div className="px-6 py-4 border-b border-[#d85a2a]/10 flex items-center justify-between">
-                <h3 className="text-lg font-semibold text-white">Action Queue</h3>
-                <button
-                  onClick={loadDashboardData}
-                  className="text-sm text-[#FF8C42] hover:text-[#f5a524] font-medium"
-                >
-                  Refresh ↻
-                </button>
-              </div>
-              <div className="divide-y divide-[#d85a2a]/10">
-                {actionQueue.map((action, index) => {
-                  const Icon = action.icon;
-                  return (
-                    <div key={index} className="px-6 py-4 flex items-center justify-between hover:bg-[#d85a2a]/5 transition-colors">
-                      <div className="flex items-center gap-4 flex-1">
-                        <div className={`p-2 rounded-lg ${action.alert ? 'bg-[#d85a2a]/20' : 'bg-[#3b82f6]/20'}`}>
-                          <Icon className={`w-5 h-5 ${action.alert ? 'text-[#FF8C42]' : 'text-[#3b82f6]'}`} />
-                        </div>
-                        <div className="flex-1">
-                          <p className="font-medium text-white">{action.label}</p>
-                          <p className="text-sm text-white/60">{action.time}</p>
-                          {action.details && (
-                            <p className="text-xs text-white/50 mt-1">{action.details}</p>
-                          )}
-                        </div>
-                      </div>
-                      <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                        action.statusColor === 'orange'
-                          ? 'bg-[#d85a2a]/20 text-[#FF8C42]'
-                          : 'bg-[#3b82f6]/20 text-[#3b82f6]'
-                      }`}>
-                        {action.status}
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
-          {/* Quick Stats */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
-            <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-xl p-4 border border-[#d85a2a]/20 text-center shadow-lg">
-              <div className="text-[#FF8C42] mb-2"><Users className="w-6 h-6 mx-auto" /></div>
-              <p className="text-2xl font-bold text-[#FF8C42]">{stats?.guests_this_month || 0}</p>
-              <p className="text-xs text-white/80 font-medium">Guests (this month)</p>
-            </div>
-            <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-xl p-4 border border-[#d85a2a]/20 text-center shadow-lg">
-              <div className="text-[#10b981] mb-2"><Calendar className="w-6 h-6 mx-auto" /></div>
-              <p className="text-2xl font-bold text-[#10b981]">{stats?.confirmed_bookings || 0}</p>
-              <p className="text-xs text-white/80 font-medium">Confirmed</p>
-            </div>
-            <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-xl p-4 border border-[#d85a2a]/20 text-center shadow-lg">
-              <div className="text-[#FF8C42] mb-2"><AlertCircle className="w-6 h-6 mx-auto" /></div>
-              <p className="text-2xl font-bold text-[#FF8C42]">{stats?.pending_bookings || 0}</p>
-              <p className="text-xs text-white/80 font-medium">Pending</p>
-            </div>
-            <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-xl p-4 border border-[#d85a2a]/20 text-center shadow-lg">
-              <div className="text-[#3b82f6] mb-2"><DollarSign className="w-6 h-6 mx-auto" /></div>
-              <p className="text-2xl font-bold text-[#3b82f6]">${stats?.avg_nightly_rate?.toFixed(0) || 0}</p>
-              <p className="text-xs text-white/80 font-medium">Avg/Night</p>
-            </div>
+            <button
+              onClick={handleCustomDateChange}
+              className="px-6 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg font-bold text-sm transition-all shadow-lg"
+            >
+              📅 Custom Range
+            </button>
           </div>
         </div>
+      </div>
+
+      {/* 1. KPIs Header - 6 cards - Todas naranjas y más pequeñas */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 mb-6">
+        {/* Total Revenue */}
+        <div className="bg-gradient-to-br from-orange-500/10 to-orange-600/10 rounded-xl p-3 border-2 border-orange-500/30">
+          <div className="flex items-center justify-between mb-1">
+            <DollarSign className="w-6 h-6 text-orange-400" />
+          </div>
+          <p className="text-xl font-black text-white mb-0.5">
+            {formatCurrency(stats?.total_revenue || 0)}
+          </p>
+          <p className="text-orange-300 text-xs">Total Revenue</p>
+          <p className="text-orange-200 text-xs mt-0.5">{dateRange.label}</p>
+        </div>
+
+        {/* Revenue Paid */}
+        <div className="bg-gradient-to-br from-orange-500/10 to-orange-600/10 rounded-xl p-3 border-2 border-orange-500/30">
+          <div className="flex items-center justify-between mb-1">
+            <DollarSign className="w-6 h-6 text-orange-400" />
+          </div>
+          <p className="text-xl font-black text-white mb-0.5">
+            {formatCurrency(stats?.revenue_paid || 0)}
+          </p>
+          <p className="text-orange-300 text-xs">Revenue Paid</p>
+          <p className="text-orange-200 text-xs mt-0.5">
+            {stats?.total_revenue > 0
+              ? `${((stats?.revenue_paid / stats?.total_revenue) * 100).toFixed(1)}% collected`
+              : '0% collected'}
+          </p>
+        </div>
+
+        {/* Revenue Pending */}
+        <div className="bg-gradient-to-br from-orange-500/10 to-orange-600/10 rounded-xl p-3 border-2 border-orange-500/30">
+          <div className="flex items-center justify-between mb-1">
+            <DollarSign className="w-6 h-6 text-orange-400" />
+          </div>
+          <p className="text-xl font-black text-white mb-0.5">
+            {formatCurrency(stats?.revenue_pending || 0)}
+          </p>
+          <p className="text-orange-300 text-xs">Revenue Pending</p>
+          <p className="text-orange-200 text-xs mt-0.5">
+            {stats?.total_revenue > 0
+              ? `${((stats?.revenue_pending / stats?.total_revenue) * 100).toFixed(1)}% to collect`
+              : '0% to collect'}
+          </p>
+        </div>
+
+        {/* Total Nights */}
+        <div className="bg-gradient-to-br from-orange-500/10 to-orange-600/10 rounded-xl p-3 border-2 border-orange-500/30">
+          <div className="flex items-center justify-between mb-1">
+            <Calendar className="w-6 h-6 text-orange-400" />
+          </div>
+          <p className="text-xl font-black text-white mb-0.5">{stats?.total_nights || 0}</p>
+          <p className="text-orange-300 text-xs">Total Nights</p>
+          <p className="text-orange-200 text-xs mt-0.5">Booked nights</p>
+        </div>
+
+        {/* Total Bookings */}
+        <div className="bg-gradient-to-br from-orange-500/10 to-orange-600/10 rounded-xl p-3 border-2 border-orange-500/30">
+          <div className="flex items-center justify-between mb-1">
+            <Home className="w-6 h-6 text-orange-400" />
+          </div>
+          <p className="text-xl font-black text-white mb-0.5">{stats?.total_bookings || 0}</p>
+          <p className="text-orange-300 text-xs">Total Bookings</p>
+          <p className="text-orange-200 text-xs mt-0.5">Confirmed reservations</p>
+        </div>
+
+        {/* Occupancy Rate */}
+        <div className="bg-gradient-to-br from-orange-500/10 to-orange-600/10 rounded-xl p-3 border-2 border-orange-500/30">
+          <div className="flex items-center justify-between mb-1">
+            <TrendingUp className="w-6 h-6 text-orange-400" />
+          </div>
+          <p className="text-xl font-black text-white mb-0.5">{stats?.occupancy_rate || 0}%</p>
+          <p className="text-orange-300 text-xs">Occupancy Rate</p>
+          <div className="w-full bg-orange-900/20 rounded-full h-1.5 mt-1.5">
+            <div
+              className="bg-orange-500 h-1.5 rounded-full transition-all"
+              style={{ width: `${Math.min(stats?.occupancy_rate || 0, 100)}%` }}
+            ></div>
+          </div>
+        </div>
+      </div>
+
+      {/* 2. Performance Chart - Combined Revenue & Bookings */}
+      <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-xl p-6 shadow-2xl border-2 border-[#d85a2a]/20 mb-6">
+        <h2 className="text-2xl font-black text-[#FF8C42] mb-6">📊 Performance Overview</h2>
+        <ResponsiveContainer width="100%" height={400}>
+          <ComposedChart data={stats?.timeline_data || []}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+            <XAxis
+              dataKey="month_name"
+              tick={{ fill: '#666', fontSize: 12 }}
+              tickFormatter={(value) => value?.trim().substring(0, 3) || ''}
+            />
+            <YAxis
+              yAxisId="left"
+              tick={{ fill: '#666', fontSize: 12 }}
+              label={{ value: 'Revenue', angle: -90, position: 'insideLeft', offset: -5, style: { fill: '#666', textAnchor: 'middle' } }}
+            />
+            <YAxis
+              yAxisId="right"
+              orientation="right"
+              tick={{ fill: '#666', fontSize: 12 }}
+              label={{ value: 'Bookings', angle: 90, position: 'insideRight', style: { fill: '#666' } }}
+            />
+            <Tooltip
+              contentStyle={{
+                backgroundColor: 'white',
+                border: '1px solid #e5e7eb',
+                borderRadius: '8px',
+                boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
+              }}
+              formatter={(value, name) => {
+                if (name === 'Revenue') {
+                  return [formatCurrency(value), name];
+                }
+                return [value, name];
+              }}
+            />
+            <Legend
+              wrapperStyle={{ paddingTop: '20px' }}
+              iconType="circle"
+            />
+            <Bar
+              yAxisId="right"
+              dataKey="bookings"
+              fill="#f97316"
+              name="Bookings"
+              radius={[8, 8, 0, 0]}
+            />
+            <Line
+              yAxisId="left"
+              type="monotone"
+              dataKey="revenue"
+              stroke="#FF8C42"
+              strokeWidth={3}
+              name="Revenue"
+              dot={{ fill: '#FF8C42', r: 5 }}
+              activeDot={{ r: 7 }}
+            />
+          </ComposedChart>
+        </ResponsiveContainer>
+      </div>
+
+      {/* 3. Timeline Table */}
+      <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-xl p-6 shadow-2xl border-2 border-[#d85a2a]/20 mb-6">
+        <h2 className="text-xl font-black text-[#FF8C42] mb-4">Revenue & Occupancy Timeline</h2>
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead>
+              <tr className="border-b border-gray-700">
+                <th className="text-left py-3 px-4 text-sm font-semibold text-orange-400">Month</th>
+                <th className="text-right py-3 px-4 text-sm font-semibold text-orange-400">Bookings</th>
+                <th className="text-right py-3 px-4 text-sm font-semibold text-orange-400">Nights</th>
+                <th className="text-right py-3 px-4 text-sm font-semibold text-orange-400">Revenue</th>
+              </tr>
+            </thead>
+            <tbody>
+              {stats?.timeline_data && stats.timeline_data.map((month) => (
+                <tr key={month.month} className="border-b border-gray-700 hover:bg-[#2a2f3a]/50">
+                  <td className="py-3 px-4 text-sm text-white">{month.month_name?.trim()}</td>
+                  <td className="text-right py-3 px-4 text-sm text-gray-300">{month.bookings}</td>
+                  <td className="text-right py-3 px-4 text-sm text-gray-300">{month.nights}</td>
+                  <td className="text-right py-3 px-4 text-sm font-semibold text-white">
+                    {formatCurrency(month.revenue)}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* 4. Properties Breakdown */}
+      <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-xl p-6 shadow-2xl border-2 border-[#d85a2a]/20 mb-6">
+        <h2 className="text-xl font-black text-[#FF8C42] mb-4">Properties Performance</h2>
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead>
+              <tr className="border-b border-gray-700">
+                <th className="text-left py-3 px-4 text-sm font-semibold text-orange-400">Property</th>
+                <th className="text-right py-3 px-4 text-sm font-semibold text-orange-400">Revenue</th>
+                <th className="text-right py-3 px-4 text-sm font-semibold text-orange-400">Nights</th>
+                <th className="text-right py-3 px-4 text-sm font-semibold text-orange-400">Occupancy</th>
+              </tr>
+            </thead>
+            <tbody>
+              {stats?.properties_data && stats.properties_data.map((prop, idx) => (
+                <tr key={idx} className="border-b border-gray-700 hover:bg-[#2a2f3a]/50">
+                  <td className="py-3 px-4 text-sm font-medium text-white">{prop.property_name}</td>
+                  <td className="text-right py-3 px-4 text-sm font-semibold text-white">
+                    {formatCurrency(prop.revenue)}
+                  </td>
+                  <td className="text-right py-3 px-4 text-sm text-gray-300">{prop.nights}</td>
+                  <td className="text-right py-3 px-4 text-sm text-gray-300">{prop.occupancy_rate}%</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* 5. Booking Sources */}
+      <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-xl p-6 shadow-2xl border-2 border-[#d85a2a]/20 mb-6">
+        <h2 className="text-xl font-black text-[#FF8C42] mb-4">Booking Sources</h2>
+        <div className="space-y-4">
+          {stats?.sources_data && stats.sources_data.map((source, idx) => (
+            <div key={idx}>
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium text-white">{source.source}</span>
+                <span className="text-sm text-gray-300">
+                  {source.bookings} bookings • {formatCurrency(source.revenue)}
+                </span>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="flex-1 bg-gray-700 rounded-full h-2">
+                  <div
+                    className="bg-orange-500 h-2 rounded-full transition-all"
+                    style={{ width: `${source.percentage || 0}%` }}
+                  ></div>
+                </div>
+                <span className="text-sm font-semibold text-white min-w-[50px] text-right">
+                  {source.percentage || 0}%
+                </span>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* 6. Payment Status */}
+      <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-xl p-6 shadow-2xl border-2 border-[#d85a2a]/20">
+        <h2 className="text-xl font-black text-[#FF8C42] mb-4">Payment Status</h2>
+        <div className="grid grid-cols-2 gap-3 mb-4">
+          <div className="bg-gradient-to-br from-orange-500/10 to-orange-600/10 rounded-xl p-3 border-2 border-orange-500/30">
+            <div className="flex items-center justify-between mb-1">
+              <DollarSign className="w-6 h-6 text-orange-400" />
+            </div>
+            <p className="text-xl font-black text-white mb-0.5">
+              {stats?.payment_status_data?.paid?.bookings || 0} bookings
+            </p>
+            <p className="text-orange-300 text-xs">✅ Paid</p>
+            <p className="text-orange-200 text-xs mt-0.5">
+              {formatCurrency(stats?.payment_status_data?.paid?.revenue || 0)}
+            </p>
+          </div>
+
+          <div className="bg-gradient-to-br from-orange-500/10 to-orange-600/10 rounded-xl p-3 border-2 border-orange-500/30">
+            <div className="flex items-center justify-between mb-1">
+              <DollarSign className="w-6 h-6 text-orange-400" />
+            </div>
+            <p className="text-xl font-black text-white mb-0.5">
+              {stats?.payment_status_data?.pending?.bookings || 0} bookings
+            </p>
+            <p className="text-orange-300 text-xs">⏳ Pending</p>
+            <p className="text-orange-200 text-xs mt-0.5">
+              {formatCurrency(stats?.payment_status_data?.pending?.revenue || 0)}
+            </p>
+          </div>
+        </div>
+
+        {stats?.payment_status_data?.pending?.bookings > 0 && (
+          <div className="bg-yellow-500/10 border-l-4 border-yellow-500 p-4 rounded">
+            <p className="text-yellow-400 font-medium mb-1">📌 Action Items:</p>
+            <ul className="text-yellow-300 text-sm space-y-1">
+              <li>• {stats.payment_status_data.pending.bookings} bookings pending payment follow-up</li>
+              <li>• Expected revenue to collect: {formatCurrency(stats.payment_status_data.pending.revenue)}</li>
+            </ul>
+          </div>
+        )}
+      </div>
       </div>
     </div>
   );
 };
 
 export default OwnerExecutiveSummary;
-
-

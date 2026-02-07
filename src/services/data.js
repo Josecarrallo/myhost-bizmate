@@ -814,5 +814,43 @@ export const dataService = {
         totalBookings: 0
       };
     }
+  },
+
+  // ============================================
+  // OVERVIEW STATS - Date Range Filtered
+  // ============================================
+
+  // Get overview stats filtered by date range
+  async getOverviewStats(tenantId, startDate, endDate) {
+    try {
+      console.log('📊 Fetching overview stats:', { tenantId, startDate, endDate });
+
+      const { data, error } = await supabase
+        .rpc('get_overview_stats', {
+          p_tenant_id: tenantId,
+          p_start_date: startDate,
+          p_end_date: endDate
+        });
+
+      if (error) {
+        console.error('Error fetching overview stats:', error);
+        return null;
+      }
+
+      // Function returns TABLE, so data is an array
+      if (!data || data.length === 0) {
+        console.warn('No overview data returned');
+        return null;
+      }
+
+      const stats = data[0]; // Get first row from TABLE result
+
+      console.log('✅ Overview stats fetched successfully');
+      return stats;
+
+    } catch (error) {
+      console.error('Error in getOverviewStats:', error);
+      return null;
+    }
   }
 };
