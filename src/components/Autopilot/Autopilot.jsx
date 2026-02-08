@@ -79,6 +79,14 @@ const Autopilot = ({ onBack }) => {
   const [allBookings, setAllBookings] = useState([]);
   const [bookingSearchQuery, setBookingSearchQuery] = useState('');
 
+  // Channel statistics from Supabase
+  const [channelStats, setChannelStats] = useState({
+    airbnb: { count: 0, revenue: 0 },
+    bookingCom: { count: 0, revenue: 0 },
+    direct: { count: 0, revenue: 0 },
+    other: { count: 0, revenue: 0 }
+  });
+
   // User properties
   const [userProperties, setUserProperties] = useState([]);
 
@@ -250,20 +258,6 @@ const Autopilot = ({ onBack }) => {
       badge: '3 connected'
     },
     {
-      id: 'bookings',
-      name: 'Bookings',
-      icon: Home,
-      description: 'All reservations',
-      badge: `${realCounts.totalClients || 0} total`
-    },
-    {
-      id: 'payments',
-      name: 'Payments',
-      icon: CreditCard,
-      description: 'Payment tracking',
-      badge: '2 pending'
-    },
-    {
       id: 'communication',
       name: 'Guest Communication',
       icon: Mail,
@@ -388,6 +382,35 @@ const Autopilot = ({ onBack }) => {
       const totalProperties = (properties || []).length || 1; // At least 1 to avoid division by 0
       const totalAvailableNights = daysInPeriod * totalProperties;
       const avgOccupancy = totalAvailableNights > 0 ? (totalNights / totalAvailableNights) * 100 : 0;
+
+      // Calculate channel statistics from 'source' field
+      const channelData = {
+        airbnb: { count: 0, revenue: 0 },
+        bookingCom: { count: 0, revenue: 0 },
+        direct: { count: 0, revenue: 0 },
+        other: { count: 0, revenue: 0 }
+      };
+
+      (bookings || []).forEach(booking => {
+        const source = (booking.source || '').toLowerCase();
+        const price = booking.total_price || 0;
+
+        if (source === 'airbnb') {
+          channelData.airbnb.count++;
+          channelData.airbnb.revenue += price;
+        } else if (source === 'booking.com') {
+          channelData.bookingCom.count++;
+          channelData.bookingCom.revenue += price;
+        } else if (source === 'gita') {
+          channelData.direct.count++;
+          channelData.direct.revenue += price;
+        } else {
+          channelData.other.count++;
+          channelData.other.revenue += price;
+        }
+      });
+
+      setChannelStats(channelData);
 
       setRealCounts({
         totalClients: bookings?.length || 0,
@@ -1450,25 +1473,43 @@ const Autopilot = ({ onBack }) => {
           <div className="bg-gradient-to-br from-pink-500/10 to-pink-600/10 rounded-xl p-5 border-2 border-pink-500/30">
             <div className="flex items-center justify-between mb-3">
               <img src="https://upload.wikimedia.org/wikipedia/commons/6/69/Airbnb_Logo_B%C3%A9lo.svg" alt="Airbnb" className="h-6" />
-              <span className="px-3 py-1 bg-green-500 text-white text-xs font-bold rounded-full">Connected</span>
+              <span className={`px-3 py-1 ${channelStats.airbnb.count > 0 ? 'bg-green-500' : 'bg-gray-500'} text-white text-xs font-bold rounded-full`}>
+                {channelStats.airbnb.count > 0 ? 'Connected' : 'Not Connected'}
+              </span>
             </div>
-            <p className="text-gray-300 text-sm">16 bookings • $17,660</p>
+            <p className="text-gray-300 text-sm">
+              {channelStats.airbnb.count} bookings • {channelStats.airbnb.revenue >= 1000000
+                ? `Rp ${Math.round(channelStats.airbnb.revenue).toLocaleString('id-ID')}`
+                : `$${Math.round(channelStats.airbnb.revenue).toLocaleString('en-US')}`}
+            </p>
           </div>
 
           <div className="bg-gradient-to-br from-blue-500/10 to-blue-600/10 rounded-xl p-5 border-2 border-blue-500/30">
             <div className="flex items-center justify-between mb-3">
               <span className="text-blue-400 font-bold text-lg">Booking.com</span>
-              <span className="px-3 py-1 bg-green-500 text-white text-xs font-bold rounded-full">Connected</span>
+              <span className={`px-3 py-1 ${channelStats.bookingCom.count > 0 ? 'bg-green-500' : 'bg-gray-500'} text-white text-xs font-bold rounded-full`}>
+                {channelStats.bookingCom.count > 0 ? 'Connected' : 'Not Connected'}
+              </span>
             </div>
-            <p className="text-gray-300 text-sm">15 bookings • $16,720</p>
+            <p className="text-gray-300 text-sm">
+              {channelStats.bookingCom.count} bookings • {channelStats.bookingCom.revenue >= 1000000
+                ? `Rp ${Math.round(channelStats.bookingCom.revenue).toLocaleString('id-ID')}`
+                : `$${Math.round(channelStats.bookingCom.revenue).toLocaleString('en-US')}`}
+            </p>
           </div>
 
           <div className="bg-gradient-to-br from-orange-500/10 to-orange-600/10 rounded-xl p-5 border-2 border-orange-500/30">
             <div className="flex items-center justify-between mb-3">
-              <span className="text-orange-400 font-bold text-lg">Direct</span>
-              <span className="px-3 py-1 bg-green-500 text-white text-xs font-bold rounded-full">Active</span>
+              <span className="text-orange-400 font-bold text-lg">Direct (Gita)</span>
+              <span className={`px-3 py-1 ${channelStats.direct.count > 0 ? 'bg-green-500' : 'bg-gray-500'} text-white text-xs font-bold rounded-full`}>
+                {channelStats.direct.count > 0 ? 'Active' : 'Inactive'}
+              </span>
             </div>
-            <p className="text-gray-300 text-sm">14 bookings • $15,760</p>
+            <p className="text-gray-300 text-sm">
+              {channelStats.direct.count} bookings • {channelStats.direct.revenue >= 1000000
+                ? `Rp ${Math.round(channelStats.direct.revenue).toLocaleString('id-ID')}`
+                : `$${Math.round(channelStats.direct.revenue).toLocaleString('en-US')}`}
+            </p>
           </div>
         </div>
 
@@ -1793,26 +1834,28 @@ const Autopilot = ({ onBack }) => {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
           <div className="bg-gradient-to-br from-yellow-500/10 to-yellow-600/10 rounded-xl p-5 border-2 border-yellow-500/30">
             <p className="text-yellow-300 text-sm font-medium mb-2">Open</p>
-            <p className="text-3xl font-black text-white">5</p>
+            <p className="text-3xl font-black text-white">0</p>
           </div>
 
           <div className="bg-gradient-to-br from-blue-500/10 to-blue-600/10 rounded-xl p-5 border-2 border-blue-500/30">
             <p className="text-blue-300 text-sm font-medium mb-2">In Progress</p>
-            <p className="text-3xl font-black text-white">2</p>
+            <p className="text-3xl font-black text-white">0</p>
           </div>
 
           <div className="bg-gradient-to-br from-green-500/10 to-green-600/10 rounded-xl p-5 border-2 border-green-500/30">
             <p className="text-green-300 text-sm font-medium mb-2">Done Today</p>
-            <p className="text-3xl font-black text-white">3</p>
+            <p className="text-3xl font-black text-white">0</p>
           </div>
         </div>
 
-        <div className="space-y-3">
-          {[
-            { task: 'Deep cleaning Villa Cempaka', type: 'Cleaning', status: 'open', assignee: 'Staff', due: 'Today' },
-            { task: 'Fix pool pump', type: 'Maintenance', status: 'in_progress', assignee: 'Technician', due: 'Tomorrow' },
-            { task: 'Restock toiletries', type: 'Supplies', status: 'open', assignee: 'Owner', due: 'This week' }
-          ].map((task, i) => (
+        <div className="bg-[#2a2f3a] rounded-xl p-6 border-2 border-gray-700 text-center py-12">
+          <Wrench className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+          <p className="text-gray-400 mb-2">No tasks available</p>
+          <p className="text-gray-500 text-sm">Tasks module not yet configured in database</p>
+        </div>
+
+        <div className="space-y-3" style={{display: 'none'}}>
+          {[].map((task, i) => (
             <div key={i} className="bg-[#2a2f3a] rounded-lg p-4 border-2 border-gray-700">
               <div className="flex items-center justify-between">
                 <div className="flex-1">
@@ -2775,8 +2818,6 @@ const Autopilot = ({ onBack }) => {
           {activeSection === 'business-reports' && renderBusinessReportsSection()}
           {activeSection === 'all-data' && renderAllDataSection()}
           {activeSection === 'availability' && renderAvailabilitySection()}
-          {activeSection === 'bookings' && renderBookingsSection()}
-          {activeSection === 'payments' && renderPaymentsSection()}
           {activeSection === 'communication' && renderCommunicationSection()}
           {activeSection === 'website' && renderWebsiteSection()}
           {activeSection === 'tasks' && renderTasksSection()}
