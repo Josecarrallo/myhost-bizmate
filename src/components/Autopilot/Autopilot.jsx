@@ -223,13 +223,6 @@ const Autopilot = ({ onBack }) => {
       badge: null
     },
     {
-      id: 'overview',
-      name: 'Overview',
-      icon: BarChart3,
-      description: 'Daily/Weekly/Monthly',
-      badge: null
-    },
-    {
       id: 'business-reports',
       name: 'Business Reports',
       icon: FileText,
@@ -2821,7 +2814,6 @@ const Autopilot = ({ onBack }) => {
           {activeSection === 'communication' && renderCommunicationSection()}
           {activeSection === 'website' && renderWebsiteSection()}
           {activeSection === 'tasks' && renderTasksSection()}
-          {activeSection === 'overview' && renderOverviewSection()}
           {activeSection === 'decisions' && renderDecisionsSection()}
         </div>
       </div>
