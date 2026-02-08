@@ -4,7 +4,8 @@ import {
   DollarSign,
   TrendingUp,
   Home,
-  Filter
+  Filter,
+  Printer
 } from 'lucide-react';
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ComposedChart } from 'recharts';
 import { dataService } from '../../services/data';
@@ -95,6 +96,136 @@ const OwnerExecutiveSummary = ({ userName = 'Owner', onNavigate }) => {
     }
   };
 
+  const handlePrintSummary = () => {
+    const printWindow = window.open('', '', 'width=1200,height=800');
+    const today = new Date().toLocaleDateString();
+
+    // Build monthly timeline table
+    let timelineRows = '';
+    if (stats?.timeline_data && stats.timeline_data.length > 0) {
+      timelineRows = stats.timeline_data.map(month => `
+        <tr>
+          <td style="padding: 8px; border: 1px solid #ddd;">${month.month_name || 'N/A'}</td>
+          <td style="padding: 8px; border: 1px solid #ddd; text-align: right;">${formatCurrency(month.revenue || 0)}</td>
+          <td style="padding: 8px; border: 1px solid #ddd; text-align: center;">${month.bookings || 0}</td>
+        </tr>
+      `).join('');
+    } else {
+      timelineRows = '<tr><td colspan="3" style="padding: 8px; text-align: center; color: #999;">No monthly data available</td></tr>';
+    }
+
+    const content = `
+      <html>
+        <head>
+          <title>Overview Summary - ${today}</title>
+          <style>
+            body { font-family: Arial, sans-serif; padding: 40px; background: #f5f5f5; }
+            .container { max-width: 1100px; margin: 0 auto; background: white; padding: 30px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+            h1 { color: #d85a2a; text-align: center; margin-bottom: 10px; }
+            h2 { color: #333; border-bottom: 2px solid #d85a2a; padding-bottom: 10px; margin-top: 30px; margin-bottom: 15px; }
+            .summary-box { background: #f0f0f0; padding: 15px; margin: 10px 0; border-left: 4px solid #d85a2a; }
+            .btn-print { background: #d85a2a; color: white; border: none; padding: 12px 24px; cursor: pointer; margin: 20px 0; font-size: 16px; border-radius: 5px; }
+            .btn-print:hover { background: #c04a1a; }
+            @media print { .btn-print { display: none; } }
+            .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin: 20px 0; }
+            .stats-grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; margin: 20px 0; }
+            .stat-card { background: #f9f9f9; padding: 20px; border-radius: 8px; border: 2px solid #d85a2a; }
+            .stat-value { font-size: 24px; font-weight: bold; color: #d85a2a; }
+            .stat-label { color: #666; margin-top: 5px; font-size: 14px; }
+            table { width: 100%; border-collapse: collapse; margin: 15px 0; }
+            th { background: #d85a2a; color: white; padding: 10px; text-align: left; }
+            td { padding: 8px; border: 1px solid #ddd; }
+            tr:nth-child(even) { background: #f9f9f9; }
+            .alert-box { background: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin: 15px 0; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <h1>MY HOST BizMate - Overview Summary</h1>
+            <p style="text-align: center; color: #666;">Generated: ${today}</p>
+            <p style="text-align: center; color: #666;">Owner: <strong>${userName || 'N/A'}</strong></p>
+            <p style="text-align: center; color: #666;">Period: <strong>${dateRange.label}</strong> (${dateRange.start} to ${dateRange.end})</p>
+            <button class="btn-print" onclick="window.print()">🖨️ Print Report</button>
+
+            <h2>📊 Revenue & Performance Analytics</h2>
+            <div class="stats-grid">
+              <div class="stat-card">
+                <div class="stat-value">${formatCurrency(stats?.total_revenue || 0)}</div>
+                <div class="stat-label">Total Revenue</div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-value">${formatCurrency(stats?.revenue_paid || 0)}</div>
+                <div class="stat-label">Revenue Paid<br>${stats?.total_revenue > 0 ? ((stats?.revenue_paid / stats?.total_revenue) * 100).toFixed(1) : 0}% collected</div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-value">${formatCurrency(stats?.revenue_pending || 0)}</div>
+                <div class="stat-label">Revenue Pending<br>${stats?.total_revenue > 0 ? ((stats?.revenue_pending / stats?.total_revenue) * 100).toFixed(1) : 0}% to collect</div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-value">${stats?.total_nights || 0}</div>
+                <div class="stat-label">Total Nights<br>Booked nights</div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-value">${stats?.total_bookings || 0}</div>
+                <div class="stat-label">Total Bookings<br>Confirmed reservations</div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-value">${stats?.occupancy_rate || 0}%</div>
+                <div class="stat-label">Occupancy Rate<br>Average occupancy</div>
+              </div>
+            </div>
+
+            <h2>📈 Monthly Performance Breakdown</h2>
+            <table>
+              <thead>
+                <tr>
+                  <th>Month</th>
+                  <th style="text-align: right;">Revenue</th>
+                  <th style="text-align: center;">Bookings</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${timelineRows}
+              </tbody>
+            </table>
+
+            <h2>💳 Payment Status</h2>
+            <div class="stats-grid-2">
+              <div class="stat-card">
+                <div class="stat-value">${stats?.payment_status_data?.paid?.bookings || 0} bookings</div>
+                <div class="stat-label">✅ Paid<br>${formatCurrency(stats?.payment_status_data?.paid?.revenue || 0)}</div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-value">${stats?.payment_status_data?.pending?.bookings || 0} bookings</div>
+                <div class="stat-label">⏳ Pending<br>${formatCurrency(stats?.payment_status_data?.pending?.revenue || 0)}</div>
+              </div>
+            </div>
+
+            ${stats?.payment_status_data?.pending?.bookings > 0 ? `
+              <div class="alert-box">
+                <p style="color: #856404; font-weight: bold; margin-bottom: 5px;">📌 Action Items:</p>
+                <ul style="color: #856404; margin: 5px 0; padding-left: 20px;">
+                  <li>${stats.payment_status_data.pending.bookings} bookings pending payment follow-up</li>
+                  <li>Expected revenue to collect: ${formatCurrency(stats.payment_status_data.pending.revenue)}</li>
+                </ul>
+              </div>
+            ` : ''}
+
+            <div class="summary-box" style="margin-top: 30px;">
+              <strong>Report Period:</strong> ${dateRange.start} to ${dateRange.end}<br>
+              <strong>Report Type:</strong> ${dateRange.label}<br>
+              <strong>Generated:</strong> ${today}<br>
+              <strong>Owner:</strong> ${userName || 'N/A'}
+            </div>
+          </div>
+        </body>
+      </html>
+    `;
+
+    printWindow.document.write(content);
+    printWindow.document.close();
+  };
+
   if (loading) {
     return (
       <div className="flex-1 bg-[#2a2f3a] flex items-center justify-center">
@@ -153,6 +284,13 @@ const OwnerExecutiveSummary = ({ userName = 'Owner', onNavigate }) => {
               className="px-6 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg font-bold text-sm transition-all shadow-lg"
             >
               📅 Custom Range
+            </button>
+            <button
+              onClick={handlePrintSummary}
+              className="px-6 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-bold text-sm transition-all shadow-lg flex items-center gap-2"
+            >
+              <Printer className="w-4 h-4" />
+              Print Summary
             </button>
           </div>
         </div>

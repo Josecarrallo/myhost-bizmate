@@ -66,12 +66,31 @@ const Autopilot = ({ onBack }) => {
     totalLeads: 0,
     totalBookings: 0,
     totalPayments: 0,
+    countries: 0,
+    repeatGuests: 0,
+    totalRevenue: 0,
+    averageBookingValue: 0,
+    totalNights: 0,
+    avgOccupancy: 0,
     loading: true
   });
 
   // All bookings for detailed view
   const [allBookings, setAllBookings] = useState([]);
   const [bookingSearchQuery, setBookingSearchQuery] = useState('');
+
+  // User properties
+  const [userProperties, setUserProperties] = useState([]);
+
+  // Leads data
+  const [leads, setLeads] = useState([]);
+  const [leadsCounts, setLeadsCounts] = useState({
+    hot: 0,
+    pending: 0,
+    engaged: 0,
+    won: 0,
+    total_value: 0
+  });
 
   const [alerts, setAlerts] = useState([
     {
@@ -272,12 +291,57 @@ const Autopilot = ({ onBack }) => {
     if (!TENANT_ID) return;
 
     try {
+      // Load properties
+      const { data: properties, error: propertiesError } = await supabase
+        .from('properties')
+        .select('*')
+        .eq('owner_id', TENANT_ID);
+
+      if (propertiesError) {
+        console.error('Error loading properties:', propertiesError);
+      } else {
+        setUserProperties(properties || []);
+      }
+
+      // Load leads
+      const { data: leadsData, error: leadsError } = await supabase
+        .from('leads')
+        .select('*')
+        .eq('tenant_id', TENANT_ID);
+
+      if (leadsError) {
+        console.error('Error loading leads:', leadsError);
+      } else {
+        setLeads(leadsData || []);
+
+        // Calculate leads counts by status
+        const counts = {
+          hot: 0,
+          pending: 0,
+          engaged: 0,
+          won: 0,
+          total_value: 0
+        };
+
+        (leadsData || []).forEach(lead => {
+          const status = (lead.status || '').toLowerCase();
+          if (status === 'hot') counts.hot++;
+          else if (status === 'pending') counts.pending++;
+          else if (status === 'engaged') counts.engaged++;
+          else if (status === 'won') counts.won++;
+
+          counts.total_value += lead.estimated_value || 0;
+        });
+
+        setLeadsCounts(counts);
+      }
+
       // Load full booking details for the table
       const { data: bookings, error } = await supabase
         .from('bookings')
         .select('*')
         .eq('tenant_id', TENANT_ID)
-        .order('created_at', { ascending: false });
+        .order('check_in', { ascending: false });
 
       if (error) {
         console.error('Error loading bookings:', error);
@@ -287,11 +351,55 @@ const Autopilot = ({ onBack }) => {
 
       setAllBookings(bookings || []);
 
+      // Calculate unique countries (excluding null/empty)
+      const uniqueCountries = new Set();
+      (bookings || []).forEach(booking => {
+        if (booking.guest_country && booking.guest_country.trim() !== '') {
+          uniqueCountries.add(booking.guest_country);
+        }
+      });
+
+      // Calculate repeat guests (guests with more than 1 booking)
+      const guestBookingCount = {};
+      (bookings || []).forEach(booking => {
+        const guestEmail = booking.guest_email;
+        if (guestEmail) {
+          guestBookingCount[guestEmail] = (guestBookingCount[guestEmail] || 0) + 1;
+        }
+      });
+      const repeatGuests = Object.values(guestBookingCount).filter(count => count > 1).length;
+
+      // Calculate revenue metrics
+      const totalRevenue = (bookings || []).reduce((sum, b) => sum + (b.total_price || 0), 0);
+      const averageBookingValue = bookings?.length > 0 ? totalRevenue / bookings.length : 0;
+
+      // Calculate total nights and occupancy
+      const totalNights = (bookings || []).reduce((sum, b) => {
+        if (b.check_in && b.check_out) {
+          const nights = Math.ceil((new Date(b.check_out) - new Date(b.check_in)) / (1000 * 60 * 60 * 24));
+          return sum + (nights > 0 ? nights : 0);
+        }
+        return sum;
+      }, 0);
+
+      // Calculate occupancy rate (total nights booked / total available nights in period)
+      // Assuming 365 days available per property per year
+      const daysInPeriod = 365;
+      const totalProperties = (properties || []).length || 1; // At least 1 to avoid division by 0
+      const totalAvailableNights = daysInPeriod * totalProperties;
+      const avgOccupancy = totalAvailableNights > 0 ? (totalNights / totalAvailableNights) * 100 : 0;
+
       setRealCounts({
         totalClients: bookings?.length || 0,
-        totalLeads: 0, // TODO: Add leads count
+        totalLeads: (leadsData || []).length,
         totalBookings: bookings?.length || 0,
         totalPayments: 0, // TODO: Add payments count
+        countries: uniqueCountries.size,
+        repeatGuests: repeatGuests,
+        totalRevenue: totalRevenue,
+        averageBookingValue: averageBookingValue,
+        totalNights: totalNights,
+        avgOccupancy: avgOccupancy,
         loading: false
       });
     } catch (error) {
@@ -994,17 +1102,29 @@ const Autopilot = ({ onBack }) => {
         <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-3xl p-6 shadow-2xl border-2 border-[#d85a2a]/20">
           <h3 className="text-xl font-black text-[#FF8C42] mb-4 flex items-center gap-2">
             <Home className="w-5 h-5" />
-            Properties
+            Properties ({userProperties.length})
           </h3>
-          <div className="bg-[#2a2f3a] rounded-xl p-5 border-2 border-gray-700">
-            <div className="flex items-center justify-between">
-              <div>
-                <h4 className="text-white font-bold text-lg">Izumi Hotel & Villas</h4>
-                <p className="text-gray-400 text-sm">Ubud, Bali • 5 Units • Villa Resort</p>
-              </div>
-              <span className="px-4 py-2 bg-green-500/20 text-green-400 rounded-full text-sm font-bold">Active</span>
+          {userProperties.length > 0 ? (
+            <div className="space-y-3">
+              {userProperties.map((property) => (
+                <div key={property.id} className="bg-[#2a2f3a] rounded-xl p-5 border-2 border-gray-700">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h4 className="text-white font-bold text-lg">{property.name}</h4>
+                      <p className="text-gray-400 text-sm">
+                        {property.location || 'Location not set'} • {property.property_type || 'Type not set'}
+                      </p>
+                    </div>
+                    <span className="px-4 py-2 bg-green-500/20 text-green-400 rounded-full text-sm font-bold">Active</span>
+                  </div>
+                </div>
+              ))}
             </div>
-          </div>
+          ) : (
+            <div className="bg-[#2a2f3a] rounded-xl p-5 border-2 border-gray-700 text-center">
+              <p className="text-gray-400 text-sm">No properties found</p>
+            </div>
+          )}
         </div>
 
         {/* Clients Overview */}
@@ -1020,29 +1140,12 @@ const Autopilot = ({ onBack }) => {
             </div>
             <div className="bg-gradient-to-br from-green-500/10 to-green-600/10 rounded-xl p-4 border-2 border-green-500/30">
               <p className="text-green-300 text-sm mb-1">Countries</p>
-              <p className="text-2xl font-black text-white">19</p>
+              <p className="text-2xl font-black text-white">{realCounts.countries}</p>
             </div>
             <div className="bg-gradient-to-br from-purple-500/10 to-purple-600/10 rounded-xl p-4 border-2 border-purple-500/30">
               <p className="text-purple-300 text-sm mb-1">Repeat Guests</p>
-              <p className="text-2xl font-black text-white">8</p>
+              <p className="text-2xl font-black text-white">{realCounts.repeatGuests}</p>
             </div>
-          </div>
-          <div className="space-y-2">
-            {[
-              { name: 'Hiroshi Nakamura', country: '🇯🇵 Japan', bookings: 2, value: '$3,080' },
-              { name: 'Anna Müller', country: '🇩🇪 Germany', bookings: 1, value: '$1,470' },
-              { name: 'Emma Chen', country: '🇨🇳 China', bookings: 0, value: 'Pending' }
-            ].map((client, i) => (
-              <div key={i} className="bg-[#2a2f3a] rounded-lg p-4 border-2 border-gray-700">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h4 className="text-white font-bold">{client.name}</h4>
-                    <p className="text-gray-400 text-sm">{client.country} • {client.bookings} bookings</p>
-                  </div>
-                  <p className="text-green-400 font-bold">{client.value}</p>
-                </div>
-              </div>
-            ))}
           </div>
         </div>
 
@@ -1050,50 +1153,58 @@ const Autopilot = ({ onBack }) => {
         <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-3xl p-6 shadow-2xl border-2 border-[#d85a2a]/20">
           <h3 className="text-xl font-black text-[#FF8C42] mb-4 flex items-center gap-2">
             <Users className="w-5 h-5" />
-            Leads Pipeline
+            Leads Pipeline ({leads.length} total)
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-4">
             <div className="bg-gradient-to-br from-red-500/10 to-red-600/10 rounded-xl p-4 border-2 border-red-500/30">
               <p className="text-red-300 text-sm mb-1">HOT</p>
-              <p className="text-xl font-black text-white">1</p>
+              <p className="text-xl font-black text-white">{leadsCounts.hot}</p>
             </div>
             <div className="bg-gradient-to-br from-yellow-500/10 to-yellow-600/10 rounded-xl p-4 border-2 border-yellow-500/30">
               <p className="text-yellow-300 text-sm mb-1">PENDING</p>
-              <p className="text-xl font-black text-white">1</p>
+              <p className="text-xl font-black text-white">{leadsCounts.pending}</p>
             </div>
             <div className="bg-gradient-to-br from-blue-500/10 to-blue-600/10 rounded-xl p-4 border-2 border-blue-500/30">
               <p className="text-blue-300 text-sm mb-1">ENGAGED</p>
-              <p className="text-xl font-black text-white">2</p>
+              <p className="text-xl font-black text-white">{leadsCounts.engaged}</p>
             </div>
             <div className="bg-gradient-to-br from-green-500/10 to-green-600/10 rounded-xl p-4 border-2 border-green-500/30">
               <p className="text-green-300 text-sm mb-1">WON</p>
-              <p className="text-xl font-black text-white">1</p>
+              <p className="text-xl font-black text-white">{leadsCounts.won}</p>
             </div>
           </div>
-          <p className="text-gray-400 text-sm">Total Pipeline Value: <span className="text-green-400 font-bold">~$8,000</span></p>
+          <p className="text-gray-400 text-sm">Total Pipeline Value: <span className="text-green-400 font-bold">${leadsCounts.total_value.toLocaleString()}</span></p>
         </div>
 
         {/* Bookings Summary */}
         <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-3xl p-6 shadow-2xl border-2 border-[#d85a2a]/20">
           <h3 className="text-xl font-black text-[#FF8C42] mb-4 flex items-center gap-2">
             <Calendar className="w-5 h-5" />
-            Bookings Summary (Last 3 Months)
+            Bookings Summary (2025 - 2026)
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
             <div className="bg-gradient-to-br from-blue-500/10 to-blue-600/10 rounded-xl p-5 border-2 border-blue-500/30">
               <p className="text-blue-300 text-sm mb-2">Total Bookings</p>
-              <p className="text-3xl font-black text-white mb-1">{realCounts.totalBookings}</p>
-              <p className="text-blue-200 text-sm">Nov-Jan 2026</p>
+              <p className="text-2xl font-black text-white mb-1">{realCounts.totalBookings}</p>
+              <p className="text-blue-200 text-xs">{realCounts.totalNights} nights booked</p>
             </div>
             <div className="bg-gradient-to-br from-green-500/10 to-green-600/10 rounded-xl p-5 border-2 border-green-500/30">
               <p className="text-green-300 text-sm mb-2">Total Revenue</p>
-              <p className="text-3xl font-black text-white mb-1">$50,140</p>
-              <p className="text-green-200 text-sm">Average $1,114/booking</p>
+              <p className="text-xl font-black text-white mb-1">
+                {realCounts.totalRevenue >= 1000000
+                  ? `Rp ${Math.round(realCounts.totalRevenue).toLocaleString('id-ID')}`
+                  : `$${Math.round(realCounts.totalRevenue).toLocaleString('en-US')}`}
+              </p>
+              <p className="text-green-200 text-xs">
+                Avg {realCounts.averageBookingValue >= 1000000
+                  ? `Rp ${Math.round(realCounts.averageBookingValue).toLocaleString('id-ID')}`
+                  : `$${Math.round(realCounts.averageBookingValue).toLocaleString('en-US')}`}/booking
+              </p>
             </div>
             <div className="bg-gradient-to-br from-purple-500/10 to-purple-600/10 rounded-xl p-5 border-2 border-purple-500/30">
               <p className="text-purple-300 text-sm mb-2">Avg Occupancy</p>
-              <p className="text-3xl font-black text-white mb-1">74%</p>
-              <p className="text-purple-200 text-sm">Across all units</p>
+              <p className="text-2xl font-black text-white mb-1">{Math.round(realCounts.avgOccupancy)}%</p>
+              <p className="text-purple-200 text-xs">Across {userProperties.length} {userProperties.length === 1 ? 'property' : 'properties'}</p>
             </div>
           </div>
 
