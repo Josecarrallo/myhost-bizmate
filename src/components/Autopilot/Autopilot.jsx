@@ -764,6 +764,153 @@ const Autopilot = ({ onBack }) => {
     const printWindow = window.open('', '', 'width=1200,height=800');
     const today = new Date().toLocaleDateString();
 
+    // Build properties HTML
+    let propertiesHTML = '';
+    if (userProperties.length > 0) {
+      userProperties.forEach(property => {
+        propertiesHTML += `
+            <div class="summary-box">
+              <strong>${property.name}</strong><br>
+              Location: ${property.location || 'Not specified'}<br>
+              Type: ${property.property_type || 'Not specified'}<br>
+              Status: Active
+            </div>`;
+      });
+    } else {
+      propertiesHTML = '<div class="summary-box">No properties found</div>';
+    }
+
+    // Build clients table HTML - SHOW ALL BOOKINGS
+    let clientsTableHTML = '';
+    allBookings.forEach(booking => {
+      const price = booking.total_price || 0;
+      const formattedPrice = price >= 1000000
+        ? `Rp ${Math.round(price).toLocaleString('id-ID')}`
+        : `$${Math.round(price).toLocaleString('en-US')}`;
+      const checkIn = booking.check_in ? new Date(booking.check_in).toLocaleDateString() : 'N/A';
+      clientsTableHTML += `<tr><td>${booking.guest_name || 'N/A'}</td><td>${booking.guest_country || 'N/A'}</td><td>${checkIn}</td><td>${formattedPrice}</td></tr>`;
+    });
+
+    // Build leads table HTML
+    let leadsHTML = '';
+    if (leads.length > 0) {
+      let leadsTableHTML = '';
+      leads.slice(0, 10).forEach(lead => {
+        const statusEmoji = {
+          'hot': '🔥',
+          'pending': '⏳',
+          'engaged': '📧',
+          'won': '✅',
+          'lost': '❌'
+        };
+        const status = (lead.status || '').toLowerCase();
+        const emoji = statusEmoji[status] || '📋';
+        const value = lead.estimated_value || 0;
+        leadsTableHTML += `<tr><td>${lead.name || 'N/A'}</td><td>${emoji} ${(lead.status || 'N/A').toUpperCase()}</td><td>${lead.source || 'N/A'}</td><td>$${value.toLocaleString('en-US')}</td></tr>`;
+      });
+      if (leads.length > 10) {
+        leadsTableHTML += `<tr><td colspan="4" style="text-align: center; color: #999;">... ${leads.length - 10} more leads</td></tr>`;
+      }
+      leadsHTML = `
+            <table>
+              <tr>
+                <th>Lead</th>
+                <th>Status</th>
+                <th>Source</th>
+                <th>Estimated Value</th>
+              </tr>
+              ${leadsTableHTML}
+            </table>
+            <div class="summary-box">
+              HOT: ${leadsCounts.hot} | PENDING: ${leadsCounts.pending} | ENGAGED: ${leadsCounts.engaged} | WON: ${leadsCounts.won}<br>
+              Total Pipeline Value: $${leadsCounts.total_value.toLocaleString('en-US')}
+            </div>`;
+    } else {
+      leadsHTML = '<div class="summary-box" style="text-align: center; color: #666;">No leads data available for this period</div>';
+    }
+
+    // Build bookings table HTML - SHOW ALL BOOKINGS
+    let bookingsTableHTML = '';
+    allBookings.forEach(booking => {
+      const checkIn = booking.check_in ? new Date(booking.check_in).toLocaleDateString() : 'N/A';
+      const checkOut = booking.check_out ? new Date(booking.check_out).toLocaleDateString() : 'N/A';
+      const nights = booking.check_in && booking.check_out
+        ? Math.ceil((new Date(booking.check_out) - new Date(booking.check_in)) / (1000 * 60 * 60 * 24))
+        : 0;
+      const price = booking.total_price || 0;
+      const formattedPrice = price >= 1000000
+        ? `Rp ${Math.round(price).toLocaleString('id-ID')}`
+        : `$${Math.round(price).toLocaleString('en-US')}`;
+      bookingsTableHTML += `<tr><td>${booking.guest_name || 'N/A'}</td><td>${checkIn}</td><td>${checkOut}</td><td>${nights}</td><td>${formattedPrice}</td></tr>`;
+    });
+    const totalRevenueFormatted = realCounts.totalRevenue >= 1000000
+      ? `Rp ${Math.round(realCounts.totalRevenue).toLocaleString('id-ID')}`
+      : `$${Math.round(realCounts.totalRevenue).toLocaleString('en-US')}`;
+    bookingsTableHTML += `<tr style="font-weight: bold;">
+                <td>TOTAL</td>
+                <td colspan="2">${realCounts.totalBookings} bookings</td>
+                <td>${realCounts.totalNights} nights</td>
+                <td>${totalRevenueFormatted}</td>
+              </tr>`;
+
+    // Build countries table HTML
+    const countryStats = {};
+    allBookings.forEach(booking => {
+      const country = booking.guest_country || 'Unknown';
+      if (!countryStats[country]) {
+        countryStats[country] = { count: 0, revenue: 0 };
+      }
+      countryStats[country].count++;
+      countryStats[country].revenue += booking.total_price || 0;
+    });
+    let countriesTableHTML = '';
+    Object.entries(countryStats)
+      .sort((a, b) => b[1].revenue - a[1].revenue)
+      .slice(0, 10)
+      .forEach(([country, stats]) => {
+        const formattedRevenue = stats.revenue >= 1000000
+          ? `Rp ${Math.round(stats.revenue).toLocaleString('id-ID')}`
+          : `$${Math.round(stats.revenue).toLocaleString('en-US')}`;
+        countriesTableHTML += `<tr><td>${country}</td><td>${stats.count}</td><td>${formattedRevenue}</td></tr>`;
+      });
+
+    // Build payments stats
+    const paymentStats = {
+      paid: { count: 0, amount: 0 },
+      pending: { count: 0, amount: 0 },
+      overdue: { count: 0, amount: 0 }
+    };
+    allBookings.forEach(booking => {
+      const status = (booking.payment_status || 'pending').toLowerCase();
+      if (status === 'paid' || status === 'completed') {
+        paymentStats.paid.count++;
+        paymentStats.paid.amount += booking.total_price || 0;
+      } else if (status === 'pending') {
+        paymentStats.pending.count++;
+        paymentStats.pending.amount += booking.total_price || 0;
+      } else {
+        paymentStats.overdue.count++;
+        paymentStats.overdue.amount += booking.total_price || 0;
+      }
+    });
+    const totalAmount = paymentStats.paid.amount + paymentStats.pending.amount + paymentStats.overdue.amount;
+    const formatAmount = (amount) => amount >= 1000000
+      ? `Rp ${Math.round(amount).toLocaleString('id-ID')}`
+      : `$${Math.round(amount).toLocaleString('en-US')}`;
+    const paidPercent = totalAmount > 0 ? ((paymentStats.paid.amount / totalAmount) * 100).toFixed(1) : 0;
+    const pendingPercent = totalAmount > 0 ? ((paymentStats.pending.amount / totalAmount) * 100).toFixed(1) : 0;
+    const overduePercent = totalAmount > 0 ? ((paymentStats.overdue.amount / totalAmount) * 100).toFixed(1) : 0;
+    const paid = allBookings.filter(b => {
+      const status = (b.payment_status || '').toLowerCase();
+      return status === 'paid' || status === 'completed';
+    }).length;
+    const total = allBookings.length;
+    const paymentCompletionRate = total > 0 ? ((paid / total) * 100).toFixed(1) : 0;
+
+    const avgBookingValueFormatted = realCounts.averageBookingValue >= 1000000
+      ? `Rp ${Math.round(realCounts.averageBookingValue).toLocaleString('id-ID')}`
+      : `$${Math.round(realCounts.averageBookingValue).toLocaleString('en-US')}`;
+
     const content = `
       <html>
         <head>
@@ -787,104 +934,50 @@ const Autopilot = ({ onBack }) => {
         <body>
           <div class="container">
             <h1>MY HOST BizMate - Complete Data Summary</h1>
-            <p style="text-align: center; color: #666;">Generated: ${today}</p>
+            <p style="text-align: center; color: #666;">Period: 2025 - 2026 | Generated: ${today}</p>
             <button class="btn-print" onclick="window.print()">🖨️ Print Report</button>
 
-            <h2>📊 Property Information</h2>
-            <div class="summary-box">
-              <strong>Izumi Hotel & Villas</strong><br>
-              Location: Ubud, Bali<br>
-              Units: 5 Villas<br>
-              Type: Villa Resort<br>
-              Status: Active
-            </div>
+            <h2>📊 Property Information (${userProperties.length} ${userProperties.length === 1 ? 'Property' : 'Properties'})</h2>
+            ${propertiesHTML}
 
-            <h2>👥 Clients Database ({realCounts.totalClients} Total)</h2>
+            <h2>👥 Clients Database (${realCounts.totalClients} Total)</h2>
             <table>
               <tr>
                 <th>Name</th>
                 <th>Country</th>
-                <th>Bookings</th>
+                <th>Check In</th>
                 <th>Total Value</th>
               </tr>
-              <tr><td>Hiroshi Nakamura</td><td>🇯🇵 Japan</td><td>2</td><td>$3,080</td></tr>
-              <tr><td>Anna Müller</td><td>🇩🇪 Germany</td><td>1</td><td>$1,470</td></tr>
-              <tr><td>Emma Chen</td><td>🇨🇳 China</td><td>0</td><td>Pending</td></tr>
-              <tr><td>Michael Brown Jr</td><td>🇺🇸 USA</td><td>0</td><td>$1,100 (Pending)</td></tr>
-              <tr><td>Thomas Schmidt Jr</td><td>🇩🇪 Germany</td><td>0</td><td>$1,200 (Estimate)</td></tr>
-              <tr><td colspan="4" style="text-align: center; color: #999;">... 40 more clients</td></tr>
+              ${clientsTableHTML}
             </table>
             <div class="summary-box">
-              Total Clients: {realCounts.totalClients} | Bookings: {realCounts.totalBookings}
+              Total Bookings: ${realCounts.totalBookings} | Countries: ${realCounts.countries} | Repeat Guests: ${realCounts.repeatGuests}
             </div>
 
-            <h2>📈 Leads Pipeline (8 Active)</h2>
-            <table>
-              <tr>
-                <th>Lead</th>
-                <th>Status</th>
-                <th>Score</th>
-                <th>Intent</th>
-                <th>Estimated Value</th>
-              </tr>
-              <tr><td>Emma Chen</td><td>🔥 HOT</td><td>85</td><td>booking</td><td>$1,960</td></tr>
-              <tr><td>Thomas Schmidt Jr</td><td>⏳ PENDING</td><td>78</td><td>booking</td><td>$1,200</td></tr>
-              <tr><td>Made Wijaya</td><td>📧 ENGAGED</td><td>55</td><td>price</td><td>$800</td></tr>
-              <tr><td>Maria Santos Jr</td><td>📬 FOLLOWING_UP</td><td>60</td><td>price</td><td>$900</td></tr>
-              <tr><td>Sarah Miller</td><td>🆕 NEW</td><td>45</td><td>availability</td><td>$700</td></tr>
-              <tr><td>Kenji Yamamoto</td><td>✅ WON</td><td>95</td><td>booking</td><td>$1,540</td></tr>
-              <tr><td>Pierre Dupont</td><td>❌ LOST</td><td>35</td><td>price</td><td>-</td></tr>
-            </table>
-            <div class="summary-box">
-              Total Pipeline Value: ~$8,000
-            </div>
+            <h2>📈 Leads Pipeline (${leads.length} Total)</h2>
+            ${leadsHTML}
 
-            <h2>🏨 Bookings Summary (Last 3 Months)</h2>
-            <h3>Monthly Breakdown</h3>
+            <h2>🏨 Bookings Summary (2025 - 2026)</h2>
+            <h3>All Bookings</h3>
             <table>
               <tr>
-                <th>Month</th>
-                <th>Bookings</th>
+                <th>Guest</th>
+                <th>Check In</th>
+                <th>Check Out</th>
+                <th>Nights</th>
                 <th>Revenue</th>
-                <th>Avg/Booking</th>
-                <th>Occupancy</th>
               </tr>
-              <tr><td>November 2025</td><td>12</td><td>$11,220</td><td>$935</td><td>65%</td></tr>
-              <tr><td>December 2025</td><td>18</td><td>$23,100</td><td>$1,283</td><td>85%</td></tr>
-              <tr><td>January 2026</td><td>15</td><td>$15,820</td><td>$1,055</td><td>72%</td></tr>
-              <tr style="font-weight: bold;"><td>TOTAL</td><td>{realCounts.totalBookings}</td><td>$50,140</td><td>$1,114</td><td>74%</td></tr>
+              ${bookingsTableHTML}
             </table>
 
-            <h3>By Channel</h3>
-            <table>
-              <tr>
-                <th>Channel</th>
-                <th>Bookings</th>
-                <th>Revenue</th>
-                <th>% Total</th>
-              </tr>
-              <tr><td>Airbnb</td><td>16</td><td>$17,660</td><td>35%</td></tr>
-              <tr><td>Booking.com</td><td>15</td><td>$16,720</td><td>33%</td></tr>
-              <tr><td>Direct</td><td>14</td><td>$15,760</td><td>32%</td></tr>
-            </table>
-
-            <h3>Top 10 Countries</h3>
+            <h3>Top Countries</h3>
             <table>
               <tr>
                 <th>Country</th>
                 <th>Bookings</th>
                 <th>Revenue</th>
               </tr>
-              <tr><td>🇯🇵 Japan</td><td>6</td><td>$6,500</td></tr>
-              <tr><td>🇦🇺 Australia</td><td>6</td><td>$5,640</td></tr>
-              <tr><td>🇺🇸 United States</td><td>4</td><td>$5,180</td></tr>
-              <tr><td>🇩🇪 Germany</td><td>4</td><td>$4,680</td></tr>
-              <tr><td>🇬🇧 United Kingdom</td><td>3</td><td>$3,320</td></tr>
-              <tr><td>🇨🇳 China</td><td>3</td><td>$3,940</td></tr>
-              <tr><td>🇮🇹 Italy</td><td>3</td><td>$2,940</td></tr>
-              <tr><td>🇫🇷 France</td><td>2</td><td>$2,280</td></tr>
-              <tr><td>🇳🇱 Netherlands</td><td>2</td><td>$2,100</td></tr>
-              <tr><td>🇨🇦 Canada</td><td>2</td><td>$1,960</td></tr>
+              ${countriesTableHTML}
             </table>
 
             <h2>💳 Payments Summary</h2>
@@ -895,39 +988,27 @@ const Autopilot = ({ onBack }) => {
                 <th>Amount</th>
                 <th>%</th>
               </tr>
-              <tr style="background: #d4edda;"><td>Paid</td><td>43</td><td>$47,940</td><td>95.6%</td></tr>
-              <tr style="background: #fff3cd;"><td>Pending</td><td>2</td><td>$2,200</td><td>4.4%</td></tr>
-              <tr style="background: #f8d7da;"><td>Overdue</td><td>0</td><td>$0</td><td>0%</td></tr>
+              <tr style="background: #d4edda;"><td>Paid</td><td>${paymentStats.paid.count}</td><td>${formatAmount(paymentStats.paid.amount)}</td><td>${paidPercent}%</td></tr>
+              <tr style="background: #fff3cd;"><td>Pending</td><td>${paymentStats.pending.count}</td><td>${formatAmount(paymentStats.pending.amount)}</td><td>${pendingPercent}%</td></tr>
+              <tr style="background: #f8d7da;"><td>Overdue</td><td>${paymentStats.overdue.count}</td><td>${formatAmount(paymentStats.overdue.amount)}</td><td>${overduePercent}%</td></tr>
             </table>
             <div class="summary-box">
-              Payment Completion Rate: 95.6%
+              Payment Completion Rate: ${paymentCompletionRate}%
             </div>
-
-            <h2>⚡ Owner Decisions (3 Pending)</h2>
-            <table>
-              <tr>
-                <th>Type</th>
-                <th>Guest</th>
-                <th>Priority</th>
-                <th>Details</th>
-                <th>Amount</th>
-              </tr>
-              <tr><td>Discount Request</td><td>Emma Chen</td><td>🔴 URGENT</td><td>15% off, 7 nights</td><td>$1,960</td></tr>
-              <tr><td>Payment Verification</td><td>Michael Brown Jr</td><td>🟡 HIGH</td><td>Claims payment sent</td><td>$1,100</td></tr>
-              <tr><td>Payment Plan</td><td>Thomas Schmidt Jr</td><td>🔵 NORMAL</td><td>3 installments</td><td>$1,200</td></tr>
-            </table>
 
             <h2>📋 Key Metrics Summary</h2>
             <div class="summary-box">
-              <strong>3-Month Performance:</strong><br>
-              Total Revenue: $50,140<br>
-              Total Bookings: {realCounts.totalBookings}<br>
-              Average Booking Value: $1,114<br>
-              Average Occupancy: 74%<br>
-              Payment Completion: 95.6%<br>
-              Active Leads: 8 (Pipeline: ~$8,000)<br>
-              Pending Owner Decisions: 3<br>
-              Countries Represented: 19
+              <strong>2025 - 2026 Performance:</strong><br>
+              Total Revenue: ${totalRevenueFormatted}<br>
+              Total Bookings: ${realCounts.totalBookings}<br>
+              Total Nights: ${realCounts.totalNights}<br>
+              Average Booking Value: ${avgBookingValueFormatted}<br>
+              Average Occupancy: ${Math.round(realCounts.avgOccupancy)}%<br>
+              Payment Completion: ${paymentCompletionRate}%<br>
+              Active Leads: ${leads.length} (Pipeline: $${leadsCounts.total_value.toLocaleString('en-US')})<br>
+              Properties: ${userProperties.length}<br>
+              Countries Represented: ${realCounts.countries}<br>
+              Repeat Guests: ${realCounts.repeatGuests}
             </div>
 
             <button class="btn-print" onclick="window.print()">🖨️ Print Report</button>
