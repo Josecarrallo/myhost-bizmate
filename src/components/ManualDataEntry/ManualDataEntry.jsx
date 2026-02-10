@@ -841,26 +841,27 @@ const ManualDataEntry = ({ onBack }) => {
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
-                    Click on any row to edit the booking
+                    Click on any row to edit • Click trash icon to delete
                   </p>
                   <div className="bg-[#2a2f3a] rounded-xl overflow-hidden border-2 border-gray-200">
                     <div className="overflow-x-auto">
                       <table className="w-full table-fixed">
                         <thead className="bg-orange-500">
                           <tr>
-                            <th className="w-[19%] px-4 py-3 text-left text-white font-bold">Guest</th>
-                            <th className="w-[24%] px-4 py-3 text-left text-white font-bold">Property</th>
-                            <th className="w-[12%] px-4 py-3 text-left text-white font-bold">Check-in</th>
-                            <th className="w-[12%] px-4 py-3 text-left text-white font-bold">Check-out</th>
+                            <th className="w-[18%] px-4 py-3 text-left text-white font-bold">Guest</th>
+                            <th className="w-[23%] px-4 py-3 text-left text-white font-bold">Property</th>
+                            <th className="w-[11%] px-4 py-3 text-left text-white font-bold">Check-in</th>
+                            <th className="w-[11%] px-4 py-3 text-left text-white font-bold">Check-out</th>
                             <th className="w-[7%] px-4 py-3 text-center text-white font-bold">Nights</th>
                             <th className="w-[11%] px-2 py-3 text-left text-white font-bold">Status</th>
-                            <th className="w-[15%] px-4 py-3 text-right text-white font-bold">Price</th>
+                            <th className="w-[14%] px-4 py-3 text-right text-white font-bold">Price</th>
+                            <th className="w-[5%] px-2 py-3 text-center text-white font-bold"></th>
                           </tr>
                         </thead>
                         <tbody>
                           {bookings.length === 0 ? (
                             <tr>
-                              <td colSpan="7" className="px-4 py-8 text-center text-gray-400">
+                              <td colSpan="8" className="px-4 py-8 text-center text-gray-400">
                                 No bookings found
                               </td>
                             </tr>
@@ -872,7 +873,7 @@ const ManualDataEntry = ({ onBack }) => {
                                 onClick={() => handleEditBooking(booking)}
                                 title="Click to edit this booking"
                               >
-                                <td className="px-4 py-3 text-white font-medium overflow-hidden">
+                                <td className="px-4 py-3 text-gray-300 text-sm overflow-hidden">
                                   <div className="truncate">{booking.guest_name}</div>
                                 </td>
                                 <td className="px-4 py-3 text-gray-300 text-sm overflow-hidden">
@@ -880,7 +881,7 @@ const ManualDataEntry = ({ onBack }) => {
                                 </td>
                                 <td className="px-4 py-3 text-gray-300 text-sm whitespace-nowrap">{booking.check_in}</td>
                                 <td className="px-4 py-3 text-gray-300 text-sm whitespace-nowrap">{booking.check_out}</td>
-                                <td className="px-4 py-3 text-white font-bold text-center whitespace-nowrap">{booking.nights}</td>
+                                <td className="px-4 py-3 text-white text-sm text-center whitespace-nowrap">{booking.nights}</td>
                                 <td className="px-2 py-3">
                                   <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold inline-block whitespace-nowrap ${
                                     booking.status === 'confirmed' ? 'bg-green-500 text-white' :
@@ -891,8 +892,19 @@ const ManualDataEntry = ({ onBack }) => {
                                     {booking.status === 'pending_payment' ? 'pending' : booking.status}
                                   </span>
                                 </td>
-                                <td className="px-4 py-3 text-white font-bold text-right whitespace-nowrap">
+                                <td className="px-4 py-3 text-white text-sm text-right whitespace-nowrap">
                                   IDR {booking.total_price?.toLocaleString()}
+                                </td>
+                                <td className="px-2 py-3 text-center" onClick={(e) => e.stopPropagation()}>
+                                  <button
+                                    onClick={() => setDeletingBooking(booking)}
+                                    className="p-1 hover:bg-red-500/20 rounded transition-colors"
+                                    title="Delete booking"
+                                  >
+                                    <svg className="w-4 h-4 text-red-400 hover:text-red-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                    </svg>
+                                  </button>
                                 </td>
                               </tr>
                             ))
