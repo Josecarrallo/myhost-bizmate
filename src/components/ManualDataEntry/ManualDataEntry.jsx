@@ -57,6 +57,10 @@ const ManualDataEntry = ({ onBack }) => {
   const [isDeletingLead, setIsDeletingLead] = useState(false);
   const [isSavingLeadEdit, setIsSavingLeadEdit] = useState(false);
 
+  // Add Payment modal
+  const [addingPaymentFor, setAddingPaymentFor] = useState(null); // booking selected for payment
+  const [isAddingPayment, setIsAddingPayment] = useState(false);
+
   // Edit form state
   const [editForm, setEditForm] = useState({
     guestName: '',
@@ -354,9 +358,9 @@ const ManualDataEntry = ({ onBack }) => {
     }
   };
 
-  // Load bookings when tab changes to view-bookings or filters change
+  // Load bookings when tab changes to view-bookings or payment or filters change
   useEffect(() => {
-    if (activeTab === 'view-bookings') {
+    if (activeTab === 'view-bookings' || activeTab === 'payment') {
       loadBookings();
     }
   }, [activeTab, filterProperty, filterStatus, searchGuest, userData]);
@@ -740,13 +744,26 @@ const ManualDataEntry = ({ onBack }) => {
     }
   };
 
+  // Handle Add Payment button click
+  const handleAddPaymentClick = (booking) => {
+    setAddingPaymentFor(booking);
+    // Reset payment form with booking ID
+    setPaymentForm({
+      bookingId: booking.id,
+      amount: '',
+      paymentMethod: 'bank_transfer',
+      paymentDate: new Date().toISOString().split('T')[0],
+      notes: ''
+    });
+  };
+
   const handleSubmitPayment = async (e) => {
     e.preventDefault();
 
     // Clear previous messages
     setSuccessMessage('');
     setErrorMessage('');
-    setIsSubmitting(true);
+    setIsAddingPayment(true);
 
     try {
       // Validate user is logged in
@@ -790,7 +807,10 @@ const ManualDataEntry = ({ onBack }) => {
       }
 
       // Success!
-      setSuccessMessage(`Payment recorded successfully! Amount: $${paymentForm.amount}`);
+      setSuccessMessage(`Payment recorded successfully! Amount: IDR ${parseFloat(paymentForm.amount).toLocaleString()}`);
+
+      // Close modal
+      setAddingPaymentFor(null);
 
       // Reset form
       setPaymentForm({
@@ -801,6 +821,9 @@ const ManualDataEntry = ({ onBack }) => {
         notes: ''
       });
 
+      // Reload bookings to show updated payment status
+      await loadBookings();
+
       // Clear success message after 5 seconds
       setTimeout(() => setSuccessMessage(''), 5000);
 
@@ -808,7 +831,7 @@ const ManualDataEntry = ({ onBack }) => {
       console.error('Error recording payment:', error);
       setErrorMessage(error.message || 'Failed to record payment. Please try again.');
     } finally {
-      setIsSubmitting(false);
+      setIsAddingPayment(false);
     }
   };
 
@@ -1630,107 +1653,111 @@ const ManualDataEntry = ({ onBack }) => {
 
         {/* TAB C: Add Payment */}
         {activeTab === 'payment' && (
-          <form onSubmit={handleSubmitPayment} className="space-y-4">
+          <div className="space-y-4">
             <h3 className="text-2xl font-black text-[#FF8C42] mb-4 flex items-center gap-2">
               <DollarSign className="w-6 h-6 text-[#FF8C42]" />
               Add Payment
             </h3>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Booking ID */}
-              <div className="md:col-span-2">
-                <label className="block text-[#FF8C42] font-medium mb-2">Booking ID / Reference *</label>
-                <input
-                  type="text"
-                  required
-                  value={paymentForm.bookingId}
-                  onChange={(e) => setPaymentForm({...paymentForm, bookingId: e.target.value})}
-                  className="w-full px-4 py-3 bg-[#2a2f3a] border-2 border-gray-200 rounded-xl text-[#FF8C42] placeholder-gray-400 focus:outline-none focus:border-orange-300"
-                  placeholder="e.g. BK-2026-001"
-                />
+            {isLoadingBookings ? (
+              <div className="flex justify-center items-center py-12">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500"></div>
               </div>
-
-              {/* Amount */}
-              <div>
-                <label className="block text-[#FF8C42] font-medium mb-2">Payment Amount (USD) *</label>
-                <div className="relative">
-                  <DollarSign className="absolute left-3 top-3 w-5 h-5 text-gray-400" />
-                  <input
-                    type="number"
-                    required
-                    step="0.01"
-                    value={paymentForm.amount}
-                    onChange={(e) => setPaymentForm({...paymentForm, amount: e.target.value})}
-                    className="w-full pl-12 pr-4 py-3 bg-[#2a2f3a] border-2 border-gray-200 rounded-xl text-[#FF8C42] placeholder-gray-400 focus:outline-none focus:border-orange-300"
-                    placeholder="0.00"
-                  />
+            ) : (
+              <>
+                <div className="bg-[#2a2f3a] rounded-xl overflow-hidden border-2 border-gray-200">
+                  <div className="overflow-x-auto">
+                    <table className="w-full table-fixed">
+                      <thead className="bg-orange-500">
+                        <tr>
+                          <th className="w-[18%] px-4 py-3 text-left text-white font-bold">Guest</th>
+                          <th className="w-[18%] px-4 py-3 text-left text-white font-bold">Property</th>
+                          <th className="w-[11%] px-4 py-3 text-left text-white font-bold">Check-in</th>
+                          <th className="w-[11%] px-4 py-3 text-left text-white font-bold">Check-out</th>
+                          <th className="w-[12%] px-4 py-3 text-right text-white font-bold">Price (IDR)</th>
+                          <th className="w-[15%] px-2 py-3 text-left text-white font-bold">Payment Status</th>
+                          <th className="w-[15%] px-2 py-3 text-center text-white font-bold">Action</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {bookings.length === 0 ? (
+                          <tr>
+                            <td colSpan="7" className="px-4 py-8 text-center text-gray-400">
+                              No bookings found
+                            </td>
+                          </tr>
+                        ) : (
+                          bookings.map((booking, index) => (
+                            <tr
+                              key={booking.id}
+                              className={`border-b border-gray-700 ${index % 2 === 0 ? 'bg-[#2a2f3a]' : 'bg-[#1f2937]'}`}
+                            >
+                              <td className="px-4 py-3 text-gray-300 text-sm overflow-hidden">
+                                <div className="truncate">{booking.guest_name}</div>
+                              </td>
+                              <td className="px-4 py-3 text-gray-300 text-sm overflow-hidden">
+                                <div className="truncate">{properties.find(p => p.id === booking.property_id)?.name || 'N/A'}</div>
+                              </td>
+                              <td className="px-4 py-3 text-gray-300 text-sm whitespace-nowrap">{booking.check_in}</td>
+                              <td className="px-4 py-3 text-gray-300 text-sm whitespace-nowrap">{booking.check_out}</td>
+                              <td className="px-4 py-3 text-white text-sm text-right whitespace-nowrap">
+                                {booking.total_price?.toLocaleString()}
+                              </td>
+                              <td className="px-2 py-3">
+                                <div className="flex flex-col gap-0.5">
+                                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold inline-block whitespace-nowrap ${
+                                    booking.payment_status === 'paid' ? 'bg-green-500 text-white' :
+                                    booking.payment_status === 'pending' ? 'bg-yellow-500 text-black' :
+                                    'bg-gray-500 text-white'
+                                  }`}>
+                                    {booking.payment_status || 'pending'}
+                                  </span>
+                                  {booking.payment_status !== 'paid' && (
+                                    <span className="text-[10px] text-gray-400">
+                                      Due: {booking.total_price?.toLocaleString()}
+                                    </span>
+                                  )}
+                                </div>
+                              </td>
+                              <td className="px-2 py-3 text-center">
+                                <button
+                                  onClick={() => handleAddPaymentClick(booking)}
+                                  disabled={booking.payment_status === 'paid'}
+                                  className="px-3 py-1.5 bg-orange-500 hover:bg-orange-600 text-white text-xs rounded-lg font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1 mx-auto"
+                                >
+                                  <DollarSign className="w-3 h-3" />
+                                  Add Payment
+                                </button>
+                              </td>
+                            </tr>
+                          ))
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
-              </div>
 
-              {/* Payment Method */}
-              <div>
-                <label className="block text-[#FF8C42] font-medium mb-2">Payment Method *</label>
-                <select
-                  required
-                  value={paymentForm.paymentMethod}
-                  onChange={(e) => setPaymentForm({...paymentForm, paymentMethod: e.target.value})}
-                  className="w-full px-4 py-3 bg-white/10 border border-white/30 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-white/50"
-                >
-                  <option value="bank_transfer">Bank Transfer</option>
-                  <option value="credit_card">Credit Card</option>
-                  <option value="cash">Cash</option>
-                  <option value="paypal">PayPal</option>
-                  <option value="wise">Wise</option>
-                  <option value="other">Other</option>
-                </select>
-              </div>
-
-              {/* Payment Date */}
-              <div className="md:col-span-2">
-                <label className="block text-[#FF8C42] font-medium mb-2">Payment Date *</label>
-                <input
-                  type="date"
-                  required
-                  value={paymentForm.paymentDate}
-                  onChange={(e) => setPaymentForm({...paymentForm, paymentDate: e.target.value})}
-                  className="w-full px-4 py-3 bg-white/10 border border-white/30 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-white/50"
-                />
-              </div>
-
-              {/* Notes */}
-              <div className="md:col-span-2">
-                <label className="block text-[#FF8C42] font-medium mb-2">Notes</label>
-                <textarea
-                  value={paymentForm.notes}
-                  onChange={(e) => setPaymentForm({...paymentForm, notes: e.target.value})}
-                  rows={3}
-                  className="w-full px-4 py-3 bg-[#2a2f3a] border-2 border-gray-200 rounded-xl text-[#FF8C42] placeholder-gray-400 focus:outline-none focus:border-orange-300"
-                  placeholder="Payment confirmation number, transaction reference, etc."
-                />
-              </div>
-            </div>
-
-            {/* Submit Button */}
-            <div className="flex justify-end gap-3 pt-4">
-              <button
-                type="button"
-                onClick={() => setPaymentForm({
-                  bookingId: '', amount: '', paymentMethod: 'bank_transfer',
-                  paymentDate: new Date().toISOString().split('T')[0], notes: ''
-                })}
-                className="px-6 py-3 bg-[#2a2f3a] hover:bg-[#374151] text-[#FF8C42] rounded-xl font-medium transition-all border-2 border-gray-200"
-              >
-                Clear
-              </button>
-              <button
-                type="submit"
-                className="px-6 py-3 bg-orange-500 hover:bg-orange-600 text-white rounded-xl font-medium transition-all flex items-center gap-2"
-              >
-                <Save className="w-5 h-5" />
-                Add Payment
-              </button>
-            </div>
-          </form>
+                {/* Summary */}
+                <div className="flex justify-between items-center text-sm text-gray-300 mt-4">
+                  <div>
+                    Showing <span className="text-orange-400 font-bold">{bookings.length}</span> bookings
+                  </div>
+                  <div className="flex gap-4">
+                    <span>
+                      Paid: <span className="text-green-400 font-bold">
+                        {bookings.filter(b => b.payment_status === 'paid').length}
+                      </span>
+                    </span>
+                    <span>
+                      Pending: <span className="text-yellow-400 font-bold">
+                        {bookings.filter(b => b.payment_status !== 'paid').length}
+                      </span>
+                    </span>
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
         )}
 
         {/* TAB D: Add Task (Ops) */}
@@ -2019,6 +2046,146 @@ const ManualDataEntry = ({ onBack }) => {
                 {isDeleting ? 'Deleting...' : 'Delete'}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add Payment Modal */}
+      {addingPaymentFor && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4 overflow-y-auto">
+          <div className="bg-[#1f2937] rounded-2xl p-6 max-w-2xl w-full border-2 border-orange-500 my-8">
+            <h3 className="text-2xl font-bold text-orange-400 mb-6 flex items-center gap-2">
+              <DollarSign className="w-6 h-6" />
+              Add Payment
+            </h3>
+
+            {/* Booking Information (Readonly) */}
+            <div className="bg-[#2a2f3a] rounded-xl p-4 mb-6 border-2 border-gray-600">
+              <h4 className="text-sm font-bold text-gray-400 mb-3">Booking Details</h4>
+              <div className="grid grid-cols-2 gap-3 text-sm">
+                <div>
+                  <span className="text-gray-400">Guest:</span>
+                  <span className="text-white font-medium ml-2">{addingPaymentFor.guest_name}</span>
+                </div>
+                <div>
+                  <span className="text-gray-400">Property:</span>
+                  <span className="text-white font-medium ml-2">
+                    {properties.find(p => p.id === addingPaymentFor.property_id)?.name || 'N/A'}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-gray-400">Check-in:</span>
+                  <span className="text-white font-medium ml-2">{addingPaymentFor.check_in}</span>
+                </div>
+                <div>
+                  <span className="text-gray-400">Check-out:</span>
+                  <span className="text-white font-medium ml-2">{addingPaymentFor.check_out}</span>
+                </div>
+                <div className="col-span-2 border-t border-gray-600 pt-2 mt-1">
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-400">Total Price:</span>
+                    <span className="text-green-400 font-bold text-lg">
+                      IDR {addingPaymentFor.total_price?.toLocaleString()}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center mt-1">
+                    <span className="text-gray-400">Status:</span>
+                    <span className={`px-2 py-1 rounded-full text-xs font-bold ${
+                      addingPaymentFor.payment_status === 'paid' ? 'bg-green-500 text-white' :
+                      addingPaymentFor.payment_status === 'pending' ? 'bg-yellow-500 text-black' :
+                      'bg-gray-500 text-white'
+                    }`}>
+                      {addingPaymentFor.payment_status || 'pending'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Payment Form */}
+            <form onSubmit={handleSubmitPayment} className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Amount to Pay */}
+                <div className="md:col-span-2">
+                  <label className="block text-[#FF8C42] font-medium mb-2">Payment Amount (IDR) *</label>
+                  <input
+                    type="number"
+                    required
+                    step="1"
+                    min="0"
+                    max={addingPaymentFor.total_price}
+                    value={paymentForm.amount}
+                    onChange={(e) => setPaymentForm({...paymentForm, amount: e.target.value})}
+                    className="w-full px-4 py-3 bg-[#2a2f3a] border-2 border-gray-200 rounded-xl text-[#FF8C42] placeholder-gray-400 focus:outline-none focus:border-orange-300"
+                    placeholder="Enter amount"
+                  />
+                  <p className="text-xs text-gray-400 mt-1">
+                    Maximum: IDR {addingPaymentFor.total_price?.toLocaleString()}
+                  </p>
+                </div>
+
+                {/* Payment Method */}
+                <div>
+                  <label className="block text-[#FF8C42] font-medium mb-2">Payment Method *</label>
+                  <select
+                    required
+                    value={paymentForm.paymentMethod}
+                    onChange={(e) => setPaymentForm({...paymentForm, paymentMethod: e.target.value})}
+                    className="w-full px-4 py-3 bg-[#2a2f3a] border-2 border-gray-200 rounded-xl text-[#FF8C42] focus:outline-none focus:border-orange-300 [&>option]:bg-[#1f2937] [&>option]:text-white"
+                  >
+                    <option value="bank_transfer">Bank Transfer</option>
+                    <option value="credit_card">Credit Card</option>
+                    <option value="cash">Cash</option>
+                    <option value="paypal">PayPal</option>
+                    <option value="wise">Wise</option>
+                    <option value="other">Other</option>
+                  </select>
+                </div>
+
+                {/* Payment Date */}
+                <div>
+                  <label className="block text-[#FF8C42] font-medium mb-2">Payment Date *</label>
+                  <input
+                    type="date"
+                    required
+                    value={paymentForm.paymentDate}
+                    onChange={(e) => setPaymentForm({...paymentForm, paymentDate: e.target.value})}
+                    className="w-full px-4 py-3 bg-[#2a2f3a] border-2 border-gray-200 rounded-xl text-[#FF8C42] focus:outline-none focus:border-orange-300"
+                  />
+                </div>
+
+                {/* Notes */}
+                <div className="md:col-span-2">
+                  <label className="block text-[#FF8C42] font-medium mb-2">Notes</label>
+                  <textarea
+                    value={paymentForm.notes}
+                    onChange={(e) => setPaymentForm({...paymentForm, notes: e.target.value})}
+                    rows={3}
+                    className="w-full px-4 py-3 bg-[#2a2f3a] border-2 border-gray-200 rounded-xl text-[#FF8C42] placeholder-gray-400 focus:outline-none focus:border-orange-300"
+                    placeholder="Payment confirmation number, transaction reference, etc."
+                  />
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex justify-end gap-3 pt-4">
+                <button
+                  type="button"
+                  onClick={() => setAddingPaymentFor(null)}
+                  className="px-6 py-3 bg-gray-600 hover:bg-gray-700 text-white rounded-xl font-medium transition-all"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isAddingPayment}
+                  className="px-6 py-3 bg-orange-500 hover:bg-orange-600 text-white rounded-xl font-medium transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <Save className="w-5 h-5" />
+                  {isAddingPayment ? 'Saving...' : 'Save Payment'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
