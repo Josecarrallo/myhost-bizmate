@@ -41,11 +41,21 @@ const ManualDataEntry = ({ onBack }) => {
   const [searchGuest, setSearchGuest] = useState('');
   const [searchInput, setSearchInput] = useState(''); // Separate input value from filter
 
+  // Leads/Customers table data
+  const [leads, setLeads] = useState([]);
+  const [isLoadingLeads, setIsLoadingLeads] = useState(false);
+
   // Edit/Delete modals
   const [editingBooking, setEditingBooking] = useState(null);
   const [deletingBooking, setDeletingBooking] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isSavingEdit, setIsSavingEdit] = useState(false);
+
+  // Edit/Delete leads modals
+  const [editingLead, setEditingLead] = useState(null);
+  const [deletingLead, setDeletingLead] = useState(null);
+  const [isDeletingLead, setIsDeletingLead] = useState(false);
+  const [isSavingLeadEdit, setIsSavingLeadEdit] = useState(false);
 
   // Edit form state
   const [editForm, setEditForm] = useState({
@@ -59,15 +69,25 @@ const ManualDataEntry = ({ onBack }) => {
     status: 'hold'
   });
 
+  // Edit lead form state
+  const [editLeadForm, setEditLeadForm] = useState({
+    name: '',
+    phone: '',
+    email: '',
+    country: '',
+    type: 'lead',
+    source: 'manual',
+    message: ''
+  });
+
   // Form states
   const [leadForm, setLeadForm] = useState({
     name: '',
     phone: '',
     email: '',
+    country: '',
     message: '',
-    checkIn: '',
-    checkOut: '',
-    guests: '2',
+    type: 'lead', // 'lead' or 'customer'
     source: 'manual'
   });
 
@@ -270,12 +290,83 @@ const ManualDataEntry = ({ onBack }) => {
     }
   };
 
+  // Load leads/customers
+  const loadLeads = async () => {
+    if (!userData?.id) {
+      console.warn('❌ No userData.id - cannot load leads');
+      return;
+    }
+
+    try {
+      setIsLoadingLeads(true);
+
+      const filters = {
+        tenant_id: userData.id // CRITICAL: Multi-tenant filtering
+      };
+
+      console.log('🔍 Loading leads with filters:', filters);
+
+      // Fetch leads
+      const leadsData = await supabaseService.getLeads(filters);
+
+      console.log(`✅ Loaded ${leadsData.length} leads/customers:`, leadsData.map(l => ({
+        name: l.name,
+        phone: l.phone,
+        state: l.state,
+        tenant: l.tenant_id
+      })));
+
+      // Get bookings data and match with leads
+      const bookingsData = await supabaseService.getBookings({ tenant_id: userData.id });
+
+      const leadsWithBookingData = leadsData.map(lead => {
+        // Match booking by name
+        const booking = bookingsData.find(b => b.guest_name === lead.name);
+
+        return {
+          ...lead,
+          // Add booking fields
+          booking_check_in: booking?.check_in || null,
+          booking_total: booking?.total_price || 0,
+          booking_payment_status: booking?.payment_status || '-',
+          booking_journey_state: booking?.journey_state || '-'
+        };
+      });
+
+      // Sort by check-in date
+      leadsWithBookingData.sort((a, b) => {
+        if (!a.booking_check_in) return 1;
+        if (!b.booking_check_in) return -1;
+        return new Date(a.booking_check_in) - new Date(b.booking_check_in);
+      });
+
+      setLeads(leadsWithBookingData);
+
+    } catch (error) {
+      console.error('❌ Error loading leads:', error);
+      const errorMsg = error.message || 'Failed to load leads. Please try again.';
+      setErrorMessage(errorMsg);
+
+      // Auto-clear error after 5 seconds
+      setTimeout(() => setErrorMessage(''), 5000);
+    } finally {
+      setIsLoadingLeads(false);
+    }
+  };
+
   // Load bookings when tab changes to view-bookings or filters change
   useEffect(() => {
     if (activeTab === 'view-bookings') {
       loadBookings();
     }
   }, [activeTab, filterProperty, filterStatus, searchGuest, userData]);
+
+  // Load leads when tab changes to lead
+  useEffect(() => {
+    if (activeTab === 'lead' && userData?.id) {
+      loadLeads();
+    }
+  }, [activeTab, userData]);
 
   // Manual search trigger (not automatic)
   const handleSearch = () => {
@@ -319,6 +410,112 @@ const ManualDataEntry = ({ onBack }) => {
     });
   };
 
+  // Handle edit lead
+  const handleEditLead = (lead) => {
+    setEditingLead(lead);
+    // Extract message from message_history if exists
+    const lastMessage = Array.isArray(lead.message_history) && lead.message_history.length > 0
+      ? lead.message_history[lead.message_history.length - 1].text
+      : '';
+
+    setEditLeadForm({
+      name: lead.name || '',
+      phone: lead.phone || '',
+      email: lead.email || '',
+      country: lead.country || '',
+      type: lead.state === 'CUSTOMER' ? 'customer' : 'lead',
+      source: lead.source || 'manual',
+      message: lastMessage
+    });
+  };
+
+  // Handle delete lead
+  const handleDeleteLead = async () => {
+    if (!deletingLead) return;
+
+    try {
+      setIsDeletingLead(true);
+
+      // Use Supabase service to delete
+      const { error } = await supabaseService.updateLead(deletingLead.id, {
+        // Soft delete or hard delete - for now we'll use hard delete
+        deleted_at: new Date().toISOString()
+      });
+
+      if (error) throw error;
+
+      // Success - reload leads
+      setSuccessMessage(`${deletingLead.state === 'CUSTOMER' ? 'Customer' : 'Lead'} ${deletingLead.name} deleted successfully`);
+      setDeletingLead(null);
+      loadLeads();
+
+      setTimeout(() => setSuccessMessage(''), 5000);
+    } catch (error) {
+      console.error('Error deleting lead:', error);
+      setErrorMessage('Failed to delete lead');
+    } finally {
+      setIsDeletingLead(false);
+    }
+  };
+
+  // Handle update lead
+  const handleUpdateLead = async (e) => {
+    e.preventDefault();
+
+    if (!editingLead) return;
+
+    // Clear previous messages
+    setSuccessMessage('');
+    setErrorMessage('');
+    setIsSavingLeadEdit(true);
+
+    try {
+      // Prepare updated lead data
+      const updatedData = {
+        name: editLeadForm.name,
+        phone: editLeadForm.phone,
+        email: editLeadForm.email || null,
+        country: editLeadForm.country || null,
+        source: editLeadForm.source,
+        state: editLeadForm.type === 'customer' ? 'CUSTOMER' : 'NEW',
+        // Update message_history if there's a new message
+        message_history: editLeadForm.message ? [
+          ...(Array.isArray(editingLead.message_history) ? editingLead.message_history : []),
+          {
+            text: editLeadForm.message,
+            timestamp: new Date().toISOString(),
+            type: 'note'
+          }
+        ] : editingLead.message_history,
+        updated_at: new Date().toISOString()
+      };
+
+      console.log('🔄 Updating lead:', editingLead.id, updatedData);
+
+      // Call Supabase service
+      await supabaseService.updateLead(editingLead.id, updatedData);
+
+      // Success!
+      const typeLabel = editLeadForm.type === 'customer' ? 'Customer' : 'Lead';
+      setSuccessMessage(`${typeLabel} updated successfully! Name: ${editLeadForm.name}`);
+
+      // Close modal
+      setEditingLead(null);
+
+      // Reload leads
+      loadLeads();
+
+      // Clear success message after 5 seconds
+      setTimeout(() => setSuccessMessage(''), 5000);
+
+    } catch (error) {
+      console.error('Error updating lead:', error);
+      setErrorMessage(error.message || 'Failed to update lead. Please try again.');
+    } finally {
+      setIsSavingLeadEdit(false);
+    }
+  };
+
   // Handle form submissions
   const handleSubmitLead = async (e) => {
     e.preventDefault();
@@ -334,38 +531,45 @@ const ManualDataEntry = ({ onBack }) => {
         throw new Error('You must be logged in to create a lead');
       }
 
-      // Prepare lead data for Supabase
+      // Prepare lead data for Supabase (aligned with actual schema)
       const leadData = {
         tenant_id: userData.id,
         name: leadForm.name,
         phone: leadForm.phone,
         email: leadForm.email || null,
-        notes: leadForm.message || null,  // 'message' campo del form → 'notes' columna DB
-        check_in: leadForm.checkIn || null,
-        check_out: leadForm.checkOut || null,
-        guests: leadForm.guests ? parseInt(leadForm.guests) : 2,
-        source: 'manual',
-        status: 'new',
-        created_at: new Date().toISOString()
+        country: leadForm.country || null,
+        source: leadForm.source || 'manual',
+        // Use state instead of status (NEW = new lead, CUSTOMER = converted customer)
+        state: leadForm.type === 'customer' ? 'CUSTOMER' : 'NEW',
+        intent: 'info',
+        // Store message in message_history as array
+        message_history: leadForm.message ? [{
+          text: leadForm.message,
+          timestamp: new Date().toISOString(),
+          type: 'note'
+        }] : []
       };
 
-      console.log('📋 Creating lead:', leadData);
+      console.log('📋 Creating lead/customer:', leadData);
 
       // Call Supabase service
       const result = await supabaseService.createLead(leadData);
 
       // Success!
-      setSuccessMessage(`Lead created successfully! Contact: ${leadForm.name}`);
+      const typeLabel = leadForm.type === 'customer' ? 'Customer' : 'Lead';
+      setSuccessMessage(`${typeLabel} created successfully! Contact: ${leadForm.name}`);
+
+      // Reload leads list
+      await loadLeads();
 
       // Reset form
       setLeadForm({
         name: '',
         phone: '',
         email: '',
+        country: '',
         message: '',
-        checkIn: '',
-        checkOut: '',
-        guests: '2',
+        type: 'lead',
         source: 'manual'
       });
 
@@ -682,7 +886,7 @@ const ManualDataEntry = ({ onBack }) => {
   const tabs = [
     { id: 'view-bookings', label: 'View/Edit Bookings', icon: ClipboardList },
     { id: 'booking', label: 'Add Booking', icon: Calendar },
-    { id: 'lead', label: 'Add Lead', icon: UserPlus },
+    { id: 'lead', label: 'Add Customer & Lead', icon: UserPlus },
     { id: 'payment', label: 'Update Payment', icon: DollarSign },
     { id: 'task', label: 'Add Task', icon: CheckCircle }
   ];
@@ -752,7 +956,14 @@ const ManualDataEntry = ({ onBack }) => {
                   `}
                 >
                   <Icon className="w-5 h-5" />
-                  <span className="hidden md:inline">{tab.label}</span>
+                  {tab.id === 'lead' ? (
+                    <div className="hidden md:flex flex-col leading-tight text-center">
+                      <div>Add</div>
+                      <div className="whitespace-nowrap">Customer & Lead</div>
+                    </div>
+                  ) : (
+                    <span className="hidden md:inline">{tab.label}</span>
+                  )}
                   <span className="md:hidden">{tab.label.split(' ')[1]}</span>
                 </button>
               );
@@ -930,15 +1141,48 @@ const ManualDataEntry = ({ onBack }) => {
             </div>
           )}
 
-          {/* TAB A: Add Lead / Inquiry */}
+          {/* TAB A: Add Customer & Lead */}
           {activeTab === 'lead' && (
+            <>
             <form onSubmit={handleSubmitLead} className="space-y-4">
               <h3 className="text-2xl font-black text-[#FF8C42] mb-4 flex items-center gap-2">
                 <UserPlus className="w-6 h-6 text-[#FF8C42]" />
-                Add New Lead / Inquiry
+                <div>
+                  <div>Add</div>
+                  <div>Customer & Lead</div>
+                </div>
               </h3>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Type Selector */}
+                <div className="md:col-span-2">
+                  <label className="block text-[#FF8C42] font-medium mb-2">Type *</label>
+                  <div className="flex gap-4">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="type"
+                        value="lead"
+                        checked={leadForm.type === 'lead'}
+                        onChange={(e) => setLeadForm({...leadForm, type: e.target.value})}
+                        className="w-4 h-4 text-orange-500 border-gray-300 focus:ring-orange-500"
+                      />
+                      <span className="text-[#FF8C42] font-medium">Lead</span>
+                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="type"
+                        value="customer"
+                        checked={leadForm.type === 'customer'}
+                        onChange={(e) => setLeadForm({...leadForm, type: e.target.value})}
+                        className="w-4 h-4 text-orange-500 border-gray-300 focus:ring-orange-500"
+                      />
+                      <span className="text-[#FF8C42] font-medium">Customer</span>
+                    </label>
+                  </div>
+                </div>
+
                 {/* Name */}
                 <div>
                   <label className="block text-[#FF8C42] font-medium mb-2">Full Name *</label>
@@ -970,12 +1214,11 @@ const ManualDataEntry = ({ onBack }) => {
 
               {/* Email */}
               <div>
-                <label className="block text-[#FF8C42] font-medium mb-2">Email *</label>
+                <label className="block text-[#FF8C42] font-medium mb-2">Email</label>
                 <div className="relative">
                   <Mail className="absolute left-3 top-3 w-5 h-5 text-gray-400" />
                   <input
                     type="email"
-                    required
                     value={leadForm.email}
                     onChange={(e) => setLeadForm({...leadForm, email: e.target.value})}
                     className="w-full pl-12 pr-4 py-3 bg-[#2a2f3a] border-2 border-gray-200 rounded-xl text-[#FF8C42] placeholder-gray-400 focus:outline-none focus:border-orange-300"
@@ -984,56 +1227,32 @@ const ManualDataEntry = ({ onBack }) => {
                 </div>
               </div>
 
+              {/* Country */}
+              <div>
+                <label className="block text-[#FF8C42] font-medium mb-2">Country</label>
+                <input
+                  type="text"
+                  value={leadForm.country}
+                  onChange={(e) => setLeadForm({...leadForm, country: e.target.value})}
+                  className="w-full px-4 py-3 bg-[#2a2f3a] border-2 border-gray-200 rounded-xl text-[#FF8C42] placeholder-gray-400 focus:outline-none focus:border-orange-300"
+                  placeholder="e.g. Indonesia, India, China"
+                />
+              </div>
+
               {/* Source */}
               <div>
                 <label className="block text-[#FF8C42] font-medium mb-2">Source</label>
                 <select
                   value={leadForm.source}
                   onChange={(e) => setLeadForm({...leadForm, source: e.target.value})}
-                  className="w-full px-4 py-3 bg-white/10 border border-white/30 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-white/50"
+                  className="w-full px-4 py-3 bg-[#2a2f3a] border-2 border-gray-200 rounded-xl text-[#FF8C42] focus:outline-none focus:border-orange-300"
                 >
-                  <option value="manual">Manual Entry</option>
-                  <option value="web">Website</option>
-                  <option value="instagram">Instagram</option>
-                  <option value="whatsapp">WhatsApp</option>
-                  <option value="tiktok">TikTok</option>
-                  <option value="referral">Referral</option>
-                </select>
-              </div>
-
-              {/* Check-in Date */}
-              <div>
-                <label className="block text-[#FF8C42] font-medium mb-2">Check-in Date</label>
-                <input
-                  type="date"
-                  value={leadForm.checkIn}
-                  onChange={(e) => setLeadForm({...leadForm, checkIn: e.target.value})}
-                  className="w-full px-4 py-3 bg-white/10 border border-white/30 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-white/50"
-                />
-              </div>
-
-              {/* Check-out Date */}
-              <div>
-                <label className="block text-[#FF8C42] font-medium mb-2">Check-out Date</label>
-                <input
-                  type="date"
-                  value={leadForm.checkOut}
-                  onChange={(e) => setLeadForm({...leadForm, checkOut: e.target.value})}
-                  className="w-full px-4 py-3 bg-white/10 border border-white/30 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-white/50"
-                />
-              </div>
-
-              {/* Number of Guests */}
-              <div className="md:col-span-2">
-                <label className="block text-[#FF8C42] font-medium mb-2">Number of Guests</label>
-                <select
-                  value={leadForm.guests}
-                  onChange={(e) => setLeadForm({...leadForm, guests: e.target.value})}
-                  className="w-full px-4 py-3 bg-white/10 border border-white/30 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-white/50"
-                >
-                  {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(num => (
-                    <option key={num} value={num}>{num} {num === 1 ? 'guest' : 'guests'}</option>
-                  ))}
+                  <option value="manual" className="bg-gray-800 text-white">Manual Entry</option>
+                  <option value="web" className="bg-gray-800 text-white">Website</option>
+                  <option value="instagram" className="bg-gray-800 text-white">Instagram</option>
+                  <option value="whatsapp" className="bg-gray-800 text-white">WhatsApp</option>
+                  <option value="tiktok" className="bg-gray-800 text-white">TikTok</option>
+                  <option value="referral" className="bg-gray-800 text-white">Referral</option>
                 </select>
               </div>
 
@@ -1058,7 +1277,7 @@ const ManualDataEntry = ({ onBack }) => {
               <button
                 type="button"
                 onClick={() => setLeadForm({
-                  name: '', phone: '', email: '', message: '', checkIn: '', checkOut: '', guests: '2', source: 'manual'
+                  name: '', phone: '', email: '', message: '', type: 'lead', source: 'manual'
                 })}
                 className="px-6 py-3 bg-[#2a2f3a] hover:bg-[#374151] text-[#FF8C42] rounded-xl font-medium transition-all border-2 border-gray-200"
               >
@@ -1066,13 +1285,123 @@ const ManualDataEntry = ({ onBack }) => {
               </button>
               <button
                 type="submit"
-                className="px-6 py-3 bg-orange-500 hover:bg-orange-600 text-white rounded-xl font-medium transition-all flex items-center gap-2"
+                disabled={isSubmitting}
+                className="px-6 py-3 bg-orange-500 hover:bg-orange-600 text-white rounded-xl font-medium transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Save className="w-5 h-5" />
-                Save Lead
+                {isSubmitting ? 'Saving...' : `Save ${leadForm.type === 'customer' ? 'Customer' : 'Lead'}`}
               </button>
             </div>
           </form>
+
+          {/* Leads/Customers Table */}
+          <div className="mt-8">
+            <h4 className="text-xl font-black text-[#FF8C42] mb-4 flex items-center gap-2">
+              <Users className="w-5 h-5 text-[#FF8C42]" />
+              All Customers & Leads
+            </h4>
+
+            {isLoadingLeads ? (
+              <div className="flex justify-center items-center py-12">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500"></div>
+              </div>
+            ) : (
+              <>
+                <div className="bg-[#2a2f3a] rounded-xl overflow-hidden border-2 border-gray-200">
+                  <div className="overflow-x-auto">
+                    <table className="w-full table-fixed text-xs">
+                      <thead className="bg-orange-500">
+                        <tr>
+                          <th className="w-[16%] px-2 py-2 text-left text-white font-bold">Name</th>
+                          <th className="w-[10%] px-2 py-2 text-left text-white font-bold">Country</th>
+                          <th className="w-[10%] px-2 py-2 text-left text-white font-bold">Phase</th>
+                          <th className="w-[9%] px-2 py-2 text-left text-white font-bold">Source</th>
+                          <th className="w-[9%] px-2 py-2 text-left text-white font-bold">Check-in</th>
+                          <th className="w-[13%] px-2 py-2 text-right text-white font-bold">Total (Rp)</th>
+                          <th className="w-[10%] px-2 py-2 text-left text-white font-bold">Payment</th>
+                          <th className="w-[18%] px-2 py-2 text-left text-white font-bold">Journey State</th>
+                          <th className="w-[5%] px-1 py-2 text-center text-white font-bold"></th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {leads.length === 0 ? (
+                          <tr>
+                            <td colSpan="9" className="px-4 py-8 text-center text-gray-400">
+                              No customers or leads yet
+                            </td>
+                          </tr>
+                        ) : (
+                          leads.map((lead, index) => (
+                            <tr
+                              key={lead.id}
+                              className={`border-b border-gray-700 ${index % 2 === 0 ? 'bg-[#2a2f3a]' : 'bg-[#1f2937]'} hover:bg-[#374151] transition-colors cursor-pointer`}
+                              onClick={() => handleEditLead(lead)}
+                              title="Click to edit"
+                            >
+                              <td className="px-2 py-2 text-gray-300 overflow-hidden">
+                                <div className="truncate font-medium">{lead.name}</div>
+                              </td>
+                              <td className="px-2 py-2 text-gray-300 overflow-hidden">
+                                <div className="truncate">{lead.country || '-'}</div>
+                              </td>
+                              <td className="px-2 py-2 text-gray-300 overflow-hidden">
+                                <div className="truncate">{lead.current_phase || '-'}</div>
+                              </td>
+                              <td className="px-2 py-2 text-gray-300 capitalize overflow-hidden">
+                                <div className="truncate">{lead.source || 'manual'}</div>
+                              </td>
+                              <td className="px-2 py-2 text-gray-300">
+                                {lead.booking_check_in ? new Date(lead.booking_check_in).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '-'}
+                              </td>
+                              <td className="px-2 py-2 text-right">
+                                <span className={`font-bold ${
+                                  lead.booking_total > 0 ? 'text-green-400' : 'text-gray-400'
+                                }`}>
+                                  {lead.booking_total > 0 ? lead.booking_total.toLocaleString() : '0'}
+                                </span>
+                              </td>
+                              <td className="px-2 py-2 text-gray-300 capitalize overflow-hidden">
+                                <div className="truncate">{lead.booking_payment_status}</div>
+                              </td>
+                              <td className="px-2 py-2 text-gray-300 overflow-hidden">
+                                <div className="truncate">{lead.booking_journey_state}</div>
+                              </td>
+                              <td className="px-1 py-2 text-center" onClick={(e) => e.stopPropagation()}>
+                                <button
+                                  onClick={() => setDeletingLead(lead)}
+                                  className="p-1 hover:bg-red-500/20 rounded transition-colors"
+                                  title="Delete"
+                                >
+                                  <svg className="w-3 h-3 text-red-400 hover:text-red-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                  </svg>
+                                </button>
+                              </td>
+                            </tr>
+                          ))
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                {/* Summary */}
+                <div className="flex justify-between items-center text-sm text-gray-300 mt-4">
+                  <div>
+                    Showing <span className="text-orange-400 font-bold">{leads.length}</span> customers & leads
+                  </div>
+                  <div>
+                    Customers: <span className="text-green-400 font-bold">
+                      {leads.filter(l => l.current_phase === 'CUSTOMER').length}
+                    </span> | Leads: <span className="text-blue-400 font-bold">
+                      {leads.filter(l => l.current_phase !== 'CUSTOMER').length}
+                    </span>
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+          </>
         )}
 
         {/* TAB B: Add Booking / Hold */}
@@ -1688,6 +2017,181 @@ const ManualDataEntry = ({ onBack }) => {
                 }`}
               >
                 {isDeleting ? 'Deleting...' : 'Delete'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Lead Modal */}
+      {editingLead && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4 overflow-y-auto">
+          <div className="bg-[#1f2937] rounded-2xl p-6 max-w-2xl w-full border-2 border-orange-500 my-8">
+            <h3 className="text-2xl font-bold text-orange-400 mb-6">Edit {editLeadForm.type === 'customer' ? 'Customer' : 'Lead'}</h3>
+
+            <form onSubmit={handleUpdateLead} className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Type Selector */}
+                <div className="md:col-span-2">
+                  <label className="block text-[#FF8C42] font-medium mb-2">Type *</label>
+                  <div className="flex gap-4">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="editType"
+                        value="lead"
+                        checked={editLeadForm.type === 'lead'}
+                        onChange={(e) => setEditLeadForm({...editLeadForm, type: e.target.value})}
+                        className="w-4 h-4 text-orange-500 border-gray-300 focus:ring-orange-500"
+                      />
+                      <span className="text-[#FF8C42] font-medium">Lead</span>
+                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="editType"
+                        value="customer"
+                        checked={editLeadForm.type === 'customer'}
+                        onChange={(e) => setEditLeadForm({...editLeadForm, type: e.target.value})}
+                        className="w-4 h-4 text-orange-500 border-gray-300 focus:ring-orange-500"
+                      />
+                      <span className="text-[#FF8C42] font-medium">Customer</span>
+                    </label>
+                  </div>
+                </div>
+
+                {/* Name */}
+                <div className="md:col-span-2">
+                  <label className="block text-[#FF8C42] font-medium mb-2">Full Name *</label>
+                  <input
+                    type="text"
+                    required
+                    value={editLeadForm.name}
+                    onChange={(e) => setEditLeadForm({...editLeadForm, name: e.target.value})}
+                    className="w-full px-4 py-3 bg-[#2a2f3a] border-2 border-gray-200 rounded-xl text-[#FF8C42] focus:outline-none focus:border-orange-300"
+                  />
+                </div>
+
+                {/* Phone */}
+                <div>
+                  <label className="block text-[#FF8C42] font-medium mb-2">Phone *</label>
+                  <input
+                    type="tel"
+                    required
+                    value={editLeadForm.phone}
+                    onChange={(e) => setEditLeadForm({...editLeadForm, phone: e.target.value})}
+                    className="w-full px-4 py-3 bg-[#2a2f3a] border-2 border-gray-200 rounded-xl text-[#FF8C42] focus:outline-none focus:border-orange-300"
+                  />
+                </div>
+
+                {/* Email */}
+                <div>
+                  <label className="block text-[#FF8C42] font-medium mb-2">Email</label>
+                  <input
+                    type="email"
+                    value={editLeadForm.email}
+                    onChange={(e) => setEditLeadForm({...editLeadForm, email: e.target.value})}
+                    className="w-full px-4 py-3 bg-[#2a2f3a] border-2 border-gray-200 rounded-xl text-[#FF8C42] focus:outline-none focus:border-orange-300"
+                  />
+                </div>
+
+                {/* Country */}
+                <div className="md:col-span-2">
+                  <label className="block text-[#FF8C42] font-medium mb-2">Country</label>
+                  <input
+                    type="text"
+                    value={editLeadForm.country}
+                    onChange={(e) => setEditLeadForm({...editLeadForm, country: e.target.value})}
+                    className="w-full px-4 py-3 bg-[#2a2f3a] border-2 border-gray-200 rounded-xl text-[#FF8C42] placeholder-gray-400 focus:outline-none focus:border-orange-300"
+                    placeholder="e.g. Indonesia, India, China"
+                  />
+                </div>
+
+                {/* Source */}
+                <div className="md:col-span-2">
+                  <label className="block text-[#FF8C42] font-medium mb-2">Source</label>
+                  <select
+                    value={editLeadForm.source}
+                    onChange={(e) => setEditLeadForm({...editLeadForm, source: e.target.value})}
+                    className="w-full px-4 py-3 bg-[#2a2f3a] border-2 border-gray-200 rounded-xl text-[#FF8C42] focus:outline-none focus:border-orange-300 [&>option]:bg-[#1f2937] [&>option]:text-white"
+                  >
+                    <option value="manual">Manual Entry</option>
+                    <option value="web">Website</option>
+                    <option value="instagram">Instagram</option>
+                    <option value="whatsapp">WhatsApp</option>
+                    <option value="tiktok">TikTok</option>
+                    <option value="referral">Referral</option>
+                  </select>
+                </div>
+
+                {/* Message */}
+                <div className="md:col-span-2">
+                  <label className="block text-[#FF8C42] font-medium mb-2">Add Note</label>
+                  <textarea
+                    value={editLeadForm.message}
+                    onChange={(e) => setEditLeadForm({...editLeadForm, message: e.target.value})}
+                    rows={3}
+                    className="w-full px-4 py-3 bg-[#2a2f3a] border-2 border-gray-200 rounded-xl text-[#FF8C42] focus:outline-none focus:border-orange-300"
+                    placeholder="Add a new note (optional)"
+                  />
+                </div>
+              </div>
+
+              {/* Buttons */}
+              <div className="flex gap-3 pt-4">
+                <button
+                  type="button"
+                  onClick={() => setEditingLead(null)}
+                  disabled={isSavingLeadEdit}
+                  className="flex-1 px-4 py-3 bg-gray-600 hover:bg-gray-700 text-white rounded-xl font-medium transition-all"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSavingLeadEdit}
+                  className={`flex-1 px-4 py-3 bg-orange-500 hover:bg-orange-600 text-white rounded-xl font-medium transition-all ${
+                    isSavingLeadEdit ? 'opacity-50 cursor-not-allowed' : ''
+                  }`}
+                >
+                  {isSavingLeadEdit ? 'Saving...' : 'Save Changes'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Lead Confirmation Modal */}
+      {deletingLead && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+          <div className="bg-[#1f2937] rounded-2xl p-6 max-w-md w-full border-2 border-red-500">
+            <h3 className="text-2xl font-bold text-red-400 mb-4">Confirm Delete</h3>
+            <p className="text-white mb-2">Are you sure you want to delete this {deletingLead.state === 'CUSTOMER' ? 'customer' : 'lead'}?</p>
+            <div className="bg-[#2a2f3a] p-4 rounded-xl mb-6 space-y-2">
+              <p className="text-white"><span className="font-bold">Name:</span> {deletingLead.name}</p>
+              <p className="text-gray-300"><span className="font-bold">Phone:</span> {deletingLead.phone}</p>
+              <p className="text-gray-300"><span className="font-bold">Email:</span> {deletingLead.email || '-'}</p>
+              <p className={`font-bold ${deletingLead.state === 'CUSTOMER' ? 'text-green-400' : 'text-blue-400'}`}>
+                Type: {deletingLead.state === 'CUSTOMER' ? 'Customer' : 'Lead'}
+              </p>
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setDeletingLead(null)}
+                disabled={isDeletingLead}
+                className="flex-1 px-4 py-3 bg-gray-600 hover:bg-gray-700 text-white rounded-xl font-medium transition-all"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDeleteLead}
+                disabled={isDeletingLead}
+                className={`flex-1 px-4 py-3 bg-red-500 hover:bg-red-600 text-white rounded-xl font-medium transition-all ${
+                  isDeletingLead ? 'opacity-50 cursor-not-allowed' : ''
+                }`}
+              >
+                {isDeletingLead ? 'Deleting...' : 'Delete'}
               </button>
             </div>
           </div>
