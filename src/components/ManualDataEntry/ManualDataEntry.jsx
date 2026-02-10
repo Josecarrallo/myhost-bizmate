@@ -887,7 +887,7 @@ const ManualDataEntry = ({ onBack }) => {
     { id: 'view-bookings', label: 'View/Edit Bookings', icon: ClipboardList },
     { id: 'booking', label: 'Add Booking', icon: Calendar },
     { id: 'lead', label: 'Add Customer & Lead', icon: UserPlus },
-    { id: 'payment', label: 'Update Payment', icon: DollarSign },
+    { id: 'payment', label: 'Add Payment', icon: DollarSign },
     { id: 'task', label: 'Add Task', icon: CheckCircle }
   ];
 
@@ -1628,12 +1628,12 @@ const ManualDataEntry = ({ onBack }) => {
           </form>
         )}
 
-        {/* TAB C: Update Payment */}
+        {/* TAB C: Add Payment */}
         {activeTab === 'payment' && (
           <form onSubmit={handleSubmitPayment} className="space-y-4">
             <h3 className="text-2xl font-black text-[#FF8C42] mb-4 flex items-center gap-2">
               <DollarSign className="w-6 h-6 text-[#FF8C42]" />
-              Update Payment
+              Add Payment
             </h3>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1727,7 +1727,7 @@ const ManualDataEntry = ({ onBack }) => {
                 className="px-6 py-3 bg-orange-500 hover:bg-orange-600 text-white rounded-xl font-medium transition-all flex items-center gap-2"
               >
                 <Save className="w-5 h-5" />
-                Update Payment
+                Add Payment
               </button>
             </div>
           </form>
