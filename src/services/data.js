@@ -845,6 +845,19 @@ export const dataService = {
 
       const stats = data[0]; // Get first row from TABLE result
 
+      // FIX: Map RPC field names to frontend expected names
+      if (stats) {
+        // Map properties_data → property_performance_data
+        if (stats.properties_data) {
+          stats.property_performance_data = stats.properties_data;
+        }
+
+        // Map sources_data → channel_breakdown_data
+        if (stats.sources_data) {
+          stats.channel_breakdown_data = stats.sources_data;
+        }
+      }
+
       console.log('✅ Overview stats fetched successfully');
       return stats;
 
