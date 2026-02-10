@@ -105,14 +105,22 @@ const ManualDataEntry = ({ onBack }) => {
   // Load properties and villas when component mounts
   useEffect(() => {
     const loadPropertiesAndVillas = async () => {
-      if (!userData?.id) return;
+      if (!userData?.id) {
+        console.log('Waiting for userData to load...');
+        return;
+      }
 
       try {
         setIsLoadingProperties(true);
+        console.log('Loading properties for user:', userData.id);
 
         // Fetch properties for this owner
         const allProperties = await supabaseService.getProperties();
+        console.log('All properties:', allProperties);
+
         const ownerProperties = allProperties.filter(p => p.owner_id === userData.id);
+        console.log('Owner properties:', ownerProperties);
+
         setProperties(ownerProperties);
 
         // If there's only one property, auto-select it and load its villas
@@ -137,7 +145,7 @@ const ManualDataEntry = ({ onBack }) => {
     try {
       // Fetch villas from Supabase
       const response = await fetch(
-        `${supabaseService.SUPABASE_URL || 'https://jjpscimtxrudtepzwhag.supabase.co'}/rest/v1/villas?property_id=eq.${propertyId}&status=eq.active&select=*`,
+        `${supabaseService.SUPABASE_URL || 'https://jjpscimtxrudtepzwhag.supabase.co'}/rest/v1/villas?property_id=eq.${propertyId}&select=*`,
         {
           headers: {
             'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpqcHNjaW10eHJ1ZHRlcHp3aGFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI5NDMyMzIsImV4cCI6MjA3ODUxOTIzMn0._U_HwdF5-yT8-prJLzkdO_rGbNuu7Z3gpUQW0Q8zxa0',
@@ -148,12 +156,17 @@ const ManualDataEntry = ({ onBack }) => {
 
       if (response.ok) {
         const villasData = await response.json();
-        setVillas(villasData);
+
+        // Filter active villas
+        const activeVillas = villasData.filter(v => v.status === 'active');
+        setVillas(activeVillas);
 
         // Auto-select first villa if there's only one
-        if (villasData.length === 1) {
-          setBookingForm(prev => ({ ...prev, villaId: villasData[0].id }));
+        if (activeVillas.length === 1) {
+          setBookingForm(prev => ({ ...prev, villaId: activeVillas[0].id }));
         }
+      } else {
+        console.error('Failed to load villas, status:', response.status);
       }
     } catch (error) {
       console.error('Error loading villas:', error);
@@ -184,11 +197,13 @@ const ManualDataEntry = ({ onBack }) => {
     const nights = Math.ceil((checkOutDate - checkInDate) / (1000 * 60 * 60 * 24));
 
     if (nights <= 0) {
+      // Invalid dates - check-out is before or same as check-in
       return;
     }
 
     // Find selected villa
     const selectedVilla = villas.find(v => v.id === villaId);
+
     if (!selectedVilla || !selectedVilla.base_price) {
       return;
     }
@@ -404,7 +419,7 @@ const ManualDataEntry = ({ onBack }) => {
         check_out: bookingForm.checkOut,
         guests: parseInt(bookingForm.guests),
         nights: nights,
-        total_price: parseFloat(bookingForm.totalAmount),
+        total_price: parseFloat(bookingForm.totalAmount) || 0,
         currency: currency,
         status: bookingForm.status === 'hold' ? 'pending_payment' : 'confirmed',
         payment_status: bookingForm.status === 'confirmed' ? 'paid' : 'pending',
@@ -1154,7 +1169,7 @@ const ManualDataEntry = ({ onBack }) => {
                   </option>
                   {villas.map(villa => (
                     <option key={villa.id} value={villa.id} className="bg-[#1f2937] text-white">
-                      {villa.name} - {villa.currency} {villa.base_price?.toLocaleString()}/night
+                      {villa.name}{villa.base_price ? ` - IDR ${villa.base_price.toLocaleString()}/night` : ''}
                     </option>
                   ))}
                 </select>
@@ -1184,6 +1199,23 @@ const ManualDataEntry = ({ onBack }) => {
                 />
               </div>
 
+              {/* Date Validation Error Message */}
+              {bookingForm.checkIn && bookingForm.checkOut && new Date(bookingForm.checkOut) <= new Date(bookingForm.checkIn) && (
+                <div className="col-span-1 md:col-span-2 bg-red-500/20 border-2 border-red-500 rounded-xl p-4">
+                  <div className="flex items-start gap-3">
+                    <svg className="w-6 h-6 text-red-500 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                    <div>
+                      <h4 className="text-red-500 font-bold text-lg mb-1">Invalid Dates</h4>
+                      <p className="text-white text-sm">
+                        Check-out date must be AFTER check-in date. Please correct the dates to continue.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* Guests */}
               <div>
                 <label className="block text-[#FF8C42] font-medium mb-2">Number of Guests *</label>
@@ -1194,26 +1226,27 @@ const ManualDataEntry = ({ onBack }) => {
                   className="w-full px-4 py-3 bg-white/10 border border-white/30 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-white/50"
                 >
                   {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(num => (
-                    <option key={num} value={num}>{num}</option>
+                    <option key={num} value={num} className="bg-gray-800 text-white">{num}</option>
                   ))}
                 </select>
               </div>
 
               {/* Total Amount */}
               <div>
-                <label className="block text-[#FF8C42] font-medium mb-2">Total Amount (USD) *</label>
+                <label className="block text-[#FF8C42] font-medium mb-2">Total Amount (IDR) *</label>
                 <div className="relative">
-                  <DollarSign className="absolute left-3 top-3 w-5 h-5 text-gray-400" />
+                  <span className="absolute left-3 top-3 text-gray-400 font-semibold">Rp</span>
                   <input
                     type="number"
                     required
-                    step="0.01"
+                    step="1"
                     value={bookingForm.totalAmount}
                     onChange={(e) => setBookingForm({...bookingForm, totalAmount: e.target.value})}
                     className="w-full pl-12 pr-4 py-3 bg-[#2a2f3a] border-2 border-gray-200 rounded-xl text-[#FF8C42] placeholder-gray-400 focus:outline-none focus:border-orange-300"
-                    placeholder="0.00"
+                    placeholder="0"
                   />
                 </div>
+                <p className="text-xs text-gray-400 mt-1">Auto-calculated from villa rate × nights (editable)</p>
               </div>
 
               {/* Payment Status */}
