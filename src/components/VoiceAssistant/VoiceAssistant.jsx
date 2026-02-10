@@ -258,8 +258,8 @@ const VoiceAssistant = () => {
 
   return (
     <>
-      {/* Botón flotante */}
-      <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-3">
+      {/* Botón flotante - más abajo */}
+      <div className="fixed bottom-4 right-4 z-40 flex flex-col items-end gap-3">
 
         {/* Panel de estado cuando está en llamada */}
         {isCallActive && (
@@ -296,61 +296,48 @@ const VoiceAssistant = () => {
           </div>
         )}
 
-        {/* Avatar de LUMINA cuando no está en llamada */}
+        {/* Caja simplificada con avatar y botón de llamada */}
         {!isCallActive && !isLoading && (
-          <div className="flex items-center gap-3 bg-white rounded-full shadow-2xl pr-4 border-2 border-orange-200 animate-fade-in">
+          <div className="flex items-center gap-3 bg-gradient-to-br from-orange-500/10 to-orange-600/10 rounded-2xl p-3 shadow-2xl border-2 border-orange-500/30 animate-fade-in">
             <img
               src="/images/lumina-avatar.jpg"
               alt="KORA - Voice Assistant"
-              className="w-14 h-14 rounded-full object-cover border-3 border-white shadow-lg"
+              className="w-12 h-12 rounded-full object-cover border-2 border-orange-500 shadow-lg"
             />
-            <div className="text-left">
-              <p className="text-sm font-black text-[#d85a2a]">
-                KORA
-              </p>
-              <p className="text-xs text-gray-600 font-semibold">
-                Voice Assistant
+            <div className="text-left flex-1">
+              <p className="text-sm font-black text-white">
+                KORA Voice Assistant
               </p>
             </div>
+            <button
+              onClick={handleStartCall}
+              disabled={isLoading}
+              className="bg-orange-500 hover:bg-orange-600 p-3 rounded-full shadow-lg transition-all hover:scale-110"
+              title="Call KORA"
+            >
+              <Phone className="w-5 h-5 text-white" />
+            </button>
           </div>
         )}
 
-        {/* Botón principal */}
-        <button
-          onClick={isCallActive ? handleEndCall : handleStartCall}
-          disabled={isLoading}
-          className={`
-            flex items-center gap-2 px-5 py-3 rounded-full shadow-2xl
-            text-white font-bold text-base
-            transition-all duration-300 transform
-            ${buttonState.color}
-            ${isLoading ? 'opacity-70 cursor-wait' : 'hover:scale-110 hover:shadow-3xl'}
-            ${isCallActive ? 'animate-pulse' : ''}
-            border-2 border-white
-          `}
-          title={buttonState.text}
-        >
-          {buttonState.icon}
-          <span>{buttonState.text}</span>
-        </button>
-
-        {/* Tooltip cuando no está en llamada */}
-        {!isCallActive && !isLoading && (
-          <div className="bg-gradient-to-br from-[#1f2937] to-[#374151] backdrop-blur-sm rounded-lg px-3 py-2 shadow-xl border-2 border-[#d85a2a]/30">
-            <p className="text-xs font-bold text-white">
-              🤖 24/7 Voice Assistant
-            </p>
-            <p className="text-xs text-white/90">
-              Click "Talk to KORA" to start
-            </p>
-          </div>
+        {/* Botón para colgar cuando está en llamada */}
+        {isCallActive && (
+          <button
+            onClick={handleEndCall}
+            disabled={isLoading}
+            className="flex items-center gap-2 px-5 py-3 rounded-full shadow-2xl bg-red-500 hover:bg-red-600 text-white font-bold text-base transition-all hover:scale-110 border-2 border-white animate-pulse"
+            title="End Call"
+          >
+            <PhoneOff className="w-5 h-5" />
+            <span>End Call</span>
+          </button>
         )}
       </div>
 
       {/* Overlay oscuro durante la llamada */}
       {isCallActive && (
         <div
-          className="fixed inset-0 bg-black/20 z-40 pointer-events-none backdrop-blur-sm"
+          className="fixed inset-0 bg-black/20 z-30 pointer-events-none backdrop-blur-sm"
           aria-hidden="true"
         />
       )}

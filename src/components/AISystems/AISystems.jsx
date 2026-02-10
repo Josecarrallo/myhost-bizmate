@@ -16,7 +16,9 @@ import {
   ArrowUp,
   ArrowDown,
   AlertCircle,
-  CheckCircle
+  CheckCircle,
+  List,
+  X
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
@@ -29,6 +31,7 @@ const AISystems = ({ onBack }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [propertyId, setPropertyId] = useState(null);
   const [showHelp, setShowHelp] = useState(false); // State for help tooltip
+  const [showAllQuestions, setShowAllQuestions] = useState(false); // State for all questions modal
   const chatEndRef = useRef(null);
 
   // Fetch user's property_id on mount
@@ -55,6 +58,81 @@ const AISystems = ({ onBack }) => {
     fetchPropertyId();
   }, [userData]);
 
+  // All OSIRIS questions organized by category
+  const allOsirisQuestions = {
+    "Revenue & Financial": [
+      "How's revenue looking this month?",
+      "What's our total revenue for this year?",
+      "Compare revenue: this month vs last month",
+      "What's our ADR and RevPAR this month?",
+      "Show me revenue breakdown for January to June 2026",
+      "How did we do in Q1 2026 vs Q1 2025?",
+      "What was our best revenue month in 2025?",
+      "Compare 2025 vs 2026 revenue so far"
+    ],
+    "Villa Performance": [
+      "Which villa generates the most revenue?",
+      "Rank all villas by occupancy this month",
+      "Which villa has the most bookings this year?",
+      "What's our worst performing villa and why?",
+      "What's our overall occupancy rate this month?",
+      "Which villas are empty next week?",
+      "Compare occupancy: February vs January",
+      "How are my villas performing this year?"
+    ],
+    "Bookings": [
+      "Who arrives today?",
+      "Who checks out today?",
+      "Show me all check-ins and check-outs for this week",
+      "How many confirmed bookings do we have?",
+      "Are there any bookings pending payment?",
+      "Show me all cancelled bookings this month",
+      "Show me all bookings for March 2026",
+      "Show me all confirmed bookings for February 2026",
+      "Compare number of bookings: 2025 vs 2026"
+    ],
+    "Payments": [
+      "Are there any pending payments?",
+      "Show me all completed payments this month",
+      "Who hasn't paid yet?",
+      "List all refunded payments",
+      "Show me all payments for this month",
+      "What's the total amount collected this year?"
+    ],
+    "Leads & Sales": [
+      "How many leads do we have?",
+      "Which leads need follow-up today?",
+      "Show me all new leads this week",
+      "Show me all leads in the pipeline",
+      "How many leads converted to bookings this month?",
+      "List all leads that haven't been contacted yet",
+      "What's our lead conversion rate?"
+    ],
+    "Alerts & Issues": [
+      "Are there any active alerts or issues?",
+      "Any problems I should know about?",
+      "What tasks need my attention today?",
+      "Show me all pending issues"
+    ],
+    "Reports & Analysis": [
+      "Give me today's daily report",
+      "Show me the weekly report",
+      "Generate the monthly report",
+      "Give me a complete business overview for this month",
+      "Summarize today: arrivals, departures, revenue, and any issues",
+      "Full status report: revenue, occupancy, pending payments, and alerts",
+      "Analyze our 2025 performance and propose improvements for 2026",
+      "Compare our high season vs low season performance",
+      "What are our top 3 business priorities right now?"
+    ],
+    "Power Questions": [
+      "Full business health check",
+      "Analyze 2025 vs 2026 and propose an action plan",
+      "What should I focus on today?",
+      "Give me an honest assessment of our business health"
+    ]
+  };
+
   // Agent definitions with corporate orange theme
   const agents = {
     osiris: {
@@ -66,11 +144,14 @@ const AISystems = ({ onBack }) => {
       gradient: 'from-[#d85a2a] via-[#e67e50] to-[#f5a524]',
       glowColor: 'shadow-[#d85a2a]/50',
       quickQuestions: [
-        "Compare this month's revenue vs last month",
-        "Which villas are underperforming in occupancy?",
-        "Show me booking trends for the next 30 days",
-        "What's my average daily rate trend?",
-        "Identify operational bottlenecks affecting guest satisfaction"
+        "Who arrives today?",
+        "Who checks out today?",
+        "Show me all confirmed bookings for February 2026",
+        "How's revenue looking this month?",
+        "Are there any pending payments?",
+        "Show me all leads in the pipeline",
+        "How are my villas performing this year?",
+        "Give me a complete business overview for this month"
       ]
     },
     lumina: {
@@ -619,6 +700,23 @@ const AISystems = ({ onBack }) => {
                     </div>
                   </button>
                 ))}
+                {/* View All Questions Button - Only for OSIRIS */}
+                {currentAgent.id === 'osiris' && (
+                  <button
+                    onClick={() => {
+                      setShowAllQuestions(true);
+                      setShowHelp(false);
+                    }}
+                    className="w-full text-center px-2 py-1.5 bg-gradient-to-r from-orange-500 to-orange-600
+                             hover:from-orange-600 hover:to-orange-700 text-white text-[10px] font-semibold
+                             rounded transition-all duration-200 hover:shadow-md border border-orange-400/50 mt-2"
+                  >
+                    <div className="flex items-center justify-center gap-1">
+                      <List className="w-3 h-3" />
+                      <span>Ver todas las preguntas (60+)</span>
+                    </div>
+                  </button>
+                )}
               </div>
             </div>
           )}
@@ -719,6 +817,93 @@ const AISystems = ({ onBack }) => {
           </button>
         </div>
       </div>
+
+      {/* All Questions Modal - Only for OSIRIS */}
+      {showAllQuestions && currentAgent.id === 'osiris' && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
+             onClick={() => setShowAllQuestions(false)}>
+          <div className="bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 rounded-2xl shadow-2xl
+                        w-[90%] max-w-4xl max-h-[80vh] overflow-hidden border border-orange-500/30"
+               onClick={(e) => e.stopPropagation()}>
+
+            {/* Modal Header */}
+            <div className="bg-gradient-to-r from-orange-500 to-orange-600 px-6 py-4 flex items-center justify-between border-b border-orange-400/30">
+              <div>
+                <h3 className="text-xl font-bold text-white">OSIRIS - Strategic Questions Library</h3>
+                <p className="text-orange-100 text-sm mt-1">60+ pre-built questions to analyze your business</p>
+              </div>
+              <button
+                onClick={() => setShowAllQuestions(false)}
+                className="p-2 hover:bg-white/10 rounded-lg transition-colors"
+              >
+                <X className="w-6 h-6 text-white" />
+              </button>
+            </div>
+
+            {/* Modal Content - Scrollable */}
+            <div className="overflow-y-auto max-h-[calc(80vh-100px)] p-6">
+              {Object.entries(allOsirisQuestions).map(([category, questions], categoryIndex) => (
+                <div key={categoryIndex} className="mb-6">
+                  {/* Category Header */}
+                  <div className={`flex items-center gap-3 mb-3 pb-2 border-b ${
+                    category === 'Power Questions'
+                      ? 'border-orange-500/50'
+                      : 'border-gray-700/50'
+                  }`}>
+                    <div className={`w-2 h-8 rounded-full ${
+                      category === 'Power Questions'
+                        ? 'bg-gradient-to-b from-orange-400 to-orange-600'
+                        : 'bg-gradient-to-b from-gray-600 to-gray-700'
+                    }`} />
+                    <h4 className={`font-bold text-base ${
+                      category === 'Power Questions'
+                        ? 'text-orange-400'
+                        : 'text-gray-300'
+                    }`}>
+                      {category}
+                      {category === 'Power Questions' && (
+                        <span className="ml-2 text-xs bg-orange-500/20 text-orange-300 px-2 py-1 rounded-full">
+                          ⭐ Featured
+                        </span>
+                      )}
+                    </h4>
+                  </div>
+
+                  {/* Questions Grid */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                    {questions.map((question, qIndex) => (
+                      <button
+                        key={qIndex}
+                        onClick={() => {
+                          setInputMessage(question);
+                          setShowAllQuestions(false);
+                        }}
+                        className={`text-left px-4 py-3 rounded-lg text-sm transition-all duration-200
+                                  ${category === 'Power Questions'
+                                    ? 'bg-gradient-to-br from-orange-500/10 to-orange-600/10 hover:from-orange-500/20 hover:to-orange-600/20 text-orange-200 border border-orange-500/20 hover:border-orange-400/40'
+                                    : 'bg-white/5 hover:bg-white/10 text-gray-300 border border-gray-700/30 hover:border-gray-600/50'
+                                  }
+                                  hover:shadow-lg hover:scale-[1.02] active:scale-[0.98]`}
+                      >
+                        <span className="text-orange-400 mr-2">→</span>
+                        {question}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ))}
+
+              {/* Footer Note */}
+              <div className="mt-6 p-4 bg-orange-500/10 border border-orange-500/30 rounded-lg">
+                <p className="text-orange-200 text-sm">
+                  <span className="font-semibold">💡 Pro Tip:</span> Try the Power Questions to trigger multiple analysis tools
+                  and get comprehensive business insights with actionable recommendations.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

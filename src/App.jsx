@@ -183,13 +183,15 @@ export default function App() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false); // Sidebar state for mobile
   const [isAgentCenterOpen, setIsAgentCenterOpen] = useState(false); // Agent Center drawer state
 
-  // Only set initial view on mount, don't reset on every user change
+  // Reset view when user changes (login/logout)
   React.useEffect(() => {
-    if (user && currentView === 'overview') {
-      // User is logged in and we're at default view, stay there
+    if (user?.id) {
+      // User logged in or changed - reset to overview
       setCurrentView('overview');
+      setIsSidebarOpen(false);
+      setIsAgentCenterOpen(false);
     }
-  }, []); // Empty deps - only run once on mount
+  }, [user?.id]); // Reset when user ID changes
 
   // Show loading spinner while checking auth
   if (loading) {

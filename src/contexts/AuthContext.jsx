@@ -19,13 +19,14 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     let mounted = true;
 
-    // Absolute maximum timeout - force loading to false after 3 seconds
+    // Absolute maximum timeout - force loading to false after 20 seconds
+    // (Increased to 20s to accommodate 15s timeout + 3 retries with 2s delays)
     const absoluteTimeout = setTimeout(() => {
       if (mounted) {
-        console.warn('Auth check exceeded 3s - forcing loading to false');
+        console.warn('Auth check exceeded 20s - forcing loading to false');
         setLoading(false);
       }
-    }, 3000);
+    }, 20000);
 
     const initAuth = async () => {
       try {
@@ -49,7 +50,8 @@ export const AuthProvider = ({ children }) => {
 
         if (session?.user) {
           setUser(session.user);
-          await fetchUserData(session.user.id);
+          // Fetch user data in background - don't block loading
+          fetchUserData(session.user.id);
         } else {
           // No session - clear everything
           setUser(null);
@@ -78,7 +80,8 @@ export const AuthProvider = ({ children }) => {
         clearTimeout(absoluteTimeout);
         if (session?.user) {
           setUser(session.user);
-          await fetchUserData(session.user.id);
+          // Fetch user data in background - don't block
+          fetchUserData(session.user.id);
         } else {
           setUser(null);
           setUserData(null);
@@ -108,7 +111,8 @@ export const AuthProvider = ({ children }) => {
 
       if (session?.user) {
         setUser(session.user);
-        await fetchUserData(session.user.id);
+        // Fetch user data in background - don't block
+        fetchUserData(session.user.id);
       }
     } catch (error) {
       console.error('Error checking user:', error);
@@ -119,7 +123,11 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const fetchUserData = async (userId) => {
+  const fetchUserData = async (userId, retryCount = 0) => {
+    const MAX_RETRIES = 3;
+    const RETRY_DELAY = 2000; // 2 seconds between retries
+    const TIMEOUT = 15000; // 15 seconds timeout (increased from 3s)
+
     try {
       // Add timeout to prevent hanging
       const dataPromise = supabase
@@ -129,7 +137,7 @@ export const AuthProvider = ({ children }) => {
         .single();
 
       const timeoutPromise = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('User data fetch timeout')), 3000)
+        setTimeout(() => reject(new Error('User data fetch timeout')), TIMEOUT)
       );
 
       const { data, error } = await Promise.race([dataPromise, timeoutPromise]);
@@ -139,9 +147,41 @@ export const AuthProvider = ({ children }) => {
         return; // Continue without user data - not critical
       }
       setUserData(data);
+      console.log('✅ User data loaded successfully');
     } catch (error) {
-      console.warn('Error fetching user data (skipping):', error.message);
-      // Don't fail auth just because userData is missing
+      console.warn(`⚠️ Error fetching user data (attempt ${retryCount + 1}/${MAX_RETRIES}):`, error.message);
+
+      // Retry logic with exponential backoff
+      if (retryCount < MAX_RETRIES - 1) {
+        console.log(`🔄 Retrying in ${RETRY_DELAY / 1000}s...`);
+        await new Promise(resolve => setTimeout(resolve, RETRY_DELAY));
+        return fetchUserData(userId, retryCount + 1);
+      } else {
+        // All retries exhausted - auto cleanup and force re-authentication
+        console.error('❌ All retry attempts failed. Auto-cleanup initiated...');
+        console.error('🔧 Clearing corrupted session data and forcing re-login...');
+
+        // Clear all storage
+        sessionStorage.clear();
+        localStorage.clear();
+
+        // Clear auth state
+        setUser(null);
+        setUserData(null);
+
+        // Force sign out from Supabase (best effort)
+        try {
+          await supabase.auth.signOut();
+        } catch (signOutError) {
+          console.warn('Sign out during cleanup failed (non-critical):', signOutError.message);
+        }
+
+        // Redirect to login after a short delay to show error message
+        setTimeout(() => {
+          console.log('🔄 Redirecting to login page...');
+          window.location.href = '/';
+        }, 1500);
+      }
     }
   };
 
