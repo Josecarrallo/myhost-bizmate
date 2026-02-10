@@ -519,7 +519,8 @@ const ManualDataEntry = ({ onBack }) => {
       setEditingBooking(null);
 
       // Clear search filter before reloading to avoid CORS errors
-      setSearchQuery('');
+      setSearchGuest('');
+      setSearchInput('');
 
       // Reload bookings without search filter
       loadBookings();
@@ -847,13 +848,13 @@ const ManualDataEntry = ({ onBack }) => {
                       <table className="w-full table-fixed">
                         <thead className="bg-orange-500">
                           <tr>
-                            <th className="w-[20%] px-4 py-3 text-left text-white font-bold">Guest</th>
-                            <th className="w-[25%] px-4 py-3 text-left text-white font-bold">Property</th>
-                            <th className="w-[13%] px-4 py-3 text-left text-white font-bold">Check-in</th>
-                            <th className="w-[13%] px-4 py-3 text-left text-white font-bold">Check-out</th>
-                            <th className="w-[8%] px-4 py-3 text-center text-white font-bold">Nights</th>
-                            <th className="w-[15%] px-4 py-3 text-left text-white font-bold">Status</th>
-                            <th className="w-[16%] px-4 py-3 text-right text-white font-bold">Price</th>
+                            <th className="w-[19%] px-4 py-3 text-left text-white font-bold">Guest</th>
+                            <th className="w-[24%] px-4 py-3 text-left text-white font-bold">Property</th>
+                            <th className="w-[12%] px-4 py-3 text-left text-white font-bold">Check-in</th>
+                            <th className="w-[12%] px-4 py-3 text-left text-white font-bold">Check-out</th>
+                            <th className="w-[7%] px-4 py-3 text-center text-white font-bold">Nights</th>
+                            <th className="w-[11%] px-2 py-3 text-left text-white font-bold">Status</th>
+                            <th className="w-[15%] px-4 py-3 text-right text-white font-bold">Price</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -880,18 +881,18 @@ const ManualDataEntry = ({ onBack }) => {
                                 <td className="px-4 py-3 text-gray-300 text-sm whitespace-nowrap">{booking.check_in}</td>
                                 <td className="px-4 py-3 text-gray-300 text-sm whitespace-nowrap">{booking.check_out}</td>
                                 <td className="px-4 py-3 text-white font-bold text-center whitespace-nowrap">{booking.nights}</td>
-                                <td className="px-4 py-3">
-                                  <span className={`px-3 py-1 rounded-full text-xs font-bold inline-block whitespace-nowrap ${
+                                <td className="px-2 py-3">
+                                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold inline-block whitespace-nowrap ${
                                     booking.status === 'confirmed' ? 'bg-green-500 text-white' :
                                     booking.status === 'pending_payment' ? 'bg-yellow-500 text-black' :
                                     booking.status === 'cancelled' ? 'bg-red-500 text-white' :
                                     'bg-gray-500 text-white'
                                   }`}>
-                                    {booking.status}
+                                    {booking.status === 'pending_payment' ? 'pending' : booking.status}
                                   </span>
                                 </td>
                                 <td className="px-4 py-3 text-white font-bold text-right whitespace-nowrap">
-                                  {booking.currency} {booking.total_price?.toLocaleString()}
+                                  IDR {booking.total_price?.toLocaleString()}
                                 </td>
                               </tr>
                             ))
