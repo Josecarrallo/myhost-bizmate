@@ -18,9 +18,10 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabaseService } from '../../services/supabase';
+import { supabase } from '../../lib/supabase';
 
 const ManualDataEntry = ({ onBack }) => {
-  const { userData } = useAuth();
+  const { user, userData } = useAuth();
   const [activeTab, setActiveTab] = useState('view-bookings'); // Start with view mode
 
   // UI states for loading and messages
@@ -60,6 +61,8 @@ const ManualDataEntry = ({ onBack }) => {
   // Add Payment modal
   const [addingPaymentFor, setAddingPaymentFor] = useState(null); // booking selected for payment
   const [isAddingPayment, setIsAddingPayment] = useState(false);
+  const [paymentHistory, setPaymentHistory] = useState([]); // Previous payments for current booking
+  const [isLoadingHistory, setIsLoadingHistory] = useState(false);
 
   // Edit form state
   const [editForm, setEditForm] = useState({
@@ -136,13 +139,14 @@ const ManualDataEntry = ({ onBack }) => {
 
       try {
         setIsLoadingProperties(true);
-        console.log('Loading properties for user:', userData.id);
+        const tenantId = user?.id || userData?.id;
+        console.log('Loading properties for user:', tenantId);
 
         // Fetch properties for this owner
         const allProperties = await supabaseService.getProperties();
         console.log('All properties:', allProperties);
 
-        const ownerProperties = allProperties.filter(p => p.owner_id === userData.id);
+        const ownerProperties = allProperties.filter(p => p.owner_id === tenantId);
         console.log('Owner properties:', ownerProperties);
 
         setProperties(ownerProperties);
@@ -244,8 +248,9 @@ const ManualDataEntry = ({ onBack }) => {
 
   // Load bookings for the owner
   const loadBookings = async () => {
-    if (!userData?.id) {
-      console.warn('❌ No userData.id - cannot load bookings');
+    const tenantId = user?.id || userData?.id;
+    if (!tenantId) {
+      console.warn('❌ No user.id or userData.id - cannot load bookings');
       return;
     }
 
@@ -254,7 +259,7 @@ const ManualDataEntry = ({ onBack }) => {
 
       // Build filters
       const filters = {
-        tenant_id: userData.id // CRITICAL: Multi-tenant filtering
+        tenant_id: tenantId // CRITICAL: Multi-tenant filtering
       };
 
       if (filterProperty) {
@@ -296,8 +301,9 @@ const ManualDataEntry = ({ onBack }) => {
 
   // Load leads/customers
   const loadLeads = async () => {
-    if (!userData?.id) {
-      console.warn('❌ No userData.id - cannot load leads');
+    const tenantId = user?.id || userData?.id;
+    if (!tenantId) {
+      console.warn('❌ No user.id or userData.id - cannot load leads');
       return;
     }
 
@@ -305,7 +311,7 @@ const ManualDataEntry = ({ onBack }) => {
       setIsLoadingLeads(true);
 
       const filters = {
-        tenant_id: userData.id // CRITICAL: Multi-tenant filtering
+        tenant_id: tenantId // CRITICAL: Multi-tenant filtering
       };
 
       console.log('🔍 Loading leads with filters:', filters);
@@ -321,7 +327,7 @@ const ManualDataEntry = ({ onBack }) => {
       })));
 
       // Get bookings data and match with leads
-      const bookingsData = await supabaseService.getBookings({ tenant_id: userData.id });
+      const bookingsData = await supabaseService.getBookings({ tenant_id: tenantId });
 
       const leadsWithBookingData = leadsData.map(lead => {
         // Match booking by name
@@ -745,8 +751,10 @@ const ManualDataEntry = ({ onBack }) => {
   };
 
   // Handle Add Payment button click
-  const handleAddPaymentClick = (booking) => {
+  const handleAddPaymentClick = async (booking) => {
     setAddingPaymentFor(booking);
+    setIsLoadingHistory(true);
+
     // Reset payment form with booking ID
     setPaymentForm({
       bookingId: booking.id,
@@ -755,10 +763,37 @@ const ManualDataEntry = ({ onBack }) => {
       paymentDate: new Date().toISOString().split('T')[0],
       notes: ''
     });
+
+    // Fetch payment history for this booking
+    try {
+      console.log('📜 Fetching payment history for booking:', booking.id);
+      const { data: payments, error } = await supabase
+        .from('payments')
+        .select('*')
+        .eq('booking_id', booking.id)
+        .order('transaction_date', { ascending: true });
+
+      if (error) {
+        console.error('❌ Error fetching payment history:', error);
+        setPaymentHistory([]);
+      } else {
+        console.log('✅ Payment history loaded:', payments.length, 'payments');
+        setPaymentHistory(payments || []);
+      }
+    } catch (error) {
+      console.error('❌ Error fetching payment history:', error);
+      setPaymentHistory([]);
+    } finally {
+      setIsLoadingHistory(false);
+    }
   };
 
   const handleSubmitPayment = async (e) => {
     e.preventDefault();
+    console.log('🚀 handleSubmitPayment called');
+    console.log('📋 Payment form data:', paymentForm);
+    console.log('👤 User:', user);
+    console.log('👤 User Data:', userData);
 
     // Clear previous messages
     setSuccessMessage('');
@@ -766,10 +801,15 @@ const ManualDataEntry = ({ onBack }) => {
     setIsAddingPayment(true);
 
     try {
-      // Validate user is logged in
-      if (!userData || !userData.id) {
+      // Validate user is logged in - use user.id (always available) instead of userData.id
+      const tenantId = user?.id || userData?.id;
+      if (!tenantId) {
+        console.error('❌ No user.id or userData.id found');
+        console.error('❌ user:', user);
+        console.error('❌ userData:', userData);
         throw new Error('You must be logged in to record a payment');
       }
+      console.log('✅ User validated with tenant_id:', tenantId);
 
       // Validate required fields
       if (!paymentForm.bookingId) {
@@ -779,42 +819,94 @@ const ManualDataEntry = ({ onBack }) => {
         throw new Error('Please enter a valid payment amount');
       }
 
-      // Prepare payment data for Supabase
+      // Get booking details to populate payment record
+      const booking = addingPaymentFor;
+      if (!booking) {
+        throw new Error('Booking information not found');
+      }
+
+      // Prepare payment data for Supabase (matches payments table schema)
       const paymentData = {
-        tenant_id: userData.id,
         booking_id: paymentForm.bookingId,
+        property_id: booking.property_id,
+        guest_name: booking.guest_name,
+        guest_email: booking.guest_email || 'noemail@example.com', // Required field
         amount: parseFloat(paymentForm.amount),
+        currency: 'IDR', // Default currency
         payment_method: paymentForm.paymentMethod,
         transaction_date: paymentForm.paymentDate,
         status: 'completed',
-        notes: paymentForm.notes || '',
-        created_at: new Date().toISOString()
+        notes: paymentForm.notes || ''
       };
 
       console.log('💳 Recording payment:', paymentData);
 
       // Call Supabase service
+      console.log('📤 Saving to Supabase payments table...');
       const result = await supabaseService.createPayment(paymentData);
+      console.log('✅ Payment saved to payments table:', result);
 
-      // Optionally update booking payment status
-      // Get booking to check if fully paid
-      const booking = bookings.find(b => b.id === paymentForm.bookingId);
-      if (booking && parseFloat(paymentForm.amount) >= booking.total_price) {
-        await supabaseService.updateBooking(paymentForm.bookingId, {
-          payment_status: 'paid',
-          updated_at: new Date().toISOString()
-        });
+      // Calculate total payments for this booking
+      console.log('📊 Calculating total payments for booking...');
+      const { data: allPayments, error: paymentsError } = await supabase
+        .from('payments')
+        .select('amount')
+        .eq('booking_id', paymentForm.bookingId);
+
+      if (paymentsError) {
+        console.error('❌ Error fetching payments:', paymentsError);
+        throw new Error('Could not verify total payments');
       }
 
-      // Success!
-      setSuccessMessage(`Payment recorded successfully! Amount: IDR ${parseFloat(paymentForm.amount).toLocaleString()}`);
+      const totalPaid = allPayments.reduce((sum, p) => sum + parseFloat(p.amount), 0);
+      const totalPrice = parseFloat(booking.total_price);
+      const remaining = totalPrice - totalPaid;
 
-      // Close modal
-      setAddingPaymentFor(null);
+      console.log('💰 Payment Summary:');
+      console.log('   Total Price: IDR', totalPrice.toLocaleString());
+      console.log('   Total Paid: IDR', totalPaid.toLocaleString());
+      console.log('   Remaining: IDR', remaining.toLocaleString());
 
-      // Reset form
+      // Update booking payment status based on total payments
+      let newStatus = 'pending';
+      let statusMessage = '';
+
+      if (totalPaid >= totalPrice) {
+        newStatus = 'paid';
+        statusMessage = 'Booking FULLY PAID ✅';
+        console.log('✅ Booking is now FULLY PAID');
+      } else {
+        newStatus = 'pending';
+        statusMessage = `Partial payment recorded. Remaining: IDR ${remaining.toLocaleString()}`;
+        console.log('⚠️ Booking still PENDING - partial payment');
+      }
+
+      console.log('📤 Updating booking payment_status to:', newStatus);
+      await supabaseService.updateBooking(paymentForm.bookingId, {
+        payment_status: newStatus,
+        updated_at: new Date().toISOString()
+      });
+      console.log('✅ Booking payment_status updated to:', newStatus);
+
+      // Success message with details
+      setSuccessMessage(`✅ Payment recorded! IDR ${parseFloat(paymentForm.amount).toLocaleString()} - ${statusMessage}`);
+
+      // Reload payment history to show the new payment
+      console.log('🔄 Reloading payment history...');
+      const { data: updatedPayments, error: historyError } = await supabase
+        .from('payments')
+        .select('*')
+        .eq('booking_id', paymentForm.bookingId)
+        .order('transaction_date', { ascending: true });
+
+      if (!historyError && updatedPayments) {
+        setPaymentHistory(updatedPayments);
+        console.log('✅ Payment history reloaded:', updatedPayments.length, 'payments');
+      }
+
+      // Reset form but keep modal open so user can see updated history
       setPaymentForm({
-        bookingId: '',
+        bookingId: booking.id,
         amount: '',
         paymentMethod: 'bank_transfer',
         paymentDate: new Date().toISOString().split('T')[0],
@@ -828,8 +920,17 @@ const ManualDataEntry = ({ onBack }) => {
       setTimeout(() => setSuccessMessage(''), 5000);
 
     } catch (error) {
-      console.error('Error recording payment:', error);
-      setErrorMessage(error.message || 'Failed to record payment. Please try again.');
+      console.error('❌ Error recording payment:', error);
+      console.error('❌ Error details:', {
+        message: error.message,
+        stack: error.stack,
+        paymentForm: paymentForm,
+        booking: addingPaymentFor
+      });
+      setErrorMessage(`❌ Failed to record payment: ${error.message || 'Unknown error'}. Check console for details.`);
+
+      // Clear error message after 10 seconds
+      setTimeout(() => setErrorMessage(''), 10000);
     } finally {
       setIsAddingPayment(false);
     }
@@ -910,7 +1011,7 @@ const ManualDataEntry = ({ onBack }) => {
     { id: 'view-bookings', label: 'View/Edit Bookings', icon: ClipboardList },
     { id: 'booking', label: 'Add Booking', icon: Calendar },
     { id: 'lead', label: 'Add Customer & Lead', icon: UserPlus },
-    { id: 'payment', label: 'Add Payment', icon: DollarSign },
+    { id: 'payment', label: 'View/Edit Payments', icon: DollarSign },
     { id: 'task', label: 'Add Task', icon: CheckCircle }
   ];
 
@@ -983,6 +1084,11 @@ const ManualDataEntry = ({ onBack }) => {
                     <div className="hidden md:flex flex-col leading-tight text-center">
                       <div>Add</div>
                       <div className="whitespace-nowrap">Customer & Lead</div>
+                    </div>
+                  ) : tab.id === 'payment' ? (
+                    <div className="hidden md:flex flex-col leading-tight text-center">
+                      <div>View/Edit</div>
+                      <div>Payments</div>
                     </div>
                   ) : (
                     <span className="hidden md:inline">{tab.label}</span>
@@ -1651,13 +1757,65 @@ const ManualDataEntry = ({ onBack }) => {
           </form>
         )}
 
-        {/* TAB C: Add Payment */}
+        {/* TAB C: View/Edit Payments */}
         {activeTab === 'payment' && (
           <div className="space-y-4">
             <h3 className="text-2xl font-black text-[#FF8C42] mb-4 flex items-center gap-2">
               <DollarSign className="w-6 h-6 text-[#FF8C42]" />
-              Add Payment
+              View/Edit Payments
             </h3>
+
+            {/* Filters */}
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-3 mb-4">
+              {/* Property Filter */}
+              <select
+                value={filterProperty}
+                onChange={(e) => setFilterProperty(e.target.value)}
+                className="px-4 py-2 bg-[#2a2f3a] border-2 border-gray-200 rounded-xl text-white focus:outline-none focus:border-orange-300"
+              >
+                <option value="">All Properties</option>
+                {properties.map(p => (
+                  <option key={p.id} value={p.id}>{p.name}</option>
+                ))}
+              </select>
+
+              {/* Payment Status Filter */}
+              <select
+                value={filterStatus}
+                onChange={(e) => setFilterStatus(e.target.value)}
+                className="px-4 py-2 bg-[#2a2f3a] border-2 border-gray-200 rounded-xl text-white focus:outline-none focus:border-orange-300"
+              >
+                <option value="">All Payment Status</option>
+                <option value="paid">Paid</option>
+                <option value="pending">Pending</option>
+              </select>
+
+              {/* Search Guest */}
+              <div className="md:col-span-2 flex gap-2">
+                <input
+                  type="text"
+                  placeholder="Search guest name (press Enter)..."
+                  value={searchInput}
+                  onChange={(e) => setSearchInput(e.target.value)}
+                  onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
+                  className="flex-1 px-4 py-2 bg-[#2a2f3a] border-2 border-gray-200 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:border-orange-300"
+                />
+              </div>
+
+              {/* Clear Filters */}
+              <button
+                onClick={() => {
+                  setFilterProperty('');
+                  setFilterStatus('');
+                  setSearchGuest('');
+                  setSearchInput('');
+                  loadBookings();
+                }}
+                className="px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-xl font-medium transition-all"
+              >
+                Clear Filters
+              </button>
+            </div>
 
             {isLoadingBookings ? (
               <div className="flex justify-center items-center py-12">
@@ -1665,6 +1823,12 @@ const ManualDataEntry = ({ onBack }) => {
               </div>
             ) : (
               <>
+                <p className="text-gray-300 text-sm mb-3 flex items-center gap-2">
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  Click "Add Payment" button to record a payment
+                </p>
                 <div className="bg-[#2a2f3a] rounded-xl overflow-hidden border-2 border-gray-200">
                   <div className="overflow-x-auto">
                     <table className="w-full table-fixed">
@@ -2052,62 +2216,132 @@ const ManualDataEntry = ({ onBack }) => {
 
       {/* Add Payment Modal */}
       {addingPaymentFor && (
-        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4 overflow-y-auto">
-          <div className="bg-[#1f2937] rounded-2xl p-6 max-w-2xl w-full border-2 border-orange-500 my-8">
-            <h3 className="text-2xl font-bold text-orange-400 mb-6 flex items-center gap-2">
-              <DollarSign className="w-6 h-6" />
-              Add Payment
-            </h3>
-
-            {/* Booking Information (Readonly) */}
-            <div className="bg-[#2a2f3a] rounded-xl p-4 mb-6 border-2 border-gray-600">
-              <h4 className="text-sm font-bold text-gray-400 mb-3">Booking Details</h4>
-              <div className="grid grid-cols-2 gap-3 text-sm">
-                <div>
-                  <span className="text-gray-400">Guest:</span>
-                  <span className="text-white font-medium ml-2">{addingPaymentFor.guest_name}</span>
-                </div>
-                <div>
-                  <span className="text-gray-400">Property:</span>
-                  <span className="text-white font-medium ml-2">
-                    {properties.find(p => p.id === addingPaymentFor.property_id)?.name || 'N/A'}
-                  </span>
-                </div>
-                <div>
-                  <span className="text-gray-400">Check-in:</span>
-                  <span className="text-white font-medium ml-2">{addingPaymentFor.check_in}</span>
-                </div>
-                <div>
-                  <span className="text-gray-400">Check-out:</span>
-                  <span className="text-white font-medium ml-2">{addingPaymentFor.check_out}</span>
-                </div>
-                <div className="col-span-2 border-t border-gray-600 pt-2 mt-1">
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-400">Total Price:</span>
-                    <span className="text-green-400 font-bold text-lg">
-                      IDR {addingPaymentFor.total_price?.toLocaleString()}
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center mt-1">
-                    <span className="text-gray-400">Status:</span>
-                    <span className={`px-2 py-1 rounded-full text-xs font-bold ${
-                      addingPaymentFor.payment_status === 'paid' ? 'bg-green-500 text-white' :
-                      addingPaymentFor.payment_status === 'pending' ? 'bg-yellow-500 text-black' :
-                      'bg-gray-500 text-white'
-                    }`}>
-                      {addingPaymentFor.payment_status || 'pending'}
-                    </span>
-                  </div>
-                </div>
-              </div>
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4 overflow-y-auto pl-64">
+          <div className="bg-[#1f2937] rounded-xl max-w-2xl w-full border-2 border-orange-500 my-8 max-h-[90vh] flex flex-col">
+            {/* Header */}
+            <div className="px-5 py-3 border-b border-gray-700 flex-shrink-0">
+              <h3 className="text-xl font-bold text-orange-400 flex items-center gap-2">
+                <DollarSign className="w-5 h-5" />
+                Add Payment
+              </h3>
+              <p className="text-sm text-gray-400 mt-1">
+                {addingPaymentFor.guest_name} • IDR {addingPaymentFor.total_price?.toLocaleString()}
+              </p>
             </div>
 
-            {/* Payment Form */}
-            <form onSubmit={handleSubmitPayment} className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* Amount to Pay */}
-                <div className="md:col-span-2">
-                  <label className="block text-[#FF8C42] font-medium mb-2">Payment Amount (IDR) *</label>
+            {/* Scrollable Content Area */}
+            <div className="overflow-y-auto flex-1">
+              {/* Success Message (inside modal) */}
+              {successMessage && (
+                <div className={`mx-5 mt-4 rounded-xl p-4 flex items-center gap-3 ${
+                  successMessage.includes('FULLY PAID')
+                    ? 'bg-green-500 border-2 border-green-300 animate-pulse'
+                    : 'bg-green-500/20 border-2 border-green-500'
+                }`}>
+                  <CheckCircle className={`flex-shrink-0 ${
+                    successMessage.includes('FULLY PAID')
+                      ? 'w-7 h-7 text-white'
+                      : 'w-5 h-5 text-green-400'
+                  }`} />
+                  <p className={`font-bold ${
+                    successMessage.includes('FULLY PAID')
+                      ? 'text-white text-base'
+                      : 'text-green-100 text-sm'
+                  }`}>{successMessage}</p>
+                </div>
+              )}
+
+              {/* Payment History Section */}
+              {isLoadingHistory ? (
+                <div className="px-5 py-4 border-b border-gray-700">
+                  <div className="flex items-center gap-2 text-gray-400">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-orange-500"></div>
+                    <span className="text-sm">Loading payment history...</span>
+                  </div>
+                </div>
+              ) : paymentHistory.length > 0 ? (
+                <div className="px-5 py-4 border-b border-gray-700 bg-[#2a2f3a]/50">
+                  <h4 className="text-sm font-bold text-orange-400 mb-3 flex items-center gap-2">
+                    <ClipboardList className="w-4 h-4" />
+                    Payment History ({paymentHistory.length} payment{paymentHistory.length !== 1 ? 's' : ''})
+                  </h4>
+
+                  {/* Payment History Table */}
+                  <div className="space-y-2">
+                    {paymentHistory.map((payment, index) => (
+                      <div key={payment.id} className="bg-[#1f2937] border border-gray-600 rounded-lg p-3">
+                        <div className="grid grid-cols-2 gap-2 text-xs">
+                          <div>
+                            <span className="text-gray-400">Date:</span>
+                            <span className="text-white ml-2">{payment.transaction_date}</span>
+                          </div>
+                          <div>
+                            <span className="text-gray-400">Amount:</span>
+                            <span className="text-green-400 font-bold ml-2">IDR {parseFloat(payment.amount).toLocaleString()}</span>
+                          </div>
+                          <div>
+                            <span className="text-gray-400">Method:</span>
+                            <span className="text-white ml-2 capitalize">{payment.payment_method.replace('_', ' ')}</span>
+                          </div>
+                          <div>
+                            <span className="text-gray-400">Status:</span>
+                            <span className="text-green-400 ml-2">{payment.status}</span>
+                          </div>
+                          {payment.notes && (
+                            <div className="col-span-2 mt-1">
+                              <span className="text-gray-400 text-xs">Owner Notes:</span>
+                              <p className="text-white mt-1 text-xs italic bg-gray-700/30 p-2 rounded">"{payment.notes}"</p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Payment Summary */}
+                  <div className={`mt-4 p-3 rounded-lg ${
+                    paymentHistory.reduce((sum, p) => sum + parseFloat(p.amount), 0) >= addingPaymentFor.total_price
+                      ? 'bg-green-500/20 border-2 border-green-500'
+                      : 'bg-[#1f2937] border-2 border-orange-500/50'
+                  }`}>
+                    <div className="grid grid-cols-3 gap-4 text-center">
+                      <div>
+                        <p className="text-[10px] text-gray-400 uppercase">Total Price</p>
+                        <p className="text-white font-bold text-sm">IDR {addingPaymentFor.total_price?.toLocaleString()}</p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] text-gray-400 uppercase">Paid</p>
+                        <p className="text-green-400 font-bold text-sm">
+                          IDR {paymentHistory.reduce((sum, p) => sum + parseFloat(p.amount), 0).toLocaleString()}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] text-gray-400 uppercase">Remaining</p>
+                        <p className={`font-bold text-sm ${
+                          (addingPaymentFor.total_price - paymentHistory.reduce((sum, p) => sum + parseFloat(p.amount), 0)) <= 0
+                            ? 'text-green-400'
+                            : 'text-yellow-400'
+                        }`}>
+                          IDR {Math.max(0, addingPaymentFor.total_price - paymentHistory.reduce((sum, p) => sum + parseFloat(p.amount), 0)).toLocaleString()}
+                          {(addingPaymentFor.total_price - paymentHistory.reduce((sum, p) => sum + parseFloat(p.amount), 0)) <= 0 && ' ✅'}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="px-5 py-4 border-b border-gray-700 bg-[#2a2f3a]/30">
+                  <p className="text-sm text-gray-400 italic">No previous payments recorded for this booking.</p>
+                </div>
+              )}
+
+              {/* Form Content */}
+              <form id="payment-form" onSubmit={handleSubmitPayment}>
+                <div className="p-5 space-y-3">
+                  <h4 className="text-sm font-bold text-orange-400 mb-3">Add New Payment</h4>
+                {/* Amount */}
+                <div>
+                  <label className="block text-orange-400 font-medium mb-1.5 text-sm">Amount (IDR) *</label>
                   <input
                     type="number"
                     required
@@ -2116,76 +2350,79 @@ const ManualDataEntry = ({ onBack }) => {
                     max={addingPaymentFor.total_price}
                     value={paymentForm.amount}
                     onChange={(e) => setPaymentForm({...paymentForm, amount: e.target.value})}
-                    className="w-full px-4 py-3 bg-[#2a2f3a] border-2 border-gray-200 rounded-xl text-[#FF8C42] placeholder-gray-400 focus:outline-none focus:border-orange-300"
+                    className="w-full px-3 py-2 bg-[#2a2f3a] border border-gray-600 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-orange-400"
                     placeholder="Enter amount"
                   />
-                  <p className="text-xs text-gray-400 mt-1">
-                    Maximum: IDR {addingPaymentFor.total_price?.toLocaleString()}
-                  </p>
                 </div>
 
-                {/* Payment Method */}
-                <div>
-                  <label className="block text-[#FF8C42] font-medium mb-2">Payment Method *</label>
-                  <select
-                    required
-                    value={paymentForm.paymentMethod}
-                    onChange={(e) => setPaymentForm({...paymentForm, paymentMethod: e.target.value})}
-                    className="w-full px-4 py-3 bg-[#2a2f3a] border-2 border-gray-200 rounded-xl text-[#FF8C42] focus:outline-none focus:border-orange-300 [&>option]:bg-[#1f2937] [&>option]:text-white"
-                  >
-                    <option value="bank_transfer">Bank Transfer</option>
-                    <option value="credit_card">Credit Card</option>
-                    <option value="cash">Cash</option>
-                    <option value="paypal">PayPal</option>
-                    <option value="wise">Wise</option>
-                    <option value="other">Other</option>
-                  </select>
-                </div>
+                {/* Payment Method & Date in one row */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-orange-400 font-medium mb-1.5 text-sm">Method *</label>
+                    <select
+                      required
+                      value={paymentForm.paymentMethod}
+                      onChange={(e) => setPaymentForm({...paymentForm, paymentMethod: e.target.value})}
+                      className="w-full px-3 py-2 bg-[#2a2f3a] border border-gray-600 rounded-lg text-white focus:outline-none focus:border-orange-400"
+                    >
+                      <option value="bank_transfer">Bank Transfer</option>
+                      <option value="credit_card">Credit Card</option>
+                      <option value="cash">Cash</option>
+                      <option value="paypal">PayPal</option>
+                      <option value="wise">Wise</option>
+                      <option value="other">Other</option>
+                    </select>
+                  </div>
 
-                {/* Payment Date */}
-                <div>
-                  <label className="block text-[#FF8C42] font-medium mb-2">Payment Date *</label>
-                  <input
-                    type="date"
-                    required
-                    value={paymentForm.paymentDate}
-                    onChange={(e) => setPaymentForm({...paymentForm, paymentDate: e.target.value})}
-                    className="w-full px-4 py-3 bg-[#2a2f3a] border-2 border-gray-200 rounded-xl text-[#FF8C42] focus:outline-none focus:border-orange-300"
-                  />
+                  <div>
+                    <label className="block text-orange-400 font-medium mb-1.5 text-sm">Date *</label>
+                    <input
+                      type="date"
+                      required
+                      value={paymentForm.paymentDate}
+                      onChange={(e) => setPaymentForm({...paymentForm, paymentDate: e.target.value})}
+                      className="w-full px-3 py-2 bg-[#2a2f3a] border border-gray-600 rounded-lg text-white focus:outline-none focus:border-orange-400"
+                    />
+                  </div>
                 </div>
 
                 {/* Notes */}
-                <div className="md:col-span-2">
-                  <label className="block text-[#FF8C42] font-medium mb-2">Notes</label>
+                <div>
+                  <label className="block text-orange-400 font-medium mb-1.5 text-sm">Notes</label>
                   <textarea
                     value={paymentForm.notes}
                     onChange={(e) => setPaymentForm({...paymentForm, notes: e.target.value})}
-                    rows={3}
-                    className="w-full px-4 py-3 bg-[#2a2f3a] border-2 border-gray-200 rounded-xl text-[#FF8C42] placeholder-gray-400 focus:outline-none focus:border-orange-300"
-                    placeholder="Payment confirmation number, transaction reference, etc."
+                    rows={2}
+                    className="w-full px-3 py-2 bg-[#2a2f3a] border border-gray-600 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-orange-400 resize-none"
+                    placeholder="Payment reference, confirmation number..."
                   />
                 </div>
               </div>
+              </form>
+            </div>
 
-              {/* Action Buttons */}
-              <div className="flex justify-end gap-3 pt-4">
-                <button
-                  type="button"
-                  onClick={() => setAddingPaymentFor(null)}
-                  className="px-6 py-3 bg-gray-600 hover:bg-gray-700 text-white rounded-xl font-medium transition-all"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={isAddingPayment}
-                  className="px-6 py-3 bg-orange-500 hover:bg-orange-600 text-white rounded-xl font-medium transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  <Save className="w-5 h-5" />
-                  {isAddingPayment ? 'Saving...' : 'Save Payment'}
-                </button>
-              </div>
-            </form>
+            {/* Fixed Footer with Buttons */}
+            <div className="px-5 py-3 border-t border-gray-700 flex justify-between items-center bg-[#1f2937] flex-shrink-0">
+              <button
+                type="button"
+                onClick={() => {
+                  setAddingPaymentFor(null);
+                  setSuccessMessage('');
+                }}
+                className="px-5 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg font-medium transition-colors"
+              >
+                Close
+              </button>
+              <button
+                type="submit"
+                form="payment-form"
+                disabled={isAddingPayment}
+                className="px-5 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg font-medium transition-colors flex items-center gap-2 disabled:opacity-50"
+              >
+                <Save className="w-4 h-4" />
+                {isAddingPayment ? 'Saving...' : 'Save Payment'}
+              </button>
+            </div>
           </div>
         </div>
       )}
