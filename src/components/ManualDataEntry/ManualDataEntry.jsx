@@ -836,25 +836,30 @@ const ManualDataEntry = ({ onBack }) => {
               {/* Bookings Table */}
               {!isLoadingBookings && (
                 <>
+                  <p className="text-gray-300 text-sm mb-3 flex items-center gap-2">
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    Click on any row to edit the booking
+                  </p>
                   <div className="bg-[#2a2f3a] rounded-xl overflow-hidden border-2 border-gray-200">
                     <div className="overflow-x-auto">
                       <table className="w-full table-fixed">
                         <thead className="bg-orange-500">
                           <tr>
-                            <th className="w-[18%] px-4 py-3 text-left text-white font-bold">Guest</th>
-                            <th className="w-[15%] px-4 py-3 text-left text-white font-bold">Property</th>
-                            <th className="w-[11%] px-4 py-3 text-left text-white font-bold">Check-in</th>
-                            <th className="w-[11%] px-4 py-3 text-left text-white font-bold">Check-out</th>
-                            <th className="w-[7%] px-4 py-3 text-center text-white font-bold">Nights</th>
-                            <th className="w-[12%] px-4 py-3 text-left text-white font-bold">Status</th>
-                            <th className="w-[12%] px-4 py-3 text-right text-white font-bold">Price</th>
-                            <th className="w-[14%] px-4 py-3 text-center text-white font-bold">Actions</th>
+                            <th className="w-[20%] px-4 py-3 text-left text-white font-bold">Guest</th>
+                            <th className="w-[25%] px-4 py-3 text-left text-white font-bold">Property</th>
+                            <th className="w-[13%] px-4 py-3 text-left text-white font-bold">Check-in</th>
+                            <th className="w-[13%] px-4 py-3 text-left text-white font-bold">Check-out</th>
+                            <th className="w-[8%] px-4 py-3 text-center text-white font-bold">Nights</th>
+                            <th className="w-[15%] px-4 py-3 text-left text-white font-bold">Status</th>
+                            <th className="w-[16%] px-4 py-3 text-right text-white font-bold">Price</th>
                           </tr>
                         </thead>
                         <tbody>
                           {bookings.length === 0 ? (
                             <tr>
-                              <td colSpan="8" className="px-4 py-8 text-center text-gray-400">
+                              <td colSpan="7" className="px-4 py-8 text-center text-gray-400">
                                 No bookings found
                               </td>
                             </tr>
@@ -862,17 +867,21 @@ const ManualDataEntry = ({ onBack }) => {
                             bookings.map((booking, index) => (
                               <tr
                                 key={booking.id}
-                                className={`border-b border-gray-700 ${index % 2 === 0 ? 'bg-[#2a2f3a]' : 'bg-[#1f2937]'} hover:bg-[#374151] transition-colors`}
+                                className={`border-b border-gray-700 ${index % 2 === 0 ? 'bg-[#2a2f3a]' : 'bg-[#1f2937]'} hover:bg-[#374151] transition-colors cursor-pointer`}
+                                onClick={() => handleEditBooking(booking)}
+                                title="Click to edit this booking"
                               >
-                                <td className="px-4 py-3 text-white font-medium truncate">{booking.guest_name}</td>
-                                <td className="px-4 py-3 text-gray-300 text-sm truncate">
-                                  {properties.find(p => p.id === booking.property_id)?.name || 'N/A'}
+                                <td className="px-4 py-3 text-white font-medium overflow-hidden">
+                                  <div className="truncate">{booking.guest_name}</div>
                                 </td>
-                                <td className="px-4 py-3 text-gray-300 text-sm">{booking.check_in}</td>
-                                <td className="px-4 py-3 text-gray-300 text-sm">{booking.check_out}</td>
-                                <td className="px-4 py-3 text-white font-bold text-center">{booking.nights}</td>
+                                <td className="px-4 py-3 text-gray-300 text-sm overflow-hidden">
+                                  <div className="truncate">{properties.find(p => p.id === booking.property_id)?.name || 'N/A'}</div>
+                                </td>
+                                <td className="px-4 py-3 text-gray-300 text-sm whitespace-nowrap">{booking.check_in}</td>
+                                <td className="px-4 py-3 text-gray-300 text-sm whitespace-nowrap">{booking.check_out}</td>
+                                <td className="px-4 py-3 text-white font-bold text-center whitespace-nowrap">{booking.nights}</td>
                                 <td className="px-4 py-3">
-                                  <span className={`px-3 py-1 rounded-full text-xs font-bold inline-block ${
+                                  <span className={`px-3 py-1 rounded-full text-xs font-bold inline-block whitespace-nowrap ${
                                     booking.status === 'confirmed' ? 'bg-green-500 text-white' :
                                     booking.status === 'pending_payment' ? 'bg-yellow-500 text-black' :
                                     booking.status === 'cancelled' ? 'bg-red-500 text-white' :
@@ -881,24 +890,8 @@ const ManualDataEntry = ({ onBack }) => {
                                     {booking.status}
                                   </span>
                                 </td>
-                                <td className="px-4 py-3 text-white font-bold text-right">
+                                <td className="px-4 py-3 text-white font-bold text-right whitespace-nowrap">
                                   {booking.currency} {booking.total_price?.toLocaleString()}
-                                </td>
-                                <td className="px-4 py-3">
-                                  <div className="flex gap-2 justify-center">
-                                    <button
-                                      onClick={() => handleEditBooking(booking)}
-                                      className="px-3 py-1 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-sm font-medium transition-all"
-                                    >
-                                      Edit
-                                    </button>
-                                    <button
-                                      onClick={() => setDeletingBooking(booking)}
-                                      className="px-3 py-1 bg-red-500 hover:bg-red-600 text-white rounded-lg text-sm font-medium transition-all"
-                                    >
-                                      Delete
-                                    </button>
-                                  </div>
                                 </td>
                               </tr>
                             ))
