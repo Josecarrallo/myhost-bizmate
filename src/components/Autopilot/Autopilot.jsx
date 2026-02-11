@@ -48,8 +48,24 @@ const Autopilot = ({ onBack }) => {
   const [selectedDateRange, setSelectedDateRange] = useState('this_week'); // for filtering
   const [selectedReportType, setSelectedReportType] = useState('all'); // for All Data section
   const [selectedProperty, setSelectedProperty] = useState('gita'); // for Business Reports (owner selection)
-  const [reportMode, setReportMode] = useState('static'); // static vs dynamic comparison
-  const [isGeneratingReport, setIsGeneratingReport] = useState(false);
+  const [isGeneratingReport, setIsGeneratingReport] = useState(false); // for Business Reports generation
+
+  // Load saved report from localStorage when iframe loads
+  useEffect(() => {
+    const loadSavedReport = () => {
+      const savedReport = localStorage.getItem(`business-report-${selectedProperty}`);
+      const iframe = document.getElementById('business-report-frame');
+      if (savedReport && iframe) {
+        setTimeout(() => {
+          iframe.srcdoc = savedReport;
+        }, 100);
+      }
+    };
+
+    if (activeSection === 'businessReports') {
+      loadSavedReport();
+    }
+  }, [activeSection, selectedProperty]);
 
   // Real data from Supabase (with fallback from INFORME_SUPABASE_IZUMI_HOTEL)
   const [todayMetrics, setTodayMetrics] = useState({
@@ -1902,11 +1918,57 @@ const Autopilot = ({ onBack }) => {
       }
     };
 
-    const handleGenerate = () => {
-      // Silently refresh - user can run the script manually in terminal if needed
-      const iframe = document.getElementById('business-report-frame');
-      if (iframe) {
-        iframe.src = iframe.src; // Refresh iframe
+    const handleGenerate = async () => {
+      setIsGeneratingReport(true);
+
+      try {
+        // Import services
+        const { generateBusinessReport } = await import('../../services/businessReportService');
+        const { generateReportHTML } = await import('../../services/generateReportHTML');
+
+        // Get owner data
+        const ownerData = owners.find(o => o.id === selectedProperty);
+        const ownerId = selectedProperty === 'gita'
+          ? '1f32d384-4018-46a9-a6f9-058217e6924a'
+          : 'c24393db-d318-4d75-8bbf-0fa240b9c1db';
+
+        console.log(`📊 Generating report for ${ownerData.name}...`);
+
+        // Generate report data (calls Supabase + OSIRIS)
+        const reportData = await generateBusinessReport(
+          ownerId,
+          ownerData.name,
+          ownerData.property,
+          ownerData.currency
+        );
+
+        if (reportData) {
+          console.log('✅ Data generated, creating HTML...');
+
+          // Generate complete HTML
+          const reportHTML = generateReportHTML(
+            ownerData.name,
+            ownerData.property,
+            ownerData.currency,
+            reportData,
+            reportData.osirisAnalysis
+          );
+
+          // Display in iframe using srcdoc and save to localStorage
+          const iframe = document.getElementById('business-report-frame');
+          if (iframe) {
+            iframe.srcdoc = reportHTML;
+            localStorage.setItem(`business-report-${selectedProperty}`, reportHTML);
+            console.log('✅ Report displayed and saved to localStorage');
+          }
+        } else {
+          alert('❌ Error generating report. No data found.');
+        }
+      } catch (error) {
+        console.error('Error generating report:', error);
+        alert('❌ Error: ' + error.message);
+      } finally {
+        setIsGeneratingReport(false);
       }
     };
 
@@ -1945,10 +2007,24 @@ const Autopilot = ({ onBack }) => {
             </select>
             <button
               onClick={handleGenerate}
-              className="flex items-center justify-center gap-2 px-8 py-3 bg-purple-500 text-white rounded-xl font-semibold hover:bg-purple-600 transition-all shadow-lg min-w-[140px]"
+              disabled={isGeneratingReport}
+              className={`flex items-center justify-center gap-2 px-8 py-3 text-white rounded-xl font-semibold transition-all shadow-lg min-w-[140px] ${
+                isGeneratingReport
+                  ? 'bg-purple-400 cursor-not-allowed'
+                  : 'bg-purple-500 hover:bg-purple-600'
+              }`}
             >
-              <Zap className="w-5 h-5" />
-              Generate
+              {isGeneratingReport ? (
+                <>
+                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  Generating...
+                </>
+              ) : (
+                <>
+                  <Zap className="w-5 h-5" />
+                  Generate
+                </>
+              )}
             </button>
             <button
               onClick={handlePrint}
@@ -1962,22 +2038,18 @@ const Autopilot = ({ onBack }) => {
 
         {/* Report Display */}
         <div className="bg-white rounded-3xl shadow-2xl border-2 border-gray-200" style={{ height: '1400px', overflowY: 'auto', overflowX: 'hidden' }}>
-          <div style={{ width: '100%', height: '2520px', position: 'relative' }}>
-            <iframe
-              key={selectedProperty}
-              id="business-report-frame"
-              src={`/business-reports/${currentFile}`}
-              style={{
-                width: '100%',
-                height: '3500px',
-                border: 'none',
-                transform: 'scale(1.1)',
-                transformOrigin: '0 0',
-                pointerEvents: 'auto'
-              }}
-              title="Business Report"
-            />
-          </div>
+          <iframe
+            key={selectedProperty}
+            id="business-report-frame"
+            src={`/business-reports/${currentFile}`}
+            style={{
+              width: '100%',
+              height: '3500px',
+              border: 'none',
+              display: 'block'
+            }}
+            title="Business Report"
+          />
         </div>
       </div>
     );

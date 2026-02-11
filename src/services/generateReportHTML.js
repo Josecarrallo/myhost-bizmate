@@ -1,9 +1,136 @@
-<!DOCTYPE html>
+// Generate complete HTML for business report
+export function generateReportHTML(ownerName, propertyName, currency, data, osirisAnalysis) {
+  const { metrics, channels, propertyMetrics } = data;
+  const properties = propertyMetrics; // Alias
+
+  const START_DATE = '2026-01-01';
+  const END_DATE = '2026-12-31';
+
+  // Helper function to clean markdown
+  const cleanMarkdown = (text) => {
+    return text
+      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+      .replace(/\*(.*?)\*/g, '<em>$1</em>')
+      .trim();
+  };
+
+  // Format currency
+  const formatCurrency = (amount, curr) => {
+    if (curr === 'IDR') {
+      return `Rp ${Math.round(amount / 1000).toLocaleString('id-ID')}K`;
+    }
+    return `$${Math.round(amount).toLocaleString('en-US')}`;
+  };
+
+  const formatCurrencyFull = (amount, curr) => {
+    if (curr === 'IDR') {
+      return `IDR ${Math.round(amount).toLocaleString('id-ID')}`;
+    }
+    return `USD ${Math.round(amount).toLocaleString('en-US')}`;
+  };
+
+  // Parse OSIRIS analysis
+  let areasOfAttentionHTML = '';
+  let performanceInsightsHTML = '';
+  let strategicObjectivesHTML = '';
+
+  if (osirisAnalysis) {
+    try {
+      const areasMatch = osirisAnalysis.match(/###\s*AREAS OF ATTENTION\s*([\s\S]*?)(?=###|$)/i);
+      const insightsMatch = osirisAnalysis.match(/###\s*PERFORMANCE INSIGHTS\s*([\s\S]*?)(?=###|$)/i);
+      const objectivesMatch = osirisAnalysis.match(/###\s*STRATEGIC OBJECTIVES\s*([\s\S]*?)$/i);
+
+      if (areasMatch) {
+        const areasText = areasMatch[1].trim();
+        const areasLines = areasText.split('\n').filter(line => line.trim());
+        areasOfAttentionHTML = areasLines.map(line => {
+          const cleaned = line.replace(/^[-*]\s*/, '').trim();
+          if (cleaned) {
+            const parts = cleaned.split(/[:–-]/);
+            const title = cleanMarkdown(parts[0].trim());
+            const desc = parts.slice(1).join(':').trim() || '';
+            return `
+            <div class="summary-box">
+                <h3>${title}</h3>
+                ${desc ? `<p>${cleanMarkdown(desc)}</p>` : ''}
+            </div>`;
+          }
+          return '';
+        }).join('');
+      }
+
+      if (insightsMatch) {
+        const insightsText = insightsMatch[1].trim();
+        const insightsLines = insightsText.split('\n').filter(line => line.trim());
+        performanceInsightsHTML = insightsLines.map((line, idx) => {
+          const cleaned = line.replace(/^[-*]\s*/, '').trim();
+          if (cleaned) {
+            const parts = cleaned.split(/[:–-]/);
+            const title = cleanMarkdown(parts[0].trim());
+            const desc = parts.slice(1).join(':').trim() || '';
+            const bgColor = idx === 0 ? '#f0fff4' : '#fffaf0';
+            const borderColor = idx === 0 ? '#9ae6b4' : '#fbb6ce';
+            return `
+            <div class="summary-box" style="background: ${bgColor}; border-color: ${borderColor};">
+                <h3>${idx === 0 ? '⭐ ' : ''}${title}</h3>
+                ${desc ? `<p>${cleanMarkdown(desc)}</p>` : ''}
+            </div>`;
+          }
+          return '';
+        }).join('');
+      }
+
+      if (objectivesMatch) {
+        const objectivesText = objectivesMatch[1].trim();
+        const objectivesLines = objectivesText.split('\n').filter(line => line.trim() && line.includes('OBJECTIVE'));
+        const objectives = objectivesLines.slice(0, 3).map(line => {
+          const parts = line.split('|').map(p => p.trim());
+          if (parts.length >= 3) {
+            return {
+              action: parts[0].replace(/OBJECTIVE \d+:\s*/i, '').trim(),
+              goal: parts[1],
+              target: parts[2]
+            };
+          }
+          return null;
+        }).filter(obj => obj !== null);
+
+        if (objectives.length > 0) {
+          strategicObjectivesHTML = objectives.map(obj => `
+                <div style="background: #f7fafc; padding: 6px; border-radius: 5px; border: 1px solid #e2e8f0; text-align: center;">
+                    <div style="font-size: 8px; color: #718096; margin-bottom: 2px; font-weight: 600;">${cleanMarkdown(obj.action).toUpperCase()}</div>
+                    <div style="font-size: 11px; font-weight: 700; color: #2d3748;">${cleanMarkdown(obj.goal)}</div>
+                    <div style="font-size: 7px; color: #718096; margin-top: 2px; line-height: 1.2;">${cleanMarkdown(obj.target)}</div>
+                </div>`).join('');
+        }
+      }
+    } catch (e) {
+      console.error('Error parsing OSIRIS:', e);
+    }
+  }
+
+  // Fallback if OSIRIS failed
+  if (!areasOfAttentionHTML) {
+    areasOfAttentionHTML = `<div class="summary-box"><h3>Low Occupancy Rate</h3><p>Current occupancy: ${metrics.occupancyRate.toFixed(1)}%</p></div>`;
+  }
+  if (!performanceInsightsHTML) {
+    performanceInsightsHTML = `<div class="summary-box"><h3>Revenue Performance</h3><p>Total revenue: ${formatCurrencyFull(metrics.totalRevenue, currency)}</p></div>`;
+  }
+  if (!strategicObjectivesHTML) {
+    strategicObjectivesHTML = `
+      <div style="background: #f7fafc; padding: 6px; border-radius: 5px; border: 1px solid #e2e8f0; text-align: center;">
+        <div style="font-size: 8px; color: #718096; margin-bottom: 2px; font-weight: 600;">INCREASE</div>
+        <div style="font-size: 11px; font-weight: 700; color: #2d3748;">Direct Bookings</div>
+        <div style="font-size: 7px; color: #718096; margin-top: 2px;">Reduce OTA dependency</div>
+      </div>`;
+  }
+
+  return `<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Nismara Uma Villa - Business Performance Analysis</title>
+    <title>${propertyName} - Business Performance Analysis</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
@@ -114,7 +241,7 @@
         }
 
         .section {
-            margin-bottom: 8px;
+            margin-bottom: 12px;
         }
 
         .section-title {
@@ -260,29 +387,29 @@
     <!-- PAGE 1: EXECUTIVE SUMMARY -->
     <div class="page">
         <div class="header">
-            <h1>NISMARA UMA VILLA</h1>
-            <div class="subtitle">Business Performance Analysis | 2026-01-01 to 2026-12-31</div>
+            <h1>${propertyName.toUpperCase()}</h1>
+            <div class="subtitle">Business Performance Analysis | ${START_DATE} to ${END_DATE}</div>
         </div>
 
         <!-- KEY METRICS -->
         <div class="metrics-grid">
             <div class="metric-box">
                 <div class="metric-label">Total Bookings</div>
-                <div class="metric-value">20</div>
+                <div class="metric-value">${metrics.totalBookings}</div>
             </div>
             <div class="metric-box">
                 <div class="metric-label">Total Revenue</div>
-                <div class="metric-value">IDR 74.7M</div>
-                <div class="metric-subtitle">~$4,666</div>
+                <div class="metric-value">${formatCurrency(metrics.totalRevenue, currency)}</div>
+                ${currency === 'IDR' ? `<div class="metric-subtitle">~$${Math.round(metrics.totalRevenue / 16000).toLocaleString()}</div>` : ''}
             </div>
             <div class="metric-box">
                 <div class="metric-label">Avg Booking Value</div>
-                <div class="metric-value">IDR 3.7M</div>
+                <div class="metric-value">${formatCurrency(metrics.avgBookingValue, currency)}</div>
             </div>
             <div class="metric-box">
                 <div class="metric-label">Occupancy Rate</div>
-                <div class="metric-value">28.7%</div>
-                <div class="metric-subtitle">4 avg nights</div>
+                <div class="metric-value">${metrics.occupancyRate.toFixed(1)}%</div>
+                <div class="metric-subtitle">${metrics.avgStayLength.toFixed(1)} avg nights</div>
             </div>
         </div>
 
@@ -290,34 +417,34 @@
         <div class="section">
             <div class="section-title">Key Observations</div>
             <div class="observations-grid">
-                <div class="observation-card critical">
+                <div class="observation-card ${metrics.occupancyRate < 30 ? 'critical' : ''}">
                     <div class="observation-title">Occupancy Performance</div>
-                    <div class="observation-text">28.7% occupancy with 80 room nights. Below industry average. Action needed.</div>
+                    <div class="observation-text">${metrics.occupancyRate.toFixed(1)}% occupancy with ${metrics.totalNights} room nights. ${metrics.occupancyRate < 30 ? 'Below industry average. Action needed.' : 'Performing well.'}</div>
                 </div>
 
-                <div class="observation-card critical">
+                <div class="observation-card ${metrics.otaDependency > 70 ? 'critical' : 'warning'}">
                     <div class="observation-title">Channel Distribution</div>
-                    <div class="observation-text">100.0% OTA dependency. High commission exposure.</div>
+                    <div class="observation-text">${metrics.otaDependency.toFixed(1)}% OTA dependency. ${metrics.otaDependency > 70 ? 'High commission exposure.' : 'Moderate commission exposure.'}</div>
                 </div>
 
                 <div class="observation-card">
                     <div class="observation-title">Revenue Performance</div>
-                    <div class="observation-text">IDR 74,657,624 in 20 bookings. Average IDR 3,732,881 per booking.</div>
+                    <div class="observation-text">${formatCurrencyFull(metrics.totalRevenue, currency)} in ${metrics.totalBookings} bookings. Average ${formatCurrencyFull(metrics.avgBookingValue, currency)} per booking.</div>
                 </div>
 
                 <div class="observation-card warning">
                     <div class="observation-title">OTA Commission Cost</div>
-                    <div class="observation-text">IDR 11,198,643.6 paid in commissions (15.0% of total revenue).</div>
+                    <div class="observation-text">${formatCurrencyFull(metrics.otaCommission, currency)} paid in commissions (${(metrics.otaCommission / metrics.totalRevenue * 100).toFixed(1)}% of total revenue).</div>
                 </div>
 
-                <div class="observation-card ">
+                <div class="observation-card ${metrics.pendingAmount > metrics.completedAmount ? 'warning' : ''}">
                     <div class="observation-title">Payment Collection</div>
-                    <div class="observation-text">IDR 0 collected, IDR 0 pending (0%).</div>
+                    <div class="observation-text">${formatCurrencyFull(metrics.completedAmount, currency)} collected, ${formatCurrencyFull(metrics.pendingAmount, currency)} pending (${metrics.pendingAmount > 0 ? (metrics.pendingAmount / (metrics.completedAmount + metrics.pendingAmount) * 100).toFixed(1) : 0}%).</div>
                 </div>
 
                 <div class="observation-card">
                     <div class="observation-title">Guest Behavior</div>
-                    <div class="observation-text">Average length of stay: 4 nights. Good stay duration.</div>
+                    <div class="observation-text">Average length of stay: ${metrics.avgStayLength.toFixed(1)} nights. ${metrics.avgStayLength < 3 ? 'Consider packages to increase stay duration.' : 'Good stay duration.'}</div>
                 </div>
             </div>
         </div>
@@ -335,35 +462,14 @@
                     </tr>
                 </thead>
                 <tbody>
-                    
+                    ${channels.map(ch => `
                     <tr>
-                        <td style="text-transform: capitalize;">airbnb</td>
-                        <td>15</td>
-                        <td>IDR 52,849,545</td>
-                        <td>70.8%</td>
+                        <td style="text-transform: capitalize;">${ch.channel}</td>
+                        <td>${ch.bookings}</td>
+                        <td>${formatCurrencyFull(ch.revenue, currency)}</td>
+                        <td>${ch.percentage.toFixed(1)}%</td>
                     </tr>
-                    
-                    <tr>
-                        <td style="text-transform: capitalize;">booking.com</td>
-                        <td>3</td>
-                        <td>IDR 21,008,079</td>
-                        <td>28.1%</td>
-                    </tr>
-                    
-                    <tr>
-                        <td style="text-transform: capitalize;">gita</td>
-                        <td>1</td>
-                        <td>IDR 800,000</td>
-                        <td>1.1%</td>
-                    </tr>
-                    
-                    <tr>
-                        <td style="text-transform: capitalize;">instagram</td>
-                        <td>1</td>
-                        <td>IDR 0</td>
-                        <td>0.0%</td>
-                    </tr>
-                    
+                    `).join('')}
                 </tbody>
             </table>
         </div>
@@ -371,23 +477,11 @@
         <!-- AREAS OF ATTENTION (OSIRIS AI) -->
         <div class="section">
             <div class="section-title">Areas of Attention</div>
-            
-            <div class="summary-box">
-                <h3>1. <strong>OTA Dependency</strong></h3>
-                <p>The villa has a 100% dependency on OTAs for bookings. This poses a risk if OTA policies change or fees increase. <strong>Recommendation</strong>: Diversify booking channels by enhancing direct booking strategies through the villa's website and social media platforms.</p>
-            </div>
-            <div class="summary-box">
-                <h3>2. <strong>Low Occupancy Rate</strong></h3>
-                <p>With an occupancy rate of only 28.7%, there is significant room for improvement. <strong>Recommendation</strong>: Implement targeted marketing campaigns during low seasons and offer promotions to increase occupancy.</p>
-            </div>
-            <div class="summary-box">
-                <h3>3. <strong>Channel Imbalance</strong></h3>
-                <p>Airbnb accounts for 70.8% of bookings, while other channels like Instagram and Gita are underutilized. <strong>Recommendation</strong>: Increase marketing efforts on underperforming channels to balance distribution and reduce reliance on Airbnb.</p>
-            </div>
+            ${areasOfAttentionHTML}
         </div>
 
         <div class="footer">
-            Nismara Uma Villa | Generated: 2/11/2026
+            ${propertyName} | Generated: ${new Date().toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: 'numeric' })}
         </div>
     </div>
 
@@ -395,7 +489,7 @@
     <div class="page">
         <div class="header">
             <h1>VILLA PERFORMANCE BREAKDOWN</h1>
-            <div class="subtitle">Nismara Uma Villa | 2026-01-01 to 2026-12-31</div>
+            <div class="subtitle">${propertyName} | ${START_DATE} to ${END_DATE}</div>
         </div>
 
         <!-- VILLA COMPARISON TABLE -->
@@ -413,19 +507,31 @@
                     </tr>
                 </thead>
                 <tbody>
-                    
-                    <tr style="background: #f0fff4; font-weight: 600;">
-                        <td>Unknown Villa</td>
-                        <td>20</td>
-                        <td>IDR 74,657,624</td>
-                        <td>IDR 3,732,881.2</td>
-                        <td>80</td>
+                    ${propertyMetrics.map((prop, index) => {
+                      let badge = 'badge-danger';
+                      let label = 'Low';
+                      if (prop.occupancyRate >= 60) {
+                        badge = 'badge-success';
+                        label = 'Good';
+                      } else if (prop.occupancyRate >= 30) {
+                        badge = 'badge-warning';
+                        label = 'Medium';
+                      }
+                      const bgStyle = index === 0 ? 'style="background: #f0fff4; font-weight: 600;"' : '';
+                      return `
+                    <tr ${bgStyle}>
+                        <td>${prop.name}</td>
+                        <td>${prop.bookings}</td>
+                        <td>${formatCurrencyFull(prop.revenue, currency)}</td>
+                        <td>${formatCurrencyFull(prop.avgValue, currency)}</td>
+                        <td>${prop.nights}</td>
                         <td>
-                            28.7%
-                            <span class="badge badge-danger">Low</span>
+                            ${prop.occupancyRate.toFixed(1)}%
+                            <span class="badge ${badge}">${label}</span>
                         </td>
                     </tr>
-                      
+                      `;
+                    }).join('')}
                 </tbody>
             </table>
         </div>
@@ -441,37 +547,14 @@
         <!-- INSIGHTS (OSIRIS AI) -->
         <div class="section">
             <div class="section-title">Performance Insights</div>
-            
-            <div class="summary-box" style="background: #f0fff4; border-color: #9ae6b4;">
-                <h3>⭐ 1. <strong>Strong Airbnb Presence</strong></h3>
-                <p>Airbnb is the leading channel with 15 bookings, indicating a strong presence and potential for further growth on this platform.</p>
-            </div>
-            <div class="summary-box" style="background: #fffaf0; border-color: #fbb6ce;">
-                <h3>2. <strong>Consistent Revenue Generation</strong></h3>
-                <p>Despite low occupancy, the villa has generated IDR 74,657,624 in revenue, suggesting effective pricing strategies for the bookings made.</p>
-            </div>
+            ${performanceInsightsHTML}
         </div>
 
         <!-- STRATEGIC OBJECTIVES (OSIRIS AI) -->
         <div class="section" style="margin-bottom: 6px;">
             <div class="section-title" style="font-size: 13px; margin-bottom: 6px;">Strategic Objectives</div>
             <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 6px;">
-                
-                <div style="background: #f7fafc; padding: 6px; border-radius: 5px; border: 1px solid #e2e8f0; text-align: center;">
-                    <div style="font-size: 8px; color: #718096; margin-bottom: 2px; font-weight: 600;"><STRONG>INCREASE</STRONG></div>
-                    <div style="font-size: 11px; font-weight: 700; color: #2d3748;"><strong>Direct Bookings</strong></div>
-                    <div style="font-size: 7px; color: #718096; margin-top: 2px; line-height: 1.2;"><strong>Achieve 20% direct bookings from 0%</strong></div>
-                </div>
-                <div style="background: #f7fafc; padding: 6px; border-radius: 5px; border: 1px solid #e2e8f0; text-align: center;">
-                    <div style="font-size: 8px; color: #718096; margin-bottom: 2px; font-weight: 600;"><STRONG>ENHANCE</STRONG></div>
-                    <div style="font-size: 11px; font-weight: 700; color: #2d3748;"><strong>Occupancy Rate</strong></div>
-                    <div style="font-size: 7px; color: #718096; margin-top: 2px; line-height: 1.2;"><strong>Reach 50% occupancy from 28.7%</strong></div>
-                </div>
-                <div style="background: #f7fafc; padding: 6px; border-radius: 5px; border: 1px solid #e2e8f0; text-align: center;">
-                    <div style="font-size: 8px; color: #718096; margin-bottom: 2px; font-weight: 600;"><STRONG>DIVERSIFY</STRONG></div>
-                    <div style="font-size: 11px; font-weight: 700; color: #2d3748;"><strong>Channel Distribution</strong></div>
-                    <div style="font-size: 7px; color: #718096; margin-top: 2px; line-height: 1.2;"><strong>Reduce Airbnb share to 50% from 70.8%</strong></div>
-                </div>
+                ${strategicObjectivesHTML}
             </div>
         </div>
 
@@ -490,41 +573,34 @@
                 <tbody>
                     <tr>
                         <td>Occupancy Rate</td>
-                        <td>28.7%</td>
+                        <td>${metrics.occupancyRate.toFixed(1)}%</td>
                         <td>40%</td>
                         <td>60%</td>
                     </tr>
                     <tr>
                         <td>Direct Booking %</td>
-                        <td>0.0%</td>
+                        <td>${(100 - metrics.otaDependency).toFixed(1)}%</td>
                         <td>30%</td>
                         <td>45%</td>
                     </tr>
                     <tr>
                         <td>Avg Booking Value</td>
-                        <td>IDR 3.7M</td>
-                        <td>IDR 4.3M</td>
-                        <td>IDR 4.9M</td>
+                        <td>${formatCurrency(metrics.avgBookingValue, currency)}</td>
+                        <td>${formatCurrency(metrics.avgBookingValue * 1.15, currency)}</td>
+                        <td>${formatCurrency(metrics.avgBookingValue * 1.3, currency)}</td>
                     </tr>
                     <tr>
                         <td>Monthly Revenue</td>
-                        <td>IDR 3.1M</td>
-                        <td>IDR 4.7M</td>
-                        <td>IDR 6.2M</td>
+                        <td>${formatCurrency(metrics.totalRevenue / 24, currency)}</td>
+                        <td>${formatCurrency(metrics.totalRevenue / 24 * 1.5, currency)}</td>
+                        <td>${formatCurrency(metrics.totalRevenue / 24 * 2, currency)}</td>
                     </tr>
                 </tbody>
             </table>
         </div>
 
-        <!-- NOTE -->
-        <div style="background: #fff7ed; border: 2px solid #fed7aa; padding: 10px; border-radius: 8px; margin-top: 10px;">
-            <div style="font-size: 10px; color: #92400e; line-height: 1.4;">
-                <strong>🤖 POWERED BY OSIRIS AI:</strong> The sections <strong>"Areas of Attention"</strong>, <strong>"Performance Insights"</strong>, and <strong>"Strategic Objectives"</strong> are now generated by <strong>OSIRIS</strong>, our Claude AI business analyst. OSIRIS analyzes your real business data and provides intelligent, personalized recommendations specific to your performance metrics. <strong>All data and analysis are based on your actual database.</strong>
-            </div>
-        </div>
-
         <div class="footer">
-            Nismara Uma Villa - Villa Performance & Strategic Plan | Page 2
+            ${propertyName} - Villa Performance & Strategic Plan | Page 2
         </div>
     </div>
 
@@ -535,12 +611,12 @@
             new Chart(ctx, {
                 type: 'bar',
                 data: {
-                    labels: ["Unknown Villa"],
+                    labels: ${JSON.stringify(propertyMetrics.map(p => p.name))},
                     datasets: [{
                         label: 'Occupancy Rate (%)',
-                        data: [28.7],
-                        backgroundColor: ["#f97316"],
-                        borderColor: ["#ea580c"],
+                        data: ${JSON.stringify(propertyMetrics.map(p => parseFloat(p.occupancyRate.toFixed(1))))},
+                        backgroundColor: ${JSON.stringify(propertyMetrics.map(() => '#f97316'))},
+                        borderColor: ${JSON.stringify(propertyMetrics.map(() => '#ea580c'))},
                         borderWidth: 2
                     }]
                 },
@@ -568,4 +644,5 @@
         }
     </script>
 </body>
-</html>
+</html>`;
+}
