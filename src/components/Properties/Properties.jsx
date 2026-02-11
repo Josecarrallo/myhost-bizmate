@@ -506,7 +506,61 @@ const Properties = ({ onBack }) => {
         {/* Table View */}
         {!loading && viewMode === 'table' && properties.length > 0 && (
           <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-3xl shadow-2xl border-2 border-[#d85a2a]/20 overflow-hidden">
-            <div className="overflow-x-auto">
+            {/* MOBILE VERSION: Cards (< 768px) */}
+            <div className="block md:hidden p-4 space-y-4">
+              {properties.map(property => (
+                <div
+                  key={property.id}
+                  className="bg-[#2a2f3a] rounded-xl p-4 border-l-4 border-orange-500 shadow-lg"
+                >
+                  <div className="flex justify-between items-start mb-3">
+                    <div className="flex-1">
+                      <h3 className="text-white font-bold text-lg">{property.name}</h3>
+                      <p className="text-orange-400 text-sm mt-1 flex items-center gap-1">
+                        <MapPin className="w-3 h-3" />
+                        {property.location}
+                      </p>
+                    </div>
+                    <span className={`inline-flex px-3 py-1 rounded-full text-xs font-bold border-2 ${getStatusBadge(property.status)}`}>
+                      {property.status.toUpperCase()}
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3 mb-3">
+                    <div>
+                      <p className="text-gray-500 text-xs">Type</p>
+                      <p className="text-white text-sm font-medium">{property.type}</p>
+                    </div>
+                    <div>
+                      <p className="text-gray-500 text-xs">Price</p>
+                      <p className="text-green-400 text-sm font-bold">${property.basePrice}/night</p>
+                    </div>
+                    <div>
+                      <p className="text-gray-500 text-xs">Capacity</p>
+                      <p className="text-white text-sm font-medium">{property.beds} beds · {property.baths} baths</p>
+                      <p className="text-gray-400 text-xs">Max {property.maxGuests} guests</p>
+                    </div>
+                    <div>
+                      <p className="text-gray-500 text-xs">Rating</p>
+                      <p className="text-orange-400 text-sm font-medium flex items-center gap-1">
+                        <Star className="w-3 h-3 fill-orange-500" />
+                        {property.rating}
+                      </p>
+                      <p className="text-gray-400 text-xs">{property.reviews} reviews</p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setSelectedProperty(property)}
+                    className="w-full bg-orange-500 hover:bg-orange-600 text-white px-4 py-2.5 rounded-lg font-semibold transition-colors flex items-center justify-center gap-2"
+                  >
+                    <Eye className="w-4 h-4" />
+                    View Details
+                  </button>
+                </div>
+              ))}
+            </div>
+
+            {/* DESKTOP VERSION: Table (>= 768px) */}
+            <div className="hidden md:block overflow-x-auto">
               <table className="w-full">
                 <thead className="bg-gradient-to-r from-[#1f2937] to-[#374151]">
                   <tr>
