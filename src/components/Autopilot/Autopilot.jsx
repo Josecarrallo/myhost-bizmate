@@ -223,6 +223,13 @@ const Autopilot = ({ onBack }) => {
       badge: null
     },
     {
+      id: 'data-entry',
+      name: 'Manual Data Entry',
+      icon: ClipboardList,
+      description: 'Add Leads, Bookings, Payments, Tasks',
+      badge: null
+    },
+    {
       id: 'business-reports',
       name: 'Business Reports',
       icon: FileText,
@@ -230,11 +237,11 @@ const Autopilot = ({ onBack }) => {
       badge: null
     },
     {
-      id: 'data-entry',
-      name: 'Manual Data Entry',
-      icon: ClipboardList,
-      description: 'Add Leads, Bookings, Payments, Tasks',
-      badge: null
+      id: 'website',
+      name: 'My Villa Website',
+      icon: Globe,
+      description: 'Public landing page',
+      badge: 'Live'
     },
     {
       id: 'decisions',
@@ -256,13 +263,6 @@ const Autopilot = ({ onBack }) => {
       icon: Mail,
       description: 'Unified inbox',
       badge: '8 new'
-    },
-    {
-      id: 'website',
-      name: 'My Villa Website',
-      icon: Globe,
-      description: 'Public landing page',
-      badge: 'Live'
     },
     {
       id: 'tasks',
