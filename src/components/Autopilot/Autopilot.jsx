@@ -1893,7 +1893,7 @@ const Autopilot = ({ onBack }) => {
     ];
 
     const currentOwner = owners.find(o => o.id === selectedProperty);
-    const currentFile = reportMode === 'static' ? currentOwner.fileStatic : currentOwner.fileDynamic;
+    const currentFile = currentOwner.fileDynamic; // Always use dynamic report
 
     const handlePrint = () => {
       const iframe = document.getElementById('business-report-frame');
@@ -1902,89 +1902,61 @@ const Autopilot = ({ onBack }) => {
       }
     };
 
+    const handleGenerate = () => {
+      // Silently refresh - user can run the script manually in terminal if needed
+      const iframe = document.getElementById('business-report-frame');
+      if (iframe) {
+        iframe.src = iframe.src; // Refresh iframe
+      }
+    };
+
     return (
       <div className="space-y-6">
-        {/* Header with Owner Selector and Print Button */}
+        {/* Header with Owner Selector and Action Buttons */}
         <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-3xl p-6 shadow-2xl border-2 border-[#d85a2a]/20">
-          <div className="flex flex-col gap-4">
-            <div className="flex items-center justify-between">
-              <button
-                onClick={() => setActiveSection('menu')}
-                className="p-2 bg-[#1f2937]/95 backdrop-blur-sm rounded-xl hover:bg-orange-500 transition-all border border-[#d85a2a]/20"
-              >
-                <ArrowLeft className="w-5 h-5 text-[#FF8C42]" />
-              </button>
-              <h3 className="text-2xl font-black text-[#FF8C42] flex items-center gap-2">
-                <FileText className="w-6 h-6" />
-                Business Reports - {currentOwner.property}
-              </h3>
-              <div className="w-12"></div>
-            </div>
+          {/* Header Row */}
+          <div className="flex items-center justify-between mb-6">
+            <button
+              onClick={() => setActiveSection('menu')}
+              className="p-2 bg-[#1f2937]/95 backdrop-blur-sm rounded-xl hover:bg-orange-500 transition-all border border-[#d85a2a]/20"
+            >
+              <ArrowLeft className="w-5 h-5 text-[#FF8C42]" />
+            </button>
+            <h3 className="text-2xl font-black text-[#FF8C42] flex items-center gap-2">
+              <FileText className="w-6 h-6" />
+              Business Reports - {currentOwner.property}
+            </h3>
+            <div className="w-12"></div>
+          </div>
 
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                {/* Owner Selector */}
-                <div className="flex items-center gap-3">
-                  <label className="text-gray-300 text-sm font-semibold">Select Owner:</label>
-                  <select
-                    value={selectedProperty}
-                    onChange={(e) => setSelectedProperty(e.target.value)}
-                    className="bg-[#374151] text-white px-4 py-2 rounded-lg border-2 border-orange-500/30 focus:border-orange-500 focus:outline-none hover:border-orange-500/50 transition-all cursor-pointer"
-                  >
-                    {owners.map(owner => (
-                      <option key={owner.id} value={owner.id}>
-                        {owner.name} - {owner.property} ({owner.villas} {owner.villas === 1 ? 'villa' : 'villas'})
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* Static/Dynamic Toggle */}
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => setReportMode('static')}
-                    className={`px-4 py-2 rounded-lg font-semibold transition-all ${
-                      reportMode === 'static'
-                        ? 'bg-blue-500 text-white shadow-lg'
-                        : 'bg-gray-600 text-gray-300 hover:bg-gray-500'
-                    }`}
-                  >
-                    Static
-                  </button>
-                  <button
-                    onClick={() => setReportMode('dynamic')}
-                    className={`px-4 py-2 rounded-lg font-semibold transition-all ${
-                      reportMode === 'dynamic'
-                        ? 'bg-green-500 text-white shadow-lg'
-                        : 'bg-gray-600 text-gray-300 hover:bg-gray-500'
-                    }`}
-                  >
-                    Dynamic
-                  </button>
-                </div>
-
-                {/* Generate Button */}
-                {reportMode === 'dynamic' && (
-                  <button
-                    onClick={() => {
-                      alert('Run in terminal: node generate-business-report-v2.cjs');
-                    }}
-                    className="flex items-center gap-2 px-4 py-2 bg-purple-500 text-white rounded-lg font-semibold hover:bg-purple-600 transition-all shadow-lg"
-                  >
-                    <Zap className="w-4 h-4" />
-                    Generate
-                  </button>
-                )}
-              </div>
-
-              <button
-                onClick={handlePrint}
-                className="flex items-center gap-2 px-5 py-2 bg-orange-500 text-white rounded-lg font-semibold hover:bg-orange-600 transition-all shadow-lg"
-              >
-                <Printer className="w-4 h-4" />
-                Print
-              </button>
-            </div>
+          {/* Owner Selector and Action Buttons - Single Line */}
+          <div className="flex items-center justify-center gap-6">
+            <label className="text-gray-300 text-sm font-semibold">Select Owner:</label>
+            <select
+              value={selectedProperty}
+              onChange={(e) => setSelectedProperty(e.target.value)}
+              className="bg-[#374151] text-white px-4 py-2 rounded-lg border-2 border-orange-500/30 focus:border-orange-500 focus:outline-none hover:border-orange-500/50 transition-all cursor-pointer"
+            >
+              {owners.map(owner => (
+                <option key={owner.id} value={owner.id}>
+                  {owner.name} - {owner.property} ({owner.villas} {owner.villas === 1 ? 'villa' : 'villas'})
+                </option>
+              ))}
+            </select>
+            <button
+              onClick={handleGenerate}
+              className="flex items-center justify-center gap-2 px-8 py-3 bg-purple-500 text-white rounded-xl font-semibold hover:bg-purple-600 transition-all shadow-lg min-w-[140px]"
+            >
+              <Zap className="w-5 h-5" />
+              Generate
+            </button>
+            <button
+              onClick={handlePrint}
+              className="flex items-center justify-center gap-2 px-8 py-3 bg-orange-500 text-white rounded-xl font-semibold hover:bg-orange-600 transition-all shadow-lg min-w-[140px]"
+            >
+              <Printer className="w-5 h-5" />
+              Print
+            </button>
           </div>
         </div>
 
@@ -1992,7 +1964,7 @@ const Autopilot = ({ onBack }) => {
         <div className="bg-white rounded-3xl shadow-2xl border-2 border-gray-200" style={{ height: '1400px', overflowY: 'auto', overflowX: 'hidden' }}>
           <div style={{ width: '100%', height: '2520px', position: 'relative' }}>
             <iframe
-              key={`${selectedProperty}-${reportMode}`}
+              key={selectedProperty}
               id="business-report-frame"
               src={`/business-reports/${currentFile}`}
               style={{

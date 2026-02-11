@@ -9,10 +9,10 @@ const OWNER_IDS = {
   jose: 'c24393db-d318-4d75-8bbf-0fa240b9c1db'
 };
 
-// Date range for the report (includes all historical data)
+// Date range for the report (2026 only)
 // Nismara: 41 bookings (2025-08-31 to 2026-09-05)
 // Izumi: 165 bookings (various dates)
-const START_DATE = '2024-01-01';
+const START_DATE = '2026-01-01';
 const END_DATE = '2026-12-31';
 
 async function fetchFromSupabase(path) {
@@ -48,31 +48,36 @@ async function fetchFromSupabase(path) {
 async function fetchOwnerData(ownerId, ownerName) {
   console.log(`\nFetching data for owner: ${ownerName}`);
 
-  // Get properties
-  const properties = await fetchFromSupabase(`/rest/v1/properties?owner_id=eq.${ownerId}&select=*`);
-  console.log(`✓ Found ${properties.length} properties`);
+  // Get bookings directly by tenant_id (not through properties table)
+  const allBookings = await fetchFromSupabase(
+    `/rest/v1/bookings?tenant_id=eq.${ownerId}&check_in=gte.${START_DATE}&check_in=lte.${END_DATE}&select=*&order=check_in.desc`
+  );
 
-  if (properties.length === 0) {
+  console.log(`✓ Found ${allBookings.length} bookings (${START_DATE} to ${END_DATE})`);
+
+  if (allBookings.length === 0) {
+    console.log(`⚠️  No bookings found for ${ownerName} in this date range`);
     return null;
   }
 
-  const propertyIds = properties.map(p => p.id);
+  // Get villas for this owner
+  const uniquePropertyIds = [...new Set(allBookings.map(b => b.property_id).filter(id => id))];
+  let allVillas = [];
 
-  // Get bookings with date filter
-  let allBookings = [];
+  for (const propId of uniquePropertyIds) {
+    const villas = await fetchFromSupabase(`/rest/v1/villas?property_id=eq.${propId}&select=*`);
+    allVillas = allVillas.concat(villas);
+  }
+
+  console.log(`✓ Found ${allVillas.length} villas`);
+
+  // Get payments (we'll try to match by tenant_id or property_id)
   let allPayments = [];
-
-  for (const propId of propertyIds) {
-    const bookings = await fetchFromSupabase(
-      `/rest/v1/bookings?property_id=eq.${propId}&check_in=gte.${START_DATE}&check_in=lte.${END_DATE}&select=*&order=check_in.desc`
-    );
+  for (const propId of uniquePropertyIds) {
     const payments = await fetchFromSupabase(`/rest/v1/payments?property_id=eq.${propId}&select=*`);
-
-    allBookings = allBookings.concat(bookings);
     allPayments = allPayments.concat(payments);
   }
 
-  console.log(`✓ Found ${allBookings.length} bookings (${START_DATE} to ${END_DATE})`);
   console.log(`✓ Found ${allPayments.length} payments`);
 
   // Calculate channel distribution
@@ -80,7 +85,18 @@ async function fetchOwnerData(ownerId, ownerName) {
   let totalChannelRevenue = 0;
 
   allBookings.forEach(booking => {
-    const channel = (booking.source || 'direct').toLowerCase();
+    // Normalize channel name: lowercase, remove spaces, consolidate Airbnb variants
+    let channel = (booking.source || 'direct').toLowerCase().trim().replace(/\s+/g, '');
+
+    // Consolidate Airbnb variants
+    if (channel === 'airbnb' || channel === 'air-bnb' || channel === 'air bnb' || channel.includes('airbnb')) {
+      channel = 'airbnb';
+    }
+    // Consolidate Booking.com variants
+    if (channel === 'booking.com' || channel === 'booking' || channel.includes('booking')) {
+      channel = 'booking.com';
+    }
+
     const revenue = booking.total_price || 0;
 
     if (!channelBreakdown[channel]) {
@@ -123,16 +139,17 @@ async function fetchOwnerData(ownerId, ownerName) {
   const avgStayLength = totalBookings > 0 ? totalNights / totalBookings : 0;
 
   // Calculate occupancy rate
-  // Days in period: from START_DATE to END_DATE
-  const startDate = new Date(START_DATE);
-  const endDate = new Date(END_DATE);
-  const daysInPeriod = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24));
+  // Calculate occupancy rate using same logic as get_overview_stats function
+  // Logic: Count DISTINCT months that have bookings, then multiply by 31
+  // Example: 80 nights / (9 months × 31) = 28.67%
+  const monthsWithBookings = new Set(
+    allBookings.map(b => {
+      const date = new Date(b.check_in);
+      return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+    })
+  ).size;
 
-  // Count unique villas (room_id) from bookings
-  const uniqueVillas = new Set(allBookings.map(b => b.room_id || 'default').filter(v => v !== null));
-  const numVillas = uniqueVillas.size > 0 ? uniqueVillas.size : propertyIds.length;
-
-  const totalPossibleNights = numVillas * daysInPeriod;
+  const totalPossibleNights = monthsWithBookings * 31;
   const occupancyRate = totalPossibleNights > 0 && totalNights > 0
     ? (totalNights / totalPossibleNights) * 100
     : 0;
@@ -152,11 +169,17 @@ async function fetchOwnerData(ownerId, ownerName) {
   // OTA dependency percentage
   const otaDependency = totalRevenue > 0 ? (otaRevenue / totalRevenue * 100) : 0;
 
-  // Calculate metrics PER VILLA (using room_id from bookings)
-  // Group bookings by room_id/villa
+  // Calculate metrics PER VILLA (using villa_id from bookings)
+  // Group bookings by villa_id/villa_name
   const villaGroups = {};
   allBookings.forEach(booking => {
-    const villaName = booking.room_id || properties[0].name || 'Unknown Villa';
+    // Try to find villa name from allVillas array
+    let villaName = 'Unknown Villa';
+    if (booking.villa_id) {
+      const villa = allVillas.find(v => v.id === booking.villa_id);
+      villaName = villa ? villa.name : booking.villa_id;
+    }
+
     if (!villaGroups[villaName]) {
       villaGroups[villaName] = [];
     }
@@ -176,8 +199,17 @@ async function fetchOwnerData(ownerId, ownerName) {
       return sum;
     }, 0);
     const propAvgValue = villaBookings.length > 0 ? propRevenue / villaBookings.length : 0;
-    const propOccupancy = daysInPeriod > 0 && propNights > 0
-      ? (propNights / daysInPeriod) * 100
+
+    // Calculate occupancy using same logic: months with bookings × 31
+    const villaMonthsWithBookings = new Set(
+      villaBookings.map(b => {
+        const date = new Date(b.check_in);
+        return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+      })
+    ).size;
+    const villaTotalPossibleNights = villaMonthsWithBookings * 31;
+    const propOccupancy = villaTotalPossibleNights > 0 && propNights > 0
+      ? (propNights / villaTotalPossibleNights) * 100
       : 0;
 
     return {
@@ -191,11 +223,11 @@ async function fetchOwnerData(ownerId, ownerName) {
   }).sort((a, b) => b.revenue - a.revenue); // Sort by revenue descending
 
   return {
-    properties,
+    villas: allVillas, // Changed from properties to villas
     bookings: allBookings,
     payments: allPayments,
     channels: sortedChannels,
-    propertyMetrics, // NEW: Individual property metrics
+    propertyMetrics, // NEW: Individual villa metrics
     metrics: {
       totalRevenue,
       totalBookings,
@@ -229,7 +261,8 @@ function formatCurrencyFull(amount, currency = 'USD') {
 }
 
 function generateHTMLReport(ownerName, propertyName, currency, data) {
-  const { metrics, bookings, channels, properties, propertyMetrics } = data;
+  const { metrics, bookings, channels, villas, propertyMetrics } = data;
+  const properties = villas; // Alias for compatibility
 
   // Get occupancy badge
   let occupancyBadge = 'badge-success';
@@ -299,15 +332,15 @@ function generateHTMLReport(ownerName, propertyName, currency, data) {
 
         .header {
             text-align: center;
-            margin-bottom: 25px;
-            padding-bottom: 15px;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
             border-bottom: 3px solid #f97316;
         }
 
         .header h1 {
             font-size: 28px;
             color: #1a202c;
-            margin-bottom: 8px;
+            margin-bottom: 6px;
             font-weight: 700;
         }
 
@@ -358,15 +391,15 @@ function generateHTMLReport(ownerName, propertyName, currency, data) {
         }
 
         .section {
-            margin-bottom: 15px;
+            margin-bottom: 8px;
         }
 
         .section-title {
             font-size: 15px;
             color: #1a202c;
-            margin-bottom: 12px;
+            margin-bottom: 6px;
             font-weight: 700;
-            padding-bottom: 6px;
+            padding-bottom: 4px;
             border-bottom: 2px solid #e2e8f0;
         }
 
@@ -440,15 +473,15 @@ function generateHTMLReport(ownerName, propertyName, currency, data) {
         .summary-box {
             background: #fff7ed;
             border: 2px solid #fed7aa;
-            padding: 15px;
+            padding: 12px;
             border-radius: 8px;
-            margin-bottom: 12px;
+            margin-bottom: 8px;
         }
 
         .summary-box h3 {
             font-size: 13px;
             color: #2d3748;
-            margin-bottom: 8px;
+            margin-bottom: 6px;
             font-weight: 700;
         }
 
@@ -721,63 +754,32 @@ function generateHTMLReport(ownerName, propertyName, currency, data) {
             })()}
         </div>
 
-        <div class="footer">
-            ${propertyName} - Villa Performance Analysis | Page 2
-        </div>
-    </div>
-
-    <!-- PAGE 3: RECOMMENDED ACTIONS -->
-    <div class="page">
-        <div class="header">
-            <h1>RECOMMENDED APPROACH</h1>
-            <div class="subtitle">Strategic Action Plan for ${propertyName}</div>
-        </div>
-
         <!-- STRATEGIC OBJECTIVES -->
-        <div class="section" style="margin-bottom: 8px;">
-            <div class="section-title" style="font-size: 14px; margin-bottom: 8px;">Strategic Objectives</div>
+        <div class="section" style="margin-bottom: 6px;">
+            <div class="section-title" style="font-size: 13px; margin-bottom: 6px;">Strategic Objectives</div>
             <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 6px;">
                 <div style="background: #f7fafc; padding: 6px; border-radius: 5px; border: 1px solid #e2e8f0; text-align: center;">
                     <div style="font-size: 8px; color: #718096; margin-bottom: 2px; font-weight: 600;">INCREASE</div>
-                    <div style="font-size: 12px; font-weight: 700; color: #2d3748;">Direct Bookings</div>
+                    <div style="font-size: 11px; font-weight: 700; color: #2d3748;">Direct Bookings</div>
                     <div style="font-size: 7px; color: #718096; margin-top: 2px; line-height: 1.2;">Reduce OTA dependency from ${metrics.otaDependency.toFixed(1)}%</div>
                 </div>
                 <div style="background: #f7fafc; padding: 6px; border-radius: 5px; border: 1px solid #e2e8f0; text-align: center;">
                     <div style="font-size: 8px; color: #718096; margin-bottom: 2px; font-weight: 600;">IMPROVE</div>
-                    <div style="font-size: 12px; font-weight: 700; color: #2d3748;">Occupancy Rate</div>
+                    <div style="font-size: 11px; font-weight: 700; color: #2d3748;">Occupancy Rate</div>
                     <div style="font-size: 7px; color: #718096; margin-top: 2px; line-height: 1.2;">Target 50%+ from current ${metrics.occupancyRate}%</div>
                 </div>
                 <div style="background: #f7fafc; padding: 6px; border-radius: 5px; border: 1px solid #e2e8f0; text-align: center;">
                     <div style="font-size: 8px; color: #718096; margin-bottom: 2px; font-weight: 600;">OPTIMIZE</div>
-                    <div style="font-size: 12px; font-weight: 700; color: #2d3748;">Revenue per Booking</div>
+                    <div style="font-size: 11px; font-weight: 700; color: #2d3748;">Revenue per Booking</div>
                     <div style="font-size: 7px; color: #718096; margin-top: 2px; line-height: 1.2;">Maximize value from ${formatCurrency(metrics.avgBookingValue, currency)}</div>
                 </div>
             </div>
         </div>
 
-        <!-- IMPLEMENTATION RECOMMENDATIONS -->
-        <div class="section" style="margin-bottom: 8px;">
-            <div class="section-title" style="font-size: 13px; margin-bottom: 8px;">Implementation Plan</div>
-            <div style="font-size: 9px; line-height: 1.6; color: #4a5568;">
-                <div style="margin-bottom: 8px; padding: 8px; background: #f7fafc; border-left: 3px solid #f97316; border-radius: 3px;">
-                    <div style="font-weight: 700; color: #2d3748; margin-bottom: 4px;">Phase 1: Foundation (Months 1-2)</div>
-                    <div>Implement direct booking engine, upgrade property photography, establish automated messaging, and set up dynamic pricing system.</div>
-                </div>
-                <div style="margin-bottom: 8px; padding: 8px; background: #f7fafc; border-left: 3px solid #fb923c; border-radius: 3px;">
-                    <div style="font-weight: 700; color: #2d3748; margin-bottom: 4px;">Phase 2: Growth (Months 3-4)</div>
-                    <div>Launch digital marketing campaigns, optimize OTA listings, introduce guest loyalty program, and enhance pre-arrival experience.</div>
-                </div>
-                <div style="margin-bottom: 8px; padding: 8px; background: #f7fafc; border-left: 3px solid #fed7aa; border-radius: 3px;">
-                    <div style="font-weight: 700; color: #2d3748; margin-bottom: 4px;">Phase 3: Optimization (Months 5-6)</div>
-                    <div>Analyze performance data, refine pricing strategy, expand direct booking channels, and implement advanced guest personalization.</div>
-                </div>
-            </div>
-        </div>
-
         <!-- KEY METRICS TO TRACK -->
-        <div class="section" style="margin-bottom: 8px;">
-            <div class="section-title" style="font-size: 13px; margin-bottom: 8px;">Success Metrics</div>
-            <table class="data-table" style="font-size: 9px;">
+        <div class="section" style="margin-bottom: 6px;">
+            <div class="section-title" style="font-size: 12px; margin-bottom: 6px;">Success Metrics</div>
+            <table class="data-table" style="font-size: 8px;">
                 <thead>
                     <tr>
                         <th>Metric</th>
@@ -815,8 +817,15 @@ function generateHTMLReport(ownerName, propertyName, currency, data) {
             </table>
         </div>
 
+        <!-- NOTE -->
+        <div style="background: #fff7ed; border: 2px solid #fed7aa; padding: 10px; border-radius: 8px; margin-top: 10px;">
+            <div style="font-size: 10px; color: #92400e; line-height: 1.4;">
+                <strong>⚠️ NOTE:</strong> The sections <strong>"Areas of Attention"</strong>, <strong>"Performance Insights"</strong>, and <strong>"Strategic Objectives"</strong> use temporary automated analysis. Soon, <strong>Claude AI</strong> will analyze all your business data and generate intelligent, personalized recommendations. <strong>All data shown is real from your database.</strong>
+            </div>
+        </div>
+
         <div class="footer">
-            ${propertyName} - Strategic Action Plan | Page 3
+            ${propertyName} - Villa Performance & Strategic Plan | Page 2
         </div>
     </div>
 
@@ -901,8 +910,7 @@ async function main() {
     console.log('- public/business-reports/izumi-dynamic.html');
     console.log('\nReport structure:');
     console.log('  Page 1: Executive Summary with Key Observations');
-    console.log('  Page 2: Villa Performance Breakdown');
-    console.log('  Page 3: Recommended Strategic Actions');
+    console.log('  Page 2: Villa Performance, Strategic Objectives & Success Metrics');
   } catch (error) {
     console.error('Error:', error);
     process.exit(1);
