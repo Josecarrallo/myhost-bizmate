@@ -1324,61 +1324,112 @@ const Autopilot = ({ onBack }) => {
           {/* Detailed Bookings Table */}
           <div className="mt-6 border-t-2 border-[#d85a2a]/20 pt-6">
             <h4 className="text-lg font-bold text-white mb-4">All Bookings ({allBookings.length})</h4>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-gray-700">
-                    <th className="text-left text-gray-400 font-semibold p-3">Guest Name</th>
-                    <th className="text-left text-gray-400 font-semibold p-3">Check In</th>
-                    <th className="text-left text-gray-400 font-semibold p-3">Check Out</th>
-                    <th className="text-right text-gray-400 font-semibold p-3">Total</th>
-                    <th className="text-center text-gray-400 font-semibold p-3">Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {allBookings.length === 0 ? (
-                    <tr>
-                      <td colSpan="5" className="text-center text-gray-500 p-8">
-                        No bookings found
-                      </td>
-                    </tr>
-                  ) : (
-                    allBookings.map((booking) => (
-                      <tr key={booking.id} className="border-b border-gray-800 hover:bg-[#2a2f3a] transition-colors">
-                        <td className="text-white p-3 font-medium">{booking.guest_name || 'N/A'}</td>
-                        <td className="text-gray-300 p-3">
-                          {booking.check_in ? new Date(booking.check_in).toLocaleDateString('en-US', {
-                            month: 'short',
-                            day: 'numeric',
-                            year: 'numeric'
-                          }) : 'N/A'}
-                        </td>
-                        <td className="text-gray-300 p-3">
-                          {booking.check_out ? new Date(booking.check_out).toLocaleDateString('en-US', {
-                            month: 'short',
-                            day: 'numeric',
-                            year: 'numeric'
-                          }) : 'N/A'}
-                        </td>
-                        <td className="text-right text-green-400 p-3 font-bold">
-                          ${booking.total_price?.toLocaleString() || '0'}
-                        </td>
-                        <td className="text-center p-3">
-                          <span className={`px-3 py-1 rounded-full text-xs font-bold ${
-                            booking.status === 'confirmed' ? 'bg-green-500/20 text-green-400' :
-                            booking.status === 'pending' ? 'bg-yellow-500/20 text-yellow-400' :
-                            booking.status === 'cancelled' ? 'bg-red-500/20 text-red-400' :
-                            'bg-gray-500/20 text-gray-400'
-                          }`}>
-                            {booking.status || 'unknown'}
-                          </span>
-                        </td>
+
+            {allBookings.length === 0 ? (
+              <div className="text-center text-gray-500 p-8 bg-[#2a2f3a] rounded-xl border-2 border-gray-700">
+                No bookings found
+              </div>
+            ) : (
+              <>
+                {/* MOBILE VERSION: Cards (< 768px) */}
+                <div className="block md:hidden space-y-3">
+                  {allBookings.map((booking) => (
+                    <div key={booking.id} className="bg-[#2a2f3a] rounded-xl p-4 border-l-4 border-orange-500 shadow-lg">
+                      <div className="flex justify-between items-start mb-3">
+                        <div className="flex-1">
+                          <h3 className="text-white font-bold text-lg">{booking.guest_name || 'N/A'}</h3>
+                        </div>
+                        <span className={`px-3 py-1 rounded-full text-xs font-bold ${
+                          booking.status === 'confirmed' ? 'bg-green-500/20 text-green-400' :
+                          booking.status === 'pending' ? 'bg-yellow-500/20 text-yellow-400' :
+                          booking.status === 'cancelled' ? 'bg-red-500/20 text-red-400' :
+                          'bg-gray-500/20 text-gray-400'
+                        }`}>
+                          {booking.status || 'unknown'}
+                        </span>
+                      </div>
+                      <div className="grid grid-cols-2 gap-3 mb-3">
+                        <div>
+                          <p className="text-gray-500 text-xs">Check In</p>
+                          <p className="text-white text-sm font-medium">
+                            {booking.check_in ? new Date(booking.check_in).toLocaleDateString('en-US', {
+                              month: 'short',
+                              day: 'numeric',
+                              year: 'numeric'
+                            }) : 'N/A'}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-gray-500 text-xs">Check Out</p>
+                          <p className="text-white text-sm font-medium">
+                            {booking.check_out ? new Date(booking.check_out).toLocaleDateString('en-US', {
+                              month: 'short',
+                              day: 'numeric',
+                              year: 'numeric'
+                            }) : 'N/A'}
+                          </p>
+                        </div>
+                        <div className="col-span-2">
+                          <p className="text-gray-500 text-xs">Total</p>
+                          <p className="text-green-400 text-lg font-bold">
+                            ${booking.total_price?.toLocaleString() || '0'}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* DESKTOP VERSION: Table (>= 768px) */}
+                <div className="hidden md:block overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-gray-700">
+                        <th className="text-left text-gray-400 font-semibold p-3">Guest Name</th>
+                        <th className="text-left text-gray-400 font-semibold p-3">Check In</th>
+                        <th className="text-left text-gray-400 font-semibold p-3">Check Out</th>
+                        <th className="text-right text-gray-400 font-semibold p-3">Total</th>
+                        <th className="text-center text-gray-400 font-semibold p-3">Status</th>
                       </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
+                    </thead>
+                    <tbody>
+                      {allBookings.map((booking) => (
+                        <tr key={booking.id} className="border-b border-gray-800 hover:bg-[#2a2f3a] transition-colors">
+                          <td className="text-white p-3 font-medium">{booking.guest_name || 'N/A'}</td>
+                          <td className="text-gray-300 p-3">
+                            {booking.check_in ? new Date(booking.check_in).toLocaleDateString('en-US', {
+                              month: 'short',
+                              day: 'numeric',
+                              year: 'numeric'
+                            }) : 'N/A'}
+                          </td>
+                          <td className="text-gray-300 p-3">
+                            {booking.check_out ? new Date(booking.check_out).toLocaleDateString('en-US', {
+                              month: 'short',
+                              day: 'numeric',
+                              year: 'numeric'
+                            }) : 'N/A'}
+                          </td>
+                          <td className="text-right text-green-400 p-3 font-bold">
+                            ${booking.total_price?.toLocaleString() || '0'}
+                          </td>
+                          <td className="text-center p-3">
+                            <span className={`px-3 py-1 rounded-full text-xs font-bold ${
+                              booking.status === 'confirmed' ? 'bg-green-500/20 text-green-400' :
+                              booking.status === 'pending' ? 'bg-yellow-500/20 text-yellow-400' :
+                              booking.status === 'cancelled' ? 'bg-red-500/20 text-red-400' :
+                              'bg-gray-500/20 text-gray-400'
+                            }`}>
+                              {booking.status || 'unknown'}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </>
+            )}
           </div>
         </div>
 

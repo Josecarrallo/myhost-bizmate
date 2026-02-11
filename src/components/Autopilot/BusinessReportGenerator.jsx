@@ -71,6 +71,46 @@ const BusinessReportGenerator = ({ reportData }) => {
           margin-bottom: 30px;
         }
 
+        /* Mobile responsiveness for metrics grid */
+        @media (max-width: 767px) {
+          .metrics-grid {
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+          }
+
+          .report-container {
+            padding: 20px;
+          }
+
+          .metric-box {
+            padding: 16px 12px;
+          }
+
+          .metric-label {
+            font-size: 11px;
+          }
+
+          .metric-value {
+            font-size: 24px;
+          }
+
+          .metric-subtitle {
+            font-size: 11px;
+          }
+
+          .report-title {
+            font-size: 22px;
+          }
+
+          .report-subtitle {
+            font-size: 14px;
+          }
+
+          .section-title {
+            font-size: 18px;
+          }
+        }
+
         .metric-box {
           background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
           padding: 20px;
@@ -205,7 +245,35 @@ const BusinessReportGenerator = ({ reportData }) => {
         {/* Properties Section */}
         <div className="section">
           <div className="section-title">Properties ({properties.length})</div>
-          <table className="data-table">
+
+          {/* MOBILE VERSION: Cards (< 768px) */}
+          <div className="block md:hidden space-y-3">
+            {properties.map((property) => (
+              <div key={property.id} className="bg-white rounded-lg p-4 border-2 border-gray-200 shadow-sm">
+                <h4 className="font-bold text-lg mb-2">{property.name}</h4>
+                <div className="grid grid-cols-2 gap-2 text-sm">
+                  <div>
+                    <span className="text-gray-500">Location:</span>
+                    <span className="ml-1 font-medium">{property.location || 'N/A'}</span>
+                  </div>
+                  <div>
+                    <span className="text-gray-500">Type:</span>
+                    <span className="ml-1 font-medium">{property.property_type || 'Villa'}</span>
+                  </div>
+                  <div>
+                    <span className="text-gray-500">Max Guests:</span>
+                    <span className="ml-1 font-medium">{property.max_guests || 'N/A'}</span>
+                  </div>
+                  <div>
+                    <span className="status-badge status-confirmed">Active</span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* DESKTOP VERSION: Table (>= 768px) */}
+          <table className="hidden md:table data-table">
             <thead>
               <tr>
                 <th>Property Name</th>
@@ -234,7 +302,45 @@ const BusinessReportGenerator = ({ reportData }) => {
         {/* Recent Bookings Section */}
         <div className="section">
           <div className="section-title">Recent Bookings (Last {Math.min(bookings.length, 10)})</div>
-          <table className="data-table">
+
+          {/* MOBILE VERSION: Cards (< 768px) */}
+          <div className="block md:hidden space-y-3">
+            {bookings.slice(0, 10).map((booking) => {
+              const checkIn = new Date(booking.check_in).toLocaleDateString();
+              const checkOut = new Date(booking.check_out).toLocaleDateString();
+              return (
+                <div key={booking.id} className="bg-white rounded-lg p-4 border-2 border-gray-200 shadow-sm">
+                  <div className="flex justify-between items-start mb-3">
+                    <h4 className="font-bold text-lg">{booking.guest_name || 'N/A'}</h4>
+                    <span className={`status-badge status-${booking.status}`}>
+                      {booking.status}
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 text-sm">
+                    <div>
+                      <span className="text-gray-500">Check-in:</span>
+                      <span className="ml-1 font-medium">{checkIn}</span>
+                    </div>
+                    <div>
+                      <span className="text-gray-500">Check-out:</span>
+                      <span className="ml-1 font-medium">{checkOut}</span>
+                    </div>
+                    <div>
+                      <span className="text-gray-500">Guests:</span>
+                      <span className="ml-1 font-medium">{booking.num_guests || 0}</span>
+                    </div>
+                    <div>
+                      <span className="text-gray-500">Total:</span>
+                      <span className="ml-1 font-bold text-green-600">{formatCurrency(booking.total_price || 0)}</span>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* DESKTOP VERSION: Table (>= 768px) */}
+          <table className="hidden md:table data-table">
             <thead>
               <tr>
                 <th>Guest Name</th>
@@ -271,7 +377,39 @@ const BusinessReportGenerator = ({ reportData }) => {
         {/* Payments Section */}
         <div className="section">
           <div className="section-title">Payment Summary</div>
-          <table className="data-table">
+
+          {/* MOBILE VERSION: Cards (< 768px) */}
+          <div className="block md:hidden space-y-3">
+            <div className="bg-white rounded-lg p-4 border-2 border-green-200 shadow-sm">
+              <h4 className="font-bold text-lg mb-2">Completed</h4>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <span className="text-gray-500 text-sm">Count:</span>
+                  <span className="ml-1 font-bold text-lg">{payments.filter(p => p.status === 'completed').length}</span>
+                </div>
+                <div>
+                  <span className="text-gray-500 text-sm">Amount:</span>
+                  <span className="ml-1 font-bold text-lg text-green-600">{formatCurrency(payments.filter(p => p.status === 'completed').reduce((sum, p) => sum + p.amount, 0))}</span>
+                </div>
+              </div>
+            </div>
+            <div className="bg-white rounded-lg p-4 border-2 border-yellow-200 shadow-sm">
+              <h4 className="font-bold text-lg mb-2">Pending</h4>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <span className="text-gray-500 text-sm">Count:</span>
+                  <span className="ml-1 font-bold text-lg">{payments.filter(p => p.status === 'pending').length}</span>
+                </div>
+                <div>
+                  <span className="text-gray-500 text-sm">Amount:</span>
+                  <span className="ml-1 font-bold text-lg text-yellow-600">{formatCurrency(payments.filter(p => p.status === 'pending').reduce((sum, p) => sum + p.amount, 0))}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* DESKTOP VERSION: Table (>= 768px) */}
+          <table className="hidden md:table data-table">
             <thead>
               <tr>
                 <th>Status</th>
@@ -298,7 +436,37 @@ const BusinessReportGenerator = ({ reportData }) => {
         {leads.length > 0 && (
           <div className="section">
             <div className="section-title">Active Leads ({leads.length})</div>
-            <table className="data-table">
+
+            {/* MOBILE VERSION: Cards (< 768px) */}
+            <div className="block md:hidden space-y-3">
+              {leads.slice(0, 10).map((lead) => (
+                <div key={lead.id} className="bg-white rounded-lg p-4 border-2 border-gray-200 shadow-sm">
+                  <div className="flex justify-between items-start mb-3">
+                    <h4 className="font-bold text-lg">{lead.full_name || 'N/A'}</h4>
+                    <span className={`status-badge status-${lead.status}`}>
+                      {lead.status}
+                    </span>
+                  </div>
+                  <div className="space-y-2 text-sm">
+                    <div>
+                      <span className="text-gray-500">Email:</span>
+                      <span className="ml-1 font-medium">{lead.email || 'N/A'}</span>
+                    </div>
+                    <div>
+                      <span className="text-gray-500">Source:</span>
+                      <span className="ml-1 font-medium">{lead.source || 'N/A'}</span>
+                    </div>
+                    <div>
+                      <span className="text-gray-500">Created:</span>
+                      <span className="ml-1 font-medium">{new Date(lead.created_at).toLocaleDateString()}</span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* DESKTOP VERSION: Table (>= 768px) */}
+            <table className="hidden md:table data-table">
               <thead>
                 <tr>
                   <th>Name</th>
