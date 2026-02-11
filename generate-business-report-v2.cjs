@@ -45,6 +45,49 @@ async function fetchFromSupabase(path) {
   });
 }
 
+// Call OSIRIS AI for business report analysis
+async function callOSIRIS(tenantId, prompt) {
+  return new Promise((resolve, reject) => {
+    const postData = JSON.stringify({
+      tenant_id: tenantId,
+      user_id: tenantId,
+      message: prompt
+    });
+
+    const options = {
+      hostname: 'n8n-production-bb2d.up.railway.app',
+      path: '/webhook/ai/chat-v2',
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Content-Length': Buffer.byteLength(postData)
+      }
+    };
+
+    const req = https.request(options, (res) => {
+      let data = '';
+      res.on('data', (chunk) => { data += chunk; });
+      res.on('end', () => {
+        try {
+          const response = JSON.parse(data);
+          resolve(response.reply || response.message || data);
+        } catch (error) {
+          console.error('OSIRIS response parse error:', error);
+          reject(error);
+        }
+      });
+    });
+
+    req.on('error', (error) => {
+      console.error('OSIRIS request error:', error);
+      reject(error);
+    });
+
+    req.write(postData);
+    req.end();
+  });
+}
+
 async function fetchOwnerData(ownerId, ownerName) {
   console.log(`\nFetching data for owner: ${ownerName}`);
 
@@ -260,7 +303,7 @@ function formatCurrencyFull(amount, currency = 'USD') {
   return `$${amount.toLocaleString('en-US')}`;
 }
 
-function generateHTMLReport(ownerName, propertyName, currency, data) {
+async function generateHTMLReport(ownerName, propertyName, currency, data, ownerId) {
   const { metrics, bookings, channels, villas, propertyMetrics } = data;
   const properties = villas; // Alias for compatibility
 
@@ -273,6 +316,222 @@ function generateHTMLReport(ownerName, propertyName, currency, data) {
   } else if (metrics.occupancyRate < 60) {
     occupancyBadge = 'badge-warning';
     occupancyLabel = 'Medium';
+  }
+
+  // Call OSIRIS for AI-powered analysis
+  console.log('📊 Calling OSIRIS for intelligent business analysis...');
+  let osirisAnalysis = null;
+  try {
+    const osirisPrompt = `
+You are OSIRIS, an expert business analyst for luxury vacation rental properties.
+
+Analyze the following business performance data for ${propertyName} (${START_DATE} to ${END_DATE}):
+
+**KEY METRICS:**
+- Total Bookings: ${metrics.totalBookings}
+- Total Nights Sold: ${metrics.totalNights}
+- Occupancy Rate: ${metrics.occupancyRate.toFixed(1)}%
+- Total Revenue: ${currency} ${metrics.totalRevenue.toLocaleString()}
+- Average Booking Value: ${currency} ${metrics.avgBookingValue.toLocaleString()}
+- OTA Dependency: ${metrics.otaDependency.toFixed(1)}%
+
+**CHANNEL DISTRIBUTION:**
+${channels.map(ch => `- ${ch.channel}: ${ch.bookings} bookings (${ch.percentage.toFixed(1)}%)`).join('\n')}
+
+**VILLA PERFORMANCE:**
+${propertyMetrics.map(v => `- ${v.name}: ${v.bookings} bookings, ${v.occupancyRate}% occupancy, ${currency} ${v.revenue.toLocaleString()} revenue`).join('\n')}
+
+Provide a business analysis in the following EXACT format with 3 sections. Be specific and practical:
+
+### AREAS OF ATTENTION
+[List 2-3 critical issues that need immediate attention, with specific numbers and actionable recommendations]
+
+### PERFORMANCE INSIGHTS
+[Provide 2-3 key insights about what's working well or notable patterns, with specific data points]
+
+### STRATEGIC OBJECTIVES
+[List exactly 3 strategic objectives in this format:]
+OBJECTIVE 1: [Action verb] | [Goal name] | [Specific target with current number]
+OBJECTIVE 2: [Action verb] | [Goal name] | [Specific target with current number]
+OBJECTIVE 3: [Action verb] | [Goal name] | [Specific target with current number]
+
+Be concise, data-driven, and actionable. Use the exact format above.`;
+
+    osirisAnalysis = await callOSIRIS(ownerId, osirisPrompt);
+    console.log('✓ OSIRIS analysis received\n');
+  } catch (error) {
+    console.error('⚠️  OSIRIS call failed, using fallback content:', error.message);
+    osirisAnalysis = null;
+  }
+
+  // Helper function to clean markdown formatting
+  const cleanMarkdown = (text) => {
+    return text
+      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') // Bold
+      .replace(/\*(.*?)\*/g, '<em>$1</em>') // Italic
+      .trim();
+  };
+
+  // Parse OSIRIS response to extract the 3 sections
+  let areasOfAttentionHTML = '';
+  let performanceInsightsHTML = '';
+  let strategicObjectivesHTML = '';
+
+  if (osirisAnalysis) {
+    try {
+      // Extract sections using regex
+      const areasMatch = osirisAnalysis.match(/###\s*AREAS OF ATTENTION\s*([\s\S]*?)(?=###|$)/i);
+      const insightsMatch = osirisAnalysis.match(/###\s*PERFORMANCE INSIGHTS\s*([\s\S]*?)(?=###|$)/i);
+      const objectivesMatch = osirisAnalysis.match(/###\s*STRATEGIC OBJECTIVES\s*([\s\S]*?)$/i);
+
+      // Parse Areas of Attention
+      if (areasMatch) {
+        const areasText = areasMatch[1].trim();
+        const areasLines = areasText.split('\n').filter(line => line.trim());
+        areasOfAttentionHTML = areasLines.map(line => {
+          const cleaned = line.replace(/^[-*]\s*/, '').trim();
+          if (cleaned) {
+            // Split by first colon or dash to get title and description
+            const parts = cleaned.split(/[:–-]/);
+            const title = cleanMarkdown(parts[0].trim());
+            const desc = parts.slice(1).join(':').trim() || '';
+            return `
+            <div class="summary-box">
+                <h3>${title}</h3>
+                ${desc ? `<p>${cleanMarkdown(desc)}</p>` : ''}
+            </div>`;
+          }
+          return '';
+        }).join('');
+      }
+
+      // Parse Performance Insights
+      if (insightsMatch) {
+        const insightsText = insightsMatch[1].trim();
+        const insightsLines = insightsText.split('\n').filter(line => line.trim());
+        performanceInsightsHTML = insightsLines.map((line, idx) => {
+          const cleaned = line.replace(/^[-*]\s*/, '').trim();
+          if (cleaned) {
+            const parts = cleaned.split(/[:–-]/);
+            const title = cleanMarkdown(parts[0].trim());
+            const desc = parts.slice(1).join(':').trim() || '';
+            const bgColor = idx === 0 ? '#f0fff4' : '#fffaf0';
+            const borderColor = idx === 0 ? '#9ae6b4' : '#fbb6ce';
+            return `
+            <div class="summary-box" style="background: ${bgColor}; border-color: ${borderColor};">
+                <h3>${idx === 0 ? '⭐ ' : ''}${title}</h3>
+                ${desc ? `<p>${cleanMarkdown(desc)}</p>` : ''}
+            </div>`;
+          }
+          return '';
+        }).join('');
+      }
+
+      // Parse Strategic Objectives
+      if (objectivesMatch) {
+        const objectivesText = objectivesMatch[1].trim();
+        const objectivesLines = objectivesText.split('\n').filter(line => line.trim() && line.includes('OBJECTIVE'));
+        const objectives = objectivesLines.slice(0, 3).map(line => {
+          const parts = line.split('|').map(p => p.trim());
+          if (parts.length >= 3) {
+            return {
+              action: parts[0].replace(/OBJECTIVE \d+:\s*/i, '').trim(),
+              goal: parts[1],
+              target: parts[2]
+            };
+          }
+          return null;
+        }).filter(obj => obj !== null);
+
+        if (objectives.length > 0) {
+          strategicObjectivesHTML = objectives.map(obj => `
+                <div style="background: #f7fafc; padding: 6px; border-radius: 5px; border: 1px solid #e2e8f0; text-align: center;">
+                    <div style="font-size: 8px; color: #718096; margin-bottom: 2px; font-weight: 600;">${cleanMarkdown(obj.action).toUpperCase()}</div>
+                    <div style="font-size: 11px; font-weight: 700; color: #2d3748;">${cleanMarkdown(obj.goal)}</div>
+                    <div style="font-size: 7px; color: #718096; margin-top: 2px; line-height: 1.2;">${cleanMarkdown(obj.target)}</div>
+                </div>`).join('');
+        }
+      }
+    } catch (parseError) {
+      console.error('⚠️  Error parsing OSIRIS response:', parseError.message);
+    }
+  }
+
+  // Fallback content if OSIRIS failed or parsing failed
+  if (!areasOfAttentionHTML) {
+    areasOfAttentionHTML = `
+            ${metrics.otaDependency > 70 ? `
+            <div class="summary-box">
+                <h3>Distribution Channel Dependency</h3>
+                <p>Current OTA commission expense: <span class="highlight-number">${formatCurrencyFull(metrics.otaCommission, currency)}</span> annually. Direct booking capability would reduce acquisition costs significantly.</p>
+            </div>
+            ` : ''}
+
+            ${metrics.pendingAmount > 0 ? `
+            <div class="summary-box">
+                <h3>Payment Collection</h3>
+                <p>Pending payments: <span class="highlight-number">${formatCurrencyFull(metrics.pendingAmount, currency)}</span> from ${metrics.pendingPayments} bookings. Implement automated payment reminders to improve cash flow.</p>
+            </div>
+            ` : ''}
+
+            ${metrics.occupancyRate < 30 ? `
+            <div class="summary-box">
+                <h3>Occupancy Optimization</h3>
+                <p>Current occupancy: <span class="highlight-number">${metrics.occupancyRate}%</span>. Consider dynamic pricing and increased marketing to fill vacant dates.</p>
+            </div>
+            ` : ''}`;
+  }
+
+  if (!performanceInsightsHTML) {
+    const topPerformer = propertyMetrics.reduce((max, p) => p.revenue > max.revenue ? p : max, propertyMetrics[0]);
+    const lowPerformers = propertyMetrics.filter(p => p.occupancyRate < 30);
+    performanceInsightsHTML = `
+            <div class="summary-box" style="background: #f0fff4; border-color: #9ae6b4;">
+                <h3>⭐ Top Performer: ${topPerformer.name}</h3>
+                <p>
+                    Leading with <span class="highlight-number">${topPerformer.bookings} bookings</span> and
+                    <span class="highlight-number">${formatCurrencyFull(topPerformer.revenue, currency)}</span> in revenue.
+                    Achieving <span class="highlight-number">${topPerformer.occupancyRate}%</span> occupancy rate.
+                </p>
+            </div>
+
+            ${lowPerformers.length > 0 ? `
+            <div class="summary-box" style="background: #fffaf0; border-color: #fbb6ce;">
+                <h3>⚠️ Needs Attention: ${lowPerformers.map(p => p.name).join(', ')}</h3>
+                <p>
+                    ${lowPerformers.length} villa(s) with low occupancy (< 30%).
+                    Consider: pricing adjustments, enhanced photos, targeted promotions, or room improvements.
+                </p>
+            </div>
+            ` : ''}
+
+            <div class="summary-box">
+                <h3>Portfolio Optimization</h3>
+                <p>
+                    ${properties.length} villas with varying performance levels.
+                    Average occupancy across portfolio: <span class="highlight-number">${metrics.occupancyRate}%</span>.
+                    ${lowPerformers.length} villa(s) underperforming (< 30% occupancy) require strategic attention.
+                </p>
+            </div>`;
+  }
+
+  if (!strategicObjectivesHTML) {
+    strategicObjectivesHTML = `
+                <div style="background: #f7fafc; padding: 6px; border-radius: 5px; border: 1px solid #e2e8f0; text-align: center;">
+                    <div style="font-size: 8px; color: #718096; margin-bottom: 2px; font-weight: 600;">INCREASE</div>
+                    <div style="font-size: 11px; font-weight: 700; color: #2d3748;">Direct Bookings</div>
+                    <div style="font-size: 7px; color: #718096; margin-top: 2px; line-height: 1.2;">Reduce OTA dependency from ${metrics.otaDependency.toFixed(1)}%</div>
+                </div>
+                <div style="background: #f7fafc; padding: 6px; border-radius: 5px; border: 1px solid #e2e8f0; text-align: center;">
+                    <div style="font-size: 8px; color: #718096; margin-bottom: 2px; font-weight: 600;">IMPROVE</div>
+                    <div style="font-size: 11px; font-weight: 700; color: #2d3748;">Occupancy Rate</div>
+                    <div style="font-size: 7px; color: #718096; margin-top: 2px; line-height: 1.2;">Target 50%+ from current ${metrics.occupancyRate}%</div>
+                </div>
+                <div style="background: #f7fafc; padding: 6px; border-radius: 5px; border: 1px solid #e2e8f0; text-align: center;">
+                    <div style="font-size: 8px; color: #718096; margin-bottom: 2px; font-weight: 600;">OPTIMIZE</div>
+                    <div style="font-size: 11px; font-weight: 700; color: #2d3748;">Revenue per Booking</div>
+                    <div style="font-size: 7px; color: #718096; margin-top: 2px; line-height: 1.2;">Maximize value from ${formatCurrency(metrics.avgBookingValue, currency)}</div>
+                </div>`;
   }
 
   return `<!DOCTYPE html>
@@ -624,30 +883,10 @@ function generateHTMLReport(ownerName, propertyName, currency, data) {
             </table>
         </div>
 
-        <!-- AREAS OF ATTENTION -->
+        <!-- AREAS OF ATTENTION (OSIRIS AI) -->
         <div class="section">
             <div class="section-title">Areas of Attention</div>
-
-            ${metrics.otaDependency > 70 ? `
-            <div class="summary-box">
-                <h3>Distribution Channel Dependency</h3>
-                <p>Current OTA commission expense: <span class="highlight-number">${formatCurrencyFull(metrics.otaCommission, currency)}</span> annually. Direct booking capability would reduce acquisition costs significantly.</p>
-            </div>
-            ` : ''}
-
-            ${metrics.pendingAmount > 0 ? `
-            <div class="summary-box">
-                <h3>Payment Collection</h3>
-                <p>Pending payments: <span class="highlight-number">${formatCurrencyFull(metrics.pendingAmount, currency)}</span> from ${metrics.pendingPayments} bookings. Implement automated payment reminders to improve cash flow.</p>
-            </div>
-            ` : ''}
-
-            ${metrics.occupancyRate < 30 ? `
-            <div class="summary-box">
-                <h3>Occupancy Optimization</h3>
-                <p>Current occupancy: <span class="highlight-number">${metrics.occupancyRate}%</span>. Consider dynamic pricing and increased marketing to fill vacant dates.</p>
-            </div>
-            ` : ''}
+            ${areasOfAttentionHTML}
         </div>
 
         <div class="footer">
@@ -714,65 +953,17 @@ function generateHTMLReport(ownerName, propertyName, currency, data) {
             </div>
         </div>
 
-        <!-- INSIGHTS -->
+        <!-- INSIGHTS (OSIRIS AI) -->
         <div class="section">
             <div class="section-title">Performance Insights</div>
-
-            ${(() => {
-              const topPerformer = propertyMetrics.reduce((max, p) => p.revenue > max.revenue ? p : max, propertyMetrics[0]);
-              const lowPerformers = propertyMetrics.filter(p => p.occupancyRate < 30);
-
-              return `
-            <div class="summary-box" style="background: #f0fff4; border-color: #9ae6b4;">
-                <h3>⭐ Top Performer: ${topPerformer.name}</h3>
-                <p>
-                    Leading with <span class="highlight-number">${topPerformer.bookings} bookings</span> and
-                    <span class="highlight-number">${formatCurrencyFull(topPerformer.revenue, currency)}</span> in revenue.
-                    Achieving <span class="highlight-number">${topPerformer.occupancyRate}%</span> occupancy rate.
-                </p>
-            </div>
-
-            ${lowPerformers.length > 0 ? `
-            <div class="summary-box" style="background: #fffaf0; border-color: #fbb6ce;">
-                <h3>⚠️ Needs Attention: ${lowPerformers.map(p => p.name).join(', ')}</h3>
-                <p>
-                    ${lowPerformers.length} villa(s) with low occupancy (< 30%).
-                    Consider: pricing adjustments, enhanced photos, targeted promotions, or room improvements.
-                </p>
-            </div>
-            ` : ''}
-
-            <div class="summary-box">
-                <h3>Portfolio Optimization</h3>
-                <p>
-                    ${properties.length} villas with varying performance levels.
-                    Average occupancy across portfolio: <span class="highlight-number">${metrics.occupancyRate}%</span>.
-                    ${lowPerformers.length} villa(s) underperforming (< 30% occupancy) require strategic attention.
-                </p>
-            </div>
-              `;
-            })()}
+            ${performanceInsightsHTML}
         </div>
 
-        <!-- STRATEGIC OBJECTIVES -->
+        <!-- STRATEGIC OBJECTIVES (OSIRIS AI) -->
         <div class="section" style="margin-bottom: 6px;">
             <div class="section-title" style="font-size: 13px; margin-bottom: 6px;">Strategic Objectives</div>
             <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 6px;">
-                <div style="background: #f7fafc; padding: 6px; border-radius: 5px; border: 1px solid #e2e8f0; text-align: center;">
-                    <div style="font-size: 8px; color: #718096; margin-bottom: 2px; font-weight: 600;">INCREASE</div>
-                    <div style="font-size: 11px; font-weight: 700; color: #2d3748;">Direct Bookings</div>
-                    <div style="font-size: 7px; color: #718096; margin-top: 2px; line-height: 1.2;">Reduce OTA dependency from ${metrics.otaDependency.toFixed(1)}%</div>
-                </div>
-                <div style="background: #f7fafc; padding: 6px; border-radius: 5px; border: 1px solid #e2e8f0; text-align: center;">
-                    <div style="font-size: 8px; color: #718096; margin-bottom: 2px; font-weight: 600;">IMPROVE</div>
-                    <div style="font-size: 11px; font-weight: 700; color: #2d3748;">Occupancy Rate</div>
-                    <div style="font-size: 7px; color: #718096; margin-top: 2px; line-height: 1.2;">Target 50%+ from current ${metrics.occupancyRate}%</div>
-                </div>
-                <div style="background: #f7fafc; padding: 6px; border-radius: 5px; border: 1px solid #e2e8f0; text-align: center;">
-                    <div style="font-size: 8px; color: #718096; margin-bottom: 2px; font-weight: 600;">OPTIMIZE</div>
-                    <div style="font-size: 11px; font-weight: 700; color: #2d3748;">Revenue per Booking</div>
-                    <div style="font-size: 7px; color: #718096; margin-top: 2px; line-height: 1.2;">Maximize value from ${formatCurrency(metrics.avgBookingValue, currency)}</div>
-                </div>
+                ${strategicObjectivesHTML}
             </div>
         </div>
 
@@ -820,7 +1011,7 @@ function generateHTMLReport(ownerName, propertyName, currency, data) {
         <!-- NOTE -->
         <div style="background: #fff7ed; border: 2px solid #fed7aa; padding: 10px; border-radius: 8px; margin-top: 10px;">
             <div style="font-size: 10px; color: #92400e; line-height: 1.4;">
-                <strong>⚠️ NOTE:</strong> The sections <strong>"Areas of Attention"</strong>, <strong>"Performance Insights"</strong>, and <strong>"Strategic Objectives"</strong> use temporary automated analysis. Soon, <strong>Claude AI</strong> will analyze all your business data and generate intelligent, personalized recommendations. <strong>All data shown is real from your database.</strong>
+                <strong>🤖 POWERED BY OSIRIS AI:</strong> The sections <strong>"Areas of Attention"</strong>, <strong>"Performance Insights"</strong>, and <strong>"Strategic Objectives"</strong> are now generated by <strong>OSIRIS</strong>, our Claude AI business analyst. OSIRIS analyzes your real business data and provides intelligent, personalized recommendations specific to your performance metrics. <strong>All data and analysis are based on your actual database.</strong>
             </div>
         </div>
 
@@ -880,11 +1071,12 @@ async function main() {
     console.log('Processing Gita Pradnyana (Nismara Uma Villa)...');
     const gitaData = await fetchOwnerData(OWNER_IDS.gita, 'Gita Pradnyana');
     if (gitaData) {
-      const gitaHTML = generateHTMLReport(
+      const gitaHTML = await generateHTMLReport(
         'Gita Pradnyana',
         'Nismara Uma Villa',
         'IDR',
-        gitaData
+        gitaData,
+        OWNER_IDS.gita
       );
       fs.writeFileSync('public/business-reports/nismara-dynamic.html', gitaHTML);
       console.log('✓ Generated: nismara-dynamic.html\n');
@@ -894,11 +1086,12 @@ async function main() {
     console.log('Processing Jose Carrallo (Izumi Hotel & Villas)...');
     const joseData = await fetchOwnerData(OWNER_IDS.jose, 'Jose Carrallo');
     if (joseData) {
-      const joseHTML = generateHTMLReport(
+      const joseHTML = await generateHTMLReport(
         'Jose Carrallo',
         'Izumi Hotel & Villas',
         'USD',
-        joseData
+        joseData,
+        OWNER_IDS.jose
       );
       fs.writeFileSync('public/business-reports/izumi-dynamic.html', joseHTML);
       console.log('✓ Generated: izumi-dynamic.html\n');
