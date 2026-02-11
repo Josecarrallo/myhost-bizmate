@@ -36,9 +36,12 @@ import {
 import ManualDataEntry from '../ManualDataEntry/ManualDataEntry';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
+import { generateReportHTML } from '../../services/generateReportHTML';
 
 const Autopilot = ({ onBack }) => {
   const { userData } = useAuth();
+  const iframeRef = React.useRef(null);
+
   // Navigation between 9 sections
   const [activeSection, setActiveSection] = useState('menu'); // Start with menu visible
   const [activeView, setActiveView] = useState('daily'); // for Overview section
@@ -50,20 +53,27 @@ const Autopilot = ({ onBack }) => {
   const [selectedProperty, setSelectedProperty] = useState('gita'); // for Business Reports (owner selection)
   const [isGeneratingReport, setIsGeneratingReport] = useState(false); // for Business Reports generation
 
-  // Load saved report from localStorage when iframe loads
+  // Load saved report from localStorage when entering Business Reports
   useEffect(() => {
-    const loadSavedReport = () => {
-      const savedReport = localStorage.getItem(`business-report-${selectedProperty}`);
-      const iframe = document.getElementById('business-report-frame');
-      if (savedReport && iframe) {
-        setTimeout(() => {
-          iframe.srcdoc = savedReport;
-        }, 100);
-      }
-    };
+    if (activeSection === 'businessReports' && iframeRef.current) {
+      // Small delay to ensure iframe is ready
+      setTimeout(() => {
+        if (!iframeRef.current) {
+          console.log('⚠️  Iframe not ready');
+          return;
+        }
 
-    if (activeSection === 'businessReports') {
-      loadSavedReport();
+        // Try to load saved report for this property
+        const savedReport = localStorage.getItem(`business-report-${selectedProperty}`);
+
+        if (savedReport) {
+          console.log(`📄 Loading saved report for ${selectedProperty}`);
+          iframeRef.current.srcdoc = savedReport;
+        } else {
+          console.log(`📝 No saved report for ${selectedProperty}`);
+          iframeRef.current.srcdoc = '<html><body style="margin:0;padding:40px;font-family:sans-serif;text-align:center;color:#666;"><h2 style="color:#f97316;">Business Report</h2><p>Select an owner and click <strong>Generate Report</strong> to view the analysis.</p></body></html>';
+        }
+      }, 100);
     }
   }, [activeSection, selectedProperty]);
 
@@ -1971,11 +1981,12 @@ const Autopilot = ({ onBack }) => {
 
     const handleGenerate = async () => {
       setIsGeneratingReport(true);
+      console.log('🔄 Generating report with latest version...');
 
       try {
         // Import services
         const { generateBusinessReport } = await import('../../services/businessReportService');
-        const { generateReportHTML } = await import('../../services/generateReportHTML');
+        // generateReportHTML is now imported statically at the top
 
         // Get owner data
         const ownerData = owners.find(o => o.id === selectedProperty);
@@ -2005,12 +2016,11 @@ const Autopilot = ({ onBack }) => {
             reportData.osirisAnalysis
           );
 
-          // Display in iframe using srcdoc and save to localStorage
-          const iframe = document.getElementById('business-report-frame');
-          if (iframe) {
-            iframe.srcdoc = reportHTML;
+          // Display in iframe and save to localStorage
+          if (iframeRef.current) {
+            iframeRef.current.srcdoc = reportHTML;
             localStorage.setItem(`business-report-${selectedProperty}`, reportHTML);
-            console.log('✅ Report displayed and saved to localStorage');
+            console.log('✅ Report generated and saved');
           }
         } else {
           alert('❌ Error generating report. No data found.');
@@ -2042,57 +2052,63 @@ const Autopilot = ({ onBack }) => {
             <div className="w-12"></div>
           </div>
 
-          {/* Owner Selector and Action Buttons - Single Line */}
-          <div className="flex items-center justify-center gap-6">
-            <label className="text-gray-300 text-sm font-semibold">Select Owner:</label>
-            <select
-              value={selectedProperty}
-              onChange={(e) => setSelectedProperty(e.target.value)}
-              className="bg-[#374151] text-white px-4 py-2 rounded-lg border-2 border-orange-500/30 focus:border-orange-500 focus:outline-none hover:border-orange-500/50 transition-all cursor-pointer"
-            >
-              {owners.map(owner => (
-                <option key={owner.id} value={owner.id}>
-                  {owner.name} - {owner.property} ({owner.villas} {owner.villas === 1 ? 'villa' : 'villas'})
-                </option>
-              ))}
-            </select>
-            <button
-              onClick={handleGenerate}
-              disabled={isGeneratingReport}
-              className={`flex items-center justify-center gap-2 px-8 py-3 text-white rounded-xl font-semibold transition-all shadow-lg min-w-[140px] ${
-                isGeneratingReport
-                  ? 'bg-purple-400 cursor-not-allowed'
-                  : 'bg-purple-500 hover:bg-purple-600'
-              }`}
-            >
-              {isGeneratingReport ? (
-                <>
-                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                  Generating...
-                </>
-              ) : (
-                <>
-                  <Zap className="w-5 h-5" />
-                  Generate
-                </>
-              )}
-            </button>
-            <button
-              onClick={handlePrint}
-              className="flex items-center justify-center gap-2 px-8 py-3 bg-orange-500 text-white rounded-xl font-semibold hover:bg-orange-600 transition-all shadow-lg min-w-[140px]"
-            >
-              <Printer className="w-5 h-5" />
-              Print
-            </button>
+          {/* Owner Selector and Action Buttons - Responsive Layout */}
+          <div className="flex flex-col md:flex-row items-center justify-center gap-4 md:gap-6">
+            {/* Select Owner - Full Width on Mobile */}
+            <div className="flex flex-col md:flex-row items-center gap-2 w-full md:w-auto">
+              <label className="text-gray-300 text-sm font-semibold">Select Owner:</label>
+              <select
+                value={selectedProperty}
+                onChange={(e) => setSelectedProperty(e.target.value)}
+                className="bg-[#374151] text-white px-4 py-2 rounded-lg border-2 border-orange-500/30 focus:border-orange-500 focus:outline-none hover:border-orange-500/50 transition-all cursor-pointer w-full md:w-auto"
+              >
+                {owners.map(owner => (
+                  <option key={owner.id} value={owner.id}>
+                    {owner.name} - {owner.property} ({owner.villas} {owner.villas === 1 ? 'villa' : 'villas'})
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Action Buttons - Full Width on Mobile */}
+            <div className="flex flex-col md:flex-row gap-3 w-full md:w-auto">
+              <button
+                onClick={handleGenerate}
+                disabled={isGeneratingReport}
+                className={`flex items-center justify-center gap-2 px-8 py-3 text-white rounded-xl font-semibold transition-all shadow-lg w-full md:w-auto ${
+                  isGeneratingReport
+                    ? 'bg-purple-400 cursor-not-allowed'
+                    : 'bg-purple-500 hover:bg-purple-600'
+                }`}
+              >
+                {isGeneratingReport ? (
+                  <>
+                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    Generating...
+                  </>
+                ) : (
+                  <>
+                    <Zap className="w-5 h-5" />
+                    Generate
+                  </>
+                )}
+              </button>
+              <button
+                onClick={handlePrint}
+                className="flex items-center justify-center gap-2 px-8 py-3 bg-orange-500 text-white rounded-xl font-semibold hover:bg-orange-600 transition-all shadow-lg w-full md:w-auto"
+              >
+                <Printer className="w-5 h-5" />
+                Print
+              </button>
+            </div>
           </div>
         </div>
 
         {/* Report Display */}
         <div className="bg-white rounded-3xl shadow-2xl border-2 border-gray-200" style={{ height: '1400px', overflowY: 'auto', overflowX: 'hidden' }}>
           <iframe
-            key={selectedProperty}
+            ref={iframeRef}
             id="business-report-frame"
-            src={`/business-reports/${currentFile}`}
             style={{
               width: '100%',
               height: '3500px',

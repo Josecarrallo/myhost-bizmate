@@ -5,6 +5,14 @@ import React from 'react';
  * Generates a dynamic HTML business report from Supabase data
  */
 const BusinessReportGenerator = ({ reportData }) => {
+  const [isMobile, setIsMobile] = React.useState(window.innerWidth < 768);
+
+  React.useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   if (!reportData) {
     return (
       <div className="flex items-center justify-center h-full">
@@ -32,7 +40,7 @@ const BusinessReportGenerator = ({ reportData }) => {
   });
 
   return (
-    <div className="bg-white" style={{ width: '100%', minHeight: '100%' }}>
+    <div style={{ width: '100%', minHeight: '100%', background: 'white' }}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
@@ -64,54 +72,15 @@ const BusinessReportGenerator = ({ reportData }) => {
           font-weight: 500;
         }
 
-        .metrics-grid {
+        /* Metrics Grid - Desktop First */
+        #metrics-grid-container {
           display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+          grid-template-columns: repeat(4, 1fr);
           gap: 20px;
           margin-bottom: 30px;
         }
 
-        /* Mobile responsiveness for metrics grid */
-        @media (max-width: 767px) {
-          .metrics-grid {
-            grid-template-columns: repeat(2, 1fr);
-            gap: 12px;
-          }
-
-          .report-container {
-            padding: 20px;
-          }
-
-          .metric-box {
-            padding: 16px 12px;
-          }
-
-          .metric-label {
-            font-size: 11px;
-          }
-
-          .metric-value {
-            font-size: 24px;
-          }
-
-          .metric-subtitle {
-            font-size: 11px;
-          }
-
-          .report-title {
-            font-size: 22px;
-          }
-
-          .report-subtitle {
-            font-size: 14px;
-          }
-
-          .section-title {
-            font-size: 18px;
-          }
-        }
-
-        .metric-box {
+        .metric-box-responsive {
           background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
           padding: 20px;
           border-radius: 12px;
@@ -119,7 +88,7 @@ const BusinessReportGenerator = ({ reportData }) => {
           color: white;
         }
 
-        .metric-label {
+        .metric-label-responsive {
           font-size: 13px;
           font-weight: 600;
           text-transform: uppercase;
@@ -128,16 +97,54 @@ const BusinessReportGenerator = ({ reportData }) => {
           margin-bottom: 8px;
         }
 
-        .metric-value {
+        .metric-value-responsive {
           font-size: 32px;
           font-weight: 700;
           line-height: 1.2;
         }
 
-        .metric-subtitle {
+        .metric-subtitle-responsive {
           font-size: 13px;
           opacity: 0.85;
           margin-top: 4px;
+        }
+
+        /* Mobile Overrides */
+        @media (max-width: 767px) {
+          #metrics-grid-container {
+            grid-template-columns: repeat(2, 1fr) !important;
+            gap: 10px !important;
+          }
+
+          .metric-box-responsive {
+            padding: 10px !important;
+          }
+
+          .metric-label-responsive {
+            font-size: 10px !important;
+            margin-bottom: 6px !important;
+          }
+
+          .metric-value-responsive {
+            font-size: 20px !important;
+          }
+
+          .metric-subtitle-responsive {
+            font-size: 9px !important;
+            margin-top: 2px !important;
+          }
+
+          .report-container {
+            padding: 16px !important;
+          }
+
+          .report-title {
+            font-size: 18px !important;
+          }
+
+          .report-subtitle {
+            font-size: 12px !important;
+          }
         }
 
         .section {
@@ -210,35 +217,35 @@ const BusinessReportGenerator = ({ reportData }) => {
         }
       `}</style>
 
-      <div className="report-container">
+      <div className="report-container" style={isMobile ? { padding: '16px' } : {}}>
         {/* Header */}
         <div className="report-header">
-          <div className="report-title">
+          <div className="report-title" style={isMobile ? { fontSize: '18px' } : {}}>
             {properties.length > 0 ? properties[0].name : 'Business Report'}
           </div>
-          <div className="report-subtitle">
+          <div className="report-subtitle" style={isMobile ? { fontSize: '12px' } : {}}>
             Owner: {owner.full_name} | {reportDate}
           </div>
         </div>
 
         {/* Key Metrics */}
-        <div className="metrics-grid">
-          <div className="metric-box">
-            <div className="metric-label">Total Bookings</div>
-            <div className="metric-value">{metrics.totalBookings}</div>
+        <div id="metrics-grid-container">
+          <div id="metrics-box-1" className="metric-box-responsive">
+            <div className="metric-label-responsive">Total Bookings</div>
+            <div className="metric-value-responsive">{metrics.totalBookings}</div>
           </div>
-          <div className="metric-box" style={{ background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)' }}>
-            <div className="metric-label">Total Revenue</div>
-            <div className="metric-value">{formatCurrency(metrics.totalRevenue)}</div>
+          <div id="metrics-box-2" className="metric-box-responsive" style={{ background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)' }}>
+            <div className="metric-label-responsive">Total Revenue</div>
+            <div className="metric-value-responsive">{formatCurrency(metrics.totalRevenue)}</div>
           </div>
-          <div className="metric-box" style={{ background: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)' }}>
-            <div className="metric-label">Occupancy Rate</div>
-            <div className="metric-value">{metrics.occupancyRate}%</div>
-            <div className="metric-subtitle">{metrics.totalNights} total nights</div>
+          <div id="metrics-box-3" className="metric-box-responsive" style={{ background: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)' }}>
+            <div className="metric-label-responsive">Occupancy Rate</div>
+            <div className="metric-value-responsive">{metrics.occupancyRate}%</div>
+            <div className="metric-subtitle-responsive">{metrics.totalNights} total nights</div>
           </div>
-          <div className="metric-box" style={{ background: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)' }}>
-            <div className="metric-label">Avg Nightly Rate</div>
-            <div className="metric-value">{formatCurrency(metrics.avgNightlyRate)}</div>
+          <div id="metrics-box-4" className="metric-box-responsive" style={{ background: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)' }}>
+            <div className="metric-label-responsive">Avg Nightly Rate</div>
+            <div className="metric-value-responsive">{formatCurrency(metrics.avgNightlyRate)}</div>
           </div>
         </div>
 
