@@ -266,13 +266,13 @@ const MySite = ({ onBack }) => {
           </CardHeader>
 
           <CardContent className="pt-6">
-            {/* URL Section */}
+            {/* URL Section - Mobile Optimized */}
             <div className="mb-6">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Website URL
+              <label className="block text-sm font-medium text-gray-700 mb-3 text-center md:text-left">
+                🌐 Website URL
               </label>
-              <div className="flex items-center gap-2">
-                <div className="flex-1 px-4 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-700 text-sm font-mono">
+              <div className="flex flex-col md:flex-row items-stretch md:items-center gap-3">
+                <div className="flex-1 px-4 py-3 border border-gray-300 rounded-lg bg-gray-50 text-gray-700 text-sm md:text-base font-mono text-center md:text-left break-all">
                   {siteData.url}
                 </div>
                 <Button
@@ -284,21 +284,28 @@ const MySite = ({ onBack }) => {
                     copyToClipboard(siteData.url);
                   }}
                   title="Copy URL"
+                  className="w-full md:w-auto"
                 >
                   {copied ? (
-                    <Check className="w-4 h-4 text-green-600" />
+                    <>
+                      <Check className="w-4 h-4 mr-2" />
+                      Copied!
+                    </>
                   ) : (
-                    <Copy className="w-4 h-4" />
+                    <>
+                      <Copy className="w-4 h-4 mr-2" />
+                      Copy URL
+                    </>
                   )}
                 </Button>
               </div>
               {siteData.status === 'published' ? (
-                <p className="text-xs text-green-600 mt-1 flex items-center gap-1">
+                <p className="text-xs text-green-600 mt-2 flex items-center justify-center md:justify-start gap-1">
                   <Check className="w-3 h-3" />
                   Your website is live! Click "View Site" to preview.
                 </p>
               ) : (
-                <p className="text-xs text-gray-500 mt-1">
+                <p className="text-xs text-gray-500 mt-2 text-center md:text-left">
                   Publish your website to make it accessible via this URL.
                 </p>
               )}
@@ -357,42 +364,6 @@ const MySite = ({ onBack }) => {
             </div>
           </CardContent>
         </Card>
-
-        {/* Stats Cards */}
-        <div className="grid sm:grid-cols-3 gap-4">
-          <Card>
-            <CardContent className="pt-6">
-              <div className="text-center">
-                <div className="text-3xl font-bold text-[#FF8C42] mb-1">
-                  {siteData.properties?.length || 0}
-                </div>
-                <div className="text-sm text-gray-600">Properties Displayed</div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="pt-6">
-              <div className="text-center">
-                <div className="text-3xl font-bold text-blue-600 mb-1">
-                  {siteData.status === 'published' ? 'Live' : 'Draft'}
-                </div>
-                <div className="text-sm text-gray-600">Status</div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="pt-6">
-              <div className="text-center">
-                <div className="text-3xl font-bold text-green-600 mb-1">
-                  {siteData.theme}
-                </div>
-                <div className="text-sm text-gray-600">Active Theme</div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
       </div>
     </div>
   );
