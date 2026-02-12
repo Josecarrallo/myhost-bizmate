@@ -53,6 +53,7 @@ const Autopilot = ({ onBack }) => {
   const [isGeneratingReport, setIsGeneratingReport] = useState(false); // for Business Reports generation
   const [reportHTML, setReportHTML] = useState('<html><body style="margin:0;padding:40px;font-family:sans-serif;text-align:center;color:#666;"><h2 style="color:#f97316;">Business Report</h2><p>Select owner and period, then click <strong>Generate Report</strong>.</p></body></html>'); // Business Reports HTML content
   const [selectedPeriod, setSelectedPeriod] = useState('this_month'); // Period selector for reports
+  const [selectedAllInfoPeriod, setSelectedAllInfoPeriod] = useState('all_time'); // Period selector for All Information
 
   // Load saved report from localStorage when entering Business Reports
   useEffect(() => {
@@ -90,6 +91,8 @@ const Autopilot = ({ onBack }) => {
     averageBookingValue: 0,
     totalNights: 0,
     avgOccupancy: 0,
+    monthsWithBookings: 0,
+    availableNights: 0,
     loading: true
   });
 
@@ -292,21 +295,19 @@ const Autopilot = ({ onBack }) => {
   ];
 
   // Load real counts from Supabase
-  const loadRealCounts = async () => {
+  const loadRealCounts = async (period = 'all_time') => {
     if (!TENANT_ID) return;
 
     try {
-      // Load properties
-      const { data: properties, error: propertiesError } = await supabase
-        .from('properties')
-        .select('*')
-        .eq('owner_id', TENANT_ID);
-
-      if (propertiesError) {
-        console.error('Error loading properties:', propertiesError);
-      } else {
-        setUserProperties(properties || []);
+      // Get date range for filtering
+      let dateFilter = null;
+      if (period !== 'all_time') {
+        dateFilter = getDateRange(period);
       }
+
+      // Load villas (properties) - First we need to get unique property_ids from bookings
+      // We'll load properties after we have the bookings data
+      let properties = [];
 
       // Load leads
       const { data: leadsData, error: leadsError } = await supabase
@@ -319,7 +320,7 @@ const Autopilot = ({ onBack }) => {
       } else {
         setLeads(leadsData || []);
 
-        // Calculate leads counts by status
+        // Calculate leads counts by state (not status)
         const counts = {
           hot: 0,
           pending: 0,
@@ -329,24 +330,33 @@ const Autopilot = ({ onBack }) => {
         };
 
         (leadsData || []).forEach(lead => {
-          const status = (lead.status || '').toLowerCase();
-          if (status === 'hot') counts.hot++;
-          else if (status === 'pending') counts.pending++;
-          else if (status === 'engaged') counts.engaged++;
-          else if (status === 'won') counts.won++;
+          const state = (lead.state || '').toLowerCase();
+          if (state === 'hot') counts.hot++;
+          else if (state === 'pending') counts.pending++;
+          else if (state === 'engaged') counts.engaged++;
+          else if (state === 'won' || state === 'converted') counts.won++;
 
-          counts.total_value += lead.estimated_value || 0;
+          // No estimated_value field exists, use 0 for now
+          counts.total_value += 0;
         });
 
         setLeadsCounts(counts);
       }
 
-      // Load full booking details for the table
-      const { data: bookings, error } = await supabase
+      // Load full booking details for the table (with optional date filter)
+      let bookingsQuery = supabase
         .from('bookings')
         .select('*')
-        .eq('tenant_id', TENANT_ID)
-        .order('check_in', { ascending: false });
+        .eq('tenant_id', TENANT_ID);
+
+      // Apply date filter if period is not 'all_time'
+      if (dateFilter) {
+        bookingsQuery = bookingsQuery
+          .gte('check_in', dateFilter.startDate)
+          .lte('check_in', dateFilter.endDate);
+      }
+
+      const { data: bookings, error } = await bookingsQuery.order('check_in', { ascending: false });
 
       if (error) {
         console.error('Error loading bookings:', error);
@@ -356,11 +366,40 @@ const Autopilot = ({ onBack }) => {
 
       setAllBookings(bookings || []);
 
+      // Load villas (properties) based on unique property_ids from bookings
+      const propertyIds = [...new Set((bookings || []).map(b => b.property_id).filter(Boolean))];
+
+      if (propertyIds.length > 0) {
+        const { data: villas, error: villasError } = await supabase
+          .from('villas')
+          .select('*')
+          .in('property_id', propertyIds);
+
+        if (villasError) {
+          console.error('Error loading villas:', villasError);
+        } else {
+          // Map villas to properties format with available fields
+          properties = (villas || []).map(villa => ({
+            id: villa.id,
+            name: villa.name,
+            location: villa.location || 'Ubud, Bali', // Fallback to default
+            property_type: villa.property_type || `${villa.bedrooms || 'N/A'} Bedroom Villa`, // Use bedrooms if no type
+            address: villa.address || 'Bali, Indonesia',
+            bedrooms: villa.bedrooms,
+            bathrooms: villa.bathrooms,
+            description: villa.description
+          }));
+          setUserProperties(properties);
+        }
+      }
+
       // Calculate unique countries (excluding null/empty)
       const uniqueCountries = new Set();
       (bookings || []).forEach(booking => {
-        if (booking.guest_country && booking.guest_country.trim() !== '') {
-          uniqueCountries.add(booking.guest_country);
+        const country = booking.guest_country;
+        // Ignore null, 'null' string, empty string, and undefined
+        if (country && country.trim() !== '' && country.toLowerCase() !== 'null') {
+          uniqueCountries.add(country);
         }
       });
 
@@ -387,11 +426,18 @@ const Autopilot = ({ onBack }) => {
         return sum;
       }, 0);
 
-      // Calculate occupancy rate (total nights booked / total available nights in period)
-      // Assuming 365 days available per property per year
-      const daysInPeriod = 365;
-      const totalProperties = (properties || []).length || 1; // At least 1 to avoid division by 0
-      const totalAvailableNights = daysInPeriod * totalProperties;
+      // Calculate occupancy rate based on months with bookings
+      // Formula: (total nights booked / (months with bookings * 31 days)) * 100
+      const monthsWithBookings = new Set();
+      (bookings || []).forEach(booking => {
+        if (booking.check_in) {
+          const date = new Date(booking.check_in);
+          const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+          monthsWithBookings.add(monthKey);
+        }
+      });
+      const totalMonths = monthsWithBookings.size || 1; // At least 1 to avoid division by 0
+      const totalAvailableNights = totalMonths * 31; // 31 days average per month
       const avgOccupancy = totalAvailableNights > 0 ? (totalNights / totalAvailableNights) * 100 : 0;
 
       // Calculate channel statistics from 'source' field
@@ -434,6 +480,8 @@ const Autopilot = ({ onBack }) => {
         averageBookingValue: averageBookingValue,
         totalNights: totalNights,
         avgOccupancy: avgOccupancy,
+        monthsWithBookings: totalMonths,
+        availableNights: totalAvailableNights,
         loading: false
       });
     } catch (error) {
@@ -444,12 +492,20 @@ const Autopilot = ({ onBack }) => {
 
   // Load data on mount
   useEffect(() => {
-    loadRealCounts();
+    loadRealCounts(selectedAllInfoPeriod);
     fetchTodayMetrics();
     fetchAlerts();
     fetchActions();
     fetchMonthlyMetrics();
   }, [TENANT_ID]);
+
+  // Reload data when All Information period changes
+  useEffect(() => {
+    if (activeSection === 'all-data') {
+      console.log('Reloading data for period:', selectedAllInfoPeriod);
+      loadRealCounts(selectedAllInfoPeriod);
+    }
+  }, [selectedAllInfoPeriod, activeSection]);
 
   // Helper functions
   const formatTimeAgo = (timestamp) => {
@@ -458,6 +514,80 @@ const Autopilot = ({ onBack }) => {
     const hours = Math.floor(minutes / 60);
     if (hours < 24) return `${hours} hours ago`;
     return `${Math.floor(hours / 24)} days ago`;
+  };
+
+  const getPeriodLabel = (period) => {
+    const labels = {
+      'all_time': 'All Time',
+      'this_month': 'This Month',
+      'last_month': 'Last Month',
+      'this_quarter': 'This Quarter',
+      'last_quarter': 'Last Quarter',
+      'this_year': 'This Year (2026)',
+      'last_year': 'Last Year (2025)'
+    };
+    return labels[period] || 'All Time';
+  };
+
+  // Calculate date range based on selected period
+  const getDateRange = (period) => {
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth();
+
+    switch (period) {
+      case 'this_month': {
+        const start = new Date(currentYear, currentMonth, 1);
+        const end = new Date(currentYear, currentMonth + 1, 0);
+        return {
+          startDate: start.toISOString().split('T')[0],
+          endDate: end.toISOString().split('T')[0]
+        };
+      }
+      case 'last_month': {
+        const start = new Date(currentYear, currentMonth - 1, 1);
+        const end = new Date(currentYear, currentMonth, 0);
+        return {
+          startDate: start.toISOString().split('T')[0],
+          endDate: end.toISOString().split('T')[0]
+        };
+      }
+      case 'this_quarter': {
+        const quarterStartMonth = Math.floor(currentMonth / 3) * 3;
+        const start = new Date(currentYear, quarterStartMonth, 1);
+        const end = new Date(currentYear, quarterStartMonth + 3, 0);
+        return {
+          startDate: start.toISOString().split('T')[0],
+          endDate: end.toISOString().split('T')[0]
+        };
+      }
+      case 'last_quarter': {
+        const quarterStartMonth = Math.floor(currentMonth / 3) * 3 - 3;
+        const start = new Date(currentYear, quarterStartMonth, 1);
+        const end = new Date(currentYear, quarterStartMonth + 3, 0);
+        return {
+          startDate: start.toISOString().split('T')[0],
+          endDate: end.toISOString().split('T')[0]
+        };
+      }
+      case 'this_year': {
+        return {
+          startDate: `${currentYear}-01-01`,
+          endDate: `${currentYear}-12-31`
+        };
+      }
+      case 'last_year': {
+        return {
+          startDate: `${currentYear - 1}-01-01`,
+          endDate: `${currentYear - 1}-12-31`
+        };
+      }
+      default:
+        return {
+          startDate: `${currentYear}-01-01`,
+          endDate: `${currentYear}-12-31`
+        };
+    }
   };
 
   const logDbQuery = (query, result) => {
@@ -968,7 +1098,7 @@ const Autopilot = ({ onBack }) => {
         <body>
           <div class="container">
             <h1>MY HOST BizMate - Complete Data Summary</h1>
-            <p style="text-align: center; color: #666;">Period: 2025 - 2026 | Generated: ${today}</p>
+            <p style="text-align: center; color: #666;">Period: ${getPeriodLabel(selectedAllInfoPeriod)} | Generated: ${today}</p>
             <button class="btn-print" onclick="window.print()">🖨️ Print Report</button>
 
             <h2>📊 Property Information (${userProperties.length} ${userProperties.length === 1 ? 'Property' : 'Properties'})</h2>
@@ -988,10 +1118,7 @@ const Autopilot = ({ onBack }) => {
               Total Bookings: ${realCounts.totalBookings} | Countries: ${realCounts.countries} | Repeat Guests: ${realCounts.repeatGuests}
             </div>
 
-            <h2>📈 Leads Pipeline (${leads.length} Total)</h2>
-            ${leadsHTML}
-
-            <h2>🏨 Bookings Summary (2025 - 2026)</h2>
+            <h2>🏨 Bookings Summary (${getPeriodLabel(selectedAllInfoPeriod)})</h2>
             <h3>All Bookings</h3>
             <table>
               <tr>
@@ -1032,14 +1159,17 @@ const Autopilot = ({ onBack }) => {
 
             <h2>📋 Key Metrics Summary</h2>
             <div class="summary-box">
-              <strong>2025 - 2026 Performance:</strong><br>
+              <strong>${getPeriodLabel(selectedAllInfoPeriod)} Performance:</strong><br>
               Total Revenue: ${totalRevenueFormatted}<br>
               Total Bookings: ${realCounts.totalBookings}<br>
               Total Nights: ${realCounts.totalNights}<br>
               Average Booking Value: ${avgBookingValueFormatted}<br>
-              Average Occupancy: ${Math.round(realCounts.avgOccupancy)}%<br>
+              <strong>Occupancy Calculation:</strong><br>
+              &nbsp;&nbsp;• Months with bookings: ${realCounts.monthsWithBookings}<br>
+              &nbsp;&nbsp;• Available nights: ${realCounts.availableNights} (${realCounts.monthsWithBookings} months × 31 days)<br>
+              &nbsp;&nbsp;• Booked nights: ${realCounts.totalNights}<br>
+              &nbsp;&nbsp;• Occupancy Rate: ${Math.round(realCounts.avgOccupancy * 10) / 10}%<br>
               Payment Completion: ${paymentCompletionRate}%<br>
-              Active Leads: ${leads.length} (Pipeline: $${leadsCounts.total_value.toLocaleString('en-US')})<br>
               Properties: ${userProperties.length}<br>
               Countries Represented: ${realCounts.countries}<br>
               Repeat Guests: ${realCounts.repeatGuests}
@@ -1174,42 +1304,71 @@ const Autopilot = ({ onBack }) => {
     return (
       <div className="space-y-6">
         {/* Header */}
-        <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-3xl p-6 shadow-2xl border-2 border-[#d85a2a]/20">
-          <div className="flex items-center justify-between mb-4">
+        <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-3xl p-4 md:p-6 shadow-2xl border-2 border-[#d85a2a]/20">
+          {/* Top Row: Back Button + Title */}
+          <div className="flex items-center mb-4 gap-3">
             <button
               onClick={() => setActiveSection('menu')}
               className="p-2 bg-[#1f2937]/95 backdrop-blur-sm rounded-xl hover:bg-orange-500 transition-all border border-[#d85a2a]/20"
             >
               <ArrowLeft className="w-5 h-5 text-[#FF8C42]" />
             </button>
-            <div className="flex-1 text-center">
-              <h3 className="text-2xl font-black text-[#FF8C42] mb-2 flex items-center gap-2 justify-center">
-                <BarChart3 className="w-6 h-6" />
-                All Information
-              </h3>
-              <p className="text-gray-300 text-sm">
-                View all your business data in one place: Properties, Clients, Leads, Bookings, and Payments.
-              </p>
-            </div>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={handleGenerateDailySummary}
-                disabled={isGeneratingSummary}
-                className="px-6 py-3 bg-orange-500 hover:bg-orange-600 disabled:bg-orange-300 text-white rounded-xl font-bold transition-all flex items-center gap-2 shadow-xl"
-              >
-                {isGeneratingSummary ? (
-                  <>
-                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                    Generating...
-                  </>
-                ) : (
-                  <>
-                    <Zap className="w-5 h-5" />
-                    Generate & Print Summary
-                  </>
-                )}
-              </button>
-            </div>
+            <h3 className="text-xl md:text-2xl font-black text-[#FF8C42] flex items-center gap-2">
+              <BarChart3 className="w-5 h-5 md:w-6 md:h-6" />
+              All Information
+            </h3>
+          </div>
+
+          {/* Description Text - Full Width */}
+          <p className="text-gray-300 text-sm mb-4 px-1">
+            <span className="hidden md:inline">View all your business data in one place: Properties, Clients, Leads, Bookings, and Payments.</span>
+            <span className="md:hidden">View all your business data: Properties, Clients, Leads, Bookings & Payments.</span>
+          </p>
+
+          {/* Period Selector */}
+          <div className="mb-4">
+            <label className="text-gray-300 text-xs font-semibold uppercase mb-2 block">Filter by Period:</label>
+            <select
+              value={selectedAllInfoPeriod}
+              onChange={(e) => {
+                console.log('Period selected:', e.target.value);
+                setSelectedAllInfoPeriod(e.target.value);
+              }}
+              onBlur={(e) => {
+                console.log('Period blur:', e.target.value);
+                setSelectedAllInfoPeriod(e.target.value);
+              }}
+              className="w-full md:w-auto bg-[#374151] text-white px-4 py-2 rounded-lg border-2 border-purple-500/30 focus:border-purple-500 focus:outline-none hover:border-purple-500/50 transition-all cursor-pointer"
+            >
+              <option value="all_time">All Time</option>
+              <option value="this_month">This Month</option>
+              <option value="last_month">Last Month</option>
+              <option value="this_quarter">This Quarter</option>
+              <option value="last_quarter">Last Quarter</option>
+              <option value="this_year">This Year (2026)</option>
+              <option value="last_year">Last Year (2025)</option>
+            </select>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex flex-col md:flex-row gap-3">
+            <button
+              onClick={() => loadRealCounts(selectedAllInfoPeriod)}
+              disabled={isGeneratingSummary}
+              className="flex-1 md:flex-initial px-6 py-3 bg-orange-500 hover:bg-orange-600 disabled:bg-orange-300 text-white rounded-xl font-bold transition-all flex items-center justify-center gap-2 shadow-xl"
+            >
+              <Zap className="w-5 h-5" />
+              <span className="hidden md:inline">Refresh Data</span>
+              <span className="md:hidden">Refresh</span>
+            </button>
+            <button
+              onClick={handleGenerateDailySummary}
+              className="flex-1 md:flex-initial px-6 py-3 bg-purple-500 hover:bg-purple-600 text-white rounded-xl font-bold transition-all flex items-center justify-center gap-2 shadow-xl"
+            >
+              <Printer className="w-5 h-5" />
+              <span className="hidden md:inline">Print Summary</span>
+              <span className="md:hidden">Print</span>
+            </button>
           </div>
         </div>
 
@@ -1264,38 +1423,11 @@ const Autopilot = ({ onBack }) => {
           </div>
         </div>
 
-        {/* Leads Overview */}
-        <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-3xl p-6 shadow-2xl border-2 border-[#d85a2a]/20">
-          <h3 className="text-xl font-black text-[#FF8C42] mb-4 flex items-center gap-2">
-            <Users className="w-5 h-5" />
-            Leads Pipeline ({leads.length} total)
-          </h3>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-4">
-            <div className="bg-gradient-to-br from-red-500/10 to-red-600/10 rounded-xl p-4 border-2 border-red-500/30">
-              <p className="text-red-300 text-sm mb-1">HOT</p>
-              <p className="text-xl font-black text-white">{leadsCounts.hot}</p>
-            </div>
-            <div className="bg-gradient-to-br from-yellow-500/10 to-yellow-600/10 rounded-xl p-4 border-2 border-yellow-500/30">
-              <p className="text-yellow-300 text-sm mb-1">PENDING</p>
-              <p className="text-xl font-black text-white">{leadsCounts.pending}</p>
-            </div>
-            <div className="bg-gradient-to-br from-blue-500/10 to-blue-600/10 rounded-xl p-4 border-2 border-blue-500/30">
-              <p className="text-blue-300 text-sm mb-1">ENGAGED</p>
-              <p className="text-xl font-black text-white">{leadsCounts.engaged}</p>
-            </div>
-            <div className="bg-gradient-to-br from-green-500/10 to-green-600/10 rounded-xl p-4 border-2 border-green-500/30">
-              <p className="text-green-300 text-sm mb-1">WON</p>
-              <p className="text-xl font-black text-white">{leadsCounts.won}</p>
-            </div>
-          </div>
-          <p className="text-gray-400 text-sm">Total Pipeline Value: <span className="text-green-400 font-bold">${leadsCounts.total_value.toLocaleString()}</span></p>
-        </div>
-
         {/* Bookings Summary */}
         <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-3xl p-6 shadow-2xl border-2 border-[#d85a2a]/20">
           <h3 className="text-xl font-black text-[#FF8C42] mb-4 flex items-center gap-2">
             <Calendar className="w-5 h-5" />
-            Bookings Summary (2025 - 2026)
+            Bookings Summary ({getPeriodLabel(selectedAllInfoPeriod)})
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
             <div className="bg-gradient-to-br from-blue-500/10 to-blue-600/10 rounded-xl p-5 border-2 border-blue-500/30">
@@ -1439,23 +1571,41 @@ const Autopilot = ({ onBack }) => {
         <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-3xl p-6 shadow-2xl border-2 border-[#d85a2a]/20">
           <h3 className="text-xl font-black text-[#FF8C42] mb-4 flex items-center gap-2">
             <CreditCard className="w-5 h-5" />
-            Payments Summary
+            Payments Summary ({getPeriodLabel(selectedAllInfoPeriod)})
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="bg-gradient-to-br from-green-500/10 to-green-600/10 rounded-xl p-5 border-2 border-green-500/30">
               <p className="text-green-300 text-sm mb-2">Paid</p>
-              <p className="text-2xl font-black text-white mb-1">43</p>
-              <p className="text-green-200 text-sm">$47,940 (95.6%)</p>
+              <p className="text-2xl font-black text-white mb-1">
+                {allBookings.filter(b => b.payment_status === 'paid' || b.payment_status === 'completed').length}
+              </p>
+              <p className="text-green-200 text-sm">
+                {realCounts.totalRevenue >= 1000000
+                  ? `Rp ${Math.round(allBookings.filter(b => b.payment_status === 'paid' || b.payment_status === 'completed').reduce((sum, b) => sum + (b.total_price || 0), 0)).toLocaleString('id-ID')}`
+                  : `$${Math.round(allBookings.filter(b => b.payment_status === 'paid' || b.payment_status === 'completed').reduce((sum, b) => sum + (b.total_price || 0), 0)).toLocaleString('en-US')}`}
+              </p>
             </div>
             <div className="bg-gradient-to-br from-yellow-500/10 to-yellow-600/10 rounded-xl p-5 border-2 border-yellow-500/30">
               <p className="text-yellow-300 text-sm mb-2">Pending</p>
-              <p className="text-2xl font-black text-white mb-1">2</p>
-              <p className="text-yellow-200 text-sm">$2,200</p>
+              <p className="text-2xl font-black text-white mb-1">
+                {allBookings.filter(b => b.payment_status === 'pending' || !b.payment_status).length}
+              </p>
+              <p className="text-yellow-200 text-sm">
+                {realCounts.totalRevenue >= 1000000
+                  ? `Rp ${Math.round(allBookings.filter(b => b.payment_status === 'pending' || !b.payment_status).reduce((sum, b) => sum + (b.total_price || 0), 0)).toLocaleString('id-ID')}`
+                  : `$${Math.round(allBookings.filter(b => b.payment_status === 'pending' || !b.payment_status).reduce((sum, b) => sum + (b.total_price || 0), 0)).toLocaleString('en-US')}`}
+              </p>
             </div>
             <div className="bg-gradient-to-br from-gray-500/10 to-gray-600/10 rounded-xl p-5 border-2 border-gray-500/30">
               <p className="text-gray-300 text-sm mb-2">Overdue</p>
-              <p className="text-2xl font-black text-white mb-1">0</p>
-              <p className="text-gray-200 text-sm">$0</p>
+              <p className="text-2xl font-black text-white mb-1">
+                {allBookings.filter(b => b.payment_status === 'overdue').length}
+              </p>
+              <p className="text-gray-200 text-sm">
+                {realCounts.totalRevenue >= 1000000
+                  ? `Rp ${Math.round(allBookings.filter(b => b.payment_status === 'overdue').reduce((sum, b) => sum + (b.total_price || 0), 0)).toLocaleString('id-ID')}`
+                  : `$${Math.round(allBookings.filter(b => b.payment_status === 'overdue').reduce((sum, b) => sum + (b.total_price || 0), 0)).toLocaleString('en-US')}`}
+              </p>
             </div>
           </div>
         </div>
@@ -1968,67 +2118,6 @@ const Autopilot = ({ onBack }) => {
       const iframe = document.getElementById('business-report-frame');
       if (iframe) {
         iframe.contentWindow.print();
-      }
-    };
-
-    // Calculate date range based on selected period
-    const getDateRange = (period) => {
-      const now = new Date();
-      const currentYear = now.getFullYear(); // 2026
-      const currentMonth = now.getMonth(); // 0-11 (Feb = 1)
-
-      switch (period) {
-        case 'this_month': {
-          const start = new Date(currentYear, currentMonth, 1);
-          const end = new Date(currentYear, currentMonth + 1, 0);
-          return {
-            startDate: start.toISOString().split('T')[0],
-            endDate: end.toISOString().split('T')[0]
-          };
-        }
-        case 'last_month': {
-          const start = new Date(currentYear, currentMonth - 1, 1);
-          const end = new Date(currentYear, currentMonth, 0);
-          return {
-            startDate: start.toISOString().split('T')[0],
-            endDate: end.toISOString().split('T')[0]
-          };
-        }
-        case 'this_quarter': {
-          const quarterStartMonth = Math.floor(currentMonth / 3) * 3;
-          const start = new Date(currentYear, quarterStartMonth, 1);
-          const end = new Date(currentYear, quarterStartMonth + 3, 0);
-          return {
-            startDate: start.toISOString().split('T')[0],
-            endDate: end.toISOString().split('T')[0]
-          };
-        }
-        case 'last_quarter': {
-          const quarterStartMonth = Math.floor(currentMonth / 3) * 3 - 3;
-          const start = new Date(currentYear, quarterStartMonth, 1);
-          const end = new Date(currentYear, quarterStartMonth + 3, 0);
-          return {
-            startDate: start.toISOString().split('T')[0],
-            endDate: end.toISOString().split('T')[0]
-          };
-        }
-        case 'this_year': {
-          return {
-            startDate: `${currentYear}-01-01`,
-            endDate: `${currentYear}-12-31`
-          };
-        }
-        case 'last_year': {
-          return {
-            startDate: `${currentYear - 1}-01-01`,
-            endDate: `${currentYear - 1}-12-31`
-          };
-        }
-        default:
-          return {
-            startDate: `${currentYear}-01-01`,
-            endDate: `${currentYear}-12-31`
-          };
       }
     };
 
