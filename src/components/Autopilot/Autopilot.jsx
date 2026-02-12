@@ -1691,19 +1691,21 @@ const Autopilot = ({ onBack }) => {
 
   const renderCommunicationSection = () => (
     <div className="space-y-6">
-      <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-3xl p-6 shadow-2xl border-2 border-[#d85a2a]/20">
-        <div className="flex items-center justify-between mb-4">
+      <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-3xl p-4 md:p-6 shadow-2xl border-2 border-[#d85a2a]/20">
+        <div className="flex flex-col md:flex-row items-center justify-between mb-4 gap-3">
           <button
             onClick={() => setActiveSection('menu')}
-            className="p-2 bg-[#1f2937]/95 backdrop-blur-sm rounded-xl hover:bg-orange-500 transition-all border border-[#d85a2a]/20"
+            className="self-start md:self-auto p-2 bg-[#1f2937]/95 backdrop-blur-sm rounded-xl hover:bg-orange-500 transition-all border border-[#d85a2a]/20"
           >
             <ArrowLeft className="w-5 h-5 text-[#FF8C42]" />
           </button>
-          <h3 className="text-2xl font-black text-[#FF8C42] flex items-center gap-2">
-            <Mail className="w-6 h-6" />
-            Guest Communication
-          </h3>
-          <div className="w-12"></div>
+          <div className="text-center flex-1">
+            <h3 className="text-xl md:text-2xl font-black text-[#FF8C42] flex items-center justify-center gap-2">
+              <Mail className="w-5 h-5 md:w-6 md:h-6" />
+              Guest Communication
+            </h3>
+          </div>
+          <div className="w-12 hidden md:block"></div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
@@ -1820,20 +1822,22 @@ const Autopilot = ({ onBack }) => {
 
   const renderTasksSection = () => (
     <div className="space-y-6">
-      <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-3xl p-6 shadow-2xl border-2 border-[#d85a2a]/20">
-        <div className="flex items-center justify-between mb-4">
+      <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-3xl p-4 md:p-6 shadow-2xl border-2 border-[#d85a2a]/20">
+        <div className="flex flex-col md:flex-row items-center justify-between mb-4 gap-3">
           <button
             onClick={() => setActiveSection('menu')}
-            className="p-2 bg-[#1f2937]/95 backdrop-blur-sm rounded-xl hover:bg-orange-500 transition-all border border-[#d85a2a]/20"
+            className="self-start md:self-auto p-2 bg-[#1f2937]/95 backdrop-blur-sm rounded-xl hover:bg-orange-500 transition-all border border-[#d85a2a]/20"
           >
             <ArrowLeft className="w-5 h-5 text-[#FF8C42]" />
           </button>
-          <h3 className="text-2xl font-black text-[#FF8C42] flex items-center gap-2">
-            <Wrench className="w-6 h-6" />
-            Maintenance & Tasks
-          </h3>
+          <div className="text-center flex-1">
+            <h3 className="text-xl md:text-2xl font-black text-[#FF8C42] flex items-center justify-center gap-2">
+              <Wrench className="w-5 h-5 md:w-6 md:h-6" />
+              Maintenance & Tasks
+            </h3>
+          </div>
           <div className="flex gap-2">
-            <button className="px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg font-bold transition-all flex items-center gap-2">
+            <button className="px-3 md:px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg text-sm md:text-base font-bold transition-all flex items-center gap-2">
               <Plus className="w-4 h-4" />
               New Task
             </button>
@@ -1841,19 +1845,19 @@ const Autopilot = ({ onBack }) => {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-          <div className="bg-gradient-to-br from-yellow-500/10 to-yellow-600/10 rounded-xl p-5 border-2 border-yellow-500/30">
-            <p className="text-yellow-300 text-sm font-medium mb-2">Open</p>
-            <p className="text-3xl font-black text-white">0</p>
+          <div className="bg-gradient-to-br from-yellow-500/10 to-yellow-600/10 rounded-xl p-4 md:p-5 border-2 border-yellow-500/30">
+            <p className="text-yellow-300 text-xs md:text-sm font-medium mb-2">Open</p>
+            <p className="text-2xl md:text-3xl font-black text-white">0</p>
           </div>
 
-          <div className="bg-gradient-to-br from-blue-500/10 to-blue-600/10 rounded-xl p-5 border-2 border-blue-500/30">
-            <p className="text-blue-300 text-sm font-medium mb-2">In Progress</p>
-            <p className="text-3xl font-black text-white">0</p>
+          <div className="bg-gradient-to-br from-blue-500/10 to-blue-600/10 rounded-xl p-4 md:p-5 border-2 border-blue-500/30">
+            <p className="text-blue-300 text-xs md:text-sm font-medium mb-2">In Progress</p>
+            <p className="text-2xl md:text-3xl font-black text-white">0</p>
           </div>
 
-          <div className="bg-gradient-to-br from-green-500/10 to-green-600/10 rounded-xl p-5 border-2 border-green-500/30">
-            <p className="text-green-300 text-sm font-medium mb-2">Done Today</p>
-            <p className="text-3xl font-black text-white">0</p>
+          <div className="bg-gradient-to-br from-green-500/10 to-green-600/10 rounded-xl p-4 md:p-5 border-2 border-green-500/30">
+            <p className="text-green-300 text-xs md:text-sm font-medium mb-2">Done Today</p>
+            <p className="text-2xl md:text-3xl font-black text-white">0</p>
           </div>
         </div>
 
@@ -2622,22 +2626,24 @@ const Autopilot = ({ onBack }) => {
   const renderDecisionsSection = () => (
     <div className="space-y-6">
       {/* OWNER DECISIONS */}
-      <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-3xl p-6 shadow-2xl border-2 border-[#d85a2a]/20">
-        <div className="flex items-center justify-between mb-4">
+      <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-3xl p-4 md:p-6 shadow-2xl border-2 border-[#d85a2a]/20">
+        <div className="flex flex-col md:flex-row items-center justify-between mb-4 gap-3">
           <button
             onClick={() => setActiveSection('menu')}
-            className="p-2 bg-[#1f2937]/95 backdrop-blur-sm rounded-xl hover:bg-orange-500 transition-all border border-[#d85a2a]/20"
+            className="self-start md:self-auto p-2 bg-[#1f2937]/95 backdrop-blur-sm rounded-xl hover:bg-orange-500 transition-all border border-[#d85a2a]/20"
           >
             <ArrowLeft className="w-5 h-5 text-[#FF8C42]" />
           </button>
-          <h3 className="text-2xl font-black text-[#FF8C42] flex items-center gap-2">
-            <CheckCircle className="w-6 h-6 text-[#FF8C42]" />
-            Owner Decisions ({actionsNeedingApproval.length})
-          </h3>
+          <div className="text-center flex-1">
+            <h3 className="text-xl md:text-2xl font-black text-[#FF8C42] flex items-center justify-center gap-2">
+              <CheckCircle className="w-5 h-5 md:w-6 md:h-6 text-[#FF8C42]" />
+              Owner Decisions ({actionsNeedingApproval.length})
+            </h3>
+          </div>
           <div className="flex gap-2">
             <button
               onClick={() => setShowDBVisualization(!showDBVisualization)}
-              className="px-4 py-2 bg-orange-500/20 hover:bg-orange-500/30 text-orange-400 rounded-lg font-medium transition-all flex items-center gap-2 border border-orange-500/30"
+              className="px-3 md:px-4 py-2 bg-orange-500/20 hover:bg-orange-500/30 text-orange-400 rounded-lg text-sm md:text-base font-medium transition-all flex items-center gap-2 border border-orange-500/30"
             >
             <Eye className="w-4 h-4" />
             {showDBVisualization ? 'Hide' : 'Show'} DB
@@ -2670,7 +2676,7 @@ const Autopilot = ({ onBack }) => {
               return (
                 <div
                   key={action.id}
-                  className={`bg-[#2a2f3a] rounded-lg p-5 border-2 ${
+                  className={`bg-[#2a2f3a] rounded-lg p-4 md:p-5 border-2 ${
                     action.priority === 'urgent'
                       ? 'border-red-500/50'
                       : action.priority === 'high'
@@ -2680,57 +2686,57 @@ const Autopilot = ({ onBack }) => {
                 >
                   <div className="flex items-start justify-between mb-3">
                     <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-3">
+                      <div className="flex flex-wrap items-center gap-2 mb-3">
                         <span
-                          className={`px-3 py-1 rounded-full text-xs font-bold uppercase ${
+                          className={`px-2 md:px-3 py-1 rounded-full text-xs font-bold uppercase ${
                             priorityColors[action.priority] || priorityColors.normal
                           } border-2`}
                         >
                           🔥 {action.priority}
                         </span>
                         <span
-                          className={`px-3 py-1 rounded-full text-xs font-medium ${
+                          className={`px-2 md:px-3 py-1 rounded-full text-xs font-medium ${
                             typeColors[action.type] || 'bg-gray-100 text-gray-700'
                           }`}
                         >
                           {action.type.replace(/_/g, ' ')}
                         </span>
                       </div>
-                      <h4 className="text-white font-bold text-xl mb-2">{action.title}</h4>
-                      <div className="flex items-center gap-3 mb-3">
-                        <p className="text-orange-400 font-medium text-lg">👤 {action.guest}</p>
+                      <h4 className="text-white font-bold text-lg md:text-xl mb-2">{action.title}</h4>
+                      <div className="flex flex-wrap items-center gap-2 md:gap-3 mb-3">
+                        <p className="text-orange-400 font-medium text-base md:text-lg">👤 {action.guest}</p>
                         {action.guestPhone && (
-                          <p className="text-gray-500 text-sm">📱 {action.guestPhone}</p>
+                          <p className="text-gray-500 text-xs md:text-sm">📱 {action.guestPhone}</p>
                         )}
                       </div>
                       {action.amount > 0 && (
-                        <p className="text-green-400 font-bold text-lg mb-2">
+                        <p className="text-green-400 font-bold text-base md:text-lg mb-2">
                           💰 ${action.amount.toLocaleString()}
                         </p>
                       )}
-                      <p className="text-gray-300 mb-2 leading-relaxed">{action.action}</p>
+                      <p className="text-gray-300 text-sm md:text-base mb-2 leading-relaxed">{action.action}</p>
                       <p className="text-gray-500 text-xs">
                         ⏰ {new Date(action.createdAt).toLocaleString()}
                       </p>
                     </div>
                   </div>
-                  <div className="flex gap-3 pt-4 border-t-2 border-gray-700">
+                  <div className="flex flex-wrap gap-2 md:gap-3 pt-4 border-t-2 border-gray-700">
                     <button
                       onClick={() => handleApprove(action.id)}
-                      className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-green-500 hover:bg-green-600 text-white rounded-lg font-bold transition-all shadow-lg hover:shadow-xl transform hover:scale-105"
+                      className="flex-1 min-w-[120px] flex items-center justify-center gap-2 px-3 md:px-4 py-2 md:py-3 bg-green-500 hover:bg-green-600 text-white rounded-lg text-sm md:text-base font-bold transition-all shadow-lg hover:shadow-xl transform hover:scale-105"
                     >
-                      <ThumbsUp className="w-5 h-5" />
+                      <ThumbsUp className="w-4 h-4 md:w-5 md:h-5" />
                       Approve
                     </button>
                     <button
                       onClick={() => handleReject(action.id)}
-                      className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-red-500 hover:bg-red-600 text-white rounded-lg font-bold transition-all shadow-lg hover:shadow-xl transform hover:scale-105"
+                      className="flex-1 min-w-[120px] flex items-center justify-center gap-2 px-3 md:px-4 py-2 md:py-3 bg-red-500 hover:bg-red-600 text-white rounded-lg text-sm md:text-base font-bold transition-all shadow-lg hover:shadow-xl transform hover:scale-105"
                     >
-                      <ThumbsDown className="w-5 h-5" />
+                      <ThumbsDown className="w-4 h-4 md:w-5 md:h-5" />
                       Reject
                     </button>
-                    <button className="px-4 py-3 bg-gray-600 hover:bg-gray-700 text-white rounded-lg font-medium transition-all">
-                      <Eye className="w-5 h-5" />
+                    <button className="px-3 md:px-4 py-2 md:py-3 bg-gray-600 hover:bg-gray-700 text-white rounded-lg font-medium transition-all">
+                      <Eye className="w-4 h-4 md:w-5 md:h-5" />
                     </button>
                   </div>
                 </div>
