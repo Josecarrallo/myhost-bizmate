@@ -12,6 +12,8 @@
     "render:nismara": "remotion render NismaraUmaAd out/nismara-uma-ad.mp4",
     "render:monthly": "node scripts/render-monthly.js",
     "render:overview": "node scripts/render-overview.js",
+    "ltx:generate": "ts-node scripts/pipeline.ts",
+    "ltx:render": "ts-node scripts/pipeline.ts && remotion render LtxPromo out/ltx-promo.mp4",
     "upgrade": "remotion upgrade"
   },
   "keywords": [
@@ -30,7 +32,11 @@
     "remotion": "^4.0.0"
   },
   "devDependencies": {
+    "@types/node": "^25.2.3",
     "@types/react": "^18.2.0",
+    "axios": "^1.13.5",
+    "replicate": "^1.4.0",
+    "ts-node": "^10.9.2",
     "typescript": "^5.0.0"
   }
 }

@@ -7,6 +7,7 @@ import { MonthlyReportVideo } from "./MonthlyReportVideo";
 import { OverviewDashboardVideo } from "./OverviewDashboardVideo";
 import { CompleteOverviewVideo } from "./CompleteOverviewVideo";
 import { NismaraVilla } from "./NismaraVilla";
+import { LtxPromo } from "./LtxPromo";
 
 export const RemotionRoot: React.FC = () => {
   return (
@@ -182,9 +183,16 @@ export const RemotionRoot: React.FC = () => {
           },
         }}
       />
+
+      {/* LTX-2 Promo - AI-generated cinematic clips with branding */}
+      <Composition
+        id="LtxPromo"
+        component={LtxPromo}
+        durationInFrames={300}  // 6 seconds at 50 FPS
+        fps={50}
+        width={1920}
+        height={1080}
+      />
     </>
   );
 };
-
-
-import { NismaraVilla } from "./NismaraVilla";
