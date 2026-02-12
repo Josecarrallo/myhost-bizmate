@@ -40,7 +40,6 @@ import { generateReportHTML } from '../../services/generateReportHTML';
 
 const Autopilot = ({ onBack }) => {
   const { userData } = useAuth();
-  const iframeRef = React.useRef(null);
 
   // Navigation between 9 sections
   const [activeSection, setActiveSection] = useState('menu'); // Start with menu visible
@@ -52,30 +51,23 @@ const Autopilot = ({ onBack }) => {
   const [selectedReportType, setSelectedReportType] = useState('all'); // for All Data section
   const [selectedProperty, setSelectedProperty] = useState('gita'); // for Business Reports (owner selection)
   const [isGeneratingReport, setIsGeneratingReport] = useState(false); // for Business Reports generation
+  const [reportHTML, setReportHTML] = useState('<html><body style="margin:0;padding:40px;font-family:sans-serif;text-align:center;color:#666;"><h2 style="color:#f97316;">Business Report</h2><p>Select owner and period, then click <strong>Generate Report</strong>.</p></body></html>'); // Business Reports HTML content
+  const [selectedPeriod, setSelectedPeriod] = useState('this_month'); // Period selector for reports
 
   // Load saved report from localStorage when entering Business Reports
   useEffect(() => {
-    if (activeSection === 'businessReports' && iframeRef.current) {
-      // Small delay to ensure iframe is ready
-      setTimeout(() => {
-        if (!iframeRef.current) {
-          console.log('⚠️  Iframe not ready');
-          return;
-        }
+    if (activeSection === 'businessReports') {
+      const savedReport = localStorage.getItem(`business-report-${selectedProperty}-${selectedPeriod}`);
 
-        // Try to load saved report for this property
-        const savedReport = localStorage.getItem(`business-report-${selectedProperty}`);
-
-        if (savedReport) {
-          console.log(`📄 Loading saved report for ${selectedProperty}`);
-          iframeRef.current.srcdoc = savedReport;
-        } else {
-          console.log(`📝 No saved report for ${selectedProperty}`);
-          iframeRef.current.srcdoc = '<html><body style="margin:0;padding:40px;font-family:sans-serif;text-align:center;color:#666;"><h2 style="color:#f97316;">Business Report</h2><p>Select an owner and click <strong>Generate Report</strong> to view the analysis.</p></body></html>';
-        }
-      }, 100);
+      if (savedReport) {
+        console.log(`📄 Loading saved report for ${selectedProperty} - ${selectedPeriod}`);
+        setReportHTML(savedReport);
+      } else {
+        console.log(`📝 No saved report for ${selectedProperty} - ${selectedPeriod}`);
+        setReportHTML('<html><body style="margin:0;padding:40px;font-family:sans-serif;text-align:center;color:#666;"><h2 style="color:#f97316;">Business Report</h2><p>Select owner and period, then click <strong>Generate Report</strong>.</p></body></html>');
+      }
     }
-  }, [activeSection, selectedProperty]);
+  }, [activeSection, selectedProperty, selectedPeriod]);
 
   // Real data from Supabase (with fallback from INFORME_SUPABASE_IZUMI_HOTEL)
   const [todayMetrics, setTodayMetrics] = useState({
@@ -1979,6 +1971,67 @@ const Autopilot = ({ onBack }) => {
       }
     };
 
+    // Calculate date range based on selected period
+    const getDateRange = (period) => {
+      const now = new Date();
+      const currentYear = now.getFullYear(); // 2026
+      const currentMonth = now.getMonth(); // 0-11 (Feb = 1)
+
+      switch (period) {
+        case 'this_month': {
+          const start = new Date(currentYear, currentMonth, 1);
+          const end = new Date(currentYear, currentMonth + 1, 0);
+          return {
+            startDate: start.toISOString().split('T')[0],
+            endDate: end.toISOString().split('T')[0]
+          };
+        }
+        case 'last_month': {
+          const start = new Date(currentYear, currentMonth - 1, 1);
+          const end = new Date(currentYear, currentMonth, 0);
+          return {
+            startDate: start.toISOString().split('T')[0],
+            endDate: end.toISOString().split('T')[0]
+          };
+        }
+        case 'this_quarter': {
+          const quarterStartMonth = Math.floor(currentMonth / 3) * 3;
+          const start = new Date(currentYear, quarterStartMonth, 1);
+          const end = new Date(currentYear, quarterStartMonth + 3, 0);
+          return {
+            startDate: start.toISOString().split('T')[0],
+            endDate: end.toISOString().split('T')[0]
+          };
+        }
+        case 'last_quarter': {
+          const quarterStartMonth = Math.floor(currentMonth / 3) * 3 - 3;
+          const start = new Date(currentYear, quarterStartMonth, 1);
+          const end = new Date(currentYear, quarterStartMonth + 3, 0);
+          return {
+            startDate: start.toISOString().split('T')[0],
+            endDate: end.toISOString().split('T')[0]
+          };
+        }
+        case 'this_year': {
+          return {
+            startDate: `${currentYear}-01-01`,
+            endDate: `${currentYear}-12-31`
+          };
+        }
+        case 'last_year': {
+          return {
+            startDate: `${currentYear - 1}-01-01`,
+            endDate: `${currentYear - 1}-12-31`
+          };
+        }
+        default:
+          return {
+            startDate: `${currentYear}-01-01`,
+            endDate: `${currentYear}-12-31`
+          };
+      }
+    };
+
     const handleGenerate = async () => {
       setIsGeneratingReport(true);
       console.log('🔄 Generating report with latest version...');
@@ -1994,14 +2047,18 @@ const Autopilot = ({ onBack }) => {
           ? '1f32d384-4018-46a9-a6f9-058217e6924a'
           : 'c24393db-d318-4d75-8bbf-0fa240b9c1db';
 
-        console.log(`📊 Generating report for ${ownerData.name}...`);
+        // Calculate date range for selected period
+        const { startDate, endDate } = getDateRange(selectedPeriod);
+        console.log(`📊 Generating report for ${ownerData.name} (${startDate} to ${endDate})...`);
 
         // Generate report data (calls Supabase + OSIRIS)
         const reportData = await generateBusinessReport(
           ownerId,
           ownerData.name,
           ownerData.property,
-          ownerData.currency
+          ownerData.currency,
+          startDate,
+          endDate
         );
 
         if (reportData) {
@@ -2017,11 +2074,9 @@ const Autopilot = ({ onBack }) => {
           );
 
           // Display in iframe and save to localStorage
-          if (iframeRef.current) {
-            iframeRef.current.srcdoc = reportHTML;
-            localStorage.setItem(`business-report-${selectedProperty}`, reportHTML);
-            console.log('✅ Report generated and saved');
-          }
+          setReportHTML(reportHTML);
+          localStorage.setItem(`business-report-${selectedProperty}-${selectedPeriod}`, reportHTML);
+          console.log(`✅ Report generated and saved for ${selectedProperty} - ${selectedPeriod}`);
         } else {
           alert('❌ Error generating report. No data found.');
         }
@@ -2037,45 +2092,26 @@ const Autopilot = ({ onBack }) => {
       <div className="space-y-6">
         {/* Header with Owner Selector and Action Buttons */}
         <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-3xl p-6 shadow-2xl border-2 border-[#d85a2a]/20">
-          {/* Header Row */}
-          <div className="flex items-center justify-between mb-6">
+          {/* Header Row with Back Button and Title */}
+          <div className="flex items-center mb-6 gap-4">
             <button
               onClick={() => setActiveSection('menu')}
               className="p-2 bg-[#1f2937]/95 backdrop-blur-sm rounded-xl hover:bg-orange-500 transition-all border border-[#d85a2a]/20"
             >
               <ArrowLeft className="w-5 h-5 text-[#FF8C42]" />
             </button>
-            <h3 className="text-2xl font-black text-[#FF8C42] flex items-center gap-2">
-              <FileText className="w-6 h-6" />
-              Business Reports - {currentOwner.property}
+            <h3 className="text-xl md:text-2xl font-black text-[#FF8C42] flex items-center gap-2 flex-1">
+              <FileText className="w-5 h-5 md:w-6 md:h-6" />
+              <span className="hidden md:inline">Business Reports - {currentOwner.property}</span>
+              <span className="md:hidden">Reports</span>
             </h3>
-            <div className="w-12"></div>
-          </div>
 
-          {/* Owner Selector and Action Buttons - Responsive Layout */}
-          <div className="flex flex-col md:flex-row items-center justify-center gap-4 md:gap-6">
-            {/* Select Owner - Full Width on Mobile */}
-            <div className="flex flex-col md:flex-row items-center gap-2 w-full md:w-auto">
-              <label className="text-gray-300 text-sm font-semibold">Select Owner:</label>
-              <select
-                value={selectedProperty}
-                onChange={(e) => setSelectedProperty(e.target.value)}
-                className="bg-[#374151] text-white px-4 py-2 rounded-lg border-2 border-orange-500/30 focus:border-orange-500 focus:outline-none hover:border-orange-500/50 transition-all cursor-pointer w-full md:w-auto"
-              >
-                {owners.map(owner => (
-                  <option key={owner.id} value={owner.id}>
-                    {owner.name} - {owner.property} ({owner.villas} {owner.villas === 1 ? 'villa' : 'villas'})
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Action Buttons - Full Width on Mobile */}
-            <div className="flex flex-col md:flex-row gap-3 w-full md:w-auto">
+            {/* Action Buttons - Top Right Corner, Stacked Vertically */}
+            <div className="flex flex-col gap-2 ml-auto">
               <button
                 onClick={handleGenerate}
                 disabled={isGeneratingReport}
-                className={`flex items-center justify-center gap-2 px-8 py-3 text-white rounded-xl font-semibold transition-all shadow-lg w-full md:w-auto ${
+                className={`flex items-center justify-center gap-2 px-4 py-2 text-white rounded-lg font-semibold transition-all shadow-lg text-sm ${
                   isGeneratingReport
                     ? 'bg-purple-400 cursor-not-allowed'
                     : 'bg-purple-500 hover:bg-purple-600'
@@ -2083,23 +2119,59 @@ const Autopilot = ({ onBack }) => {
               >
                 {isGeneratingReport ? (
                   <>
-                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                    Generating...
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    <span>Generating...</span>
                   </>
                 ) : (
                   <>
-                    <Zap className="w-5 h-5" />
-                    Generate
+                    <Zap className="w-4 h-4" />
+                    <span>Generate</span>
                   </>
                 )}
               </button>
               <button
                 onClick={handlePrint}
-                className="flex items-center justify-center gap-2 px-8 py-3 bg-orange-500 text-white rounded-xl font-semibold hover:bg-orange-600 transition-all shadow-lg w-full md:w-auto"
+                className="flex items-center justify-center gap-2 px-4 py-2 bg-orange-500 text-white rounded-lg font-semibold hover:bg-orange-600 transition-all shadow-lg text-sm"
               >
-                <Printer className="w-5 h-5" />
-                Print
+                <Printer className="w-4 h-4" />
+                <span>Print</span>
               </button>
+            </div>
+          </div>
+
+          {/* Selectors Row - Owner and Period - Full Width on Mobile */}
+          <div className="flex flex-col gap-4">
+            {/* Select Owner */}
+            <div className="flex flex-col gap-2">
+              <label className="text-gray-300 text-xs font-semibold uppercase">Owner:</label>
+              <select
+                value={selectedProperty}
+                onChange={(e) => setSelectedProperty(e.target.value)}
+                className="bg-[#374151] text-white px-4 py-2 rounded-lg border-2 border-orange-500/30 focus:border-orange-500 focus:outline-none hover:border-orange-500/50 transition-all cursor-pointer w-full"
+              >
+                {owners.map(owner => (
+                  <option key={owner.id} value={owner.id}>
+                    {owner.name} - {owner.property}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Select Period */}
+            <div className="flex flex-col gap-2">
+              <label className="text-gray-300 text-xs font-semibold uppercase">Period:</label>
+              <select
+                value={selectedPeriod}
+                onChange={(e) => setSelectedPeriod(e.target.value)}
+                className="bg-[#374151] text-white px-4 py-2 rounded-lg border-2 border-purple-500/30 focus:border-purple-500 focus:outline-none hover:border-purple-500/50 transition-all cursor-pointer w-full"
+              >
+                <option value="this_month">This Month</option>
+                <option value="last_month">Last Month</option>
+                <option value="this_quarter">This Quarter</option>
+                <option value="last_quarter">Last Quarter</option>
+                <option value="this_year">This Year (2026)</option>
+                <option value="last_year">Last Year (2025)</option>
+              </select>
             </div>
           </div>
         </div>
@@ -2107,7 +2179,7 @@ const Autopilot = ({ onBack }) => {
         {/* Report Display */}
         <div className="bg-white rounded-3xl shadow-2xl border-2 border-gray-200" style={{ height: '1400px', overflowY: 'auto', overflowX: 'hidden' }}>
           <iframe
-            ref={iframeRef}
+            srcDoc={reportHTML}
             id="business-report-frame"
             style={{
               width: '100%',
