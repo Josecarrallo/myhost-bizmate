@@ -108,6 +108,9 @@ const Autopilot = ({ onBack }) => {
     other: { count: 0, revenue: 0 }
   });
 
+  // Period selector for Availability & Channels section
+  const [selectedChannelPeriod, setSelectedChannelPeriod] = useState('2026');
+
   // User properties
   const [userProperties, setUserProperties] = useState([]);
 
@@ -265,18 +268,18 @@ const Autopilot = ({ onBack }) => {
       badge: 'Live'
     },
     {
+      id: 'availability',
+      name: 'Availability & Channels',
+      icon: Wifi,
+      description: 'Channel status, calendar view',
+      badge: '4 sources'
+    },
+    {
       id: 'decisions',
       name: 'Owner Decisions',
       icon: ClipboardCheck,
       description: 'Needs approval',
       badge: '3'
-    },
-    {
-      id: 'availability',
-      name: 'Availability & Channels',
-      icon: Wifi,
-      description: 'Channel status, calendar view',
-      badge: '3 connected'
     },
     {
       id: 'communication',
@@ -440,35 +443,6 @@ const Autopilot = ({ onBack }) => {
       const totalAvailableNights = totalMonths * 31; // 31 days average per month
       const avgOccupancy = totalAvailableNights > 0 ? (totalNights / totalAvailableNights) * 100 : 0;
 
-      // Calculate channel statistics from 'source' field
-      const channelData = {
-        airbnb: { count: 0, revenue: 0 },
-        bookingCom: { count: 0, revenue: 0 },
-        direct: { count: 0, revenue: 0 },
-        other: { count: 0, revenue: 0 }
-      };
-
-      (bookings || []).forEach(booking => {
-        const source = (booking.source || '').toLowerCase();
-        const price = booking.total_price || 0;
-
-        if (source === 'airbnb') {
-          channelData.airbnb.count++;
-          channelData.airbnb.revenue += price;
-        } else if (source === 'booking.com') {
-          channelData.bookingCom.count++;
-          channelData.bookingCom.revenue += price;
-        } else if (source === 'gita') {
-          channelData.direct.count++;
-          channelData.direct.revenue += price;
-        } else {
-          channelData.other.count++;
-          channelData.other.revenue += price;
-        }
-      });
-
-      setChannelStats(channelData);
-
       setRealCounts({
         totalClients: bookings?.length || 0,
         totalLeads: (leadsData || []).length,
@@ -490,9 +464,75 @@ const Autopilot = ({ onBack }) => {
     }
   };
 
+  // Load channel statistics with better classification
+  const loadChannelStats = async (period = '2026') => {
+    if (!TENANT_ID) return;
+
+    try {
+      // Get date range for filtering
+      let dateFilter = null;
+      if (period !== 'all_time') {
+        dateFilter = getDateRange(period);
+      }
+
+      // Load bookings with optional date filter
+      let bookingsQuery = supabase
+        .from('bookings')
+        .select('*')
+        .eq('tenant_id', TENANT_ID);
+
+      if (dateFilter) {
+        bookingsQuery = bookingsQuery
+          .gte('check_in', dateFilter.startDate)
+          .lte('check_in', dateFilter.endDate);
+      }
+
+      const { data: bookings, error: bookingsError } = await bookingsQuery;
+
+      if (bookingsError) {
+        console.error('Error loading bookings for channels:', bookingsError);
+        return;
+      }
+
+      // Calculate channel statistics with better source classification
+      const channelData = {
+        airbnb: { count: 0, revenue: 0 },
+        bookingCom: { count: 0, revenue: 0 },
+        direct: { count: 0, revenue: 0 },
+        other: { count: 0, revenue: 0 }
+      };
+
+      (bookings || []).forEach(booking => {
+        const source = (booking.source || '').toLowerCase().trim();
+        const price = booking.total_price || 0;
+
+        // Better channel classification - recognize variations
+        if (source === 'airbnb' || source === 'air bnb') {
+          channelData.airbnb.count++;
+          channelData.airbnb.revenue += price;
+        } else if (source === 'booking.com') {
+          channelData.bookingCom.count++;
+          channelData.bookingCom.revenue += price;
+        } else if (source === 'gita') {
+          channelData.direct.count++;
+          channelData.direct.revenue += price;
+        } else {
+          // Count all other sources (Bali Buntu, Ibu Santi, Domus, Instagram, etc.)
+          channelData.other.count++;
+          channelData.other.revenue += price;
+        }
+      });
+
+      setChannelStats(channelData);
+    } catch (error) {
+      console.error('Error loading channel stats:', error);
+    }
+  };
+
   // Load data on mount
   useEffect(() => {
     loadRealCounts(selectedAllInfoPeriod);
+    loadChannelStats(selectedChannelPeriod);
     fetchTodayMetrics();
     fetchAlerts();
     fetchActions();
@@ -507,7 +547,25 @@ const Autopilot = ({ onBack }) => {
     }
   }, [selectedAllInfoPeriod, activeSection]);
 
+  // Reload channel stats when Availability period changes OR when entering availability section
+  useEffect(() => {
+    console.log('Reloading channel stats for period:', selectedChannelPeriod);
+    loadChannelStats(selectedChannelPeriod);
+  }, [selectedChannelPeriod]);
+
   // Helper functions
+  const formatCurrency = (amount) => {
+    // Detect if amount is in Rupias (IDR) or USD
+    // Generally: if >= 100,000 it's likely Rupias, otherwise USD
+    if (amount >= 100000) {
+      // Format as Rupias
+      return `Rp ${Math.round(amount).toLocaleString('id-ID')}`;
+    } else {
+      // Format as USD
+      return `$${Math.round(amount).toLocaleString('en-US')}`;
+    }
+  };
+
   const formatTimeAgo = (timestamp) => {
     const minutes = Math.floor((new Date() - new Date(timestamp)) / 60000);
     if (minutes < 60) return `${minutes} minutes ago`;
@@ -580,6 +638,42 @@ const Autopilot = ({ onBack }) => {
         return {
           startDate: `${currentYear - 1}-01-01`,
           endDate: `${currentYear - 1}-12-31`
+        };
+      }
+      case '2026': {
+        return {
+          startDate: '2026-01-01',
+          endDate: '2026-12-31'
+        };
+      }
+      case '2025': {
+        return {
+          startDate: '2025-01-01',
+          endDate: '2025-12-31'
+        };
+      }
+      case 'q1_2026': {
+        return {
+          startDate: '2026-01-01',
+          endDate: '2026-03-31'
+        };
+      }
+      case 'q2_2026': {
+        return {
+          startDate: '2026-04-01',
+          endDate: '2026-06-30'
+        };
+      }
+      case 'q3_2026': {
+        return {
+          startDate: '2026-07-01',
+          endDate: '2026-09-30'
+        };
+      }
+      case 'q4_2026': {
+        return {
+          startDate: '2026-10-01',
+          endDate: '2026-12-31'
         };
       }
       default:
@@ -1664,35 +1758,169 @@ const Autopilot = ({ onBack }) => {
     </div>
   );
 
-  const renderAvailabilitySection = () => (
-    <div className="space-y-6">
-      <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-3xl p-6 shadow-2xl border-2 border-[#d85a2a]/20">
-        <div className="flex items-center justify-between mb-4">
-          <button
-            onClick={() => setActiveSection('menu')}
-            className="p-2 bg-[#1f2937]/95 backdrop-blur-sm rounded-xl hover:bg-orange-500 transition-all border border-[#d85a2a]/20"
-          >
-            <ArrowLeft className="w-5 h-5 text-[#FF8C42]" />
-          </button>
-          <h3 className="text-2xl font-black text-[#FF8C42] flex items-center gap-2">
-            <Wifi className="w-6 h-6" />
-            Availability & Channels
-          </h3>
-          <div className="w-12"></div>
-        </div>
+  const renderAvailabilitySection = () => {
+    // Calculate total connected channels
+    const connectedChannels = [
+      channelStats.airbnb.count > 0,
+      channelStats.bookingCom.count > 0,
+      channelStats.direct.count > 0,
+      channelStats.other.count > 0
+    ].filter(Boolean).length;
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+    return (
+      <div className="space-y-6">
+        <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-3xl p-6 shadow-2xl border-2 border-[#d85a2a]/20">
+          <div className="flex flex-col md:flex-row items-center justify-between mb-4 gap-3">
+            <button
+              onClick={() => setActiveSection('menu')}
+              className="self-start md:self-auto p-2 bg-[#1f2937]/95 backdrop-blur-sm rounded-xl hover:bg-orange-500 transition-all border border-[#d85a2a]/20"
+            >
+              <ArrowLeft className="w-5 h-5 text-[#FF8C42]" />
+            </button>
+            <div className="text-center flex-1">
+              <h3 className="text-2xl font-black text-[#FF8C42] flex items-center justify-center gap-2">
+                <Wifi className="w-6 h-6" />
+                Availability & Channels
+              </h3>
+              <p className="text-gray-400 text-sm mt-1">
+                {connectedChannels} channels connected
+              </p>
+            </div>
+            <div className="w-12 hidden md:block"></div>
+          </div>
+
+          {/* Period Selector */}
+          <div className="mb-6">
+            <label className="block text-gray-300 text-sm font-medium mb-3 text-center md:text-left">
+              📅 Select Period
+            </label>
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-2">
+              <button
+                onClick={() => setSelectedChannelPeriod('2026')}
+                className={`px-4 py-2 rounded-lg font-medium transition-all ${
+                  selectedChannelPeriod === '2026'
+                    ? 'bg-orange-500 text-white'
+                    : 'bg-[#2a2f3a] text-gray-300 hover:bg-[#374151]'
+                }`}
+              >
+                2026
+              </button>
+              <button
+                onClick={() => setSelectedChannelPeriod('2025')}
+                className={`px-4 py-2 rounded-lg font-medium transition-all ${
+                  selectedChannelPeriod === '2025'
+                    ? 'bg-orange-500 text-white'
+                    : 'bg-[#2a2f3a] text-gray-300 hover:bg-[#374151]'
+                }`}
+              >
+                2025
+              </button>
+              <button
+                onClick={() => setSelectedChannelPeriod('q1_2026')}
+                className={`px-4 py-2 rounded-lg font-medium transition-all ${
+                  selectedChannelPeriod === 'q1_2026'
+                    ? 'bg-orange-500 text-white'
+                    : 'bg-[#2a2f3a] text-gray-300 hover:bg-[#374151]'
+                }`}
+              >
+                Q1 2026
+              </button>
+              <button
+                onClick={() => setSelectedChannelPeriod('q2_2026')}
+                className={`px-4 py-2 rounded-lg font-medium transition-all ${
+                  selectedChannelPeriod === 'q2_2026'
+                    ? 'bg-orange-500 text-white'
+                    : 'bg-[#2a2f3a] text-gray-300 hover:bg-[#374151]'
+                }`}
+              >
+                Q2 2026
+              </button>
+              <button
+                onClick={() => setSelectedChannelPeriod('q3_2026')}
+                className={`px-4 py-2 rounded-lg font-medium transition-all ${
+                  selectedChannelPeriod === 'q3_2026'
+                    ? 'bg-orange-500 text-white'
+                    : 'bg-[#2a2f3a] text-gray-300 hover:bg-[#374151]'
+                }`}
+              >
+                Q3 2026
+              </button>
+              <button
+                onClick={() => setSelectedChannelPeriod('q4_2026')}
+                className={`px-4 py-2 rounded-lg font-medium transition-all ${
+                  selectedChannelPeriod === 'q4_2026'
+                    ? 'bg-orange-500 text-white'
+                    : 'bg-[#2a2f3a] text-gray-300 hover:bg-[#374151]'
+                }`}
+              >
+                Q4 2026
+              </button>
+              <button
+                onClick={() => setSelectedChannelPeriod('all_time')}
+                className={`px-4 py-2 rounded-lg font-medium transition-all ${
+                  selectedChannelPeriod === 'all_time'
+                    ? 'bg-orange-500 text-white'
+                    : 'bg-[#2a2f3a] text-gray-300 hover:bg-[#374151]'
+                }`}
+              >
+                All Time
+              </button>
+            </div>
+            <p className="text-gray-400 text-sm mt-2 text-center md:text-left">
+              Viewing: {getPeriodLabel(selectedChannelPeriod)}
+            </p>
+          </div>
+
+          {/* Period Summary */}
+          <div className="mb-6 bg-gradient-to-br from-orange-500/20 to-orange-600/20 rounded-xl p-4 md:p-6 border-2 border-orange-500/50">
+            <h4 className="text-white font-bold text-base md:text-lg mb-3 md:mb-4 flex items-center gap-2">
+              📊 Period Summary - {getPeriodLabel(selectedChannelPeriod)}
+            </h4>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+              <div>
+                <p className="text-gray-400 text-xs mb-1">Total Bookings</p>
+                <p className="text-white text-sm md:text-xl font-bold">
+                  {channelStats.airbnb.count + channelStats.bookingCom.count + channelStats.direct.count + channelStats.other.count}
+                </p>
+              </div>
+              <div>
+                <p className="text-gray-400 text-xs mb-1">Total Revenue</p>
+                <p className="text-white text-sm md:text-xl font-bold break-all">
+                  {formatCurrency(
+                    channelStats.airbnb.revenue +
+                    channelStats.bookingCom.revenue +
+                    channelStats.direct.revenue +
+                    channelStats.other.revenue
+                  )}
+                </p>
+              </div>
+              <div>
+                <p className="text-gray-400 text-xs mb-1">Active Channels</p>
+                <p className="text-white text-sm md:text-xl font-bold">{connectedChannels}/4</p>
+              </div>
+              <div>
+                <p className="text-gray-400 text-xs mb-1">Avg per Booking</p>
+                <p className="text-white text-sm md:text-xl font-bold break-all">
+                  {(() => {
+                    const totalBookings = channelStats.airbnb.count + channelStats.bookingCom.count + channelStats.direct.count + channelStats.other.count;
+                    const totalRevenue = channelStats.airbnb.revenue + channelStats.bookingCom.revenue + channelStats.direct.revenue + channelStats.other.revenue;
+                    return totalBookings > 0 ? formatCurrency(totalRevenue / totalBookings) : '$0';
+                  })()}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
           <div className="bg-gradient-to-br from-pink-500/10 to-pink-600/10 rounded-xl p-5 border-2 border-pink-500/30">
             <div className="flex items-center justify-between mb-3">
               <img src="https://upload.wikimedia.org/wikipedia/commons/6/69/Airbnb_Logo_B%C3%A9lo.svg" alt="Airbnb" className="h-6" />
               <span className={`px-3 py-1 ${channelStats.airbnb.count > 0 ? 'bg-green-500' : 'bg-gray-500'} text-white text-xs font-bold rounded-full`}>
-                {channelStats.airbnb.count > 0 ? 'Connected' : 'Not Connected'}
+                {channelStats.airbnb.count > 0 ? '●' : '○'}
               </span>
             </div>
             <p className="text-gray-300 text-sm">
-              {channelStats.airbnb.count} bookings • {channelStats.airbnb.revenue >= 1000000
-                ? `Rp ${Math.round(channelStats.airbnb.revenue).toLocaleString('id-ID')}`
-                : `$${Math.round(channelStats.airbnb.revenue).toLocaleString('en-US')}`}
+              {channelStats.airbnb.count} bookings • {formatCurrency(channelStats.airbnb.revenue)}
             </p>
           </div>
 
@@ -1700,13 +1928,11 @@ const Autopilot = ({ onBack }) => {
             <div className="flex items-center justify-between mb-3">
               <span className="text-blue-400 font-bold text-lg">Booking.com</span>
               <span className={`px-3 py-1 ${channelStats.bookingCom.count > 0 ? 'bg-green-500' : 'bg-gray-500'} text-white text-xs font-bold rounded-full`}>
-                {channelStats.bookingCom.count > 0 ? 'Connected' : 'Not Connected'}
+                {channelStats.bookingCom.count > 0 ? '●' : '○'}
               </span>
             </div>
             <p className="text-gray-300 text-sm">
-              {channelStats.bookingCom.count} bookings • {channelStats.bookingCom.revenue >= 1000000
-                ? `Rp ${Math.round(channelStats.bookingCom.revenue).toLocaleString('id-ID')}`
-                : `$${Math.round(channelStats.bookingCom.revenue).toLocaleString('en-US')}`}
+              {channelStats.bookingCom.count} bookings • {formatCurrency(channelStats.bookingCom.revenue)}
             </p>
           </div>
 
@@ -1714,13 +1940,26 @@ const Autopilot = ({ onBack }) => {
             <div className="flex items-center justify-between mb-3">
               <span className="text-orange-400 font-bold text-lg">Direct (Gita)</span>
               <span className={`px-3 py-1 ${channelStats.direct.count > 0 ? 'bg-green-500' : 'bg-gray-500'} text-white text-xs font-bold rounded-full`}>
-                {channelStats.direct.count > 0 ? 'Active' : 'Inactive'}
+                {channelStats.direct.count > 0 ? '●' : '○'}
               </span>
             </div>
             <p className="text-gray-300 text-sm">
-              {channelStats.direct.count} bookings • {channelStats.direct.revenue >= 1000000
-                ? `Rp ${Math.round(channelStats.direct.revenue).toLocaleString('id-ID')}`
-                : `$${Math.round(channelStats.direct.revenue).toLocaleString('en-US')}`}
+              {channelStats.direct.count} bookings • {formatCurrency(channelStats.direct.revenue)}
+            </p>
+          </div>
+
+          <div className="bg-gradient-to-br from-purple-500/10 to-purple-600/10 rounded-xl p-5 border-2 border-purple-500/30">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-purple-400 font-bold text-lg">Other Sources</span>
+              <span className={`px-3 py-1 ${channelStats.other.count > 0 ? 'bg-green-500' : 'bg-gray-500'} text-white text-xs font-bold rounded-full`}>
+                {channelStats.other.count > 0 ? '●' : '○'}
+              </span>
+            </div>
+            <p className="text-gray-300 text-sm">
+              {channelStats.other.count} bookings • {formatCurrency(channelStats.other.revenue)}
+            </p>
+            <p className="text-gray-500 text-xs mt-1">
+              Bali Buntu, Ibu Santi, Domus, etc.
             </p>
           </div>
         </div>
@@ -1736,6 +1975,7 @@ const Autopilot = ({ onBack }) => {
       </div>
     </div>
   );
+};
 
   const renderBookingsSection = () => (
     <div className="space-y-6">
