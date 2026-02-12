@@ -42,7 +42,9 @@ export async function runPipeline(prompt: string): Promise<string> {
         prompt: prompt,
         model: 'ltx-2-pro',
         duration: 6, // 6 seconds
-        resolution: '1920x1080'
+        resolution: '1920x1080',
+        audio: true,
+        audio_prompt: 'ambient luxury villa sounds, peaceful atmosphere, gentle background music'
       },
       {
         headers: {

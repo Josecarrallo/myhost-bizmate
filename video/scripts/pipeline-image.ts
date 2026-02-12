@@ -41,7 +41,9 @@ export async function runImageToVideo(imageUrl: string, prompt?: string): Promis
       image_uri: imageUrl,
       model: 'ltx-2-pro',
       duration: 6,
-      resolution: '1920x1080'
+      resolution: '1920x1080',
+      audio: true,
+      audio_prompt: 'ambient luxury villa sounds, peaceful atmosphere, gentle background music'
     };
 
     // Add prompt if provided
