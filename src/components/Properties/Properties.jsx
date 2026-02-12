@@ -47,170 +47,86 @@ const Properties = ({ onBack }) => {
   const mockProperties = [
     {
       id: 1,
-      name: "Villa Sunset Paradise",
-      location: "Seminyak, Bali",
+      name: "Nismara 2BR Villa",
+      location: "Ubud, Bali",
       type: "Villa",
-      beds: 4,
-      baths: 3,
-      maxGuests: 8,
-      basePrice: 280,
+      beds: 2,
+      baths: 2,
+      maxGuests: 4,
+      basePrice: 150,
       rating: 4.9,
-      reviews: 124,
+      reviews: 87,
       status: "active",
       revenue: "12.5K",
-      occupancy: 87,
-      description: "Luxury beachfront villa with stunning sunset views. Features modern Balinese architecture, private pool, and direct beach access.",
-      amenities: ["WiFi", "Pool", "Beach Access", "Air Conditioning", "Kitchen", "Parking", "Security", "Garden"],
-      photos: ["/images/properties/villa1.jpg", "/images/properties/villa1.jpg", "/images/properties/villa1.jpg", "/images/properties/villa1.jpg"],
-      checkInTime: "3:00 PM",
-      checkOutTime: "11:00 AM",
+      occupancy: 85,
+      description: "Beautiful 2-bedroom villa in the heart of Ubud. Perfect for couples or small families seeking tranquility and authentic Balinese experience.",
+      amenities: ["WiFi", "Pool", "Air Conditioning", "Kitchen", "Parking", "Garden", "Rice Field Views"],
+      photos: ["/images/properties/nismara-2br.jpg", "/images/properties/nismara-2br.jpg", "/images/properties/nismara-2br.jpg", "/images/properties/nismara-2br.jpg"],
+      checkInTime: "2:00 PM",
+      checkOutTime: "12:00 PM",
       rules: ["No smoking", "No pets", "No parties", "Respect quiet hours 10 PM - 7 AM"],
       pricing: {
-        lowSeason: 250,
-        midSeason: 280,
-        highSeason: 350,
+        lowSeason: 120,
+        midSeason: 150,
+        highSeason: 200,
         weeklyDiscount: 10,
         monthlyDiscount: 25
       }
     },
     {
       id: 2,
-      name: "Beach House Deluxe",
-      location: "Canggu, Bali",
-      type: "House",
-      beds: 5,
-      baths: 4,
-      maxGuests: 10,
-      basePrice: 320,
-      rating: 4.8,
-      reviews: 98,
-      status: "active",
-      revenue: "15.8K",
-      occupancy: 92,
-      description: "Spacious beach house perfect for large groups. Modern amenities with traditional Balinese charm.",
-      amenities: ["WiFi", "Pool", "Beach Access", "Air Conditioning", "Kitchen", "BBQ", "Parking", "Gym"],
-      photos: ["/images/properties/villa2.jpg", "/images/properties/villa2.jpg", "/images/properties/villa2.jpg", "/images/properties/villa2.jpg"],
-      checkInTime: "2:00 PM",
-      checkOutTime: "12:00 PM",
-      rules: ["No smoking indoors", "Pets allowed with deposit", "No parties", "Maximum 10 guests"],
-      pricing: {
-        lowSeason: 280,
-        midSeason: 320,
-        highSeason: 420,
-        weeklyDiscount: 12,
-        monthlyDiscount: 30
-      }
-    },
-    {
-      id: 3,
-      name: "Mountain View Cabin",
+      name: "Graha Uma 1BR Villa",
       location: "Ubud, Bali",
-      type: "Cabin",
-      beds: 3,
-      baths: 2,
-      maxGuests: 6,
-      basePrice: 180,
-      rating: 4.7,
-      reviews: 76,
+      type: "Villa",
+      beds: 1,
+      baths: 1,
+      maxGuests: 2,
+      basePrice: 100,
+      rating: 4.8,
+      reviews: 64,
       status: "active",
       revenue: "8.2K",
       occupancy: 78,
-      description: "Peaceful mountain retreat surrounded by rice terraces. Perfect for nature lovers seeking tranquility.",
-      amenities: ["WiFi", "Air Conditioning", "Kitchen", "Parking", "Garden", "Yoga Space", "Hiking Trails"],
-      photos: ["/images/properties/villa3.jpg", "/images/properties/villa3.jpg", "/images/properties/villa3.jpg", "/images/properties/villa3.jpg"],
-      checkInTime: "3:00 PM",
-      checkOutTime: "11:00 AM",
-      rules: ["No smoking", "No pets", "Eco-friendly practices encouraged", "Respect nature"],
-      pricing: {
-        lowSeason: 150,
-        midSeason: 180,
-        highSeason: 230,
-        weeklyDiscount: 15,
-        monthlyDiscount: 28
-      }
-    },
-    {
-      id: 4,
-      name: "City Loft Modern",
-      location: "Sanur, Bali",
-      type: "Apartment",
-      beds: 2,
-      baths: 2,
-      maxGuests: 4,
-      basePrice: 150,
-      rating: 4.6,
-      reviews: 89,
-      status: "active",
-      revenue: "9.5K",
-      occupancy: 85,
-      description: "Contemporary loft apartment in the heart of Sanur. Walking distance to beach and restaurants.",
-      amenities: ["WiFi", "Air Conditioning", "Kitchen", "Balcony", "Parking", "Laundry", "Smart TV"],
-      photos: ["/images/properties/villa4.jpg", "/images/properties/villa4.jpg", "/images/properties/villa4.jpg", "/images/properties/villa4.jpg"],
+      description: "Cozy 1-bedroom villa perfect for couples. Intimate and peaceful with traditional Balinese design and modern amenities.",
+      amenities: ["WiFi", "Pool", "Air Conditioning", "Kitchen", "Parking", "Garden"],
+      photos: ["/images/properties/graha-uma-1br.jpg", "/images/properties/graha-uma-1br.jpg", "/images/properties/graha-uma-1br.jpg", "/images/properties/graha-uma-1br.jpg"],
       checkInTime: "2:00 PM",
       checkOutTime: "12:00 PM",
-      rules: ["No smoking", "No pets", "Keep noise levels reasonable", "Maximum 4 guests"],
+      rules: ["No smoking", "No pets", "No parties", "Maximum 2 guests"],
       pricing: {
-        lowSeason: 120,
-        midSeason: 150,
-        highSeason: 200,
-        weeklyDiscount: 8,
-        monthlyDiscount: 20
-      }
-    },
-    {
-      id: 5,
-      name: "Ocean Front Villa",
-      location: "Nusa Dua, Bali",
-      type: "Villa",
-      beds: 6,
-      baths: 5,
-      maxGuests: 12,
-      basePrice: 450,
-      rating: 4.9,
-      reviews: 145,
-      status: "active",
-      revenue: "18.9K",
-      occupancy: 94,
-      description: "Exclusive oceanfront villa with infinity pool. Premium amenities and butler service available.",
-      amenities: ["WiFi", "Infinity Pool", "Beach Access", "Air Conditioning", "Gourmet Kitchen", "Butler Service", "Spa Room", "Gym", "Parking"],
-      photos: ["/images/properties/villa5.jpg", "/images/properties/villa5.jpg", "/images/properties/villa5.jpg", "/images/properties/villa5.jpg"],
-      checkInTime: "3:00 PM",
-      checkOutTime: "12:00 PM",
-      rules: ["No smoking indoors", "No pets", "Events allowed with permission", "Respect staff"],
-      pricing: {
-        lowSeason: 400,
-        midSeason: 450,
-        highSeason: 600,
+        lowSeason: 80,
+        midSeason: 100,
+        highSeason: 140,
         weeklyDiscount: 10,
         monthlyDiscount: 25
       }
     },
     {
-      id: 6,
-      name: "Jungle Hideaway",
-      location: "Tegallalang, Bali",
+      id: 3,
+      name: "Nismara 1BR Villa Monthly",
+      location: "Ubud, Bali",
       type: "Villa",
-      beds: 3,
-      baths: 2,
-      maxGuests: 6,
-      basePrice: 220,
-      rating: 4.8,
-      reviews: 67,
-      status: "maintenance",
+      beds: 1,
+      baths: 1,
+      maxGuests: 2,
+      basePrice: 90,
+      rating: 4.9,
+      reviews: 52,
+      status: "active",
       revenue: "6.8K",
-      occupancy: 72,
-      description: "Unique treehouse-style villa nestled in the jungle. Eco-friendly design with natural materials.",
-      amenities: ["WiFi", "Air Conditioning", "Kitchen", "Outdoor Shower", "Garden", "Swing", "Parking"],
-      photos: ["/images/properties/villa6.jpg", "/images/properties/villa6.jpg", "/images/properties/villa6.jpg", "/images/properties/villa6.jpg"],
-      checkInTime: "3:00 PM",
-      checkOutTime: "11:00 AM",
-      rules: ["No smoking", "No pets", "Eco-conscious living", "Wildlife friendly"],
+      occupancy: 92,
+      description: "Charming 1-bedroom villa ideal for monthly stays. Perfect for digital nomads and long-term visitors seeking comfort and tranquility.",
+      amenities: ["WiFi", "Air Conditioning", "Kitchen", "Parking", "Garden", "Workspace", "Laundry"],
+      photos: ["/images/properties/nismara-1br-monthly.jpg", "/images/properties/nismara-1br-monthly.jpg", "/images/properties/nismara-1br-monthly.jpg", "/images/properties/nismara-1br-monthly.jpg"],
+      checkInTime: "2:00 PM",
+      checkOutTime: "12:00 PM",
+      rules: ["No smoking", "No pets", "Monthly bookings preferred", "Respect local community"],
       pricing: {
-        lowSeason: 180,
-        midSeason: 220,
-        highSeason: 280,
-        weeklyDiscount: 12,
-        monthlyDiscount: 22
+        lowSeason: 75,
+        midSeason: 90,
+        highSeason: 120,
+        weeklyDiscount: 15,
+        monthlyDiscount: 30
       }
     }
   ];
@@ -223,45 +139,47 @@ const Properties = ({ onBack }) => {
   const loadProperties = async () => {
     try {
       setLoading(true);
-      const realProperties = await dataService.getProperties();
-      console.log('[Properties] Loaded from Supabase:', realProperties);
+      const realVillas = await dataService.getVillas();
+      console.log('[Properties] Loaded villas from Supabase:', realVillas);
 
-      // Si hay properties reales, usarlas. Si no, usar mock
-      if (realProperties && realProperties.length > 0) {
+      // Si hay villas reales, usarlas. Si no, usar mock
+      if (realVillas && realVillas.length > 0) {
         // Mapear datos de Supabase al formato del componente
-        const mapped = realProperties.map(prop => ({
-          id: prop.id,
-          name: prop.name,
-          location: `${prop.city || 'Bali'}, ${prop.country || 'Indonesia'}`,
-          type: 'Property',
-          beds: prop.bedrooms || 0,
-          baths: prop.bathrooms || 0,
-          maxGuests: prop.max_guests || 0,
-          basePrice: parseFloat(prop.base_price) || 0,
+        const mapped = realVillas.map(villa => ({
+          id: villa.id,
+          name: villa.name,
+          location: 'Ubud, Bali, Indonesia',
+          type: 'Villa',
+          beds: villa.bedrooms || 0,
+          baths: villa.bathrooms || 0,
+          maxGuests: villa.max_guests || 0,
+          basePrice: parseFloat(villa.base_price) || 0,
           rating: 4.5,
           reviews: 0,
-          status: prop.status || 'active',
+          status: villa.status || 'active',
           revenue: "0",
           occupancy: 0,
-          description: prop.description || '',
-          amenities: Array.isArray(prop.amenities) ? prop.amenities : [],
-          photos: ["/images/properties/villa1.jpg"],
+          description: villa.description || '',
+          amenities: Array.isArray(villa.amenities) ? villa.amenities : [],
+          photos: Array.isArray(villa.photos) && villa.photos.length > 0
+            ? villa.photos
+            : ["/images/properties/villa1.jpg"],
           checkInTime: "3:00 PM",
           checkOutTime: "11:00 AM",
           rules: ["No smoking", "Respect quiet hours"],
           pricing: {
-            lowSeason: parseFloat(prop.base_price) || 0,
-            midSeason: parseFloat(prop.base_price) || 0,
-            highSeason: (parseFloat(prop.base_price) || 0) * 1.2,
+            lowSeason: parseFloat(villa.base_price) || 0,
+            midSeason: parseFloat(villa.base_price) || 0,
+            highSeason: (parseFloat(villa.base_price) || 0) * 1.2,
             weeklyDiscount: 10,
             monthlyDiscount: 25
           }
         }));
         setProperties(mapped);
-        console.log('[Properties] Using real properties:', mapped.length);
+        console.log('[Properties] Using real villas:', mapped.length);
       } else {
         setProperties(mockProperties);
-        console.log('[Properties] No real properties, using mock:', mockProperties.length);
+        console.log('[Properties] No real villas, using mock:', mockProperties.length);
       }
     } catch (error) {
       console.error('[Properties] Error loading:', error);
