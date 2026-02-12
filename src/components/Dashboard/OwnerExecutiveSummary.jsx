@@ -344,16 +344,15 @@ File: ${filename}
       </div>
 
       <div className="relative z-10">
-      {/* Header with Date Range Selector */}
+      {/* Header with Date Range Selector - Mobile Optimized */}
       <div className="mb-6">
-        <div className="flex justify-between items-center mb-4">
-          <div>
-            <h1 className="text-3xl font-black text-[#FF8C42]">Overview</h1>
-            <p className="text-gray-300 mt-1">
-              <span className="text-orange-400 font-semibold">{userName}</span> • Revenue & Performance Analytics
-            </p>
+        <div className="flex justify-between items-start mb-4">
+          <div className="flex-1">
+            <h1 className="text-2xl md:text-3xl font-black text-[#FF8C42]">Overview</h1>
+            <p className="text-orange-400 font-bold text-lg md:text-xl mt-1">{userName}</p>
+            <p className="text-gray-300 text-sm md:text-base mt-0.5">Revenue & Performance Analytics</p>
           </div>
-          <Filter className="w-6 h-6 text-orange-400" />
+          <Filter className="w-5 h-5 md:w-6 md:h-6 text-orange-400 flex-shrink-0 mt-1" />
         </div>
 
         {/* Date Range Selector */}
@@ -521,10 +520,10 @@ File: ${filename}
         </div>
       </div>
 
-      {/* 2. Performance Chart - Combined Revenue & Bookings */}
-      <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-xl p-6 shadow-2xl border-2 border-[#d85a2a]/20 mb-6">
-        <h2 className="text-2xl font-black text-[#FF8C42] mb-6">📊 Performance Overview</h2>
-        <ResponsiveContainer width="100%" height={400}>
+      {/* 2. Performance Chart - Combined Revenue & Bookings - Mobile Optimized */}
+      <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-xl p-4 md:p-6 shadow-2xl border-2 border-[#d85a2a]/20 mb-6">
+        <h2 className="text-xl md:text-2xl font-black text-[#FF8C42] mb-4 md:mb-6">📊 Performance Overview</h2>
+        <ResponsiveContainer width="100%" height={250} className="md:!h-[400px]">
           <ComposedChart data={stats?.timeline_data || []}>
             <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
             <XAxis
@@ -582,26 +581,26 @@ File: ${filename}
         </ResponsiveContainer>
       </div>
 
-      {/* 3. Timeline Table */}
-      <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-xl p-6 shadow-2xl border-2 border-[#d85a2a]/20 mb-6">
-        <h2 className="text-xl font-black text-[#FF8C42] mb-4">Revenue & Occupancy Timeline</h2>
+      {/* 3. Timeline Table - Mobile Optimized */}
+      <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-xl p-4 md:p-6 shadow-2xl border-2 border-[#d85a2a]/20 mb-6">
+        <h2 className="text-lg md:text-xl font-black text-[#FF8C42] mb-3 md:mb-4">Revenue & Occupancy Timeline</h2>
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
               <tr className="border-b border-gray-700">
-                <th className="text-left py-3 px-4 text-sm font-semibold text-orange-400">Month</th>
-                <th className="text-right py-3 px-4 text-sm font-semibold text-orange-400">Bookings</th>
-                <th className="text-right py-3 px-4 text-sm font-semibold text-orange-400">Nights</th>
-                <th className="text-right py-3 px-4 text-sm font-semibold text-orange-400">Revenue</th>
+                <th className="text-left py-2 md:py-3 px-2 md:px-4 text-xs md:text-sm font-semibold text-orange-400">Month</th>
+                <th className="text-right py-2 md:py-3 px-2 md:px-4 text-xs md:text-sm font-semibold text-orange-400">Bookings</th>
+                <th className="text-right py-2 md:py-3 px-2 md:px-4 text-xs md:text-sm font-semibold text-orange-400">Nights</th>
+                <th className="text-right py-2 md:py-3 px-2 md:px-4 text-xs md:text-sm font-semibold text-orange-400">Revenue</th>
               </tr>
             </thead>
             <tbody>
               {stats?.timeline_data && stats.timeline_data.map((month) => (
                 <tr key={month.month} className="border-b border-gray-700 hover:bg-[#2a2f3a]/50">
-                  <td className="py-3 px-4 text-sm text-white">{month.month_name?.trim()}</td>
-                  <td className="text-right py-3 px-4 text-sm text-gray-300">{month.bookings}</td>
-                  <td className="text-right py-3 px-4 text-sm text-gray-300">{month.nights}</td>
-                  <td className="text-right py-3 px-4 text-sm font-semibold text-white">
+                  <td className="py-2 md:py-3 px-2 md:px-4 text-xs md:text-sm text-white">{month.month_name?.trim()}</td>
+                  <td className="text-right py-2 md:py-3 px-2 md:px-4 text-xs md:text-sm text-gray-300">{month.bookings}</td>
+                  <td className="text-right py-2 md:py-3 px-2 md:px-4 text-xs md:text-sm text-gray-300">{month.nights}</td>
+                  <td className="text-right py-2 md:py-3 px-2 md:px-4 text-xs md:text-sm font-semibold text-white">
                     {formatCurrency(month.revenue)}
                   </td>
                 </tr>
@@ -611,28 +610,28 @@ File: ${filename}
         </div>
       </div>
 
-      {/* 4. Properties Breakdown */}
-      <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-xl p-6 shadow-2xl border-2 border-[#d85a2a]/20 mb-6">
-        <h2 className="text-xl font-black text-[#FF8C42] mb-4">Properties Performance</h2>
+      {/* 4. Properties Breakdown - Mobile Optimized */}
+      <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-xl p-4 md:p-6 shadow-2xl border-2 border-[#d85a2a]/20 mb-6">
+        <h2 className="text-lg md:text-xl font-black text-[#FF8C42] mb-3 md:mb-4">Properties Performance</h2>
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
               <tr className="border-b border-gray-700">
-                <th className="text-left py-3 px-4 text-sm font-semibold text-orange-400">Property</th>
-                <th className="text-right py-3 px-4 text-sm font-semibold text-orange-400">Revenue</th>
-                <th className="text-right py-3 px-4 text-sm font-semibold text-orange-400">Nights</th>
-                <th className="text-right py-3 px-4 text-sm font-semibold text-orange-400">Occupancy</th>
+                <th className="text-left py-2 md:py-3 px-2 md:px-4 text-xs md:text-sm font-semibold text-orange-400">Property</th>
+                <th className="text-right py-2 md:py-3 px-2 md:px-4 text-xs md:text-sm font-semibold text-orange-400">Revenue</th>
+                <th className="text-right py-2 md:py-3 px-2 md:px-4 text-xs md:text-sm font-semibold text-orange-400">Nights</th>
+                <th className="text-right py-2 md:py-3 px-2 md:px-4 text-xs md:text-sm font-semibold text-orange-400">Occupancy</th>
               </tr>
             </thead>
             <tbody>
               {stats?.properties_data && stats.properties_data.map((prop, idx) => (
                 <tr key={idx} className="border-b border-gray-700 hover:bg-[#2a2f3a]/50">
-                  <td className="py-3 px-4 text-sm font-medium text-white">{prop.property_name}</td>
-                  <td className="text-right py-3 px-4 text-sm font-semibold text-white">
+                  <td className="py-2 md:py-3 px-2 md:px-4 text-xs md:text-sm font-medium text-white">{prop.property_name}</td>
+                  <td className="text-right py-2 md:py-3 px-2 md:px-4 text-[10px] md:text-sm font-semibold text-white break-all">
                     {formatCurrency(prop.revenue)}
                   </td>
-                  <td className="text-right py-3 px-4 text-sm text-gray-300">{prop.nights}</td>
-                  <td className="text-right py-3 px-4 text-sm text-gray-300">{prop.occupancy_rate}%</td>
+                  <td className="text-right py-2 md:py-3 px-2 md:px-4 text-xs md:text-sm text-gray-300">{prop.nights}</td>
+                  <td className="text-right py-2 md:py-3 px-2 md:px-4 text-xs md:text-sm text-gray-300">{prop.occupancy_rate}%</td>
                 </tr>
               ))}
             </tbody>
@@ -668,41 +667,41 @@ File: ${filename}
         </div>
       </div>
 
-      {/* 6. Payment Status */}
-      <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-xl p-6 shadow-2xl border-2 border-[#d85a2a]/20">
-        <h2 className="text-xl font-black text-[#FF8C42] mb-4">Payment Status</h2>
-        <div className="grid grid-cols-2 gap-3 mb-4">
-          <div className="bg-gradient-to-br from-orange-500/10 to-orange-600/10 rounded-xl p-3 border-2 border-orange-500/30">
+      {/* 6. Payment Status - Mobile Optimized */}
+      <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-xl p-4 md:p-6 shadow-2xl border-2 border-[#d85a2a]/20">
+        <h2 className="text-lg md:text-xl font-black text-[#FF8C42] mb-3 md:mb-4">Payment Status</h2>
+        <div className="grid grid-cols-2 gap-2 md:gap-3 mb-4">
+          <div className="bg-gradient-to-br from-orange-500/10 to-orange-600/10 rounded-xl p-2 md:p-3 border-2 border-orange-500/30">
             <div className="flex items-center justify-between mb-1">
-              <DollarSign className="w-6 h-6 text-orange-400" />
+              <DollarSign className="w-4 h-4 md:w-6 md:h-6 text-orange-400" />
             </div>
-            <p className="text-xl font-black text-white mb-0.5">
-              {stats?.payment_status_data?.paid?.bookings || 0} bookings
+            <p className="text-sm md:text-xl font-black text-white mb-0.5">
+              {stats?.payment_status_data?.paid?.bookings || 0}<span className="text-xs md:text-base"> bookings</span>
             </p>
-            <p className="text-orange-300 text-xs">✅ Paid</p>
-            <p className="text-orange-200 text-xs mt-0.5">
+            <p className="text-orange-300 text-[10px] md:text-xs">✅ Paid</p>
+            <p className="text-orange-200 text-[10px] md:text-xs mt-0.5 break-all">
               {formatCurrency(stats?.payment_status_data?.paid?.revenue || 0)}
             </p>
           </div>
 
-          <div className="bg-gradient-to-br from-orange-500/10 to-orange-600/10 rounded-xl p-3 border-2 border-orange-500/30">
+          <div className="bg-gradient-to-br from-orange-500/10 to-orange-600/10 rounded-xl p-2 md:p-3 border-2 border-orange-500/30">
             <div className="flex items-center justify-between mb-1">
-              <DollarSign className="w-6 h-6 text-orange-400" />
+              <DollarSign className="w-4 h-4 md:w-6 md:h-6 text-orange-400" />
             </div>
-            <p className="text-xl font-black text-white mb-0.5">
-              {stats?.payment_status_data?.pending?.bookings || 0} bookings
+            <p className="text-sm md:text-xl font-black text-white mb-0.5">
+              {stats?.payment_status_data?.pending?.bookings || 0}<span className="text-xs md:text-base"> bookings</span>
             </p>
-            <p className="text-orange-300 text-xs">⏳ Pending</p>
-            <p className="text-orange-200 text-xs mt-0.5">
+            <p className="text-orange-300 text-[10px] md:text-xs">⏳ Pending</p>
+            <p className="text-orange-200 text-[10px] md:text-xs mt-0.5 break-all">
               {formatCurrency(stats?.payment_status_data?.pending?.revenue || 0)}
             </p>
           </div>
         </div>
 
         {stats?.payment_status_data?.pending?.bookings > 0 && (
-          <div className="bg-yellow-500/10 border-l-4 border-yellow-500 p-4 rounded">
-            <p className="text-yellow-400 font-medium mb-1">📌 Action Items:</p>
-            <ul className="text-yellow-300 text-sm space-y-1">
+          <div className="bg-orange-500/10 border-l-4 border-orange-500 p-4 rounded">
+            <p className="text-orange-400 font-medium mb-1">📌 Action Items:</p>
+            <ul className="text-white text-sm space-y-1">
               <li>• {stats.payment_status_data.pending.bookings} bookings pending payment follow-up</li>
               <li>• Expected revenue to collect: {formatCurrency(stats.payment_status_data.pending.revenue)}</li>
             </ul>

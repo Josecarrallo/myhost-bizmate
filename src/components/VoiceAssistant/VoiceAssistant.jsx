@@ -296,26 +296,26 @@ const VoiceAssistant = () => {
           </div>
         )}
 
-        {/* Caja simplificada con avatar y botón de llamada */}
+        {/* Caja simplificada con avatar y botón de llamada - Mobile Optimized */}
         {!isCallActive && !isLoading && (
-          <div className="flex items-center gap-3 bg-gradient-to-br from-orange-500/10 to-orange-600/10 rounded-2xl p-3 shadow-2xl border-2 border-orange-500/30 animate-fade-in">
+          <div className="flex items-center gap-2 md:gap-3 bg-gradient-to-br from-orange-500/10 to-orange-600/10 rounded-xl md:rounded-2xl p-2 md:p-3 shadow-2xl border-2 border-orange-500/30 animate-fade-in">
             <img
               src="/images/lumina-avatar.jpg"
               alt="KORA - Voice Assistant"
-              className="w-12 h-12 rounded-full object-cover border-2 border-orange-500 shadow-lg"
+              className="w-8 h-8 md:w-12 md:h-12 rounded-full object-cover border-2 border-orange-500 shadow-lg"
             />
             <div className="text-left flex-1">
-              <p className="text-sm font-black text-white">
+              <p className="text-xs md:text-sm font-black text-white">
                 KORA Voice Assistant
               </p>
             </div>
             <button
               onClick={handleStartCall}
               disabled={isLoading}
-              className="bg-orange-500 hover:bg-orange-600 p-3 rounded-full shadow-lg transition-all hover:scale-110"
+              className="bg-orange-500 hover:bg-orange-600 p-2 md:p-3 rounded-full shadow-lg transition-all hover:scale-110"
               title="Call KORA"
             >
-              <Phone className="w-5 h-5 text-white" />
+              <Phone className="w-4 h-4 md:w-5 md:h-5 text-white" />
             </button>
           </div>
         )}
