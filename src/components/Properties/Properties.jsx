@@ -53,7 +53,8 @@ const Properties = ({ onBack }) => {
       beds: 2,
       baths: 2,
       maxGuests: 4,
-      basePrice: 150,
+      basePrice: 1300000,
+      currency: "IDR",
       rating: 4.9,
       reviews: 87,
       status: "active",
@@ -81,7 +82,8 @@ const Properties = ({ onBack }) => {
       beds: 1,
       baths: 1,
       maxGuests: 2,
-      basePrice: 100,
+      basePrice: 1800000,
+      currency: "IDR",
       rating: 4.8,
       reviews: 64,
       status: "active",
@@ -109,7 +111,8 @@ const Properties = ({ onBack }) => {
       beds: 1,
       baths: 1,
       maxGuests: 2,
-      basePrice: 90,
+      basePrice: 600000,
+      currency: "IDR",
       rating: 4.9,
       reviews: 52,
       status: "active",
@@ -154,6 +157,7 @@ const Properties = ({ onBack }) => {
           baths: villa.bathrooms || 0,
           maxGuests: villa.max_guests || 0,
           basePrice: parseFloat(villa.base_price) || 0,
+          currency: villa.currency || 'IDR',
           rating: 4.5,
           reviews: 0,
           status: villa.status || 'active',
@@ -263,6 +267,14 @@ const Properties = ({ onBack }) => {
         return 'bg-gray-100 text-gray-600 border-gray-200';
       default:
         return 'bg-gray-100 text-gray-600 border-gray-200';
+    }
+  };
+
+  const formatPrice = (price, currency = 'IDR') => {
+    if (currency === 'IDR') {
+      return `Rp ${parseFloat(price).toLocaleString('id-ID')}`;
+    } else {
+      return `$${parseFloat(price).toLocaleString('en-US')}`;
     }
   };
 
@@ -405,7 +417,7 @@ const Properties = ({ onBack }) => {
                   <div className="flex items-center justify-between pt-4 border-t-2 border-gray-200">
                     <div>
                       <p className="text-xs text-gray-500 mb-1">Base Price</p>
-                      <p className="text-2xl font-black text-[#FF8C42]">${property.basePrice}<span className="text-sm font-medium">/night</span></p>
+                      <p className="text-2xl font-black text-[#FF8C42]">{formatPrice(property.basePrice, property.currency)}<span className="text-sm font-medium">/night</span></p>
                     </div>
                     <div className="text-right">
                       <div className="flex items-center gap-1 text-[#FF8C42] font-bold mb-1">
@@ -460,7 +472,7 @@ const Properties = ({ onBack }) => {
                         </div>
                       </td>
                       <td className="px-6 py-4">
-                        <div className="font-black text-[#FF8C42]">${property.basePrice}/night</div>
+                        <div className="font-black text-[#FF8C42]">{formatPrice(property.basePrice, property.currency)}/night</div>
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-1 text-[#FF8C42] font-bold">

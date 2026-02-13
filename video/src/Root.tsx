@@ -192,6 +192,22 @@ export const RemotionRoot: React.FC = () => {
         fps={50}
         width={1920}
         height={1080}
+        defaultProps={{
+          musicFile: 'background-music.mp3',
+        }}
+      />
+
+      {/* LTX-2 Promo with Bali Sunrise music for MyHost Bizmate */}
+      <Composition
+        id="LtxPromoBaliSunrise"
+        component={LtxPromo}
+        durationInFrames={300}  // 6 seconds at 50 FPS
+        fps={50}
+        width={1920}
+        height={1080}
+        defaultProps={{
+          musicFile: 'bali-sunrise.mp3',
+        }}
       />
     </>
   );
