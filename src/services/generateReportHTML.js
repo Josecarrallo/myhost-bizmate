@@ -153,9 +153,15 @@ export function generateReportHTML(ownerName, propertyName, currency, data, osir
             max-width: 900px;
             margin: 0 auto 20px auto;
             background: white;
-            padding: 40px;
+            padding: 20px;
             box-shadow: 0 0 20px rgba(0,0,0,0.1);
             position: relative;
+        }
+
+        @media (min-width: 768px) {
+            .page {
+                padding: 40px;
+            }
         }
 
         @media print {
@@ -202,9 +208,15 @@ export function generateReportHTML(ownerName, propertyName, currency, data, osir
 
         .metrics-grid {
             display: grid;
-            grid-template-columns: repeat(4, 1fr);
+            grid-template-columns: repeat(2, 1fr);
             gap: 12px;
             margin-bottom: 25px;
+        }
+
+        @media (min-width: 768px) {
+            .metrics-grid {
+                grid-template-columns: repeat(4, 1fr);
+            }
         }
 
         .metric-box {
@@ -285,9 +297,15 @@ export function generateReportHTML(ownerName, propertyName, currency, data, osir
 
         .observations-grid {
             display: grid;
-            grid-template-columns: repeat(2, 1fr);
+            grid-template-columns: 1fr;
             gap: 8px;
             margin-bottom: 12px;
+        }
+
+        @media (min-width: 768px) {
+            .observations-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
         }
 
         .observation-card {
