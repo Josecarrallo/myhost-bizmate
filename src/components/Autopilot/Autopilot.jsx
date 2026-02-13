@@ -36,9 +36,11 @@ import {
 import ManualDataEntry from '../ManualDataEntry/ManualDataEntry';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
+import { generateReportHTML } from '../../services/generateReportHTML';
 
 const Autopilot = ({ onBack }) => {
   const { userData } = useAuth();
+
   // Navigation between 9 sections
   const [activeSection, setActiveSection] = useState('menu'); // Start with menu visible
   const [activeView, setActiveView] = useState('daily'); // for Overview section
@@ -49,23 +51,24 @@ const Autopilot = ({ onBack }) => {
   const [selectedReportType, setSelectedReportType] = useState('all'); // for All Data section
   const [selectedProperty, setSelectedProperty] = useState('gita'); // for Business Reports (owner selection)
   const [isGeneratingReport, setIsGeneratingReport] = useState(false); // for Business Reports generation
+  const [reportHTML, setReportHTML] = useState('<html><body style="margin:0;padding:40px;font-family:sans-serif;text-align:center;color:#666;"><h2 style="color:#f97316;">Business Report</h2><p>Select owner and period, then click <strong>Generate Report</strong>.</p></body></html>'); // Business Reports HTML content
+  const [selectedPeriod, setSelectedPeriod] = useState('this_month'); // Period selector for reports
+  const [selectedAllInfoPeriod, setSelectedAllInfoPeriod] = useState('all_time'); // Period selector for All Information
 
-  // Load saved report from localStorage when iframe loads
+  // Load saved report from localStorage when entering Business Reports
   useEffect(() => {
-    const loadSavedReport = () => {
-      const savedReport = localStorage.getItem(`business-report-${selectedProperty}`);
-      const iframe = document.getElementById('business-report-frame');
-      if (savedReport && iframe) {
-        setTimeout(() => {
-          iframe.srcdoc = savedReport;
-        }, 100);
-      }
-    };
-
     if (activeSection === 'businessReports') {
-      loadSavedReport();
+      const savedReport = localStorage.getItem(`business-report-${selectedProperty}-${selectedPeriod}`);
+
+      if (savedReport) {
+        console.log(`📄 Loading saved report for ${selectedProperty} - ${selectedPeriod}`);
+        setReportHTML(savedReport);
+      } else {
+        console.log(`📝 No saved report for ${selectedProperty} - ${selectedPeriod}`);
+        setReportHTML('<html><body style="margin:0;padding:40px;font-family:sans-serif;text-align:center;color:#666;"><h2 style="color:#f97316;">Business Report</h2><p>Select owner and period, then click <strong>Generate Report</strong>.</p></body></html>');
+      }
     }
-  }, [activeSection, selectedProperty]);
+  }, [activeSection, selectedProperty, selectedPeriod]);
 
   // Real data from Supabase (with fallback from INFORME_SUPABASE_IZUMI_HOTEL)
   const [todayMetrics, setTodayMetrics] = useState({
@@ -88,6 +91,8 @@ const Autopilot = ({ onBack }) => {
     averageBookingValue: 0,
     totalNights: 0,
     avgOccupancy: 0,
+    monthsWithBookings: 0,
+    availableNights: 0,
     loading: true
   });
 
@@ -102,6 +107,9 @@ const Autopilot = ({ onBack }) => {
     direct: { count: 0, revenue: 0 },
     other: { count: 0, revenue: 0 }
   });
+
+  // Period selector for Availability & Channels section
+  const [selectedChannelPeriod, setSelectedChannelPeriod] = useState('2026');
 
   // User properties
   const [userProperties, setUserProperties] = useState([]);
@@ -260,18 +268,18 @@ const Autopilot = ({ onBack }) => {
       badge: 'Live'
     },
     {
+      id: 'availability',
+      name: 'Availability & Channels',
+      icon: Wifi,
+      description: 'Channel status, calendar view',
+      badge: '4 sources'
+    },
+    {
       id: 'decisions',
       name: 'Owner Decisions',
       icon: ClipboardCheck,
       description: 'Needs approval',
       badge: '3'
-    },
-    {
-      id: 'availability',
-      name: 'Availability & Channels',
-      icon: Wifi,
-      description: 'Channel status, calendar view',
-      badge: '3 connected'
     },
     {
       id: 'communication',
@@ -290,21 +298,19 @@ const Autopilot = ({ onBack }) => {
   ];
 
   // Load real counts from Supabase
-  const loadRealCounts = async () => {
+  const loadRealCounts = async (period = 'all_time') => {
     if (!TENANT_ID) return;
 
     try {
-      // Load properties
-      const { data: properties, error: propertiesError } = await supabase
-        .from('properties')
-        .select('*')
-        .eq('owner_id', TENANT_ID);
-
-      if (propertiesError) {
-        console.error('Error loading properties:', propertiesError);
-      } else {
-        setUserProperties(properties || []);
+      // Get date range for filtering
+      let dateFilter = null;
+      if (period !== 'all_time') {
+        dateFilter = getDateRange(period);
       }
+
+      // Load villas (properties) - First we need to get unique property_ids from bookings
+      // We'll load properties after we have the bookings data
+      let properties = [];
 
       // Load leads
       const { data: leadsData, error: leadsError } = await supabase
@@ -317,7 +323,7 @@ const Autopilot = ({ onBack }) => {
       } else {
         setLeads(leadsData || []);
 
-        // Calculate leads counts by status
+        // Calculate leads counts by state (not status)
         const counts = {
           hot: 0,
           pending: 0,
@@ -327,24 +333,33 @@ const Autopilot = ({ onBack }) => {
         };
 
         (leadsData || []).forEach(lead => {
-          const status = (lead.status || '').toLowerCase();
-          if (status === 'hot') counts.hot++;
-          else if (status === 'pending') counts.pending++;
-          else if (status === 'engaged') counts.engaged++;
-          else if (status === 'won') counts.won++;
+          const state = (lead.state || '').toLowerCase();
+          if (state === 'hot') counts.hot++;
+          else if (state === 'pending') counts.pending++;
+          else if (state === 'engaged') counts.engaged++;
+          else if (state === 'won' || state === 'converted') counts.won++;
 
-          counts.total_value += lead.estimated_value || 0;
+          // No estimated_value field exists, use 0 for now
+          counts.total_value += 0;
         });
 
         setLeadsCounts(counts);
       }
 
-      // Load full booking details for the table
-      const { data: bookings, error } = await supabase
+      // Load full booking details for the table (with optional date filter)
+      let bookingsQuery = supabase
         .from('bookings')
         .select('*')
-        .eq('tenant_id', TENANT_ID)
-        .order('check_in', { ascending: false });
+        .eq('tenant_id', TENANT_ID);
+
+      // Apply date filter if period is not 'all_time'
+      if (dateFilter) {
+        bookingsQuery = bookingsQuery
+          .gte('check_in', dateFilter.startDate)
+          .lte('check_in', dateFilter.endDate);
+      }
+
+      const { data: bookings, error } = await bookingsQuery.order('check_in', { ascending: false });
 
       if (error) {
         console.error('Error loading bookings:', error);
@@ -354,11 +369,40 @@ const Autopilot = ({ onBack }) => {
 
       setAllBookings(bookings || []);
 
+      // Load villas (properties) based on unique property_ids from bookings
+      const propertyIds = [...new Set((bookings || []).map(b => b.property_id).filter(Boolean))];
+
+      if (propertyIds.length > 0) {
+        const { data: villas, error: villasError } = await supabase
+          .from('villas')
+          .select('*')
+          .in('property_id', propertyIds);
+
+        if (villasError) {
+          console.error('Error loading villas:', villasError);
+        } else {
+          // Map villas to properties format with available fields
+          properties = (villas || []).map(villa => ({
+            id: villa.id,
+            name: villa.name,
+            location: villa.location || 'Ubud, Bali', // Fallback to default
+            property_type: villa.property_type || `${villa.bedrooms || 'N/A'} Bedroom Villa`, // Use bedrooms if no type
+            address: villa.address || 'Bali, Indonesia',
+            bedrooms: villa.bedrooms,
+            bathrooms: villa.bathrooms,
+            description: villa.description
+          }));
+          setUserProperties(properties);
+        }
+      }
+
       // Calculate unique countries (excluding null/empty)
       const uniqueCountries = new Set();
       (bookings || []).forEach(booking => {
-        if (booking.guest_country && booking.guest_country.trim() !== '') {
-          uniqueCountries.add(booking.guest_country);
+        const country = booking.guest_country;
+        // Ignore null, 'null' string, empty string, and undefined
+        if (country && country.trim() !== '' && country.toLowerCase() !== 'null') {
+          uniqueCountries.add(country);
         }
       });
 
@@ -385,41 +429,19 @@ const Autopilot = ({ onBack }) => {
         return sum;
       }, 0);
 
-      // Calculate occupancy rate (total nights booked / total available nights in period)
-      // Assuming 365 days available per property per year
-      const daysInPeriod = 365;
-      const totalProperties = (properties || []).length || 1; // At least 1 to avoid division by 0
-      const totalAvailableNights = daysInPeriod * totalProperties;
-      const avgOccupancy = totalAvailableNights > 0 ? (totalNights / totalAvailableNights) * 100 : 0;
-
-      // Calculate channel statistics from 'source' field
-      const channelData = {
-        airbnb: { count: 0, revenue: 0 },
-        bookingCom: { count: 0, revenue: 0 },
-        direct: { count: 0, revenue: 0 },
-        other: { count: 0, revenue: 0 }
-      };
-
+      // Calculate occupancy rate based on months with bookings
+      // Formula: (total nights booked / (months with bookings * 31 days)) * 100
+      const monthsWithBookings = new Set();
       (bookings || []).forEach(booking => {
-        const source = (booking.source || '').toLowerCase();
-        const price = booking.total_price || 0;
-
-        if (source === 'airbnb') {
-          channelData.airbnb.count++;
-          channelData.airbnb.revenue += price;
-        } else if (source === 'booking.com') {
-          channelData.bookingCom.count++;
-          channelData.bookingCom.revenue += price;
-        } else if (source === 'gita') {
-          channelData.direct.count++;
-          channelData.direct.revenue += price;
-        } else {
-          channelData.other.count++;
-          channelData.other.revenue += price;
+        if (booking.check_in) {
+          const date = new Date(booking.check_in);
+          const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+          monthsWithBookings.add(monthKey);
         }
       });
-
-      setChannelStats(channelData);
+      const totalMonths = monthsWithBookings.size || 1; // At least 1 to avoid division by 0
+      const totalAvailableNights = totalMonths * 31; // 31 days average per month
+      const avgOccupancy = totalAvailableNights > 0 ? (totalNights / totalAvailableNights) * 100 : 0;
 
       setRealCounts({
         totalClients: bookings?.length || 0,
@@ -432,6 +454,8 @@ const Autopilot = ({ onBack }) => {
         averageBookingValue: averageBookingValue,
         totalNights: totalNights,
         avgOccupancy: avgOccupancy,
+        monthsWithBookings: totalMonths,
+        availableNights: totalAvailableNights,
         loading: false
       });
     } catch (error) {
@@ -440,22 +464,224 @@ const Autopilot = ({ onBack }) => {
     }
   };
 
+  // Load channel statistics with better classification
+  const loadChannelStats = async (period = '2026') => {
+    if (!TENANT_ID) return;
+
+    try {
+      // Get date range for filtering
+      let dateFilter = null;
+      if (period !== 'all_time') {
+        dateFilter = getDateRange(period);
+      }
+
+      // Load bookings with optional date filter
+      let bookingsQuery = supabase
+        .from('bookings')
+        .select('*')
+        .eq('tenant_id', TENANT_ID);
+
+      if (dateFilter) {
+        bookingsQuery = bookingsQuery
+          .gte('check_in', dateFilter.startDate)
+          .lte('check_in', dateFilter.endDate);
+      }
+
+      const { data: bookings, error: bookingsError } = await bookingsQuery;
+
+      if (bookingsError) {
+        console.error('Error loading bookings for channels:', bookingsError);
+        return;
+      }
+
+      // Calculate channel statistics with better source classification
+      const channelData = {
+        airbnb: { count: 0, revenue: 0 },
+        bookingCom: { count: 0, revenue: 0 },
+        direct: { count: 0, revenue: 0 },
+        other: { count: 0, revenue: 0 }
+      };
+
+      (bookings || []).forEach(booking => {
+        const source = (booking.source || '').toLowerCase().trim();
+        const price = booking.total_price || 0;
+
+        // Better channel classification - recognize variations
+        if (source === 'airbnb' || source === 'air bnb') {
+          channelData.airbnb.count++;
+          channelData.airbnb.revenue += price;
+        } else if (source === 'booking.com') {
+          channelData.bookingCom.count++;
+          channelData.bookingCom.revenue += price;
+        } else if (source === 'gita') {
+          channelData.direct.count++;
+          channelData.direct.revenue += price;
+        } else {
+          // Count all other sources (Bali Buntu, Ibu Santi, Domus, Instagram, etc.)
+          channelData.other.count++;
+          channelData.other.revenue += price;
+        }
+      });
+
+      setChannelStats(channelData);
+    } catch (error) {
+      console.error('Error loading channel stats:', error);
+    }
+  };
+
   // Load data on mount
   useEffect(() => {
-    loadRealCounts();
+    loadRealCounts(selectedAllInfoPeriod);
+    loadChannelStats(selectedChannelPeriod);
     fetchTodayMetrics();
     fetchAlerts();
     fetchActions();
     fetchMonthlyMetrics();
   }, [TENANT_ID]);
 
+  // Reload data when All Information period changes
+  useEffect(() => {
+    if (activeSection === 'all-data') {
+      console.log('Reloading data for period:', selectedAllInfoPeriod);
+      loadRealCounts(selectedAllInfoPeriod);
+    }
+  }, [selectedAllInfoPeriod, activeSection]);
+
+  // Reload channel stats when Availability period changes OR when entering availability section
+  useEffect(() => {
+    console.log('Reloading channel stats for period:', selectedChannelPeriod);
+    loadChannelStats(selectedChannelPeriod);
+  }, [selectedChannelPeriod]);
+
   // Helper functions
+  const formatCurrency = (amount) => {
+    // Detect if amount is in Rupias (IDR) or USD
+    // Generally: if >= 100,000 it's likely Rupias, otherwise USD
+    if (amount >= 100000) {
+      // Format as Rupias
+      return `Rp ${Math.round(amount).toLocaleString('id-ID')}`;
+    } else {
+      // Format as USD
+      return `$${Math.round(amount).toLocaleString('en-US')}`;
+    }
+  };
+
   const formatTimeAgo = (timestamp) => {
     const minutes = Math.floor((new Date() - new Date(timestamp)) / 60000);
     if (minutes < 60) return `${minutes} minutes ago`;
     const hours = Math.floor(minutes / 60);
     if (hours < 24) return `${hours} hours ago`;
     return `${Math.floor(hours / 24)} days ago`;
+  };
+
+  const getPeriodLabel = (period) => {
+    const labels = {
+      'all_time': 'All Time',
+      'this_month': 'This Month',
+      'last_month': 'Last Month',
+      'this_quarter': 'This Quarter',
+      'last_quarter': 'Last Quarter',
+      'this_year': 'This Year (2026)',
+      'last_year': 'Last Year (2025)'
+    };
+    return labels[period] || 'All Time';
+  };
+
+  // Calculate date range based on selected period
+  const getDateRange = (period) => {
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth();
+
+    switch (period) {
+      case 'this_month': {
+        const start = new Date(currentYear, currentMonth, 1);
+        const end = new Date(currentYear, currentMonth + 1, 0);
+        return {
+          startDate: start.toISOString().split('T')[0],
+          endDate: end.toISOString().split('T')[0]
+        };
+      }
+      case 'last_month': {
+        const start = new Date(currentYear, currentMonth - 1, 1);
+        const end = new Date(currentYear, currentMonth, 0);
+        return {
+          startDate: start.toISOString().split('T')[0],
+          endDate: end.toISOString().split('T')[0]
+        };
+      }
+      case 'this_quarter': {
+        const quarterStartMonth = Math.floor(currentMonth / 3) * 3;
+        const start = new Date(currentYear, quarterStartMonth, 1);
+        const end = new Date(currentYear, quarterStartMonth + 3, 0);
+        return {
+          startDate: start.toISOString().split('T')[0],
+          endDate: end.toISOString().split('T')[0]
+        };
+      }
+      case 'last_quarter': {
+        const quarterStartMonth = Math.floor(currentMonth / 3) * 3 - 3;
+        const start = new Date(currentYear, quarterStartMonth, 1);
+        const end = new Date(currentYear, quarterStartMonth + 3, 0);
+        return {
+          startDate: start.toISOString().split('T')[0],
+          endDate: end.toISOString().split('T')[0]
+        };
+      }
+      case 'this_year': {
+        return {
+          startDate: `${currentYear}-01-01`,
+          endDate: `${currentYear}-12-31`
+        };
+      }
+      case 'last_year': {
+        return {
+          startDate: `${currentYear - 1}-01-01`,
+          endDate: `${currentYear - 1}-12-31`
+        };
+      }
+      case '2026': {
+        return {
+          startDate: '2026-01-01',
+          endDate: '2026-12-31'
+        };
+      }
+      case '2025': {
+        return {
+          startDate: '2025-01-01',
+          endDate: '2025-12-31'
+        };
+      }
+      case 'q1_2026': {
+        return {
+          startDate: '2026-01-01',
+          endDate: '2026-03-31'
+        };
+      }
+      case 'q2_2026': {
+        return {
+          startDate: '2026-04-01',
+          endDate: '2026-06-30'
+        };
+      }
+      case 'q3_2026': {
+        return {
+          startDate: '2026-07-01',
+          endDate: '2026-09-30'
+        };
+      }
+      case 'q4_2026': {
+        return {
+          startDate: '2026-10-01',
+          endDate: '2026-12-31'
+        };
+      }
+      default:
+        return {
+          startDate: `${currentYear}-01-01`,
+          endDate: `${currentYear}-12-31`
+        };
+    }
   };
 
   const logDbQuery = (query, result) => {
@@ -966,7 +1192,7 @@ const Autopilot = ({ onBack }) => {
         <body>
           <div class="container">
             <h1>MY HOST BizMate - Complete Data Summary</h1>
-            <p style="text-align: center; color: #666;">Period: 2025 - 2026 | Generated: ${today}</p>
+            <p style="text-align: center; color: #666;">Period: ${getPeriodLabel(selectedAllInfoPeriod)} | Generated: ${today}</p>
             <button class="btn-print" onclick="window.print()">🖨️ Print Report</button>
 
             <h2>📊 Property Information (${userProperties.length} ${userProperties.length === 1 ? 'Property' : 'Properties'})</h2>
@@ -986,10 +1212,7 @@ const Autopilot = ({ onBack }) => {
               Total Bookings: ${realCounts.totalBookings} | Countries: ${realCounts.countries} | Repeat Guests: ${realCounts.repeatGuests}
             </div>
 
-            <h2>📈 Leads Pipeline (${leads.length} Total)</h2>
-            ${leadsHTML}
-
-            <h2>🏨 Bookings Summary (2025 - 2026)</h2>
+            <h2>🏨 Bookings Summary (${getPeriodLabel(selectedAllInfoPeriod)})</h2>
             <h3>All Bookings</h3>
             <table>
               <tr>
@@ -1030,14 +1253,17 @@ const Autopilot = ({ onBack }) => {
 
             <h2>📋 Key Metrics Summary</h2>
             <div class="summary-box">
-              <strong>2025 - 2026 Performance:</strong><br>
+              <strong>${getPeriodLabel(selectedAllInfoPeriod)} Performance:</strong><br>
               Total Revenue: ${totalRevenueFormatted}<br>
               Total Bookings: ${realCounts.totalBookings}<br>
               Total Nights: ${realCounts.totalNights}<br>
               Average Booking Value: ${avgBookingValueFormatted}<br>
-              Average Occupancy: ${Math.round(realCounts.avgOccupancy)}%<br>
+              <strong>Occupancy Calculation:</strong><br>
+              &nbsp;&nbsp;• Months with bookings: ${realCounts.monthsWithBookings}<br>
+              &nbsp;&nbsp;• Available nights: ${realCounts.availableNights} (${realCounts.monthsWithBookings} months × 31 days)<br>
+              &nbsp;&nbsp;• Booked nights: ${realCounts.totalNights}<br>
+              &nbsp;&nbsp;• Occupancy Rate: ${Math.round(realCounts.avgOccupancy * 10) / 10}%<br>
               Payment Completion: ${paymentCompletionRate}%<br>
-              Active Leads: ${leads.length} (Pipeline: $${leadsCounts.total_value.toLocaleString('en-US')})<br>
               Properties: ${userProperties.length}<br>
               Countries Represented: ${realCounts.countries}<br>
               Repeat Guests: ${realCounts.repeatGuests}
@@ -1172,42 +1398,71 @@ const Autopilot = ({ onBack }) => {
     return (
       <div className="space-y-6">
         {/* Header */}
-        <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-3xl p-6 shadow-2xl border-2 border-[#d85a2a]/20">
-          <div className="flex items-center justify-between mb-4">
+        <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-3xl p-4 md:p-6 shadow-2xl border-2 border-[#d85a2a]/20">
+          {/* Top Row: Back Button + Title */}
+          <div className="flex items-center mb-4 gap-3">
             <button
               onClick={() => setActiveSection('menu')}
               className="p-2 bg-[#1f2937]/95 backdrop-blur-sm rounded-xl hover:bg-orange-500 transition-all border border-[#d85a2a]/20"
             >
               <ArrowLeft className="w-5 h-5 text-[#FF8C42]" />
             </button>
-            <div className="flex-1 text-center">
-              <h3 className="text-2xl font-black text-[#FF8C42] mb-2 flex items-center gap-2 justify-center">
-                <BarChart3 className="w-6 h-6" />
-                All Information
-              </h3>
-              <p className="text-gray-300 text-sm">
-                View all your business data in one place: Properties, Clients, Leads, Bookings, and Payments.
-              </p>
-            </div>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={handleGenerateDailySummary}
-                disabled={isGeneratingSummary}
-                className="px-6 py-3 bg-orange-500 hover:bg-orange-600 disabled:bg-orange-300 text-white rounded-xl font-bold transition-all flex items-center gap-2 shadow-xl"
-              >
-                {isGeneratingSummary ? (
-                  <>
-                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                    Generating...
-                  </>
-                ) : (
-                  <>
-                    <Zap className="w-5 h-5" />
-                    Generate & Print Summary
-                  </>
-                )}
-              </button>
-            </div>
+            <h3 className="text-xl md:text-2xl font-black text-[#FF8C42] flex items-center gap-2">
+              <BarChart3 className="w-5 h-5 md:w-6 md:h-6" />
+              All Information
+            </h3>
+          </div>
+
+          {/* Description Text - Full Width */}
+          <p className="text-gray-300 text-sm mb-4 px-1">
+            <span className="hidden md:inline">View all your business data in one place: Properties, Clients, Leads, Bookings, and Payments.</span>
+            <span className="md:hidden">View all your business data: Properties, Clients, Leads, Bookings & Payments.</span>
+          </p>
+
+          {/* Period Selector */}
+          <div className="mb-4">
+            <label className="text-gray-300 text-xs font-semibold uppercase mb-2 block">Filter by Period:</label>
+            <select
+              value={selectedAllInfoPeriod}
+              onChange={(e) => {
+                console.log('Period selected:', e.target.value);
+                setSelectedAllInfoPeriod(e.target.value);
+              }}
+              onBlur={(e) => {
+                console.log('Period blur:', e.target.value);
+                setSelectedAllInfoPeriod(e.target.value);
+              }}
+              className="w-full md:w-auto bg-[#374151] text-white px-4 py-2 rounded-lg border-2 border-purple-500/30 focus:border-purple-500 focus:outline-none hover:border-purple-500/50 transition-all cursor-pointer"
+            >
+              <option value="all_time">All Time</option>
+              <option value="this_month">This Month</option>
+              <option value="last_month">Last Month</option>
+              <option value="this_quarter">This Quarter</option>
+              <option value="last_quarter">Last Quarter</option>
+              <option value="this_year">This Year (2026)</option>
+              <option value="last_year">Last Year (2025)</option>
+            </select>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex flex-col md:flex-row gap-3">
+            <button
+              onClick={() => loadRealCounts(selectedAllInfoPeriod)}
+              disabled={isGeneratingSummary}
+              className="flex-1 md:flex-initial px-6 py-3 bg-orange-500 hover:bg-orange-600 disabled:bg-orange-300 text-white rounded-xl font-bold transition-all flex items-center justify-center gap-2 shadow-xl"
+            >
+              <Zap className="w-5 h-5" />
+              <span className="hidden md:inline">Refresh Data</span>
+              <span className="md:hidden">Refresh</span>
+            </button>
+            <button
+              onClick={handleGenerateDailySummary}
+              className="flex-1 md:flex-initial px-6 py-3 bg-purple-500 hover:bg-purple-600 text-white rounded-xl font-bold transition-all flex items-center justify-center gap-2 shadow-xl"
+            >
+              <Printer className="w-5 h-5" />
+              <span className="hidden md:inline">Print Summary</span>
+              <span className="md:hidden">Print</span>
+            </button>
           </div>
         </div>
 
@@ -1262,38 +1517,11 @@ const Autopilot = ({ onBack }) => {
           </div>
         </div>
 
-        {/* Leads Overview */}
-        <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-3xl p-6 shadow-2xl border-2 border-[#d85a2a]/20">
-          <h3 className="text-xl font-black text-[#FF8C42] mb-4 flex items-center gap-2">
-            <Users className="w-5 h-5" />
-            Leads Pipeline ({leads.length} total)
-          </h3>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-4">
-            <div className="bg-gradient-to-br from-red-500/10 to-red-600/10 rounded-xl p-4 border-2 border-red-500/30">
-              <p className="text-red-300 text-sm mb-1">HOT</p>
-              <p className="text-xl font-black text-white">{leadsCounts.hot}</p>
-            </div>
-            <div className="bg-gradient-to-br from-yellow-500/10 to-yellow-600/10 rounded-xl p-4 border-2 border-yellow-500/30">
-              <p className="text-yellow-300 text-sm mb-1">PENDING</p>
-              <p className="text-xl font-black text-white">{leadsCounts.pending}</p>
-            </div>
-            <div className="bg-gradient-to-br from-blue-500/10 to-blue-600/10 rounded-xl p-4 border-2 border-blue-500/30">
-              <p className="text-blue-300 text-sm mb-1">ENGAGED</p>
-              <p className="text-xl font-black text-white">{leadsCounts.engaged}</p>
-            </div>
-            <div className="bg-gradient-to-br from-green-500/10 to-green-600/10 rounded-xl p-4 border-2 border-green-500/30">
-              <p className="text-green-300 text-sm mb-1">WON</p>
-              <p className="text-xl font-black text-white">{leadsCounts.won}</p>
-            </div>
-          </div>
-          <p className="text-gray-400 text-sm">Total Pipeline Value: <span className="text-green-400 font-bold">${leadsCounts.total_value.toLocaleString()}</span></p>
-        </div>
-
         {/* Bookings Summary */}
         <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-3xl p-6 shadow-2xl border-2 border-[#d85a2a]/20">
           <h3 className="text-xl font-black text-[#FF8C42] mb-4 flex items-center gap-2">
             <Calendar className="w-5 h-5" />
-            Bookings Summary (2025 - 2026)
+            Bookings Summary ({getPeriodLabel(selectedAllInfoPeriod)})
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
             <div className="bg-gradient-to-br from-blue-500/10 to-blue-600/10 rounded-xl p-5 border-2 border-blue-500/30">
@@ -1324,61 +1552,112 @@ const Autopilot = ({ onBack }) => {
           {/* Detailed Bookings Table */}
           <div className="mt-6 border-t-2 border-[#d85a2a]/20 pt-6">
             <h4 className="text-lg font-bold text-white mb-4">All Bookings ({allBookings.length})</h4>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-gray-700">
-                    <th className="text-left text-gray-400 font-semibold p-3">Guest Name</th>
-                    <th className="text-left text-gray-400 font-semibold p-3">Check In</th>
-                    <th className="text-left text-gray-400 font-semibold p-3">Check Out</th>
-                    <th className="text-right text-gray-400 font-semibold p-3">Total</th>
-                    <th className="text-center text-gray-400 font-semibold p-3">Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {allBookings.length === 0 ? (
-                    <tr>
-                      <td colSpan="5" className="text-center text-gray-500 p-8">
-                        No bookings found
-                      </td>
-                    </tr>
-                  ) : (
-                    allBookings.map((booking) => (
-                      <tr key={booking.id} className="border-b border-gray-800 hover:bg-[#2a2f3a] transition-colors">
-                        <td className="text-white p-3 font-medium">{booking.guest_name || 'N/A'}</td>
-                        <td className="text-gray-300 p-3">
-                          {booking.check_in ? new Date(booking.check_in).toLocaleDateString('en-US', {
-                            month: 'short',
-                            day: 'numeric',
-                            year: 'numeric'
-                          }) : 'N/A'}
-                        </td>
-                        <td className="text-gray-300 p-3">
-                          {booking.check_out ? new Date(booking.check_out).toLocaleDateString('en-US', {
-                            month: 'short',
-                            day: 'numeric',
-                            year: 'numeric'
-                          }) : 'N/A'}
-                        </td>
-                        <td className="text-right text-green-400 p-3 font-bold">
-                          ${booking.total_price?.toLocaleString() || '0'}
-                        </td>
-                        <td className="text-center p-3">
-                          <span className={`px-3 py-1 rounded-full text-xs font-bold ${
-                            booking.status === 'confirmed' ? 'bg-green-500/20 text-green-400' :
-                            booking.status === 'pending' ? 'bg-yellow-500/20 text-yellow-400' :
-                            booking.status === 'cancelled' ? 'bg-red-500/20 text-red-400' :
-                            'bg-gray-500/20 text-gray-400'
-                          }`}>
-                            {booking.status || 'unknown'}
-                          </span>
-                        </td>
+
+            {allBookings.length === 0 ? (
+              <div className="text-center text-gray-500 p-8 bg-[#2a2f3a] rounded-xl border-2 border-gray-700">
+                No bookings found
+              </div>
+            ) : (
+              <>
+                {/* MOBILE VERSION: Cards (< 768px) */}
+                <div className="block md:hidden space-y-3">
+                  {allBookings.map((booking) => (
+                    <div key={booking.id} className="bg-[#2a2f3a] rounded-xl p-4 border-l-4 border-orange-500 shadow-lg">
+                      <div className="flex justify-between items-start mb-3">
+                        <div className="flex-1">
+                          <h3 className="text-white font-bold text-lg">{booking.guest_name || 'N/A'}</h3>
+                        </div>
+                        <span className={`px-3 py-1 rounded-full text-xs font-bold ${
+                          booking.status === 'confirmed' ? 'bg-green-500/20 text-green-400' :
+                          booking.status === 'pending' ? 'bg-yellow-500/20 text-yellow-400' :
+                          booking.status === 'cancelled' ? 'bg-red-500/20 text-red-400' :
+                          'bg-gray-500/20 text-gray-400'
+                        }`}>
+                          {booking.status || 'unknown'}
+                        </span>
+                      </div>
+                      <div className="grid grid-cols-2 gap-3 mb-3">
+                        <div>
+                          <p className="text-gray-500 text-xs">Check In</p>
+                          <p className="text-white text-sm font-medium">
+                            {booking.check_in ? new Date(booking.check_in).toLocaleDateString('en-US', {
+                              month: 'short',
+                              day: 'numeric',
+                              year: 'numeric'
+                            }) : 'N/A'}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-gray-500 text-xs">Check Out</p>
+                          <p className="text-white text-sm font-medium">
+                            {booking.check_out ? new Date(booking.check_out).toLocaleDateString('en-US', {
+                              month: 'short',
+                              day: 'numeric',
+                              year: 'numeric'
+                            }) : 'N/A'}
+                          </p>
+                        </div>
+                        <div className="col-span-2">
+                          <p className="text-gray-500 text-xs">Total</p>
+                          <p className="text-green-400 text-lg font-bold">
+                            ${booking.total_price?.toLocaleString() || '0'}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* DESKTOP VERSION: Table (>= 768px) */}
+                <div className="hidden md:block overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-gray-700">
+                        <th className="text-left text-gray-400 font-semibold p-3">Guest Name</th>
+                        <th className="text-left text-gray-400 font-semibold p-3">Check In</th>
+                        <th className="text-left text-gray-400 font-semibold p-3">Check Out</th>
+                        <th className="text-right text-gray-400 font-semibold p-3">Total</th>
+                        <th className="text-center text-gray-400 font-semibold p-3">Status</th>
                       </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
+                    </thead>
+                    <tbody>
+                      {allBookings.map((booking) => (
+                        <tr key={booking.id} className="border-b border-gray-800 hover:bg-[#2a2f3a] transition-colors">
+                          <td className="text-white p-3 font-medium">{booking.guest_name || 'N/A'}</td>
+                          <td className="text-gray-300 p-3">
+                            {booking.check_in ? new Date(booking.check_in).toLocaleDateString('en-US', {
+                              month: 'short',
+                              day: 'numeric',
+                              year: 'numeric'
+                            }) : 'N/A'}
+                          </td>
+                          <td className="text-gray-300 p-3">
+                            {booking.check_out ? new Date(booking.check_out).toLocaleDateString('en-US', {
+                              month: 'short',
+                              day: 'numeric',
+                              year: 'numeric'
+                            }) : 'N/A'}
+                          </td>
+                          <td className="text-right text-green-400 p-3 font-bold">
+                            ${booking.total_price?.toLocaleString() || '0'}
+                          </td>
+                          <td className="text-center p-3">
+                            <span className={`px-3 py-1 rounded-full text-xs font-bold ${
+                              booking.status === 'confirmed' ? 'bg-green-500/20 text-green-400' :
+                              booking.status === 'pending' ? 'bg-yellow-500/20 text-yellow-400' :
+                              booking.status === 'cancelled' ? 'bg-red-500/20 text-red-400' :
+                              'bg-gray-500/20 text-gray-400'
+                            }`}>
+                              {booking.status || 'unknown'}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </>
+            )}
           </div>
         </div>
 
@@ -1386,23 +1665,41 @@ const Autopilot = ({ onBack }) => {
         <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-3xl p-6 shadow-2xl border-2 border-[#d85a2a]/20">
           <h3 className="text-xl font-black text-[#FF8C42] mb-4 flex items-center gap-2">
             <CreditCard className="w-5 h-5" />
-            Payments Summary
+            Payments Summary ({getPeriodLabel(selectedAllInfoPeriod)})
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="bg-gradient-to-br from-green-500/10 to-green-600/10 rounded-xl p-5 border-2 border-green-500/30">
               <p className="text-green-300 text-sm mb-2">Paid</p>
-              <p className="text-2xl font-black text-white mb-1">43</p>
-              <p className="text-green-200 text-sm">$47,940 (95.6%)</p>
+              <p className="text-2xl font-black text-white mb-1">
+                {allBookings.filter(b => b.payment_status === 'paid' || b.payment_status === 'completed').length}
+              </p>
+              <p className="text-green-200 text-sm">
+                {realCounts.totalRevenue >= 1000000
+                  ? `Rp ${Math.round(allBookings.filter(b => b.payment_status === 'paid' || b.payment_status === 'completed').reduce((sum, b) => sum + (b.total_price || 0), 0)).toLocaleString('id-ID')}`
+                  : `$${Math.round(allBookings.filter(b => b.payment_status === 'paid' || b.payment_status === 'completed').reduce((sum, b) => sum + (b.total_price || 0), 0)).toLocaleString('en-US')}`}
+              </p>
             </div>
             <div className="bg-gradient-to-br from-yellow-500/10 to-yellow-600/10 rounded-xl p-5 border-2 border-yellow-500/30">
               <p className="text-yellow-300 text-sm mb-2">Pending</p>
-              <p className="text-2xl font-black text-white mb-1">2</p>
-              <p className="text-yellow-200 text-sm">$2,200</p>
+              <p className="text-2xl font-black text-white mb-1">
+                {allBookings.filter(b => b.payment_status === 'pending' || !b.payment_status).length}
+              </p>
+              <p className="text-yellow-200 text-sm">
+                {realCounts.totalRevenue >= 1000000
+                  ? `Rp ${Math.round(allBookings.filter(b => b.payment_status === 'pending' || !b.payment_status).reduce((sum, b) => sum + (b.total_price || 0), 0)).toLocaleString('id-ID')}`
+                  : `$${Math.round(allBookings.filter(b => b.payment_status === 'pending' || !b.payment_status).reduce((sum, b) => sum + (b.total_price || 0), 0)).toLocaleString('en-US')}`}
+              </p>
             </div>
             <div className="bg-gradient-to-br from-gray-500/10 to-gray-600/10 rounded-xl p-5 border-2 border-gray-500/30">
               <p className="text-gray-300 text-sm mb-2">Overdue</p>
-              <p className="text-2xl font-black text-white mb-1">0</p>
-              <p className="text-gray-200 text-sm">$0</p>
+              <p className="text-2xl font-black text-white mb-1">
+                {allBookings.filter(b => b.payment_status === 'overdue').length}
+              </p>
+              <p className="text-gray-200 text-sm">
+                {realCounts.totalRevenue >= 1000000
+                  ? `Rp ${Math.round(allBookings.filter(b => b.payment_status === 'overdue').reduce((sum, b) => sum + (b.total_price || 0), 0)).toLocaleString('id-ID')}`
+                  : `$${Math.round(allBookings.filter(b => b.payment_status === 'overdue').reduce((sum, b) => sum + (b.total_price || 0), 0)).toLocaleString('en-US')}`}
+              </p>
             </div>
           </div>
         </div>
@@ -1461,35 +1758,169 @@ const Autopilot = ({ onBack }) => {
     </div>
   );
 
-  const renderAvailabilitySection = () => (
-    <div className="space-y-6">
-      <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-3xl p-6 shadow-2xl border-2 border-[#d85a2a]/20">
-        <div className="flex items-center justify-between mb-4">
-          <button
-            onClick={() => setActiveSection('menu')}
-            className="p-2 bg-[#1f2937]/95 backdrop-blur-sm rounded-xl hover:bg-orange-500 transition-all border border-[#d85a2a]/20"
-          >
-            <ArrowLeft className="w-5 h-5 text-[#FF8C42]" />
-          </button>
-          <h3 className="text-2xl font-black text-[#FF8C42] flex items-center gap-2">
-            <Wifi className="w-6 h-6" />
-            Availability & Channels
-          </h3>
-          <div className="w-12"></div>
-        </div>
+  const renderAvailabilitySection = () => {
+    // Calculate total connected channels
+    const connectedChannels = [
+      channelStats.airbnb.count > 0,
+      channelStats.bookingCom.count > 0,
+      channelStats.direct.count > 0,
+      channelStats.other.count > 0
+    ].filter(Boolean).length;
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+    return (
+      <div className="space-y-6">
+        <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-3xl p-6 shadow-2xl border-2 border-[#d85a2a]/20">
+          <div className="flex flex-col md:flex-row items-center justify-between mb-4 gap-3">
+            <button
+              onClick={() => setActiveSection('menu')}
+              className="self-start md:self-auto p-2 bg-[#1f2937]/95 backdrop-blur-sm rounded-xl hover:bg-orange-500 transition-all border border-[#d85a2a]/20"
+            >
+              <ArrowLeft className="w-5 h-5 text-[#FF8C42]" />
+            </button>
+            <div className="text-center flex-1">
+              <h3 className="text-2xl font-black text-[#FF8C42] flex items-center justify-center gap-2">
+                <Wifi className="w-6 h-6" />
+                Availability & Channels
+              </h3>
+              <p className="text-gray-400 text-sm mt-1">
+                {connectedChannels} channels connected
+              </p>
+            </div>
+            <div className="w-12 hidden md:block"></div>
+          </div>
+
+          {/* Period Selector */}
+          <div className="mb-6">
+            <label className="block text-gray-300 text-sm font-medium mb-3 text-center md:text-left">
+              📅 Select Period
+            </label>
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-2">
+              <button
+                onClick={() => setSelectedChannelPeriod('2026')}
+                className={`px-4 py-2 rounded-lg font-medium transition-all ${
+                  selectedChannelPeriod === '2026'
+                    ? 'bg-orange-500 text-white'
+                    : 'bg-[#2a2f3a] text-gray-300 hover:bg-[#374151]'
+                }`}
+              >
+                2026
+              </button>
+              <button
+                onClick={() => setSelectedChannelPeriod('2025')}
+                className={`px-4 py-2 rounded-lg font-medium transition-all ${
+                  selectedChannelPeriod === '2025'
+                    ? 'bg-orange-500 text-white'
+                    : 'bg-[#2a2f3a] text-gray-300 hover:bg-[#374151]'
+                }`}
+              >
+                2025
+              </button>
+              <button
+                onClick={() => setSelectedChannelPeriod('q1_2026')}
+                className={`px-4 py-2 rounded-lg font-medium transition-all ${
+                  selectedChannelPeriod === 'q1_2026'
+                    ? 'bg-orange-500 text-white'
+                    : 'bg-[#2a2f3a] text-gray-300 hover:bg-[#374151]'
+                }`}
+              >
+                Q1 2026
+              </button>
+              <button
+                onClick={() => setSelectedChannelPeriod('q2_2026')}
+                className={`px-4 py-2 rounded-lg font-medium transition-all ${
+                  selectedChannelPeriod === 'q2_2026'
+                    ? 'bg-orange-500 text-white'
+                    : 'bg-[#2a2f3a] text-gray-300 hover:bg-[#374151]'
+                }`}
+              >
+                Q2 2026
+              </button>
+              <button
+                onClick={() => setSelectedChannelPeriod('q3_2026')}
+                className={`px-4 py-2 rounded-lg font-medium transition-all ${
+                  selectedChannelPeriod === 'q3_2026'
+                    ? 'bg-orange-500 text-white'
+                    : 'bg-[#2a2f3a] text-gray-300 hover:bg-[#374151]'
+                }`}
+              >
+                Q3 2026
+              </button>
+              <button
+                onClick={() => setSelectedChannelPeriod('q4_2026')}
+                className={`px-4 py-2 rounded-lg font-medium transition-all ${
+                  selectedChannelPeriod === 'q4_2026'
+                    ? 'bg-orange-500 text-white'
+                    : 'bg-[#2a2f3a] text-gray-300 hover:bg-[#374151]'
+                }`}
+              >
+                Q4 2026
+              </button>
+              <button
+                onClick={() => setSelectedChannelPeriod('all_time')}
+                className={`px-4 py-2 rounded-lg font-medium transition-all ${
+                  selectedChannelPeriod === 'all_time'
+                    ? 'bg-orange-500 text-white'
+                    : 'bg-[#2a2f3a] text-gray-300 hover:bg-[#374151]'
+                }`}
+              >
+                All Time
+              </button>
+            </div>
+            <p className="text-gray-400 text-sm mt-2 text-center md:text-left">
+              Viewing: {getPeriodLabel(selectedChannelPeriod)}
+            </p>
+          </div>
+
+          {/* Period Summary */}
+          <div className="mb-6 bg-gradient-to-br from-orange-500/20 to-orange-600/20 rounded-xl p-4 md:p-6 border-2 border-orange-500/50">
+            <h4 className="text-white font-bold text-base md:text-lg mb-3 md:mb-4 flex items-center gap-2">
+              📊 Period Summary - {getPeriodLabel(selectedChannelPeriod)}
+            </h4>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+              <div>
+                <p className="text-gray-400 text-xs mb-1">Total Bookings</p>
+                <p className="text-white text-sm md:text-xl font-bold">
+                  {channelStats.airbnb.count + channelStats.bookingCom.count + channelStats.direct.count + channelStats.other.count}
+                </p>
+              </div>
+              <div>
+                <p className="text-gray-400 text-xs mb-1">Total Revenue</p>
+                <p className="text-white text-sm md:text-xl font-bold break-all">
+                  {formatCurrency(
+                    channelStats.airbnb.revenue +
+                    channelStats.bookingCom.revenue +
+                    channelStats.direct.revenue +
+                    channelStats.other.revenue
+                  )}
+                </p>
+              </div>
+              <div>
+                <p className="text-gray-400 text-xs mb-1">Active Channels</p>
+                <p className="text-white text-sm md:text-xl font-bold">{connectedChannels}/4</p>
+              </div>
+              <div>
+                <p className="text-gray-400 text-xs mb-1">Avg per Booking</p>
+                <p className="text-white text-sm md:text-xl font-bold break-all">
+                  {(() => {
+                    const totalBookings = channelStats.airbnb.count + channelStats.bookingCom.count + channelStats.direct.count + channelStats.other.count;
+                    const totalRevenue = channelStats.airbnb.revenue + channelStats.bookingCom.revenue + channelStats.direct.revenue + channelStats.other.revenue;
+                    return totalBookings > 0 ? formatCurrency(totalRevenue / totalBookings) : '$0';
+                  })()}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
           <div className="bg-gradient-to-br from-pink-500/10 to-pink-600/10 rounded-xl p-5 border-2 border-pink-500/30">
             <div className="flex items-center justify-between mb-3">
               <img src="https://upload.wikimedia.org/wikipedia/commons/6/69/Airbnb_Logo_B%C3%A9lo.svg" alt="Airbnb" className="h-6" />
               <span className={`px-3 py-1 ${channelStats.airbnb.count > 0 ? 'bg-green-500' : 'bg-gray-500'} text-white text-xs font-bold rounded-full`}>
-                {channelStats.airbnb.count > 0 ? 'Connected' : 'Not Connected'}
+                {channelStats.airbnb.count > 0 ? '●' : '○'}
               </span>
             </div>
             <p className="text-gray-300 text-sm">
-              {channelStats.airbnb.count} bookings • {channelStats.airbnb.revenue >= 1000000
-                ? `Rp ${Math.round(channelStats.airbnb.revenue).toLocaleString('id-ID')}`
-                : `$${Math.round(channelStats.airbnb.revenue).toLocaleString('en-US')}`}
+              {channelStats.airbnb.count} bookings • {formatCurrency(channelStats.airbnb.revenue)}
             </p>
           </div>
 
@@ -1497,13 +1928,11 @@ const Autopilot = ({ onBack }) => {
             <div className="flex items-center justify-between mb-3">
               <span className="text-blue-400 font-bold text-lg">Booking.com</span>
               <span className={`px-3 py-1 ${channelStats.bookingCom.count > 0 ? 'bg-green-500' : 'bg-gray-500'} text-white text-xs font-bold rounded-full`}>
-                {channelStats.bookingCom.count > 0 ? 'Connected' : 'Not Connected'}
+                {channelStats.bookingCom.count > 0 ? '●' : '○'}
               </span>
             </div>
             <p className="text-gray-300 text-sm">
-              {channelStats.bookingCom.count} bookings • {channelStats.bookingCom.revenue >= 1000000
-                ? `Rp ${Math.round(channelStats.bookingCom.revenue).toLocaleString('id-ID')}`
-                : `$${Math.round(channelStats.bookingCom.revenue).toLocaleString('en-US')}`}
+              {channelStats.bookingCom.count} bookings • {formatCurrency(channelStats.bookingCom.revenue)}
             </p>
           </div>
 
@@ -1511,13 +1940,26 @@ const Autopilot = ({ onBack }) => {
             <div className="flex items-center justify-between mb-3">
               <span className="text-orange-400 font-bold text-lg">Direct (Gita)</span>
               <span className={`px-3 py-1 ${channelStats.direct.count > 0 ? 'bg-green-500' : 'bg-gray-500'} text-white text-xs font-bold rounded-full`}>
-                {channelStats.direct.count > 0 ? 'Active' : 'Inactive'}
+                {channelStats.direct.count > 0 ? '●' : '○'}
               </span>
             </div>
             <p className="text-gray-300 text-sm">
-              {channelStats.direct.count} bookings • {channelStats.direct.revenue >= 1000000
-                ? `Rp ${Math.round(channelStats.direct.revenue).toLocaleString('id-ID')}`
-                : `$${Math.round(channelStats.direct.revenue).toLocaleString('en-US')}`}
+              {channelStats.direct.count} bookings • {formatCurrency(channelStats.direct.revenue)}
+            </p>
+          </div>
+
+          <div className="bg-gradient-to-br from-purple-500/10 to-purple-600/10 rounded-xl p-5 border-2 border-purple-500/30">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-purple-400 font-bold text-lg">Other Sources</span>
+              <span className={`px-3 py-1 ${channelStats.other.count > 0 ? 'bg-green-500' : 'bg-gray-500'} text-white text-xs font-bold rounded-full`}>
+                {channelStats.other.count > 0 ? '●' : '○'}
+              </span>
+            </div>
+            <p className="text-gray-300 text-sm">
+              {channelStats.other.count} bookings • {formatCurrency(channelStats.other.revenue)}
+            </p>
+            <p className="text-gray-500 text-xs mt-1">
+              Bali Buntu, Ibu Santi, Domus, etc.
             </p>
           </div>
         </div>
@@ -1533,6 +1975,7 @@ const Autopilot = ({ onBack }) => {
       </div>
     </div>
   );
+};
 
   const renderBookingsSection = () => (
     <div className="space-y-6">
@@ -1691,21 +2134,19 @@ const Autopilot = ({ onBack }) => {
 
   const renderCommunicationSection = () => (
     <div className="space-y-6">
-      <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-3xl p-4 md:p-6 shadow-2xl border-2 border-[#d85a2a]/20">
-        <div className="flex flex-col md:flex-row items-center justify-between mb-4 gap-3">
+      <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-3xl p-6 shadow-2xl border-2 border-[#d85a2a]/20">
+        <div className="flex items-center justify-between mb-4">
           <button
             onClick={() => setActiveSection('menu')}
-            className="self-start md:self-auto p-2 bg-[#1f2937]/95 backdrop-blur-sm rounded-xl hover:bg-orange-500 transition-all border border-[#d85a2a]/20"
+            className="p-2 bg-[#1f2937]/95 backdrop-blur-sm rounded-xl hover:bg-orange-500 transition-all border border-[#d85a2a]/20"
           >
             <ArrowLeft className="w-5 h-5 text-[#FF8C42]" />
           </button>
-          <div className="text-center flex-1">
-            <h3 className="text-xl md:text-2xl font-black text-[#FF8C42] flex items-center justify-center gap-2">
-              <Mail className="w-5 h-5 md:w-6 md:h-6" />
-              Guest Communication
-            </h3>
-          </div>
-          <div className="w-12 hidden md:block"></div>
+          <h3 className="text-2xl font-black text-[#FF8C42] flex items-center gap-2">
+            <Mail className="w-6 h-6" />
+            Guest Communication
+          </h3>
+          <div className="w-12"></div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
@@ -1761,9 +2202,9 @@ const Autopilot = ({ onBack }) => {
           </div>
 
           <div className="bg-[#2a2f3a] rounded-lg p-4 mb-4">
-            <p className="text-gray-400 text-sm mb-2">Public URL:</p>
-            <div className="flex items-center gap-2">
-              <code className="flex-1 bg-black/40 px-4 py-2 rounded text-orange-400 font-mono text-sm">
+            <p className="text-gray-400 text-sm mb-3 text-center md:text-left">🌐 Public URL:</p>
+            <div className="flex flex-col md:flex-row items-stretch md:items-center gap-3">
+              <code className="flex-1 bg-black/40 px-4 py-3 rounded text-orange-400 font-mono text-sm text-center md:text-left break-all">
                 https://nismarauma.lovable.app/
               </code>
               <button
@@ -1771,9 +2212,9 @@ const Autopilot = ({ onBack }) => {
                   navigator.clipboard.writeText('https://nismarauma.lovable.app/');
                   alert('✅ URL copied to clipboard!');
                 }}
-                className="px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg font-medium transition-all"
+                className="w-full md:w-auto px-6 py-3 bg-orange-500 hover:bg-orange-600 text-white rounded-lg font-medium transition-all"
               >
-                Copy
+                📋 Copy URL
               </button>
             </div>
           </div>
@@ -1806,38 +2247,26 @@ const Autopilot = ({ onBack }) => {
             </button>
           </div>
         </div>
-
-        <div className="bg-[#2a2f3a] rounded-xl p-6 border-2 border-gray-700">
-          <h4 className="text-white font-bold text-lg mb-4">Website Preview</h4>
-          <div className="aspect-video bg-gray-800 rounded-lg flex items-center justify-center">
-            <div className="text-center">
-              <Globe className="w-16 h-16 text-gray-600 mx-auto mb-3" />
-              <p className="text-gray-500">Preview will load here</p>
-            </div>
-          </div>
-        </div>
       </div>
     </div>
   );
 
   const renderTasksSection = () => (
     <div className="space-y-6">
-      <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-3xl p-4 md:p-6 shadow-2xl border-2 border-[#d85a2a]/20">
-        <div className="flex flex-col md:flex-row items-center justify-between mb-4 gap-3">
+      <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-3xl p-6 shadow-2xl border-2 border-[#d85a2a]/20">
+        <div className="flex items-center justify-between mb-4">
           <button
             onClick={() => setActiveSection('menu')}
-            className="self-start md:self-auto p-2 bg-[#1f2937]/95 backdrop-blur-sm rounded-xl hover:bg-orange-500 transition-all border border-[#d85a2a]/20"
+            className="p-2 bg-[#1f2937]/95 backdrop-blur-sm rounded-xl hover:bg-orange-500 transition-all border border-[#d85a2a]/20"
           >
             <ArrowLeft className="w-5 h-5 text-[#FF8C42]" />
           </button>
-          <div className="text-center flex-1">
-            <h3 className="text-xl md:text-2xl font-black text-[#FF8C42] flex items-center justify-center gap-2">
-              <Wrench className="w-5 h-5 md:w-6 md:h-6" />
-              Maintenance & Tasks
-            </h3>
-          </div>
+          <h3 className="text-2xl font-black text-[#FF8C42] flex items-center gap-2">
+            <Wrench className="w-6 h-6" />
+            Maintenance & Tasks
+          </h3>
           <div className="flex gap-2">
-            <button className="px-3 md:px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg text-sm md:text-base font-bold transition-all flex items-center gap-2">
+            <button className="px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg font-bold transition-all flex items-center gap-2">
               <Plus className="w-4 h-4" />
               New Task
             </button>
@@ -1845,19 +2274,19 @@ const Autopilot = ({ onBack }) => {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-          <div className="bg-gradient-to-br from-yellow-500/10 to-yellow-600/10 rounded-xl p-4 md:p-5 border-2 border-yellow-500/30">
-            <p className="text-yellow-300 text-xs md:text-sm font-medium mb-2">Open</p>
-            <p className="text-2xl md:text-3xl font-black text-white">0</p>
+          <div className="bg-gradient-to-br from-yellow-500/10 to-yellow-600/10 rounded-xl p-5 border-2 border-yellow-500/30">
+            <p className="text-yellow-300 text-sm font-medium mb-2">Open</p>
+            <p className="text-3xl font-black text-white">0</p>
           </div>
 
-          <div className="bg-gradient-to-br from-blue-500/10 to-blue-600/10 rounded-xl p-4 md:p-5 border-2 border-blue-500/30">
-            <p className="text-blue-300 text-xs md:text-sm font-medium mb-2">In Progress</p>
-            <p className="text-2xl md:text-3xl font-black text-white">0</p>
+          <div className="bg-gradient-to-br from-blue-500/10 to-blue-600/10 rounded-xl p-5 border-2 border-blue-500/30">
+            <p className="text-blue-300 text-sm font-medium mb-2">In Progress</p>
+            <p className="text-3xl font-black text-white">0</p>
           </div>
 
-          <div className="bg-gradient-to-br from-green-500/10 to-green-600/10 rounded-xl p-4 md:p-5 border-2 border-green-500/30">
-            <p className="text-green-300 text-xs md:text-sm font-medium mb-2">Done Today</p>
-            <p className="text-2xl md:text-3xl font-black text-white">0</p>
+          <div className="bg-gradient-to-br from-green-500/10 to-green-600/10 rounded-xl p-5 border-2 border-green-500/30">
+            <p className="text-green-300 text-sm font-medium mb-2">Done Today</p>
+            <p className="text-3xl font-black text-white">0</p>
           </div>
         </div>
 
@@ -1924,11 +2353,12 @@ const Autopilot = ({ onBack }) => {
 
     const handleGenerate = async () => {
       setIsGeneratingReport(true);
+      console.log('🔄 Generating report with latest version...');
 
       try {
         // Import services
         const { generateBusinessReport } = await import('../../services/businessReportService');
-        const { generateReportHTML } = await import('../../services/generateReportHTML');
+        // generateReportHTML is now imported statically at the top
 
         // Get owner data
         const ownerData = owners.find(o => o.id === selectedProperty);
@@ -1936,14 +2366,18 @@ const Autopilot = ({ onBack }) => {
           ? '1f32d384-4018-46a9-a6f9-058217e6924a'
           : 'c24393db-d318-4d75-8bbf-0fa240b9c1db';
 
-        console.log(`📊 Generating report for ${ownerData.name}...`);
+        // Calculate date range for selected period
+        const { startDate, endDate } = getDateRange(selectedPeriod);
+        console.log(`📊 Generating report for ${ownerData.name} (${startDate} to ${endDate})...`);
 
         // Generate report data (calls Supabase + OSIRIS)
         const reportData = await generateBusinessReport(
           ownerId,
           ownerData.name,
           ownerData.property,
-          ownerData.currency
+          ownerData.currency,
+          startDate,
+          endDate
         );
 
         if (reportData) {
@@ -1958,13 +2392,10 @@ const Autopilot = ({ onBack }) => {
             reportData.osirisAnalysis
           );
 
-          // Display in iframe using srcdoc and save to localStorage
-          const iframe = document.getElementById('business-report-frame');
-          if (iframe) {
-            iframe.srcdoc = reportHTML;
-            localStorage.setItem(`business-report-${selectedProperty}`, reportHTML);
-            console.log('✅ Report displayed and saved to localStorage');
-          }
+          // Display in iframe and save to localStorage
+          setReportHTML(reportHTML);
+          localStorage.setItem(`business-report-${selectedProperty}-${selectedPeriod}`, reportHTML);
+          console.log(`✅ Report generated and saved for ${selectedProperty} - ${selectedPeriod}`);
         } else {
           alert('❌ Error generating report. No data found.');
         }
@@ -1980,72 +2411,95 @@ const Autopilot = ({ onBack }) => {
       <div className="space-y-6">
         {/* Header with Owner Selector and Action Buttons */}
         <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-3xl p-6 shadow-2xl border-2 border-[#d85a2a]/20">
-          {/* Header Row */}
-          <div className="flex items-center justify-between mb-6">
+          {/* Header Row with Back Button and Title */}
+          <div className="flex items-center mb-6 gap-4">
             <button
               onClick={() => setActiveSection('menu')}
               className="p-2 bg-[#1f2937]/95 backdrop-blur-sm rounded-xl hover:bg-orange-500 transition-all border border-[#d85a2a]/20"
             >
               <ArrowLeft className="w-5 h-5 text-[#FF8C42]" />
             </button>
-            <h3 className="text-2xl font-black text-[#FF8C42] flex items-center gap-2">
-              <FileText className="w-6 h-6" />
-              Business Reports - {currentOwner.property}
+            <h3 className="text-xl md:text-2xl font-black text-[#FF8C42] flex items-center gap-2 flex-1">
+              <FileText className="w-5 h-5 md:w-6 md:h-6" />
+              <span className="hidden md:inline">Business Reports - {currentOwner.property}</span>
+              <span className="md:hidden">Reports</span>
             </h3>
-            <div className="w-12"></div>
+
+            {/* Action Buttons - Top Right Corner, Stacked Vertically */}
+            <div className="flex flex-col gap-2 ml-auto">
+              <button
+                onClick={handleGenerate}
+                disabled={isGeneratingReport}
+                className={`flex items-center justify-center gap-2 px-4 py-2 text-white rounded-lg font-semibold transition-all shadow-lg text-sm ${
+                  isGeneratingReport
+                    ? 'bg-purple-400 cursor-not-allowed'
+                    : 'bg-purple-500 hover:bg-purple-600'
+                }`}
+              >
+                {isGeneratingReport ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    <span>Generating...</span>
+                  </>
+                ) : (
+                  <>
+                    <Zap className="w-4 h-4" />
+                    <span>Generate</span>
+                  </>
+                )}
+              </button>
+              <button
+                onClick={handlePrint}
+                className="flex items-center justify-center gap-2 px-4 py-2 bg-orange-500 text-white rounded-lg font-semibold hover:bg-orange-600 transition-all shadow-lg text-sm"
+              >
+                <Printer className="w-4 h-4" />
+                <span>Print</span>
+              </button>
+            </div>
           </div>
 
-          {/* Owner Selector and Action Buttons - Single Line */}
-          <div className="flex items-center justify-center gap-6">
-            <label className="text-gray-300 text-sm font-semibold">Select Owner:</label>
-            <select
-              value={selectedProperty}
-              onChange={(e) => setSelectedProperty(e.target.value)}
-              className="bg-[#374151] text-white px-4 py-2 rounded-lg border-2 border-orange-500/30 focus:border-orange-500 focus:outline-none hover:border-orange-500/50 transition-all cursor-pointer"
-            >
-              {owners.map(owner => (
-                <option key={owner.id} value={owner.id}>
-                  {owner.name} - {owner.property} ({owner.villas} {owner.villas === 1 ? 'villa' : 'villas'})
-                </option>
-              ))}
-            </select>
-            <button
-              onClick={handleGenerate}
-              disabled={isGeneratingReport}
-              className={`flex items-center justify-center gap-2 px-8 py-3 text-white rounded-xl font-semibold transition-all shadow-lg min-w-[140px] ${
-                isGeneratingReport
-                  ? 'bg-purple-400 cursor-not-allowed'
-                  : 'bg-purple-500 hover:bg-purple-600'
-              }`}
-            >
-              {isGeneratingReport ? (
-                <>
-                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                  Generating...
-                </>
-              ) : (
-                <>
-                  <Zap className="w-5 h-5" />
-                  Generate
-                </>
-              )}
-            </button>
-            <button
-              onClick={handlePrint}
-              className="flex items-center justify-center gap-2 px-8 py-3 bg-orange-500 text-white rounded-xl font-semibold hover:bg-orange-600 transition-all shadow-lg min-w-[140px]"
-            >
-              <Printer className="w-5 h-5" />
-              Print
-            </button>
+          {/* Selectors Row - Owner and Period - Full Width on Mobile */}
+          <div className="flex flex-col gap-4">
+            {/* Select Owner */}
+            <div className="flex flex-col gap-2">
+              <label className="text-gray-300 text-xs font-semibold uppercase">Owner:</label>
+              <select
+                value={selectedProperty}
+                onChange={(e) => setSelectedProperty(e.target.value)}
+                className="bg-[#374151] text-white px-4 py-2 rounded-lg border-2 border-orange-500/30 focus:border-orange-500 focus:outline-none hover:border-orange-500/50 transition-all cursor-pointer w-full"
+              >
+                {owners.map(owner => (
+                  <option key={owner.id} value={owner.id}>
+                    {owner.name} - {owner.property}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Select Period */}
+            <div className="flex flex-col gap-2">
+              <label className="text-gray-300 text-xs font-semibold uppercase">Period:</label>
+              <select
+                value={selectedPeriod}
+                onChange={(e) => setSelectedPeriod(e.target.value)}
+                className="bg-[#374151] text-white px-4 py-2 rounded-lg border-2 border-purple-500/30 focus:border-purple-500 focus:outline-none hover:border-purple-500/50 transition-all cursor-pointer w-full"
+              >
+                <option value="this_month">This Month</option>
+                <option value="last_month">Last Month</option>
+                <option value="this_quarter">This Quarter</option>
+                <option value="last_quarter">Last Quarter</option>
+                <option value="this_year">This Year (2026)</option>
+                <option value="last_year">Last Year (2025)</option>
+              </select>
+            </div>
           </div>
         </div>
 
         {/* Report Display */}
         <div className="bg-white rounded-3xl shadow-2xl border-2 border-gray-200" style={{ height: '1400px', overflowY: 'auto', overflowX: 'hidden' }}>
           <iframe
-            key={selectedProperty}
+            srcDoc={reportHTML}
             id="business-report-frame"
-            src={`/business-reports/${currentFile}`}
             style={{
               width: '100%',
               height: '3500px',
@@ -2626,24 +3080,22 @@ const Autopilot = ({ onBack }) => {
   const renderDecisionsSection = () => (
     <div className="space-y-6">
       {/* OWNER DECISIONS */}
-      <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-3xl p-4 md:p-6 shadow-2xl border-2 border-[#d85a2a]/20">
-        <div className="flex flex-col md:flex-row items-center justify-between mb-4 gap-3">
+      <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-3xl p-6 shadow-2xl border-2 border-[#d85a2a]/20">
+        <div className="flex items-center justify-between mb-4">
           <button
             onClick={() => setActiveSection('menu')}
-            className="self-start md:self-auto p-2 bg-[#1f2937]/95 backdrop-blur-sm rounded-xl hover:bg-orange-500 transition-all border border-[#d85a2a]/20"
+            className="p-2 bg-[#1f2937]/95 backdrop-blur-sm rounded-xl hover:bg-orange-500 transition-all border border-[#d85a2a]/20"
           >
             <ArrowLeft className="w-5 h-5 text-[#FF8C42]" />
           </button>
-          <div className="text-center flex-1">
-            <h3 className="text-xl md:text-2xl font-black text-[#FF8C42] flex items-center justify-center gap-2">
-              <CheckCircle className="w-5 h-5 md:w-6 md:h-6 text-[#FF8C42]" />
-              Owner Decisions ({actionsNeedingApproval.length})
-            </h3>
-          </div>
+          <h3 className="text-2xl font-black text-[#FF8C42] flex items-center gap-2">
+            <CheckCircle className="w-6 h-6 text-[#FF8C42]" />
+            Owner Decisions ({actionsNeedingApproval.length})
+          </h3>
           <div className="flex gap-2">
             <button
               onClick={() => setShowDBVisualization(!showDBVisualization)}
-              className="px-3 md:px-4 py-2 bg-orange-500/20 hover:bg-orange-500/30 text-orange-400 rounded-lg text-sm md:text-base font-medium transition-all flex items-center gap-2 border border-orange-500/30"
+              className="px-4 py-2 bg-orange-500/20 hover:bg-orange-500/30 text-orange-400 rounded-lg font-medium transition-all flex items-center gap-2 border border-orange-500/30"
             >
             <Eye className="w-4 h-4" />
             {showDBVisualization ? 'Hide' : 'Show'} DB
@@ -2676,7 +3128,7 @@ const Autopilot = ({ onBack }) => {
               return (
                 <div
                   key={action.id}
-                  className={`bg-[#2a2f3a] rounded-lg p-4 md:p-5 border-2 ${
+                  className={`bg-[#2a2f3a] rounded-lg p-5 border-2 ${
                     action.priority === 'urgent'
                       ? 'border-red-500/50'
                       : action.priority === 'high'
@@ -2686,57 +3138,57 @@ const Autopilot = ({ onBack }) => {
                 >
                   <div className="flex items-start justify-between mb-3">
                     <div className="flex-1">
-                      <div className="flex flex-wrap items-center gap-2 mb-3">
+                      <div className="flex items-center gap-2 mb-3">
                         <span
-                          className={`px-2 md:px-3 py-1 rounded-full text-xs font-bold uppercase ${
+                          className={`px-3 py-1 rounded-full text-xs font-bold uppercase ${
                             priorityColors[action.priority] || priorityColors.normal
                           } border-2`}
                         >
                           🔥 {action.priority}
                         </span>
                         <span
-                          className={`px-2 md:px-3 py-1 rounded-full text-xs font-medium ${
+                          className={`px-3 py-1 rounded-full text-xs font-medium ${
                             typeColors[action.type] || 'bg-gray-100 text-gray-700'
                           }`}
                         >
                           {action.type.replace(/_/g, ' ')}
                         </span>
                       </div>
-                      <h4 className="text-white font-bold text-lg md:text-xl mb-2">{action.title}</h4>
-                      <div className="flex flex-wrap items-center gap-2 md:gap-3 mb-3">
-                        <p className="text-orange-400 font-medium text-base md:text-lg">👤 {action.guest}</p>
+                      <h4 className="text-white font-bold text-xl mb-2">{action.title}</h4>
+                      <div className="flex items-center gap-3 mb-3">
+                        <p className="text-orange-400 font-medium text-lg">👤 {action.guest}</p>
                         {action.guestPhone && (
-                          <p className="text-gray-500 text-xs md:text-sm">📱 {action.guestPhone}</p>
+                          <p className="text-gray-500 text-sm">📱 {action.guestPhone}</p>
                         )}
                       </div>
                       {action.amount > 0 && (
-                        <p className="text-green-400 font-bold text-base md:text-lg mb-2">
+                        <p className="text-green-400 font-bold text-lg mb-2">
                           💰 ${action.amount.toLocaleString()}
                         </p>
                       )}
-                      <p className="text-gray-300 text-sm md:text-base mb-2 leading-relaxed">{action.action}</p>
+                      <p className="text-gray-300 mb-2 leading-relaxed">{action.action}</p>
                       <p className="text-gray-500 text-xs">
                         ⏰ {new Date(action.createdAt).toLocaleString()}
                       </p>
                     </div>
                   </div>
-                  <div className="flex flex-wrap gap-2 md:gap-3 pt-4 border-t-2 border-gray-700">
+                  <div className="flex gap-3 pt-4 border-t-2 border-gray-700">
                     <button
                       onClick={() => handleApprove(action.id)}
-                      className="flex-1 min-w-[120px] flex items-center justify-center gap-2 px-3 md:px-4 py-2 md:py-3 bg-green-500 hover:bg-green-600 text-white rounded-lg text-sm md:text-base font-bold transition-all shadow-lg hover:shadow-xl transform hover:scale-105"
+                      className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-green-500 hover:bg-green-600 text-white rounded-lg font-bold transition-all shadow-lg hover:shadow-xl transform hover:scale-105"
                     >
-                      <ThumbsUp className="w-4 h-4 md:w-5 md:h-5" />
+                      <ThumbsUp className="w-5 h-5" />
                       Approve
                     </button>
                     <button
                       onClick={() => handleReject(action.id)}
-                      className="flex-1 min-w-[120px] flex items-center justify-center gap-2 px-3 md:px-4 py-2 md:py-3 bg-red-500 hover:bg-red-600 text-white rounded-lg text-sm md:text-base font-bold transition-all shadow-lg hover:shadow-xl transform hover:scale-105"
+                      className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-red-500 hover:bg-red-600 text-white rounded-lg font-bold transition-all shadow-lg hover:shadow-xl transform hover:scale-105"
                     >
-                      <ThumbsDown className="w-4 h-4 md:w-5 md:h-5" />
+                      <ThumbsDown className="w-5 h-5" />
                       Reject
                     </button>
-                    <button className="px-3 md:px-4 py-2 md:py-3 bg-gray-600 hover:bg-gray-700 text-white rounded-lg font-medium transition-all">
-                      <Eye className="w-4 h-4 md:w-5 md:h-5" />
+                    <button className="px-4 py-3 bg-gray-600 hover:bg-gray-700 text-white rounded-lg font-medium transition-all">
+                      <Eye className="w-5 h-5" />
                     </button>
                   </div>
                 </div>
