@@ -1,0 +1,100 @@
+╔══════════════════════════════════════════════════════════════════╗
+║                                                                  ║
+║        🚨 ACCIÓN REQUERIDA - EJECUTAR MIGRACIÓN SQL 🚨          ║
+║                                                                  ║
+║                 ⏱️  Tiempo estimado: 2 minutos                   ║
+║                                                                  ║
+╚══════════════════════════════════════════════════════════════════╝
+
+
+┌──────────────────────────────────────────────────────────────────┐
+│                                                                  │
+│  PASO 1: ABRIR SQL EDITOR                                       │
+│  ═══════════════════════                                         │
+│                                                                  │
+│  Click aquí:                                                     │
+│  👉 https://supabase.com/dashboard/project/jjpscimtxrudtepzwhag/sql/new
+│                                                                  │
+└──────────────────────────────────────────────────────────────────┘
+
+
+┌──────────────────────────────────────────────────────────────────┐
+│                                                                  │
+│  PASO 2: ABRIR ARCHIVO SQL                                      │
+│  ═════════════════════════                                       │
+│                                                                  │
+│  Archivo:                                                        │
+│  📁 MYHOST Bizmate_Documentos_Estrategicos 2025_2026/           │
+│     MIGRATION_001_MULTIVILLA_REPORTS.sql                        │
+│                                                                  │
+│  Seleccionar TODO (Ctrl+A) → Copiar (Ctrl+C)                    │
+│                                                                  │
+└──────────────────────────────────────────────────────────────────┘
+
+
+┌──────────────────────────────────────────────────────────────────┐
+│                                                                  │
+│  PASO 3: PEGAR EN SUPABASE                                      │
+│  ═════════════════════════                                       │
+│                                                                  │
+│  1. Borrar cualquier contenido del SQL Editor                   │
+│  2. Pegar (Ctrl+V) - Deberías ver 487 líneas                    │
+│  3. Click botón "Run" (esquina inferior derecha)                │
+│                                                                  │
+└──────────────────────────────────────────────────────────────────┘
+
+
+┌──────────────────────────────────────────────────────────────────┐
+│                                                                  │
+│  PASO 4: VERIFICAR ÉXITO                                        │
+│  ══════════════════════                                          │
+│                                                                  │
+│  Busca este mensaje en los resultados:                          │
+│                                                                  │
+│  ✅ "MIGRATION 001 COMPLETED SUCCESSFULLY!"                     │
+│                                                                  │
+│  También deberías ver:                                           │
+│  ✅ SUCCESS: Todas las columnas se añadieron...                 │
+│  ✅ SUCCESS: Tabla generated_reports creada...                  │
+│  ✅ SUCCESS: Todas las funciones RPC creadas...                 │
+│                                                                  │
+└──────────────────────────────────────────────────────────────────┘
+
+
+┌──────────────────────────────────────────────────────────────────┐
+│                                                                  │
+│  PASO 5: PROBAR EN MYHOST BIZMATE                               │
+│  ════════════════════════════════                                │
+│                                                                  │
+│  1. Abrir: http://localhost:5173                                │
+│  2. Ir a: AI Systems → OSIRIS                                   │
+│  3. Scroll down a "Business Reports"                            │
+│  4. DEBERÍAS VER: Dropdown con tus 14 propiedades 🎉            │
+│                                                                  │
+│  Si ves el dropdown → ¡MIGRACIÓN EXITOSA! ✅                     │
+│                                                                  │
+└──────────────────────────────────────────────────────────────────┘
+
+
+═══════════════════════════════════════════════════════════════════
+
+📞 DESPUÉS DE EJECUTAR:
+
+   Actualízame aquí para que yo verifique todo está OK
+   y planifiquemos el trabajo de mañana (Día 2).
+
+═══════════════════════════════════════════════════════════════════
+
+
+📚 DOCUMENTACIÓN ADICIONAL:
+
+   Si necesitas más detalles, revisa:
+   - INSTRUCCIONES_EJECUTAR_MIGRACION.md (paso a paso detallado)
+   - RESUMEN_SESION_01_FEBRERO_2026.md (resumen completo del día)
+   - FRONTEND_MULTIVILLA_REPORTS_CHANGES.md (cambios técnicos)
+
+
+═══════════════════════════════════════════════════════════════════
+
+Creado: 1 Febrero 2026
+Estado: ⏸️ ESPERANDO EJECUCIÓN DE MIGRACIÓN (último paso del Día 1)

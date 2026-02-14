@@ -1,0 +1,56 @@
+[RESUMEN OFICIAL — ARQUITECTURA HÍBRIDA + DÓNDE VA EL AI ASSISTANT]
+Proyecto: MY HOST BizMate (Agentes IA + Supabase + n8n + App)
+
+OBJETIVO (QUÉ QUEREMOS LOGRAR)
+Que el cliente pueda:
+1) Ver que existen los agentes (OSIRIS, LUMINA, IRIS, BANYU, KORA, AURA)
+2) Preguntarles cosas reales sobre su negocio (reservas, pagos, leads, mensajes…)
+3) Ver datos en formato útil (KPIs + tablas/listas filtradas)
+4) Ejecutar acciones reales (WhatsApp, crear booking, follow-ups, marketing drafts, etc.)
+Todo con seguridad, auditoría y multi-tenant (cada cliente solo ve lo suyo).
+
+ARQUITECTURA HÍBRIDA (REGLA SIMPLE)
+- ClaudeCode (App) = INTERFAZ: muestra pantallas y envía/recibe peticiones. No “piensa”.
+- Claude AI (n8n) = CEREBRO + OPERADOR: interpreta preguntas, consulta datos, ejecuta acciones, registra logs.
+- Supabase = DATOS + SEGURIDAD (RLS): fuente de verdad y control de acceso.
+
+FLUJO DE FUNCIONAMIENTO (PASO A PASO)
+1) El usuario abre la app.
+2) El usuario abre el AI Assistant y escribe una pregunta (o pide una acción).
+3) La app (ClaudeCode) manda UNA petición a n8n (Claude AI) con:
+   - tenant_id, user_id, agent_id (o contexto), message, session_id
+4) n8n decide el tipo de petición:
+   A) INSIGHTS/KPI → llama RPCs de Supabase (seguro y rápido)
+   B) LISTAS/TABLAS → hace selects controlados con RLS (solo datos permitidos)
+   C) ACCIONES → ejecuta workflows (WhatsApp/booking/etc.) y guarda logs
+5) n8n devuelve a la app una respuesta estructurada:
+   - texto (reply)
+   - opcional: tabla (rows/columns)
+   - opcional: acciones sugeridas (botones con confirmación)
+6) La app renderiza todo y, si el usuario pulsa un botón, vuelve a n8n para ejecutar.
+
+DÓNDE VA EL AI ASSISTANT (MUY CLARO)
+AI Assistant debe ser un PUNTO ÚNICO y VISIBLE en el menú principal de la izquierda:
+- En el menú, añadir una nueva opción debajo de “Market Intelligence”:
+  ✅ “AI Systems” (o “AI Assistant”, pero se recomienda “AI Systems”)
+- Ese menú abre una página principal con:
+  1) Chat único (aquí se “interroga” a la IA)
+  2) Selector de agente / contexto (OSIRIS, LUMINA, IRIS, etc.)
+  3) Respuestas + tablas + botones de acción
+
+CÓMO ENCAJA CON EL DRAWER DERECHO (AI Agents)
+- El drawer derecho “AI Agents” se mantiene como:
+  - visor/selector de agentes + estado
+  - botón “Ask/Chat”
+- Al pulsar “Ask/Chat” en un agente:
+  → abre “AI Systems” con ese agente preseleccionado
+(Así hay un solo chat, pero con distintos agentes/contextos.)
+
+POR QUÉ ASÍ (BENEFICIO CLAVE)
+- No duplicamos chats por cada módulo (evita caos).
+- Seguridad: el frontend no hace “DB libre”; n8n controla queries/acciones.
+- Auditoría: todo queda registrado (qué se consultó y qué se ejecutó).
+- Escalable: añadir nuevos tools/workflows sin reescribir la app.
+
+FIN DEL PASO 1
+Este resumen es la definición oficial: arquitectura híbrida + ubicación del AI Assistant (AI Systems en menú izquierdo) + relación con el drawer de agentes.

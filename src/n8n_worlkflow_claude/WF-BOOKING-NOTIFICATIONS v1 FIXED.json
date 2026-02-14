@@ -1,0 +1,259 @@
+{
+  "name": "WF-BOOKING-NOTIFICATIONS v1 FIXED",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "booking-notifications-v3",
+        "options": {}
+      },
+      "id": "webhook-booking",
+      "name": "Webhook - New Booking",
+      "type": "n8n-nodes-base.webhook",
+      "position": [
+        0,
+        0
+      ],
+      "webhookId": "booking-notifications-v3",
+      "typeVersion": 2.1
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "=={\n  \"booking_id\": \"{{ $json.body?.id || $json.id || 'N/A' }}\",\n  \"guest_name\": \"{{ $json.body?.guest_name || $json.guest_name || 'Guest' }}\",\n  \"guest_email\": \"{{ $json.body?.guest_email || $json.guest_email || '' }}\",\n\"guest_phone\": \"{{ ($json.body?.guest_phone || $json.guest_phone || '').toString().slice(0, 11) }}\",\n  \"check_in\": \"{{ $json.body?.check_in || $json.check_in || 'N/A' }}\",\n  \"check_out\": \"{{ $json.body?.check_out || $json.check_out || 'N/A' }}\",\n  \"guests\": {{ $json.body?.guests || $json.guests || 1 }},\n  \"total_price\": {{ $json.body?.total_price || $json.total_price || 0 }},\n  \"status\": \"{{ $json.body?.status || $json.status || 'confirmed' }}\",\n  \"channel\": \"{{ $json.body?.channel || $json.channel || 'voice_ai' }}\",\n  \"property_id\": \"{{ $json.body?.property_id || $json.property_id || '18711359-1378-4d12-9ea6-fb31c0b1bac2' }}\",\n  \"created_at\": \"{{ $json.body?.created_at || $json.created_at || '' }}\"\n}",
+        "options": {}
+      },
+      "id": "format-booking",
+      "name": "Format Booking Data",
+      "type": "n8n-nodes-base.set",
+      "position": [
+        224,
+        0
+      ],
+      "typeVersion": 3.4
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "filter-status",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              },
+              "leftValue": "={{ $json.status }}",
+              "rightValue": "confirmed"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "filter-confirmed",
+      "name": "Filter Confirmed Only",
+      "type": "n8n-nodes-base.filter",
+      "position": [
+        448,
+        0
+      ],
+      "typeVersion": 2.2
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "tableId": "properties",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "keyValue": "={{ $json.property_id }}"
+            }
+          ]
+        }
+      },
+      "id": "get-property",
+      "name": "Get Property Info",
+      "type": "n8n-nodes-base.supabase",
+      "position": [
+        672,
+        0
+      ],
+      "typeVersion": 1,
+      "credentials": {
+        "supabaseApi": {
+          "id": "SJLQzwU9BVHEVAGc",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.chakrahq.com/v1/ext/plugin/whatsapp/2e45a0bd-8600-41b4-ac92-599d59d6221c/api/v19.0/944855278702577/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer qiu1Z9eA3i2hhNjVM3Dm7QEK1Ey6iKQUE5IDWJlsFSAqXk5OlmQoD6DhqEwv9TOdgOVRWSYLWGxm6HfCs2LeCuwiU8Poqrw2Rgmvih0iEawZhoL6TTmMjVjvDUw2WuygAQgQ1vIeLCreDAKOGymGQCuR5bUYDHrRQQrvoMZLYwHw0LaGhFUuf4GxLpQbV3AQj8JDjhP2MzsCUYT4EVCARX6cODl1d1udr4pITGOmHQ793MUBtptq4XCvC8OGD3g"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"messaging_product\": \"whatsapp\",\n  \"to\": \"{{ $('Format Booking Data').item.json.guest_phone.toString().replace(/[^0-9]/g, '') }}\",\n  \"type\": \"text\",\n  \"text\": {\n    \"body\": \"✅ *Booking Confirmed*\\n\\nHello {{ $('Format Booking Data').item.json.guest_name }},\\n\\nYour booking has been confirmed!\\n\\n🏨 *Hotel:* {{ $json.name || 'Izumi Hotel' }}\\n📍 *Location:* Jl Raya Andong N. 18, Ubud, Bali\\n📅 *Check-in:* {{ $('Format Booking Data').item.json.check_in }}\\n📅 *Check-out:* {{ $('Format Booking Data').item.json.check_out }}\\n👥 *Guests:* {{ $('Format Booking Data').item.json.guests }}\\n💰 *Total:* ${{ $('Format Booking Data').item.json.total_price }} USD\\n\\nWe look forward to welcoming you! 🌺\\n\\n📞 *Contact Izumi Hotel*\\nWhatsApp: +62 813 2576 4867 (24/7)\\nWeb: www.my-host-bizmate.com\"\n  }\n}",
+        "options": {}
+      },
+      "id": "whatsapp-guest",
+      "name": "WhatsApp to Guest",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        880,
+        -160
+      ],
+      "typeVersion": 4.3
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.chakrahq.com/v1/ext/plugin/whatsapp/2e45a0bd-8600-41b4-ac92-599d59d6221c/api/v19.0/944855278702577/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer qiu1Z9eA3i2hhNjVM3Dm7QEK1Ey6iKQUE5IDWJlsFSAqXk5OlmQoD6DhqEwv9TOdgOVRWSYLWGxm6HfCs2LeCuwiU8Poqrw2Rgmvih0iEawZhoL6TTmMjVjvDUw2WuygAQgQ1vIeLCreDAKOGymGQCuR5bUYDHrRQQrvoMZLYwHw0LaGhFUuf4GxLpQbV3AQj8JDjhP2MzsCUYT4EVCARX6cODl1d1udr4pITGOmHQ793MUBtptq4XCvC8OGD3g"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"messaging_product\": \"whatsapp\",\n  \"to\": \"34619794604\",\n  \"type\": \"text\",\n  \"text\": {\n    \"body\": \"🔔 *NEW BOOKING*\\n\\n👤 *Guest:* {{ $('Format Booking Data').item.json.guest_name }}\\n📧 *Email:* {{ $('Format Booking Data').item.json.guest_email }}\\n📱 *Phone:* {{ $('Format Booking Data').item.json.guest_phone }}\\n🏨 *Hotel:* {{ $json.name || 'Izumi Hotel' }}\\n📅 *Check-in:* {{ $('Format Booking Data').item.json.check_in }}\\n📅 *Check-out:* {{ $('Format Booking Data').item.json.check_out }}\\n👥 *Guests:* {{ $('Format Booking Data').item.json.guests }}\\n💰 *Total:* ${{ $('Format Booking Data').item.json.total_price }} USD\\n📡 *Channel:* {{ $('Format Booking Data').item.json.channel }}\\n🆔 *Booking ID:* {{ $('Format Booking Data').item.json.booking_id }}\"\n  }\n}",
+        "options": {}
+      },
+      "id": "whatsapp-staff",
+      "name": "WhatsApp to Staff",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        880,
+        192
+      ],
+      "typeVersion": 4.3
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.sendgrid.com/v3/mail/send",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer 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"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"personalizations\": [\n    {\n      \"to\": [\n        {\n          \"email\": \"{{ $('Format Booking Data').item.json.guest_email }}\"\n        }\n      ]\n    }\n  ],\n  \"from\": {\n    \"email\": \"zentaralivingubud@gmail.com\",\n    \"name\": \"Izumi Hotel\"\n  },\n  \"subject\": \"✅ Booking Confirmed - {{ $json.name || 'Izumi Hotel' }}\",\n  \"content\": [\n    {\n      \"type\": \"text/plain\",\n      \"value\": \"✅ Booking Confirmed\\n\\nHello {{ $('Format Booking Data').item.json.guest_name }},\\n\\nYour booking has been confirmed!\\n\\n🏨 Hotel: {{ $json.name || 'Izumi Hotel' }}\\n📍 Location: Jl Raya Andong N. 18, Ubud, Bali\\n📅 Check-in: {{ $('Format Booking Data').item.json.check_in }}\\n📅 Check-out: {{ $('Format Booking Data').item.json.check_out }}\\n👥 Guests: {{ $('Format Booking Data').item.json.guests }}\\n💰 Total: ${{ $('Format Booking Data').item.json.total_price }} USD\\n\\nWe look forward to welcoming you! 🌺\\n\\n📞 Contact Izumi Hotel\\nWhatsApp: +62 813 2576 4867 (24/7)\\nWeb: www.my-host-bizmate.com\"\n    }\n  ]\n}",
+        "options": {}
+      },
+      "id": "email-guest",
+      "name": "Email to Guest",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        880,
+        0
+      ],
+      "typeVersion": 4.3
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "options": {}
+      },
+      "id": "41054836-80a3-4312-8ec7-d5381f55e2d5",
+      "name": "Merge Booking + Property",
+      "type": "n8n-nodes-base.merge",
+      "position": [
+        608,
+        160
+      ],
+      "typeVersion": 3
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Get Property Info": {
+      "main": [
+        [
+          {
+            "node": "WhatsApp to Guest",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "WhatsApp to Staff",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Booking Data": {
+      "main": [
+        [
+          {
+            "node": "Filter Confirmed Only",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter Confirmed Only": {
+      "main": [
+        [
+          {
+            "node": "Get Property Info",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook - New Booking": {
+      "main": [
+        [
+          {
+            "node": "Format Booking Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
+  },
+  "versionId": "048bcb25-30e5-4b29-a026-7ad6d38a360e",
+  "meta": {
+    "instanceId": "ca7bc7f182c365457ea4a94a4dc2efe81c23590ab8904858ce5cabfbdd56e40f"
+  },
+  "id": "p3ukMWIbKN4bf5Gz",
+  "tags": []
+}

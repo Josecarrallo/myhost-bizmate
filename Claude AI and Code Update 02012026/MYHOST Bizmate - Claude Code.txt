@@ -1,0 +1,154 @@
+You are Cloud Code working on the existing project “MY HOST BizMate”.
+
+IMPORTANT – READ FIRST
+
+This is a STRATEGIC ALIGNMENT + IMPLEMENTATION task.
+We are NOT restarting the project.
+We are NOT redesigning architecture from scratch.
+We are ALIGNING everything (backend, Supabase, dashboard, naming, logic)
+to the new product vision and agent model.
+
+================================================
+CORE PRODUCT VISION (MUST GUIDE ALL DECISIONS)
+
+MY HOST BizMate is NOT a chatbot and NOT a classic PMS.
+
+It is a DUAL AI OPERATION SYSTEM built around TWO AGENTS:
+
+1) BANYU.AI
+   - External Agent (Guest-facing / Revenue / Growth)
+   - Handles:
+     - Guest communication (WhatsApp, email)
+     - Reservations & follow-ups
+     - Upselling & guest journeys
+     - Marketing-related automation
+
+2) OSIRIS.AI
+   - Internal Agent (Owner-facing / Operations)
+   - Handles:
+     - Inventory & bookings oversight
+     - Staff assignment
+     - Operational alerts
+     - Daily summaries & control
+
+These names (BANYU / OSIRIS) are FINAL and must be used
+CONSISTENTLY across:
+- Backend logic
+- Supabase tables (where relevant)
+- Dashboard labels
+- Internal naming / comments
+
+================================================
+ARCHITECTURE REALITY (NON-NEGOTIABLE)
+
+- The MCP ALREADY EXISTS and RUNS INSIDE n8n
+- MCP name:
+  “MCP-Central-Izumi-Hotel-MyHost-BizMate-20”
+
+- The MCP is a CENTRAL ORCHESTRATOR when needed.
+- NOT all workflows go through the MCP.
+
+We SUPPORT TWO TYPES OF FLOWS:
+
+1) MCP-routed flows (for complex intent routing, risk, approvals)
+2) INDEPENDENT n8n workflows (cron, webhooks, schedulers)
+
+Example:
+- Guest Journey Scheduler (GES-Journey-Scheduler)
+  is an INDEPENDENT workflow by design.
+  It:
+  - Sends WhatsApp
+  - Sends emails
+  - Updates Supabase
+  - Does NOT need MCP routing
+
+This is CORRECT.
+Do NOT refactor working independent flows into MCP.
+
+================================================
+WHAT YOU NEED TO IMPLEMENT / ADJUST
+
+### 1) NAMING ALIGNMENT (CRITICAL)
+
+Everywhere in the app, backend and frontend:
+
+- Replace generic or ambiguous labels like:
+  “AI Assistant”, “External Agent”, “Internal Agent”
+
+WITH:
+
+- BANYU.AI → External / Guest & Revenue Agent
+- OSIRIS.AI → Internal / Operations Agent
+
+This applies to:
+- Dashboard menus
+- Page titles
+- API naming (where visible)
+- Supabase references (logical, not destructive renames)
+
+Do NOT break existing routes.
+This is mostly a semantic + UI/backend alignment.
+
+================================================
+### 2) BACKEND RESPONSIBILITIES (YOUR FOCUS)
+
+Your role is NOT to build AI logic in n8n.
+Your role IS to:
+
+- Ensure backend endpoints, data models and permissions
+  SUPPORT BANYU and OSIRIS actions.
+- Ensure Supabase tables can:
+  - Store conversations
+  - Store bookings
+  - Store guest journeys
+  - Store logs / actions executed by agents
+- Ensure the dashboard can DISPLAY:
+  - What BANYU did
+  - What OSIRIS did
+  - What is automated vs manual
+
+Use mock data where needed.
+Do NOT over-engineer.
+
+================================================
+### 3) SUPABASE (GUIDELINES)
+
+- Keep a SINGLE source of truth.
+- Tables should be usable by:
+  - Independent workflows
+  - MCP (later, if needed)
+  - Dashboard UI
+
+At minimum, backend must support:
+- Guests
+- Bookings
+- Conversations (WhatsApp / Email)
+- Agent actions (who did what, when)
+
+No need for advanced analytics now.
+Clean, readable, production-safe schema.
+
+================================================
+### 4) DASHBOARD / FRONTEND SUPPORT (BACKEND SIDE)
+
+Frontend is being aligned to show:
+
+- BANYU.AI module
+  - Guest interactions
+  - Journeys
+  - Campaigns (future)
+- OSIRIS.AI module
+  - Operations overview
+  - Alerts
+  - Daily summaries
+
+Your task:
+- Provide backend endpoints / data structures
+  so these pages can render real or mock data.
+- NO business logic duplication with n8n.
+
+================================================
+### 5) WHAT NOT TO DO (VERY IMPORTANT)
+
+- Do NOT create a new MCP.
+- Do NOT suggest splitting MCP into multiple servers.

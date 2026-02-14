@@ -1,0 +1,286 @@
+{
+  "name": "GuestJourney-Scheduler MYHOST Bizmate XXII",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -1008,
+        -96
+      ],
+      "id": "545edf68-ec4d-4eb0-91aa-4bf851b0ca54",
+      "name": "GuestJourney-Scheduler"
+    },
+    {
+      "parameters": {
+        "url": "https://jjpscimtxrudtepzwhag.supabase.co/rest/v1/bookings?select=id,guest_name,guest_email,guest_phone,check_in,check_out,journey_state,property_id&property_id=eq.18711359-1378-4d12-9ea6-fb31c0b1bac2&status=eq.confirmed",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpqcHNjaW10eHJ1ZHRlcHp3aGFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI5NDMyMzIsImV4cCI6MjA3ODUxOTIzMn0._U_HwdF5-yT8-prJLzkdO_rGbNuu7Z3gpUQW0Q8zxa0"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        -592,
+        -96
+      ],
+      "id": "4403dacd-1613-4b8f-bae3-91d4d96c37e9",
+      "name": "Get Pre-Arrival Bookings",
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// ============================================\n// GUEST JOURNEY CLASSIFIER\n// Solo clasifica y prepara datos para los nodos siguientes\n// ============================================\n\n// Get journey settings from previous node\nconst settingsData = $('Get Journey Settings').all();\nconst settings = {};\nfor (const item of settingsData) {\n  settings[item.json.step_key] = {\n    enabled: item.json.enabled,\n    channel: item.json.channel,\n    template_name: item.json.template_name\n  };\n}\n\n// Get bookings from input\nconst bookings = $input.all();\n\n// Calculate target dates\nconst today = new Date();\ntoday.setHours(0, 0, 0, 0);\n\nconst formatDate = (d) => d.toISOString().split('T')[0];\n\nconst targetDates = {\n  '7_days_before': formatDate(new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000)),\n  '48_hours_before': formatDate(new Date(today.getTime() + 2 * 24 * 60 * 60 * 1000)),\n  'check_in_day': formatDate(today),\n  'check_out_day': formatDate(today),\n  'post_stay': formatDate(new Date(today.getTime() - 1 * 24 * 60 * 60 * 1000))\n};\n\n// State transitions - qué estados son válidos para cada etapa\nconst stateTransitions = {\n  '7_days_before': { validStates: ['booking_confirmed'], newState: 'pre_arrival_7d' },\n  '48_hours_before': { validStates: ['booking_confirmed', 'pre_arrival_7d'], newState: 'pre_arrival_48h' },\n  'check_in_day': { validStates: ['booking_confirmed', 'pre_arrival_7d', 'pre_arrival_48h'], newState: 'checked_in' },\n  'check_out_day': { validStates: ['checked_in'], newState: 'checked_out' },\n  'post_stay': { validStates: ['checked_out'], newState: 'post_stay_sent' }\n};\n\n// Message templates\nconst templates = {\n  '7_days_before': (b) => ({\n    subject: '🌴 Your Bali Adventure Guide - 7 Days to Go!',\n    body: `Hello ${b.guest_name}!\\n\\nYour stay at Izumi Hotel is just 7 days away!\\n\\n🏨 BOOKING DETAILS:\\nCheck-in: ${b.check_in} at 2:00 PM\\nCheck-out: ${b.check_out} at 12:00 PM\\nLocation: Jl Raya Andong N. 18, Ubud, Bali\\n\\n💡 ESSENTIAL BALI TIPS:\\n💰 Currency: Indonesian Rupiah (IDR)\\n☀️ Weather: Pack light clothes & sunscreen\\n📱 SIM cards available at airport (Telkomsel)\\n✈️ Airport to Ubud: ~1.5 hours\\n\\n📞 CONTACT:\\nWhatsApp: +62 813 2576 4867 (24/7)\\n\\nSee you soon!\\nIzumi Hotel Team 🌺`\n  }),\n  '48_hours_before': (b) => ({\n    subject: '✈️ Airport Pickup - Izumi Hotel',\n    body: `🚗 Hello ${b.guest_name}!\\n\\nYour stay at Izumi Hotel is just 2 days away!\\n\\n✈️ AIRPORT PICKUP SERVICE\\nNeed a comfortable ride from the airport?\\nReply YES and we'll arrange everything!\\n\\n📍 Pick-up: Ngurah Rai Airport\\n🏨 Drop-off: Izumi Hotel, Ubud\\n⏱️ Duration: ~1.5 hours\\n💰 Price: $35 USD\\n\\nCheck-in: ${b.check_in} at 2:00 PM\\n\\nSee you soon!\\nIzumi Hotel Team 🌺`\n  }),\n  'check_in_day': (b) => ({\n    subject: '🌺 Welcome to Izumi Hotel!',\n    body: `🌺 Selamat Datang ${b.guest_name}!\\n\\nWelcome to Izumi Hotel!\\n\\n🏨 CHECK-IN INFO:\\n📍 Jl Raya Andong N. 18, Ubud\\n⏰ Check-in: 2:00 PM\\n🔑 Reception is ready for you!\\n\\n🎁 COMPLIMENTARY:\\n• Welcome drink\\n• WiFi: IzumiGuest\\n• Daily breakfast 7-10 AM\\n\\n📞 Need anything?\\nJust reply to this message!\\n\\nEnjoy your stay! 🙏`\n  }),\n  'check_out_day': (b) => ({\n    subject: '🙏 Thank you - Izumi Hotel',\n    body: `🙏 Thank you ${b.guest_name}!\\n\\nWe hope you enjoyed your stay at Izumi Hotel!\\n\\n🕐 CHECK-OUT REMINDER:\\n⏰ Check-out: 12:00 PM\\n🧳 Need late check-out? Ask reception!\\n🚗 Airport transfer available\\n\\n📦 Don't forget:\\n• Personal belongings\\n• Passport/documents\\n• Chargers & electronics\\n\\nTerima kasih & safe travels! 🌺\\nWe hope to see you again!`\n  }),\n  'post_stay': (b) => ({\n    subject: '⭐ How was your stay at Izumi Hotel?',\n    body: `Dear ${b.guest_name},\\n\\nThank you for choosing Izumi Hotel!\\n\\nWe hope you had a wonderful time. Your feedback helps future travelers.\\n\\n⭐ SHARE YOUR EXPERIENCE:\\n📝 Google: https://g.page/r/izumihotel/review\\n📝 TripAdvisor: https://tripadvisor.com/izumihotel\\n\\n🎁 AS A THANK YOU:\\nUse code COMEBACK15 for 15% off your next stay!\\nValid for 12 months.\\n\\nTerima kasih 🙏\\nThe Izumi Hotel Team\\n\\n📞 WhatsApp: +62 813 2576 4867\\n📧 reservations@izumihotel.com`\n  })\n};\n\n// Process and classify bookings\nconst results = [];\n\nfor (const booking of bookings) {\n  const b = booking.json;\n  \n  // Check each step\n  for (const [stepKey, config] of Object.entries(stateTransitions)) {\n    const setting = settings[stepKey];\n    \n    // Skip if step is disabled or not configured\n    if (!setting?.enabled) continue;\n    \n    // Determine which date to check\n    const isCheckInStep = ['7_days_before', '48_hours_before', 'check_in_day'].includes(stepKey);\n    const dateToCheck = isCheckInStep ? b.check_in : b.check_out;\n    const targetDate = targetDates[stepKey];\n    \n    // Skip if date doesn't match\n    if (dateToCheck !== targetDate) continue;\n    \n    // Skip if journey_state is not valid for this step\n    if (!config.validStates.includes(b.journey_state)) continue;\n    \n    // This booking needs processing!\n    const template = templates[stepKey](b);\n    \n    results.push({\n      // Booking data\n      id: b.id,\n      guest_name: b.guest_name,\n      guest_email: b.guest_email,\n      guest_phone: b.guest_phone,\n      check_in: b.check_in,\n      check_out: b.check_out,\n      \n      // Journey step info\n      journey_step: stepKey,\n      channel: setting.channel,\n      template_name: setting.template_name,\n      new_journey_state: config.newState,\n      \n      // Message content\n      message_subject: template.subject,\n      message_body: template.body\n    });\n  }\n}\n\n// Return results for next nodes\nreturn results.map(r => ({ json: r }));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -400,
+        -96
+      ],
+      "id": "08ba2045-decc-4bf5-b96a-25e6a6dc71e4",
+      "name": "Filter 3 Days Before"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.chakrahq.com/v1/ext/plugin/whatsapp/2e45a0bd-8600-41b4-ac92-599d59d6221c/api/v19.0/944855278702577/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer qiu1Z9eA3i2hhNjVM3Dm7QEK1Ey6iKQUE5IDWJlsFSAqXk5OlmQoD6DhqEwv9TOdgOVRWSYLWGxm6HfCs2LeCuwiU8Poqrw2Rgmvih0iEawZhoL6TTmMjVjvDUw2WuygAQgQ1vIeLCreDAKOGymGQCuR5bUYDHrRQQrvoMZLYwHw0LaGhFUuf4GxLpQbV3AQj8JDjhP2MzsCUYT4EVCARX6cODl1d1udr4pITGOmHQ793MUBtptq4XCvC8OGD3g"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"messaging_product\": \"whatsapp\",\n  \"to\": \"{{ $json.guest_phone }}\",\n  \"type\": \"text\",\n  \"text\": {\n    \"body\": {{ JSON.stringify($json.message_body) }}\n  }\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        -96,
+        -336
+      ],
+      "id": "7a7cee0a-4782-450f-a8f6-bfe6d16b18e7",
+      "name": "Send WhatsApp"
+    },
+    {
+      "parameters": {
+        "resource": "mail",
+        "fromEmail": "josecarrallodelafuente@gmail.com",
+        "fromName": "IZUMI Hotel",
+        "toEmail": "={{ $json.guest_email }}",
+        "subject": "={{ $json.message_subject }}",
+        "contentValue": "=Hello {{ $json.guest_name }}!\n\nYour stay at Izumi Hotel is just 3 days away!\n\n🏨 BOOKING DETAILS:\n━━━━━━━━━━━━━━━━━━━━━━━━━\nCheck-in: {{ $json.check_in }} at 2:00 PM\nLocation: Jl Raya Andong N. 18, Ubud, Bali\n\n🛫 GETTING HERE:\nFrom Ngurah Rai Airport to Ubud is ~1.5 hours.\nNeed airport pickup? Reply to this email!\n\n💡 BALI TIPS:\n- Currency: Indonesian Rupiah (IDR)\n- Weather: Pack light clothes & sunscreen\n- SIM cards available at airport\n\n📞 CONTACT:\nWhatsApp: +62 813 2576 4867 (24/7)\n\nSee you soon!\nIzumi Hotel Team 🌺",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.sendGrid",
+      "typeVersion": 1,
+      "position": [
+        -96,
+        -160
+      ],
+      "id": "e30b86e9-667f-4395-b341-bdb6cb6c435c",
+      "name": "Send an email",
+      "credentials": {
+        "sendGridApi": {
+          "id": "Y35BYbcV5SYfjBwc",
+          "name": "SendGrid account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "=https://jjpscimtxrudtepzwhag.supabase.co/rest/v1/bookings?id=eq.{{ $json.id }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpqcHNjaW10eHJ1ZHRlcHp3aGFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI5NDMyMzIsImV4cCI6MjA3ODUxOTIzMn0._U_HwdF5-yT8-prJLzkdO_rGbNuu7Z3gpUQW0Q8zxa0"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpqcHNjaW10eHJ1ZHRlcHp3aGFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI5NDMyMzIsImV4cCI6MjA3ODUxOTIzMn0._U_HwdF5-yT8-prJLzkdO_rGbNuu7Z3gpUQW0Q8zxa0"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\n  \"journey_state\": \"{{ $json.new_journey_state }}\"\n}\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        -96,
+        16
+      ],
+      "id": "f610c1e0-9fd4-4ba7-80c6-537b11b35c80",
+      "name": "Update Journey State"
+    },
+    {
+      "parameters": {
+        "url": "https://jjpscimtxrudtepzwhag.supabase.co/rest/v1/journey_settings?property_id=eq.18711359-1378-4d12-9ea6-fb31c0b1bac2&select=step_key,channel,template_name,enabled",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpqcHNjaW10eHJ1ZHRlcHp3aGFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI5NDMyMzIsImV4cCI6MjA3ODUxOTIzMn0._U_HwdF5-yT8-prJLzkdO_rGbNuu7Z3gpUQW0Q8zxa0"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        -784,
+        -96
+      ],
+      "id": "13d9d4e2-2c71-4e5f-8897-ba4e13824e90",
+      "name": "Get Journey Settings"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.chakrahq.com/v1/ext/plugin/whatsapp/2e45a0bd-8600-41b4-ac92-599d59d6221c/api/v19.0/944855278702577/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer qiu1Z9eA3i2hhNjVM3Dm7QEK1Ey6iKQUE5IDWJlsFSAqXk5OlmQoD6DhqEwv9TOdgOVRWSYLWGxm6HfCs2LeCuwiU8Poqrw2Rgmvih0iEawZhoL6TTmMjVjvDUw2WuygAQgQ1vIeLCreDAKOGymGQCuR5bUYDHrRQQrvoMZLYwHw0LaGhFUuf4GxLpQbV3AQj8JDjhP2MzsCUYT4EVCARX6cODl1d1udr4pITGOmHQ793MUBtptq4XCvC8OGD3g"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"messaging_product\": \"whatsapp\",\n  \"to\": \"+34619794604\",\n  \"type\": \"text\",\n  \"text\": {\n    \"body\": \"📤 GUEST JOURNEY - Mensaje Enviado\\n\\n👤 Guest: {{ $json.guest_name }}\\n📧 Email: {{ $json.guest_email }}\\n📱 Fase: {{ $json.journey_step }}\\n📨 Canal: {{ $json.channel }}\\n✅ Nuevo estado: {{ $json.new_journey_state }}\\n\\n🤖 Enviado por MY HOST BizMate\"\n  }\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        -96,
+        176
+      ],
+      "id": "8d7e910d-c483-4c56-ade5-36fa06435c89",
+      "name": "Notify Owner"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "GuestJourney-Scheduler": {
+      "main": [
+        [
+          {
+            "node": "Get Journey Settings",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Pre-Arrival Bookings": {
+      "main": [
+        [
+          {
+            "node": "Filter 3 Days Before",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter 3 Days Before": {
+      "main": [
+        [
+          {
+            "node": "Send WhatsApp",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Send an email",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Update Journey State",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Notify Owner",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send WhatsApp": {
+      "main": [
+        []
+      ]
+    },
+    "Send an email": {
+      "main": [
+        []
+      ]
+    },
+    "Get Journey Settings": {
+      "main": [
+        [
+          {
+            "node": "Get Pre-Arrival Bookings",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Journey State": {
+      "main": [
+        []
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "90c71615-eae1-4a48-ae89-e8fa23bb1dd5",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "ca7bc7f182c365457ea4a94a4dc2efe81c23590ab8904858ce5cabfbdd56e40f"
+  },
+  "id": "cQLiQnqR2AHkYOjd",
+  "tags": []
+}

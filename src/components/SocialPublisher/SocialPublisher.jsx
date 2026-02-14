@@ -127,23 +127,23 @@ const SocialPublisher = ({ onBack }) => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-400 via-orange-500 to-orange-600 flex flex-col relative overflow-hidden">
+    <div className="min-h-screen bg-[#2a2f3a] flex flex-col relative overflow-hidden">
       {/* Animated background elements */}
       <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute w-96 h-96 bg-orange-300/20 rounded-full blur-3xl top-20 -left-48 animate-pulse"></div>
-        <div className="absolute w-96 h-96 bg-orange-300/20 rounded-full blur-3xl bottom-20 -right-48 animate-pulse" style={{ animationDelay: '1s' }}></div>
-        <div className="absolute w-72 h-72 bg-orange-200/30 rounded-full blur-2xl top-1/2 right-1/4 animate-pulse" style={{ animationDelay: '0.5s' }}></div>
+        <div className="absolute w-96 h-96 bg-[#d85a2a]/5 rounded-full blur-3xl top-20 -left-48 animate-pulse"></div>
+        <div className="absolute w-96 h-96 bg-[#d85a2a]/5 rounded-full blur-3xl bottom-20 -right-48 animate-pulse" style={{ animationDelay: '1s' }}></div>
+        <div className="absolute w-72 h-72 bg-[#d85a2a]/5 rounded-full blur-2xl top-1/2 right-1/4 animate-pulse" style={{ animationDelay: '0.5s' }}></div>
       </div>
 
       {/* Header */}
-      <div className="bg-white/95 backdrop-blur-sm border-b-2 border-white/50 p-4 relative z-10 shadow-lg">
+      <div className="bg-[#1f2937]/95 backdrop-blur-sm border-b-2 border-[#d85a2a]/20 p-4 relative z-10 shadow-lg">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <button onClick={onBack} className="flex items-center gap-2 text-orange-600 hover:text-orange-500 transition-colors">
+          <button onClick={onBack} className="flex items-center gap-2 text-[#FF8C42] hover:text-orange-500 transition-colors">
             <ChevronLeft className="w-5 h-5" />
             <span className="font-semibold">Back</span>
           </button>
           <div className="text-center">
-            <h2 className="text-3xl md:text-4xl font-black text-orange-600 mb-1">Social Publisher</h2>
+            <h2 className="text-3xl md:text-4xl font-black text-[#FF8C42] mb-1">Social Publisher</h2>
             <p className="text-sm md:text-base font-semibold text-orange-500">Content Scheduling</p>
           </div>
           <button className="px-4 py-2 bg-orange-600 text-white rounded-xl font-bold hover:bg-orange-700 transition-all flex items-center gap-2">
@@ -158,40 +158,40 @@ const SocialPublisher = ({ onBack }) => {
         <div className="max-w-7xl mx-auto space-y-6">
           {/* Stats */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div className="bg-gradient-to-br from-orange-500 to-orange-600 rounded-2xl p-6 border-2 border-white/50 shadow-lg text-white">
+            <div className="bg-gradient-to-br from-orange-500 to-orange-600 rounded-2xl p-6 border-2 border-[#d85a2a]/20 shadow-lg text-white">
               <div className="flex items-center gap-3 mb-2">
                 <Share2 className="w-6 h-6" />
                 <span className="text-sm font-bold opacity-90">Scheduled Posts</span>
               </div>
               <div className="text-3xl font-black">{stats.scheduled}</div>
             </div>
-            <div className="bg-white/95 backdrop-blur-sm rounded-2xl p-6 border-2 border-white/50 shadow-lg">
+            <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-2xl p-6 border-2 border-[#d85a2a]/20 shadow-lg">
               <div className="flex items-center gap-3 mb-2">
-                <CheckCircle className="w-6 h-6 text-orange-600" />
+                <CheckCircle className="w-6 h-6 text-[#FF8C42]" />
                 <span className="text-sm font-bold text-gray-600">Published</span>
               </div>
-              <div className="text-3xl font-black text-orange-600">{stats.published}</div>
+              <div className="text-3xl font-black text-[#FF8C42]">{stats.published}</div>
             </div>
-            <div className="bg-white/95 backdrop-blur-sm rounded-2xl p-6 border-2 border-white/50 shadow-lg">
+            <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-2xl p-6 border-2 border-[#d85a2a]/20 shadow-lg">
               <div className="flex items-center gap-3 mb-2">
-                <BarChart3 className="w-6 h-6 text-orange-600" />
+                <BarChart3 className="w-6 h-6 text-[#FF8C42]" />
                 <span className="text-sm font-bold text-gray-600">Total Engagement</span>
               </div>
-              <div className="text-3xl font-black text-orange-600">{stats.totalEngagement.toLocaleString()}</div>
+              <div className="text-3xl font-black text-[#FF8C42]">{stats.totalEngagement.toLocaleString()}</div>
               <div className="text-xs text-green-600 font-bold mt-1">+18% growth</div>
             </div>
-            <div className="bg-white/95 backdrop-blur-sm rounded-2xl p-6 border-2 border-white/50 shadow-lg">
+            <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-2xl p-6 border-2 border-[#d85a2a]/20 shadow-lg">
               <div className="flex items-center gap-3 mb-2">
-                <Users className="w-6 h-6 text-orange-600" />
+                <Users className="w-6 h-6 text-[#FF8C42]" />
                 <span className="text-sm font-bold text-gray-600">Total Followers</span>
               </div>
-              <div className="text-3xl font-black text-orange-600">{stats.totalFollowers}</div>
+              <div className="text-3xl font-black text-[#FF8C42]">{stats.totalFollowers}</div>
               <div className="text-xs text-green-600 font-bold mt-1">+12% increase</div>
             </div>
           </div>
 
           {/* Filters */}
-          <div className="bg-white/95 backdrop-blur-sm rounded-2xl p-4 border-2 border-white/50 shadow-lg">
+          <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-2xl p-4 border-2 border-[#d85a2a]/20 shadow-lg">
             <div className="flex flex-col md:flex-row gap-3">
               {/* Search */}
               <div className="relative flex-1">
@@ -247,7 +247,7 @@ const SocialPublisher = ({ onBack }) => {
               <div
                 key={post.id}
                 onClick={() => setSelectedPost(post)}
-                className="bg-white/95 backdrop-blur-sm rounded-3xl p-6 border-2 border-white/50 hover:shadow-2xl transition-all cursor-pointer shadow-xl"
+                className="bg-[#1f2937]/95 backdrop-blur-sm rounded-3xl p-6 border-2 border-[#d85a2a]/20 hover:shadow-2xl transition-all cursor-pointer shadow-xl"
               >
                 <div className="flex items-start gap-4 mb-4">
                   <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-orange-400 to-orange-500 flex items-center justify-center text-4xl shadow-lg flex-shrink-0">
@@ -268,7 +268,7 @@ const SocialPublisher = ({ onBack }) => {
                         {post.status}
                       </span>
                     </div>
-                    <p className="text-orange-600 mb-3 leading-relaxed font-medium line-clamp-2">{post.content}</p>
+                    <p className="text-[#FF8C42] mb-3 leading-relaxed font-medium line-clamp-2">{post.content}</p>
                     <div className="flex items-center justify-between flex-wrap gap-3">
                       <div className="flex items-center gap-2 text-sm">
                         <Calendar className="w-4 h-4 text-gray-500" />
@@ -281,19 +281,19 @@ const SocialPublisher = ({ onBack }) => {
                           <>
                             <div className="flex items-center gap-1.5 text-gray-600">
                               <Eye className="w-4 h-4" />
-                              <span className="text-sm font-bold text-orange-600">{post.metrics.reach || '0'}</span>
+                              <span className="text-sm font-bold text-[#FF8C42]">{post.metrics.reach || '0'}</span>
                             </div>
                             <div className="flex items-center gap-1.5 text-gray-600">
                               <ThumbsUp className="w-4 h-4" />
-                              <span className="text-sm font-bold text-orange-600">{post.metrics.likes}</span>
+                              <span className="text-sm font-bold text-[#FF8C42]">{post.metrics.likes}</span>
                             </div>
                             <div className="flex items-center gap-1.5 text-gray-600">
                               <MessageSquare className="w-4 h-4" />
-                              <span className="text-sm font-bold text-orange-600">{post.metrics.comments}</span>
+                              <span className="text-sm font-bold text-[#FF8C42]">{post.metrics.comments}</span>
                             </div>
                             <div className="flex items-center gap-1.5 text-gray-600">
                               <Share2 className="w-4 h-4" />
-                              <span className="text-sm font-bold text-orange-600">{post.metrics.shares}</span>
+                              <span className="text-sm font-bold text-[#FF8C42]">{post.metrics.shares}</span>
                             </div>
                           </>
                         )}
@@ -310,7 +310,7 @@ const SocialPublisher = ({ onBack }) => {
       {/* Post Details Modal */}
       {selectedPost && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-3xl max-w-2xl w-full max-h-[90vh] overflow-auto shadow-2xl">
+          <div className="bg-[#1f2937] rounded-3xl max-w-2xl w-full max-h-[90vh] overflow-auto shadow-2xl">
             <div className="sticky top-0 bg-gradient-to-r from-orange-500 to-orange-600 p-6 rounded-t-3xl">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
@@ -322,7 +322,7 @@ const SocialPublisher = ({ onBack }) => {
                 </div>
                 <button
                   onClick={() => setSelectedPost(null)}
-                  className="w-10 h-10 bg-white/20 hover:bg-white/30 rounded-full flex items-center justify-center transition-all"
+                  className="w-10 h-10 bg-[#d85a2a]/10 hover:bg-white/30 rounded-full flex items-center justify-center transition-all"
                 >
                   <X className="w-6 h-6 text-white" />
                 </button>
@@ -332,7 +332,7 @@ const SocialPublisher = ({ onBack }) => {
             <div className="p-6 space-y-6">
               {/* Content */}
               <div>
-                <label className="text-sm font-bold text-orange-600 mb-2 block">Post Content</label>
+                <label className="text-sm font-bold text-[#FF8C42] mb-2 block">Post Content</label>
                 <div className="bg-gray-50 rounded-xl p-4 border-2 border-gray-200">
                   <p className="text-gray-700 leading-relaxed">{selectedPost.content}</p>
                 </div>
@@ -340,7 +340,7 @@ const SocialPublisher = ({ onBack }) => {
 
               {/* Platforms */}
               <div>
-                <label className="text-sm font-bold text-orange-600 mb-2 block">Publishing Platforms</label>
+                <label className="text-sm font-bold text-[#FF8C42] mb-2 block">Publishing Platforms</label>
                 <div className="flex gap-3">
                   {selectedPost.platforms.map((platform, idx) => (
                     <div key={idx} className="flex items-center gap-2 px-4 py-2 bg-gray-100 rounded-xl">
@@ -353,10 +353,10 @@ const SocialPublisher = ({ onBack }) => {
 
               {/* Schedule */}
               <div>
-                <label className="text-sm font-bold text-orange-600 mb-2 block">Schedule</label>
+                <label className="text-sm font-bold text-[#FF8C42] mb-2 block">Schedule</label>
                 <div className="bg-orange-50 rounded-xl p-4 border-2 border-orange-200">
                   <div className="flex items-center gap-2">
-                    <Calendar className="w-5 h-5 text-orange-600" />
+                    <Calendar className="w-5 h-5 text-[#FF8C42]" />
                     <span className="font-bold text-gray-700">{selectedPost.scheduled}</span>
                   </div>
                 </div>
@@ -365,23 +365,23 @@ const SocialPublisher = ({ onBack }) => {
               {/* Metrics (only for published posts) */}
               {selectedPost.status === 'Published' && (
                 <div className="bg-orange-50 rounded-xl p-6 border-2 border-orange-200">
-                  <h4 className="text-lg font-black text-orange-600 mb-4">Performance Metrics</h4>
+                  <h4 className="text-lg font-black text-[#FF8C42] mb-4">Performance Metrics</h4>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <p className="text-xs text-gray-600 font-semibold mb-1">Reach</p>
-                      <p className="text-2xl font-black text-orange-600">{selectedPost.metrics.reach}</p>
+                      <p className="text-2xl font-black text-[#FF8C42]">{selectedPost.metrics.reach}</p>
                     </div>
                     <div>
                       <p className="text-xs text-gray-600 font-semibold mb-1">Likes</p>
-                      <p className="text-2xl font-black text-orange-600">{selectedPost.metrics.likes}</p>
+                      <p className="text-2xl font-black text-[#FF8C42]">{selectedPost.metrics.likes}</p>
                     </div>
                     <div>
                       <p className="text-xs text-gray-600 font-semibold mb-1">Comments</p>
-                      <p className="text-2xl font-black text-orange-600">{selectedPost.metrics.comments}</p>
+                      <p className="text-2xl font-black text-[#FF8C42]">{selectedPost.metrics.comments}</p>
                     </div>
                     <div>
                       <p className="text-xs text-gray-600 font-semibold mb-1">Shares</p>
-                      <p className="text-2xl font-black text-orange-600">{selectedPost.metrics.shares}</p>
+                      <p className="text-2xl font-black text-[#FF8C42]">{selectedPost.metrics.shares}</p>
                     </div>
                   </div>
                 </div>

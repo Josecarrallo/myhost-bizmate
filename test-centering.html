@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Test Button Centering</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-900 p-8">
+
+  <h1 class="text-white text-2xl mb-8">Test 1: Current Implementation (text-center + inline-flex)</h1>
+  <div class="bg-gray-800 rounded-3xl p-6 mb-8">
+    <div class="text-center">
+      <div class="inline-flex items-center gap-4">
+        <button class="flex items-center justify-center gap-2 px-8 py-3 bg-purple-500 text-white rounded-xl font-semibold hover:bg-purple-600 transition-all shadow-lg min-w-[140px]">
+          Generate
+        </button>
+        <button class="flex items-center justify-center gap-2 px-8 py-3 bg-orange-500 text-white rounded-xl font-semibold hover:bg-orange-600 transition-all shadow-lg min-w-[140px]">
+          Print
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <h1 class="text-white text-2xl mb-8">Test 2: Flex with justify-center</h1>
+  <div class="bg-gray-800 rounded-3xl p-6 mb-8">
+    <div class="flex justify-center">
+      <div class="flex items-center gap-4">
+        <button class="flex items-center justify-center gap-2 px-8 py-3 bg-purple-500 text-white rounded-xl font-semibold hover:bg-purple-600 transition-all shadow-lg min-w-[140px]">
+          Generate
+        </button>
+        <button class="flex items-center justify-center gap-2 px-8 py-3 bg-orange-500 text-white rounded-xl font-semibold hover:bg-orange-600 transition-all shadow-lg min-w-[140px]">
+          Print
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <h1 class="text-white text-2xl mb-8">Test 3: Grid with place-items-center</h1>
+  <div class="bg-gray-800 rounded-3xl p-6 mb-8">
+    <div class="grid place-items-center">
+      <div class="flex items-center gap-4">
+        <button class="flex items-center justify-center gap-2 px-8 py-3 bg-purple-500 text-white rounded-xl font-semibold hover:bg-purple-600 transition-all shadow-lg min-w-[140px]">
+          Generate
+        </button>
+        <button class="flex items-center justify-center gap-2 px-8 py-3 bg-orange-500 text-white rounded-xl font-semibold hover:bg-orange-600 transition-all shadow-lg min-w-[140px]">
+          Print
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <h1 class="text-white text-2xl mb-8">Test 4: Margin auto</h1>
+  <div class="bg-gray-800 rounded-3xl p-6 mb-8">
+    <div class="flex items-center gap-4 w-fit mx-auto">
+      <button class="flex items-center justify-center gap-2 px-8 py-3 bg-purple-500 text-white rounded-xl font-semibold hover:bg-purple-600 transition-all shadow-lg min-w-[140px]">
+        Generate
+      </button>
+      <button class="flex items-center justify-center gap-2 px-8 py-3 bg-orange-500 text-white rounded-xl font-semibold hover:bg-orange-600 transition-all shadow-lg min-w-[140px]">
+        Print
+      </button>
+    </div>
+  </div>
+
+</body>
+</html>

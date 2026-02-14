@@ -1,0 +1,43 @@
+# MY HOST BizMate - Pruebas KORA (25 Enero 2026)
+
+## CONTEXTO
+SaaS automatización boutique hotels. Cliente: Izumi Hotel (Ubud, Bali).
+Ayer probamos BANYU (WhatsApp) - TODO FUNCIONA ✅
+Hoy: probar KORA (voz vía VAPI).
+
+## BUGS CORREGIDOS AYER
+1. Trigger Supabase: dispara para todos los channels
+2. BANYU: status='confirmed' 
+3. WF-03: UPDATE incluye next_followup_at
+
+## IDs
+- TENANT: c24393db-d318-4d75-8bbf-0fa240b9c1db
+- PROPERTY: 18711359-1378-4d12-9ea6-fb31c0b1bac2
+- Owner: +34619794604
+
+## INFRA
+- n8n: https://n8n-production-bb2d.up.railway.app
+- Supabase: https://jjpscimtxrudtepzwhag.supabase.co
+
+## WORKFLOWS
+| ID | Nombre |
+|----|--------|
+| gsMMQrc9T2uZ7LVA | WF-02 KORA-POST-CALL |
+| OZmq7E9wzODJrzej | WF-03-LEAD-HANDLER |
+| EtrQnkgWqqbvRjEB | WF-SP-02 LUMINA |
+| p3ukMWIbKN4bf5Gz | WF-04-BOOKING-NOTIFICATIONS |
+| HndGXnQAEyaYDKFZ | WF-04 Follow-Up Engine |
+
+## PRUEBAS HOY
+
+TEST 1 - Consulta info por voz:
+- Llamar desde APP MYHOST Bizmate
+- Preguntar disponibilidad/precios
+- Verificar: lead creado, NO booking
+
+TEST 2 - Booking por voz:
+- Llamar y completar reserva
+- Verificar: booking confirmado, owner notificado
+
+## DOC REFERENCIA
+MYHOST_BIZMATE_ESTADO_COMPLETO_2026-01-24_v3.md

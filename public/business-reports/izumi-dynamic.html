@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Izumi Hotel & Villas - Business Performance Analysis</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #f5f5f5;
+            padding: 0;
+            margin: 0;
+            color: #2d3748;
+        }
+
+        .page {
+            width: 100%;
+            max-width: 900px;
+            margin: 0 auto 20px auto;
+            background: white;
+            padding: 40px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+            position: relative;
+        }
+
+        @media print {
+            * {
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+            body {
+                background: white;
+                padding: 0;
+                margin: 0;
+            }
+            .page {
+                margin: 0;
+                padding: 40px;
+                box-shadow: none;
+                page-break-inside: avoid;
+            }
+            @page {
+                margin: 0;
+                size: A4 portrait;
+            }
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 3px solid #f97316;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            color: #1a202c;
+            margin-bottom: 6px;
+            font-weight: 700;
+        }
+
+        .header .subtitle {
+            font-size: 14px;
+            color: #718096;
+            font-weight: 500;
+        }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+            margin-bottom: 25px;
+        }
+
+        .metric-box {
+            background: linear-gradient(135deg, #f97316 0%, #fb923c 100%);
+            border: none;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            box-shadow: 0 2px 8px rgba(249, 115, 22, 0.2);
+        }
+
+        .metric-label {
+            font-size: 11px;
+            color: white;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+            font-weight: 600;
+            opacity: 0.95;
+        }
+
+        .metric-value {
+            font-size: 26px;
+            font-weight: 700;
+            color: white;
+            line-height: 1;
+        }
+
+        .metric-subtitle {
+            font-size: 10px;
+            color: white;
+            margin-top: 4px;
+            opacity: 0.9;
+        }
+
+        .section {
+            margin-bottom: 8px;
+        }
+
+        .section-title {
+            font-size: 15px;
+            color: #1a202c;
+            margin-bottom: 6px;
+            font-weight: 700;
+            padding-bottom: 4px;
+            border-bottom: 2px solid #e2e8f0;
+        }
+
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 10px;
+            margin-bottom: 12px;
+        }
+
+        .data-table th {
+            background: #ffedd5;
+            padding: 6px;
+            text-align: left;
+            font-weight: 600;
+            color: #1a202c;
+            border-bottom: 2px solid #fb923c;
+        }
+
+        .data-table td {
+            padding: 5px 6px;
+            border-bottom: 1px solid #e2e8f0;
+            color: #4a5568;
+        }
+
+        .data-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .data-table tr:nth-child(even) {
+            background: #f7fafc;
+        }
+
+        .observations-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+
+        .observation-card {
+            background: #fff7ed;
+            border: 2px solid #fed7aa;
+            padding: 10px;
+            border-radius: 6px;
+        }
+
+        .observation-card.warning {
+            background: #fff7ed;
+            border-color: #fb923c;
+        }
+
+        .observation-card.critical {
+            background: #fed7aa;
+            border-color: #f97316;
+        }
+
+        .observation-title {
+            font-size: 12px;
+            font-weight: 700;
+            color: #2d3748;
+            margin-bottom: 8px;
+        }
+
+        .observation-text {
+            font-size: 10.5px;
+            color: #4a5568;
+            line-height: 1.5;
+        }
+
+        .summary-box {
+            background: #fff7ed;
+            border: 2px solid #fed7aa;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 8px;
+        }
+
+        .summary-box h3 {
+            font-size: 13px;
+            color: #2d3748;
+            margin-bottom: 6px;
+            font-weight: 700;
+        }
+
+        .summary-box p {
+            font-size: 11px;
+            color: #4a5568;
+            line-height: 1.6;
+        }
+
+        .highlight-number {
+            font-weight: 700;
+            color: #f97316;
+        }
+
+        .footer {
+            position: absolute;
+            bottom: 20px;
+            left: 40px;
+            right: 40px;
+            text-align: center;
+            font-size: 9px;
+            color: #a0aec0;
+            padding-top: 10px;
+            border-top: 1px solid #e2e8f0;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 10px;
+            font-weight: 600;
+        }
+
+        .badge-success {
+            background: #fed7aa;
+            color: #7c2d12;
+        }
+
+        .badge-warning {
+            background: #fb923c;
+            color: white;
+        }
+
+        .badge-danger {
+            background: #f97316;
+            color: white;
+        }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <!-- PAGE 1: EXECUTIVE SUMMARY -->
+    <div class="page">
+        <div class="header">
+            <h1>IZUMI HOTEL & VILLAS</h1>
+            <div class="subtitle">Business Performance Analysis | 2026-01-01 to 2026-12-31</div>
+        </div>
+
+        <!-- KEY METRICS -->
+        <div class="metrics-grid">
+            <div class="metric-box">
+                <div class="metric-label">Total Bookings</div>
+                <div class="metric-value">17</div>
+            </div>
+            <div class="metric-box">
+                <div class="metric-label">Total Revenue</div>
+                <div class="metric-value">$41.1K</div>
+                
+            </div>
+            <div class="metric-box">
+                <div class="metric-label">Avg Booking Value</div>
+                <div class="metric-value">$2.4K</div>
+            </div>
+            <div class="metric-box">
+                <div class="metric-label">Occupancy Rate</div>
+                <div class="metric-value">71.8%</div>
+                <div class="metric-subtitle">5.2 avg nights</div>
+            </div>
+        </div>
+
+        <!-- OBSERVATIONS -->
+        <div class="section">
+            <div class="section-title">Key Observations</div>
+            <div class="observations-grid">
+                <div class="observation-card ">
+                    <div class="observation-title">Occupancy Performance</div>
+                    <div class="observation-text">71.8% occupancy with 89 room nights. Performing well.</div>
+                </div>
+
+                <div class="observation-card critical">
+                    <div class="observation-title">Channel Distribution</div>
+                    <div class="observation-text">100.0% OTA dependency. High commission exposure.</div>
+                </div>
+
+                <div class="observation-card">
+                    <div class="observation-title">Revenue Performance</div>
+                    <div class="observation-text">$41,120 in 17 bookings. Average $2,419 per booking.</div>
+                </div>
+
+                <div class="observation-card warning">
+                    <div class="observation-title">OTA Commission Cost</div>
+                    <div class="observation-text">$6,168 paid in commissions (15.0% of total revenue).</div>
+                </div>
+
+                <div class="observation-card ">
+                    <div class="observation-title">Payment Collection</div>
+                    <div class="observation-text">$0 collected, $0 pending (0%).</div>
+                </div>
+
+                <div class="observation-card">
+                    <div class="observation-title">Guest Behavior</div>
+                    <div class="observation-text">Average length of stay: 5.2 nights. Good stay duration.</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- CHANNEL BREAKDOWN -->
+        <div class="section">
+            <div class="section-title">Distribution Channel Performance</div>
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Channel</th>
+                        <th>Bookings</th>
+                        <th>Revenue</th>
+                        <th>% of Total</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    
+                    <tr>
+                        <td style="text-transform: capitalize;">domus</td>
+                        <td>17</td>
+                        <td>$41,120</td>
+                        <td>100.0%</td>
+                    </tr>
+                    
+                </tbody>
+            </table>
+        </div>
+
+        <!-- AREAS OF ATTENTION (OSIRIS AI) -->
+        <div class="section">
+            <div class="section-title">Areas of Attention</div>
+            
+            <div class="summary-box">
+                <h3>1. <strong>OTA Dependency</strong></h3>
+                <p>The property has a 100% dependency on the OTA channel 'domus' for bookings. Diversifying the booking channels is crucial to reduce risk and increase direct bookings.</p>
+            </div>
+            <div class="summary-box">
+                <h3>2. <strong>Low Occupancy in Key Villas</strong></h3>
+                <p>Several villas, such as the 5BR Grand Villa (19.4% occupancy) and Sky Villa (17.7% occupancy), have low occupancy rates. Consider targeted marketing campaigns or promotions to boost occupancy.</p>
+            </div>
+            <div class="summary-box">
+                <h3>3. <strong>Revenue Concentration</strong></h3>
+                <p>River Villa generates the highest revenue at USD 7,250, but other villas like the 5BR Villa only generate USD 2,000. Evaluate pricing strategies and guest experiences to balance revenue across all villas.</p>
+            </div>
+        </div>
+
+        <div class="footer">
+            Izumi Hotel & Villas | Generated: 2/11/2026
+        </div>
+    </div>
+
+    <!-- PAGE 2: VILLA PERFORMANCE BREAKDOWN -->
+    <div class="page">
+        <div class="header">
+            <h1>VILLA PERFORMANCE BREAKDOWN</h1>
+            <div class="subtitle">Izumi Hotel & Villas | 2026-01-01 to 2026-12-31</div>
+        </div>
+
+        <!-- VILLA COMPARISON TABLE -->
+        <div class="section">
+            <div class="section-title">Villa Performance Comparison</div>
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Villa</th>
+                        <th>Bookings</th>
+                        <th>Revenue</th>
+                        <th>Avg Value</th>
+                        <th>Room Nights</th>
+                        <th>Occupancy</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    
+                    <tr style="background: #f0fff4; font-weight: 600;">
+                        <td>River Villa</td>
+                        <td>3</td>
+                        <td>$7,250</td>
+                        <td>$2,416.667</td>
+                        <td>14</td>
+                        <td>
+                            22.6%
+                            <span class="badge badge-danger">Low</span>
+                        </td>
+                    </tr>
+                      
+                    <tr >
+                        <td>5BR Grand Villa</td>
+                        <td>2</td>
+                        <td>$6,600</td>
+                        <td>$3,300</td>
+                        <td>12</td>
+                        <td>
+                            19.4%
+                            <span class="badge badge-danger">Low</span>
+                        </td>
+                    </tr>
+                      
+                    <tr >
+                        <td>Sky Villa</td>
+                        <td>2</td>
+                        <td>$5,500</td>
+                        <td>$2,750</td>
+                        <td>11</td>
+                        <td>
+                            17.7%
+                            <span class="badge badge-danger">Low</span>
+                        </td>
+                    </tr>
+                      
+                    <tr >
+                        <td>Cave Villa</td>
+                        <td>2</td>
+                        <td>$5,500</td>
+                        <td>$2,750</td>
+                        <td>11</td>
+                        <td>
+                            17.7%
+                            <span class="badge badge-danger">Low</span>
+                        </td>
+                    </tr>
+                      
+                    <tr >
+                        <td>Nest Villa</td>
+                        <td>2</td>
+                        <td>$5,250</td>
+                        <td>$2,625</td>
+                        <td>10</td>
+                        <td>
+                            16.1%
+                            <span class="badge badge-danger">Low</span>
+                        </td>
+                    </tr>
+                      
+                    <tr >
+                        <td>Tropical Room</td>
+                        <td>2</td>
+                        <td>$3,500</td>
+                        <td>$1,750</td>
+                        <td>7</td>
+                        <td>
+                            11.3%
+                            <span class="badge badge-danger">Low</span>
+                        </td>
+                    </tr>
+                      
+                    <tr >
+                        <td>Blossom Villa</td>
+                        <td>1</td>
+                        <td>$3,000</td>
+                        <td>$3,000</td>
+                        <td>6</td>
+                        <td>
+                            19.4%
+                            <span class="badge badge-danger">Low</span>
+                        </td>
+                    </tr>
+                      
+                    <tr >
+                        <td>Unknown Villa</td>
+                        <td>2</td>
+                        <td>$2,520</td>
+                        <td>$1,260</td>
+                        <td>14</td>
+                        <td>
+                            22.6%
+                            <span class="badge badge-danger">Low</span>
+                        </td>
+                    </tr>
+                      
+                    <tr >
+                        <td>5BR Villa</td>
+                        <td>1</td>
+                        <td>$2,000</td>
+                        <td>$2,000</td>
+                        <td>4</td>
+                        <td>
+                            12.9%
+                            <span class="badge badge-danger">Low</span>
+                        </td>
+                    </tr>
+                      
+                </tbody>
+            </table>
+        </div>
+
+        <!-- VILLA OCCUPANCY CHART -->
+        <div class="section">
+            <div class="section-title">Occupancy Rate by Villa</div>
+            <div style="background: #f7fafc; padding: 15px; border-radius: 8px; border: 1px solid #e2e8f0;">
+                <canvas id="villaOccupancyChart" style="max-height: 180px;"></canvas>
+            </div>
+        </div>
+
+        <!-- INSIGHTS (OSIRIS AI) -->
+        <div class="section">
+            <div class="section-title">Performance Insights</div>
+            
+            <div class="summary-box" style="background: #f0fff4; border-color: #9ae6b4;">
+                <h3>⭐ 1. <strong>High Average Booking Value</strong></h3>
+                <p>With an average booking value of USD 2,419, the property is successfully attracting high:value bookings, indicating effective pricing strategies.</p>
+            </div>
+            <div class="summary-box" style="background: #fffaf0; border-color: #fbb6ce;">
+                <h3>2. <strong>Consistent Channel Performance</strong></h3>
+                <p>All bookings are sourced from 'domus', showing a strong relationship with this OTA. However, this also highlights the need for channel diversification.</p>
+            </div>
+            <div class="summary-box" style="background: #fffaf0; border-color: #fbb6ce;">
+                <h3>3. <strong>River Villa's Strong Performance</strong></h3>
+                <p>River Villa leads in revenue and occupancy (22.6%), suggesting it is a preferred choice among guests. This could be leveraged in marketing efforts to attract more guests.</p>
+            </div>
+        </div>
+
+        <!-- STRATEGIC OBJECTIVES (OSIRIS AI) -->
+        <div class="section" style="margin-bottom: 6px;">
+            <div class="section-title" style="font-size: 13px; margin-bottom: 6px;">Strategic Objectives</div>
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 6px;">
+                
+                <div style="background: #f7fafc; padding: 6px; border-radius: 5px; border: 1px solid #e2e8f0; text-align: center;">
+                    <div style="font-size: 8px; color: #718096; margin-bottom: 2px; font-weight: 600;"><STRONG>DIVERSIFY</STRONG></div>
+                    <div style="font-size: 11px; font-weight: 700; color: #2d3748;"><strong>Channel Mix</strong></div>
+                    <div style="font-size: 7px; color: #718096; margin-top: 2px; line-height: 1.2;"><strong>Reduce OTA dependency to 80% from 100%</strong></div>
+                </div>
+                <div style="background: #f7fafc; padding: 6px; border-radius: 5px; border: 1px solid #e2e8f0; text-align: center;">
+                    <div style="font-size: 8px; color: #718096; margin-bottom: 2px; font-weight: 600;"><STRONG>INCREASE</STRONG></div>
+                    <div style="font-size: 11px; font-weight: 700; color: #2d3748;"><strong>Occupancy Rates</strong></div>
+                    <div style="font-size: 7px; color: #718096; margin-top: 2px; line-height: 1.2;"><strong>Boost 5BR Grand Villa occupancy to 30% from 19.4%</strong></div>
+                </div>
+                <div style="background: #f7fafc; padding: 6px; border-radius: 5px; border: 1px solid #e2e8f0; text-align: center;">
+                    <div style="font-size: 8px; color: #718096; margin-bottom: 2px; font-weight: 600;"><STRONG>ENHANCE</STRONG></div>
+                    <div style="font-size: 11px; font-weight: 700; color: #2d3748;"><strong>Revenue Distribution</strong></div>
+                    <div style="font-size: 7px; color: #718096; margin-top: 2px; line-height: 1.2;"><strong>Raise 5BR Villa revenue to USD 3,000 from USD 2,000</strong></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- KEY METRICS TO TRACK -->
+        <div class="section" style="margin-bottom: 6px;">
+            <div class="section-title" style="font-size: 12px; margin-bottom: 6px;">Success Metrics</div>
+            <table class="data-table" style="font-size: 8px;">
+                <thead>
+                    <tr>
+                        <th>Metric</th>
+                        <th>Current</th>
+                        <th>Target (6 months)</th>
+                        <th>Target (12 months)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Occupancy Rate</td>
+                        <td>71.8%</td>
+                        <td>40%</td>
+                        <td>60%</td>
+                    </tr>
+                    <tr>
+                        <td>Direct Booking %</td>
+                        <td>0.0%</td>
+                        <td>30%</td>
+                        <td>45%</td>
+                    </tr>
+                    <tr>
+                        <td>Avg Booking Value</td>
+                        <td>$2.4K</td>
+                        <td>$2.8K</td>
+                        <td>$3.1K</td>
+                    </tr>
+                    <tr>
+                        <td>Monthly Revenue</td>
+                        <td>$1.7K</td>
+                        <td>$2.6K</td>
+                        <td>$3.4K</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- NOTE -->
+        <div style="background: #fff7ed; border: 2px solid #fed7aa; padding: 10px; border-radius: 8px; margin-top: 10px;">
+            <div style="font-size: 10px; color: #92400e; line-height: 1.4;">
+                <strong>🤖 POWERED BY OSIRIS AI:</strong> The sections <strong>"Areas of Attention"</strong>, <strong>"Performance Insights"</strong>, and <strong>"Strategic Objectives"</strong> are now generated by <strong>OSIRIS</strong>, our Claude AI business analyst. OSIRIS analyzes your real business data and provides intelligent, personalized recommendations specific to your performance metrics. <strong>All data and analysis are based on your actual database.</strong>
+            </div>
+        </div>
+
+        <div class="footer">
+            Izumi Hotel & Villas - Villa Performance & Strategic Plan | Page 2
+        </div>
+    </div>
+
+    <script>
+        // Chart.js visualization for occupancy
+        const ctx = document.getElementById('villaOccupancyChart');
+        if (ctx) {
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ["River Villa","5BR Grand Villa","Sky Villa","Cave Villa","Nest Villa","Tropical Room","Blossom Villa","Unknown Villa","5BR Villa"],
+                    datasets: [{
+                        label: 'Occupancy Rate (%)',
+                        data: [22.6,19.4,17.7,17.7,16.1,11.3,19.4,22.6,12.9],
+                        backgroundColor: ["#f97316","#f97316","#f97316","#f97316","#f97316","#f97316","#f97316","#f97316","#f97316"],
+                        borderColor: ["#ea580c","#ea580c","#ea580c","#ea580c","#ea580c","#ea580c","#ea580c","#ea580c","#ea580c"],
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100,
+                            ticks: {
+                                callback: function(value) {
+                                    return value + '%';
+                                }
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    }
+                }
+            });
+        }
+    </script>
+</body>
+</html>

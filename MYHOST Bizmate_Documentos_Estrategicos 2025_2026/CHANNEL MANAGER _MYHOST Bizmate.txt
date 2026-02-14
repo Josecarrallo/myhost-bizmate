@@ -1,0 +1,79 @@
+# Informe – Elección de Channel Manager para MYHOST Bizmate (Bali 2026)
+
+## 1. Contexto de MYHOST Bizmate y segmento objetivo
+
+- **Ubicación y mercado**: Bali, segmento medio y bajo de villas y pequeños hoteles.
+- **Tendencia clave**: los propietarios quieren **reducir comisiones de OTAs** (Airbnb, Booking.com) y aumentar reservas directas. [web:213][web:219]
+- **Canales de entrada que vas a priorizar**:
+  - BANYU.AI (WhatsApp)
+  - KORA.AI (voz)
+  - Formularios web
+  - Instagram / Facebook (DM, bio, anuncios)
+  - OTAs (Booking, Airbnb, etc.) como soporte, no como canal principal.
+
+**Conclusión de negocio**: necesitas un channel manager que:
+- Soporte OTAs importantes.
+- Tenga buen **motor de reservas / web** para direct bookings.
+- Encaje muy bien con villas/hoteles de Indonesia y Bali.
+- Ofrezca APIs integrables con n8n y Claude Code.
+
+---
+
+## 2. Opciones consideradas y por qué se descartan/priorizan
+
+Se valoraron principalmente dos líneas:
+
+1. **Smoobu / Lodgify (all‑in‑one para alquiler vacacional)**  
+   - Pros:
+     - Muy buenos para villas/apartamentos de pequeños propietarios en Europa/EEUU. [web:214][web:205]
+     - Incluyen web + booking engine + channel manager.
+   - Contras:
+     - Menos foco específico en Indonesia/Bali.
+     - Mentalidad y soporte orientados a mercados europeos/americanos.
+   - Veredicto: interesantes para integrarse más adelante si tienes muchos owners que ya los usan, pero no como prioridad nº1 para Bali.
+
+2. **BookandLink / ChannelKu (Indonesia/Bali)**  
+   - Se presentan como “#1 Channel Manager in Indonesia and Bali for Hotels and Villas”. [web:199]
+   - Ofrecen:
+     - Channel manager completo.
+     - Booking engine / herramientas web para reservas directas.
+     - Foco geográfico claro en Indonesia (hoteles y villas).
+   - Veredicto: encaja directamente con tu mercado y discurso (Bali, villas, direct bookings).
+
+**Recomendación final**:  
+> Priorizar **BookandLink / ChannelKu** como channel manager principal a integrar para MYHOST Bizmate, dejando Smoobu/Lodgify como integración futura opcional.
+
+---
+
+## 3. Por qué BookandLink es la mejor elección para MYHOST Bizmate
+
+### 3.1. Alineación con el mercado Bali (mid/low segment)
+
+- BookandLink está diseñado para **hoteles y villas en Indonesia**, con fuerte presencia en Bali. [web:199]  
+- Esto significa:
+  - Precios y modelos pensados para propietarios locales + managers de villas.
+  - Soporte y comunicación en un contexto cultural y horario parecido al tuyo.
+  - Marca conocida o al menos “creíble” para tu target (frente a soluciones muy europeas que a veces se perciben como más caras o lejanas).
+
+### 3.2. Direct bookings como prioridad
+
+- Además de conectar con OTAs, BookandLink ofrece **motor de reservas propio** y herramientas para reservas directas. [web:199][web:214]
+- Eso encaja con tu estrategia:
+  - Tus campañas y contenidos en Instagram/TikTok/WhatsApp guían al huésped hacia **reserva directa**, usando:
+    - Motor de reservas conectado a BookandLink.
+    - Calendario siempre actualizado gracias al channel manager.
+
+### 3.3. Integración técnica viable con n8n + Claude Code
+
+- BookandLink expone servicios que pueden consumirse vía **API HTTP**, lo que:
+  - Permite a **n8n**:
+    - Consultar disponibilidad y tarifas.
+    - Crear y modificar reservas.
+  - Permite a **Claude Code**:
+    - Generar workflows n8n y microservicios backend alrededor de esa API.
+
+En resumen: desde el punto de vista técnico, BookandLink se comporta como cualquier channel manager moderno al que puedes conectar n8n con nodos HTTP y envolver con tu backend.
+
+---
+
+## 4. Rol de MYHOST Bizmate en la arquitec

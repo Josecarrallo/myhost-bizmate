@@ -1,0 +1,47 @@
+[ ] CONTEXTO GENERAL
+Este prompt corresponde al flujo:
+WF-SP-02 — AI Self-Assistance.
+
+El AI Self-Assistance YA EXISTE parcialmente (WhatsApp AI Concierge funcionando).
+El objetivo NO es rehacerlo, sino COMPLETARLO y ALINEARLO con ventas.
+
+[ ] OBJETIVO DEL FLUJO
+Permitir que un cliente obtenga respuestas inmediatas sobre:
+- disponibilidad
+- precios
+- fechas
+- tipos de habitación
+y preparar el terreno para la conversión.
+
+[ ] ESTADO ACTUAL
+- AI responde availability, price y booking.
+- Tools ya conectadas (check_availability, calculate_price, create_booking).
+- Funciona bien a nivel técnico.
+
+[ ] MEJORAS REQUERIDAS
+1. Añadir CONTEXTO COMERCIAL al prompt del AI:
+   - detectar intención de compra
+   - detectar indecisión
+   - detectar comparación con otros hoteles
+2. Clasificar conversación en estados:
+   - INFO
+   - INTEREST
+   - HOT LEAD
+   - READY TO BOOK
+3. Emitir eventos:
+   - ai_hot_lead_detected
+   - ai_ready_to_book
+4. Derivar a WF-SP-03 cuando:
+   - el cliente no responde
+   - el cliente duda
+   - el cliente pide tiempo
+
+[ ] REGLAS IMPORTANTES
+- El AI NO debe spamear.
+- El AI NO debe cerrar solo si detecta fricción.
+- Debe escalar inteligentemente.
+
+[ ] OUTPUT ESPERADO
+- AI Self-Assistance orientado a conversión.
+- Totalmente integrado con Follow-Up Engine.
+- Sin romper flujos existentes.

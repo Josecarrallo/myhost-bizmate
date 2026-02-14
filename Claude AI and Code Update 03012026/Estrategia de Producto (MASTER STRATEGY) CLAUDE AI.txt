@@ -1,0 +1,37 @@
+ 1. Estrategia de Producto (MASTER STRATEGY)
+
+  - MY HOST BizMate NO es un chatbot ni un PMS tradicional
+  - Es un "AI-Operated Business System" - un sistema operado por IA
+  - Vendemos una fuerza laboral autónoma, no software
+  - Objetivo: Eliminar 90-95% del trabajo operativo y comercial diario
+
+  2. Sistema Dual de Agentes (CORE)
+
+  BANYU.AI (Agente Externo - Revenue/Guests):
+  - Motor de ingresos (Revenue Engine)
+  - Concierge 24/7, conversión de leads, cierre de bookings
+  - WhatsApp (Coexistence) + Voice (Vapi)
+  - Proactivo, orientado a ventas, conocimiento hiper-local de Bali
+
+  OSIRIS.AI (Agente Interno - Operations):
+  - Cerebro operacional (Operational Brain)
+  - Protege márgenes, controla logística, asigna staff
+  - Ejecutivo, KPI-driven, actúa como COO virtual
+  - Solo escala al owner cuando es necesario
+
+  3. Arquitectura Técnica Confirmada
+
+  - n8n como cerebro de orquestación
+  - Supabase para DB, memory, RLS, multi-tenant
+  - MCP CENTRAL ya existe: MCP-Central-Izumi-Hotel-MyHost-BizMate-20
+  - Arquitectura híbrida: MCP-routed flows + Independent workflows
+
+  4. Decisión de Arquitectura (MVP → HYBRID)
+
+  - Mantener "GuestJourney-Scheduler" como workflow independiente
+  - Migración gradual hacia MCP Central para acciones reutilizables
+  - Schema de Supabase debe soportar:
+    - journeys / journey_state
+    - conversations / messages (multi-canal)
+    - actions_log / audit_log (auditoría de agentes)
+    - Multi-tenancy con RLS

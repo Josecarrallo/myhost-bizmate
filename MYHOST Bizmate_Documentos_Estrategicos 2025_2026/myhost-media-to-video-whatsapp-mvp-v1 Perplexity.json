@@ -1,0 +1,367 @@
+{
+  "name": "MYHOST - Media → Video → WhatsApp (MVP)",
+  "nodes": [
+    {
+      "id": "Webhook_Trigger",
+      "name": "Webhook - Media to Video",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [0, 0],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "media-to-video",
+        "responseMode": "onReceived",
+        "options": {
+          "responseContentType": "application/json"
+        }
+      }
+    },
+    {
+      "id": "Sticky_Intro",
+      "name": "NOTE - Qué hace este flujo",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [-260, -220],
+      "parameters": {
+        "content": "Este workflow recibe una foto (media_url) o solo texto (text_description), llama a Claude para generar idea/caption/hashtags, llama a Fal/Wan para generar el vídeo, guarda el job en Supabase y envía el vídeo al owner por WhatsApp.\n\nNodos que debes revisar/actualizar:\n- Call Claude Creative: modelo, URL y API key de Claude.\n- Supabase Insert/Update: URL y API key de Supabase (REST API) o credenciales del nodo Postgres.\n- Call Fal Wan i2v: endpoint de Fal.ai y API key.\n- Send WhatsApp Video: credenciales y formato del proveedor (Twilio / 360dialog / Meta Cloud)."
+      }
+    },
+    {
+      "id": "Function_PrepareDescription",
+      "name": "Prepare Media Description",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 2,
+      "position": [220, 0],
+      "parameters": {
+        "functionCode": "const incoming = items[0].json;\nconst textDescription = incoming.text_description || '';\nconst mediaUrl = incoming.media_url || '';\nlet media_description;\nif (textDescription && textDescription.trim() !== '') {\n  media_description = textDescription.trim();\n} else if (mediaUrl) {\n  media_description = 'Photo or short video of a Bali villa (no detailed description provided).';\n} else {\n  throw new Error('Either media_url or text_description must be provided');\n}\nitems[0].json.media_description = media_description;\nreturn items;"
+      }
+    },
+    {
+      "id": "Sticky_InputNote",
+      "name": "NOTE - Body Webhook",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [0, 180],
+      "parameters": {
+        "content": "Ejemplo de body que debe enviar tu backend al Webhook:\n{\n  \"property_id\": \"villa_123\",\n  \"property_name\": \"Villa Suerte\",\n  \"language\": \"es\",\n  \"objective\": \"bookings\",\n  \"platform_focus\": \"instagram_reels\",\n  \"target_audience\": \"parejas\",\n  \"media_url\": \"https://.../raw_media/foto.jpg\", // opcional\n  \"text_description\": \"Foto de piscina infinita con arrozales al atardecer\", // opcional\n  \"owner_whatsapp\": \"+628123456789\"\n}\n\nSe puede mandar solo media_url, solo text_description o ambos."
+      }
+    },
+    {
+      "id": "HTTP_Supabase_InsertJob",
+      "name": "Supabase - Insert media_job (received)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [460, 0],
+      "parameters": {
+        "url": "https://YOUR-SUPABASE-PROJECT.supabase.co/rest/v1/media_jobs",
+        "method": "POST",
+        "authentication": "headerAuth",
+        "jsonParameters": true,
+        "headerParametersJson": "={\"apikey\": \"YOUR_SUPABASE_ANON_OR_SERVICE_KEY\",\"Authorization\": \"Bearer YOUR_SUPABASE_SERVICE_KEY\",\"Content-Type\": \"application/json\",\"Prefer\": \"return=representation\"}",
+        "options": {},
+        "bodyParametersJson": "={\n  \"property_id\": $json[\"property_id\"],\n  \"input_media_url\": $json[\"media_url\"] || null,\n  \"has_media\": !!$json[\"media_url\"],\n  \"media_description\": $json[\"media_description\"],\n  \"language\": $json[\"language\"],\n  \"objective\": $json[\"objective\"],\n  \"target_audience\": $json[\"target_audience\"],\n  \"platform_focus\": $json[\"platform_focus\"],\n  \"status\": \"received\",\n  \"owner_whatsapp\": $json[\"owner_whatsapp\"]\n}"
+      }
+    },
+    {
+      "id": "Sticky_SupabaseNote",
+      "name": "NOTE - Supabase REST",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [460, 180],
+      "parameters": {
+        "content": "Este nodo usa la REST API de Supabase para insertar en media_jobs.\nDebes actualizar:\n- URL del proyecto Supabase.\n- apikey y Authorization con tu SERVICE KEY (o una key segura).\n\nLa tabla media_jobs debe existir con las columnas definidas:\n- property_id, input_media_url, has_media, media_description, language, objective, target_audience, platform_focus, status, owner_whatsapp, etc."
+      }
+    },
+    {
+      "id": "Function_ExtractJobId",
+      "name": "Extract media_job_id",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 2,
+      "position": [700, 0],
+      "parameters": {
+        "functionCode": "const row = items[0].json[0];\nitems[0].json.media_job_id = row.id;\nitems[0].json.media_description = row.media_description;\nitems[0].json.input_media_url = row.input_media_url;\nitems[0].json.language = row.language;\nitems[0].json.objective = row.objective;\nitems[0].json.target_audience = row.target_audience;\nitems[0].json.platform_focus = row.platform_focus;\nitems[0].json.owner_whatsapp = row.owner_whatsapp;\nreturn items;"
+      }
+    },
+    {
+      "id": "Set_ClaudeInput",
+      "name": "Prepare Claude Input",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3,
+      "position": [940, 0],
+      "parameters": {
+        "keepOnlySet": false,
+        "values": {
+          "json": [
+            {
+              "name": "claude_input",
+              "value": "={\n  \"property_id\": $json[\"property_id\"],\n  \"property_name\": $json[\"property_name\"],\n  \"location\": \"Bali\",\n  \"language\": $json[\"language\"],\n  \"objective\": $json[\"objective\"],\n  \"platform_focus\": $json[\"platform_focus\"],\n  \"target_audience\": $json[\"target_audience\"],\n  \"media_description\": $json[\"media_description\"],\n  \"extra_context\": \"\"\n}"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "HTTP_Claude",
+      "name": "Call Claude Creative",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1180, 0],
+      "parameters": {
+        "url": "https://api.anthropic.com/v1/messages",
+        "method": "POST",
+        "authentication": "headerAuth",
+        "jsonParameters": true,
+        "headerParametersJson": "={\"x-api-key\": \"YOUR_CLAUDE_API_KEY\",\"Content-Type\": \"application/json\",\"anthropic-version\": \"2023-06-01\"}",
+        "bodyParametersJson": "={\n  \"model\": \"claude-3-opus-20240229\",\n  \"max_tokens\": 1024,\n  \"system\": \"You are a specialized Bali hospitality social media content strategist... (PEGAR AQUÍ EL PROMPT COMPLETO)\",\n  \"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": [\n        {\n          \"type\": \"text\",\n          \"text\": JSON.stringify($json[\"claude_input\"])\n        }\n      ]\n    }\n  ]\n}"
+      }
+    },
+    {
+      "id": "Sticky_ClaudeNote",
+      "name": "NOTE - Claude",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [1180, 180],
+      "parameters": {
+        "content": "Actualiza:\n- YOUR_CLAUDE_API_KEY\n- El prompt completo en el campo system.\n\nClaude debe devolver UN JSON puro siguiendo el schema definido (scene_summary, video_concept, caption, cta, hashtags, notes_for_video_engine, etc.).\nSi la API devuelve texto con comillas, quizá necesites un nodo Function adicional para hacer JSON.parse."
+      }
+    },
+    {
+      "id": "Function_ParseClaude",
+      "name": "Parse Claude JSON",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 2,
+      "position": [1420, 0],
+      "parameters": {
+        "functionCode": "const response = items[0].json;\n// Asumimos que Claude responde con content[0].text\nconst text = response.content[0].text;\nlet parsed;\ntry {\n  parsed = JSON.parse(text);\n} catch (e) {\n  throw new Error('Claude did not return valid JSON: ' + e.message + '\\nRaw: ' + text);\n}\nitems[0].json.claude_output = parsed;\nreturn items;"
+      }
+    },
+    {
+      "id": "HTTP_Supabase_UpdateProcessing",
+      "name": "Supabase - Update media_job (processing)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1660, 0],
+      "parameters": {
+        "url": "=https://YOUR-SUPABASE-PROJECT.supabase.co/rest/v1/media_jobs?id=eq.{{$json[\"media_job_id\"]}}",
+        "method": "PATCH",
+        "authentication": "headerAuth",
+        "jsonParameters": true,
+        "headerParametersJson": "={\"apikey\": \"YOUR_SUPABASE_ANON_OR_SERVICE_KEY\",\"Authorization\": \"Bearer YOUR_SUPABASE_SERVICE_KEY\",\"Content-Type\": \"application/json\"}",
+        "bodyParametersJson": "={\n  \"status\": \"processing\",\n  \"clauded_output\": $json[\"claude_output\"],\n  \"caption\": $json[\"claude_output\"][\"caption\"],\n  \"cta\": $json[\"claude_output\"][\"cta\"],\n  \"hashtags\": $json[\"claude_output\"][\"hashtags\"],\n  \"vibe\": $json[\"claude_output\"][\"vibe\"],\n  \"platform_focus\": $json[\"claude_output\"][\"platform_focus\"]\n}"
+      }
+    },
+    {
+      "id": "HTTP_FalWan",
+      "name": "Call Fal Wan i2v",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1900, 0],
+      "parameters": {
+        "url": "https://fal.run/fal-ai/wan-i2v",
+        "method": "POST",
+        "authentication": "headerAuth",
+        "jsonParameters": true,
+        "headerParametersJson": "={\"Authorization\": \"Key YOUR_FAL_API_KEY\",\"Content-Type\": \"application/json\"}",
+        "bodyParametersJson": "={\n  \"input\": {\n    \"image_url\": $json[\"input_media_url\"],\n    \"prompt\": $json[\"claude_output\"][\"notes_for_video_engine\"],\n    \"aspect_ratio\": \"9:16\"\n  }\n}"
+      }
+    },
+    {
+      "id": "Sticky_FalNote",
+      "name": "NOTE - Fal/Wan",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [1900, 180],
+      "parameters": {
+        "content": "Actualiza:\n- YOUR_FAL_API_KEY\n\nEste nodo llama directamente al modelo fal-ai/wan-i2v.\nRevisa la documentación de Fal.ai para confirmar el formato exacto del body y dónde viene el video_url en la respuesta.\nEn el siguiente nodo parsearemos la URL del vídeo."
+      }
+    },
+    {
+      "id": "Function_ParseFal",
+      "name": "Parse Fal video_url",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 2,
+      "position": [2140, 0],
+      "parameters": {
+        "functionCode": "const res = items[0].json;\n// Ajusta esta línea según la respuesta real de Fal.ai\n// Ejemplo: res.data.video_url\nconst videoUrl = res.data?.video_url || res.video_url || null;\nif (!videoUrl) {\n  throw new Error('No video_url found in Fal response');\n}\nitems[0].json.final_video_url = videoUrl;\nreturn items;"
+      }
+    },
+    {
+      "id": "HTTP_Supabase_UpdateReady",
+      "name": "Supabase - Update media_job (ready)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [2380, 0],
+      "parameters": {
+        "url": "=https://YOUR-SUPABASE-PROJECT.supabase.co/rest/v1/media_jobs?id=eq.{{$json[\"media_job_id\"]}}",
+        "method": "PATCH",
+        "authentication": "headerAuth",
+        "jsonParameters": true,
+        "headerParametersJson": "={\"apikey\": \"YOUR_SUPABASE_ANON_OR_SERVICE_KEY\",\"Authorization\": \"Bearer YOUR_SUPABASE_SERVICE_KEY\",\"Content-Type\": \"application/json\"}",
+        "bodyParametersJson": "={\n  \"status\": \"ready\",\n  \"final_video_url\": $json[\"final_video_url\"]\n}"
+      }
+    },
+    {
+      "id": "HTTP_WhatsApp",
+      "name": "Send WhatsApp Video",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [2620, 0],
+      "parameters": {
+        "url": "https://YOUR-WHATSAPP-PROVIDER-ENDPOINT",
+        "method": "POST",
+        "authentication": "headerAuth",
+        "jsonParameters": true,
+        "headerParametersJson": "={\"Authorization\": \"Bearer YOUR_WHATSAPP_TOKEN\",\"Content-Type\": \"application/json\"}",
+        "bodyParametersJson": "={\n  \"to\": $json[\"owner_whatsapp\"],\n  \"type\": \"video\",\n  \"video\": {\n    \"link\": $json[\"final_video_url\"],\n    \"caption\": $json[\"claude_output\"][\"caption\"]\n  }\n}"
+      }
+    },
+    {
+      "id": "Sticky_WhatsAppNote",
+      "name": "NOTE - WhatsApp",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [2620, 180],
+      "parameters": {
+        "content": "Actualiza:\n- YOUR-WHATSAPP-PROVIDER-ENDPOINT\n- YOUR_WHATSAPP_TOKEN\n\nEl body está en formato genérico tipo Meta Cloud.\nAdáptalo al formato concreto de tu proveedor (Twilio, 360dialog, Meta Cloud API)."
+      }
+    },
+    {
+      "id": "Webhook_Response",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [2860, 0],
+      "parameters": {
+        "responseBody": "={\n  \"status\": \"ok\",\n  \"message\": \"Video generated and sent via WhatsApp\",\n  \"media_job_id\": $json[\"media_job_id\"],\n  \"video_url\": $json[\"final_video_url\"]\n}"
+      }
+    }
+  ],
+  "connections": {
+    "Webhook_Trigger": {
+      "main": [
+        [
+          {
+            "node": "Function_PrepareDescription",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Function_PrepareDescription": {
+      "main": [
+        [
+          {
+            "node": "HTTP_Supabase_InsertJob",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP_Supabase_InsertJob": {
+      "main": [
+        [
+          {
+            "node": "Function_ExtractJobId",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Function_ExtractJobId": {
+      "main": [
+        [
+          {
+            "node": "Set_ClaudeInput",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set_ClaudeInput": {
+      "main": [
+        [
+          {
+            "node": "HTTP_Claude",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP_Claude": {
+      "main": [
+        [
+          {
+            "node": "Function_ParseClaude",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Function_ParseClaude": {
+      "main": [
+        [
+          {
+            "node": "HTTP_Supabase_UpdateProcessing",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "HTTP_FalWan",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP_FalWan": {
+      "main": [
+        [
+          {
+            "node": "Function_ParseFal",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Function_ParseFal": {
+      "main": [
+        [
+          {
+            "node": "HTTP_Supabase_UpdateReady",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP_Supabase_UpdateReady": {
+      "main": [
+        [
+          {
+            "node": "HTTP_WhatsApp",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP_WhatsApp": {
+      "main": [
+        [
+          {
+            "node": "Webhook_Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}

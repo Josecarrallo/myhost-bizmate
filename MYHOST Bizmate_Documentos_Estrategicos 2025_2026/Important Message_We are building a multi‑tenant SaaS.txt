@@ -1,0 +1,29 @@
+We are building a multi‑tenant SaaS for villa and small hotel owners in Bali, focused on WhatsApp‑based guest communication and automation.
+
+Technical context:
+- We use WhatsApp Business Cloud API through Chakra (with coexistence mode) as our main messaging infrastructure.
+- Each client (villa owner) must use their own WhatsApp Business number; sharing a single number is not acceptable for our market.
+- All workflows (bots, automations, routing) are orchestrated with n8n, and the rest of the app (dashboard, APIs, Supabase models, etc.) is built with Claude Code.
+
+Meta / WhatsApp constraints:
+- Our current Meta Business Manager + WhatsApp Business Account is limited to 2 phone numbers and Meta support will not increase this manually; the limit will grow automatically only if message quality and usage are high.
+- In the medium term, our realistic target is to reach the standard “expanded” limit of up to 20 phone numbers under the same Business/WABA, assuming good account health.
+
+What I need from you (architecture & implementation):
+1) Design everything as if we could manage 40+ phone numbers, even though right now we are capped at 2.
+2) Treat each WhatsApp API phone number as a separate tenant dimension, linked to:
+   - an `owner` (client)
+   - one or more `properties` (villas / small hotels)
+   - its own bot/config (BANYU) and n8n workflows.
+3) Model the database (Supabase) so that:
+   - `owners`, `properties`, and `whatsapp_numbers` are clearly separated.
+   - `whatsapp_numbers` stores the Chakra/Meta identifiers (phone_number_id, WABA id, etc.).
+   - every conversation/message is always associated to a specific `whatsapp_number_id` and therefore to the correct owner/property.
+4) Build integration points so that:
+   - Incoming webhooks from Chakra are routed by `phone_number_id` to the correct tenant logic.
+   - Outgoing messages are always sent from the correct number (never mixed between clients).
+5) Assume that in the short term I will only have 1–2 real numbers to test, but the system must be ready to plug more numbers and owners without major refactors once Meta increases the limit.
+
+Focus:
+- Help me design a clean, scalable multi‑tenant architecture around “one WhatsApp number per owner”, compatible with Chakra + n8n.
+- Make the code / workflows easy to extend when the phone number limit goes from 2 → 5 → 10 → 20 and beyond.

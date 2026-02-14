@@ -1,0 +1,25 @@
+Estamos implementando un nuevo módulo llamado **Autopilot** dentro de MY HOST BizMate.
+
+Autopilot no es un agente nuevo ni una funcionalidad aislada: es un **modo de uso** pensado para villa owners no técnicos que hoy gestionan todo por WhatsApp e Instagram y trabajan de forma manual.
+
+El objetivo de Autopilot es **automatizar exactamente lo que el owner ya hace cada día**, sin añadir complejidad ni pedirle que aprenda nada nuevo. El sistema debe responder, controlar pagos y dar claridad diaria, mientras el owner solo observa y aprueba cuando hace falta.
+
+La implementación se hará **por fases**, y es muy importante respetar este orden:
+
+FASE 1 — AUTOPILOT DAILY (la única que se está implementando ahora):
+- Responder mensajes entrantes 24/7 y capturar leads.
+- Controlar reservas sin pagar (recordatorios y expiración automática).
+- Generar un resumen diario simple para el owner.
+
+FASE 2 — AUTOPILOT WEEKLY  
+FASE 3 — AUTOPILOT MONTHLY  
+
+Las fases Weekly y Monthly se diseñarán más adelante, solo cuando Daily esté validado con owners reales.
+
+Responsabilidades claras:
+- **Claude AI (n8n)** se encarga de los flujos automáticos, la lógica de negocio y de escribir estados y resúmenes en Supabase.
+- **Claude Code** se encarga de la aplicación: menú Autopilot, pantallas, formularios de entrada manual de datos y de mostrar la información que generan los flujos.
+
+El owner nunca debe ver flujos, agentes ni complejidad técnica. En la app solo debe sentir que “esto trabaja solo y yo tengo control”.
+
+Todo el trabajo actual está enfocado exclusivamente en **Autopilot Daily**. No adelantar Weekly ni Monthly hasta que Daily esté completo y funcionando correctamente.

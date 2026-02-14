@@ -1,0 +1,113 @@
+{
+  "name": "WF-02-KORA-POST-CALL",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "kora-post-call-v2",
+        "options": {}
+      },
+      "id": "4c34394e-3e1f-4944-a5a2-635793dbc2d1",
+      "name": "VAPI Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "position": [
+        176,
+        608
+      ],
+      "webhookId": "kora-post-call-v2",
+      "typeVersion": 2
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extract callResult from VAPI Structured Output\n// VAPI sends multiple events - only process end-of-call with structured output\n\nconst body = $input.first().json.body || $input.first().json;\n\n// Check message type first - only process end-of-call-report\nconst messageType = body.message?.type || body.type;\nif (messageType && messageType !== 'end-of-call-report') {\n  // Skip non end-of-call events silently\n  return [];\n}\n\nlet callResult = null;\nlet callerNumber = null;\nlet callId = null;\n\n// Method 1: Scan all root keys for structured output with name='callResult'\nfor (const key of Object.keys(body)) {\n  if (body[key]?.name === 'callResult' && body[key]?.result) {\n    callResult = body[key].result;\n    break;\n  }\n}\n\n// Method 2: Check inside message.artifact.structuredOutputs\nif (!callResult) {\n  const artifact = body.message?.artifact || body.artifact || {};\n  const outputs = artifact.structuredOutputs || artifact.structured_outputs || {};\n  for (const key of Object.keys(outputs)) {\n    if (outputs[key]?.name === 'callResult' && outputs[key]?.result) {\n      callResult = outputs[key].result;\n      break;\n    }\n  }\n}\n\n// Method 3: Direct structuredOutputs at root\nif (!callResult) {\n  const outputs = body.structuredOutputs || body.structured_outputs || {};\n  for (const key of Object.keys(outputs)) {\n    if (outputs[key]?.name === 'callResult' && outputs[key]?.result) {\n      callResult = outputs[key].result;\n      break;\n    }\n  }\n}\n\n// If no callResult found, skip this event\nif (!callResult) {\n  return [];\n}\n\n// Get caller info\nconst call = body.message?.call || body.call || {};\ncallId = call.id || body.callId || null;\ncallerNumber = call.customer?.number || callResult.contact?.phone || null;\n\nreturn [{\n  json: {\n    callResult: callResult,\n    callId: callId,\n    callerNumber: callerNumber\n  }\n}];"
+      },
+      "id": "1ac7d104-8704-4123-82ca-63ef8e55941d",
+      "name": "Extract Structured Output",
+      "type": "n8n-nodes-base.code",
+      "position": [
+        400,
+        608
+      ],
+      "typeVersion": 2
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://n8n-production-bb2d.up.railway.app/webhook/inbound-johnson-v1",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json }}",
+        "options": {}
+      },
+      "id": "48bb9532-135a-49bd-9594-b4cf8e762df1",
+      "name": "Send to WF-SP-01",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        848,
+        608
+      ],
+      "typeVersion": 4.3
+    },
+    {
+      "parameters": {
+        "jsCode": "// Convert to Johnson Contract v1\nconst data = $input.first().json;\nconst cr = data.callResult;\nconst contact = cr.contact || {};\nconst booking = cr.booking || {};\nconst metrics = cr.metrics || {};\nconst callSummary = cr.callSummary || {};\n\nfunction generateUUID() {\n  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {\n    const r = Math.random() * 16 | 0;\n    const v = c === 'x' ? r : (r & 0x3 | 0x8);\n    return v.toString(16);\n  });\n}\n\nconst intentMap = {\n  'BOOKING': 'booking',\n  'INQUIRY': 'availability',\n  'CANCEL': 'info',\n  'CHANGE': 'info',\n  'SUPPORT': 'info',\n  'OTHER': 'info'\n};\n\nconst intent = intentMap[cr.intentType] || 'info';\nconst score = metrics.leadScore || 10;\nconst is_hot = cr.bookingCompleted || score >= 70;\n\nreturn [{\n  json: {\n    version: \"johnson.v1\",\n    event_type: \"lead_message\",\n    \n    tenant: {\n      slug: \"izumi-hotel\",\n      tenant_id: cr.tenantId || \"c24393db-d318-4d75-8bbf-0fa240b9c1db\"\n    },\n    \n    lead: {\n      lead_id: null,\n      name: contact.name || null,\n      phone: contact.phone || data.callerNumber?.replace('+', '') || null,\n      email: contact.email || null\n    },\n    \n    channel: {\n      source: \"vapi\",\n      thread_id: data.callId || null\n    },\n    \n    property: {\n      property_id: \"18711359-1378-4d12-9ea6-fb31c0b1bac2\",\n      property_name: \"Izumi Hotel\",\n      villa_ids: []\n    },\n    \n    booking: {\n      booking_id: null,\n      check_in: booking.checkInDate || null,\n      check_out: booking.checkOutDate || null,\n      guests: booking.numGuests || null,\n      status: cr.bookingCompleted ? \"confirmed\" : \"inquiry\"\n    },\n    \n    message: {\n      text: callSummary.summary || \"Voice call\",\n      language: callSummary.language || \"en\"\n    },\n    \n    ai: {\n      intent: intent,\n      score: score,\n      is_hot: is_hot\n    },\n    \n    trace: {\n      source_workflow: \"KORA-v2-JOHNSON\",\n      execution_id: generateUUID(),\n      timestamp: new Date().toISOString(),\n      call_id: data.callId || null\n    },\n    \n    raw: {\n      payload: cr\n    }\n  }\n}];"
+      },
+      "id": "4373301a-a31f-4ca3-9b11-76487aabf85b",
+      "name": "Build Johnson Contract",
+      "type": "n8n-nodes-base.code",
+      "position": [
+        624,
+        608
+      ],
+      "typeVersion": 2
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "VAPI Webhook": {
+      "main": [
+        [
+          {
+            "node": "Extract Structured Output",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Structured Output": {
+      "main": [
+        [
+          {
+            "node": "Build Johnson Contract",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Johnson Contract": {
+      "main": [
+        [
+          {
+            "node": "Send to WF-SP-01",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
+  },
+  "versionId": "c2a0b889-ae1b-4391-9c98-5fa984bd2bd1",
+  "meta": {
+    "instanceId": "ca7bc7f182c365457ea4a94a4dc2efe81c23590ab8904858ce5cabfbdd56e40f"
+  },
+  "id": "gsMMQrc9T2uZ7LVA",
+  "tags": []
+}

@@ -1,0 +1,238 @@
+[ ] DOCUMENTO MAESTRO — RESUMEN DE FLUJOS
+MYHOST BizMate | Arquitectura de Procesos (v1)
+Uso: Cloud Code (backend, dashboard, naming) + alineación con n8n
+
+==================================================
+
+[ ] CONTEXTO GENERAL
+
+Este documento resume TODOS los flujos funcionales de MYHOST BizMate,
+basados en la arquitectura validada:
+
+- n8n (Cloud AI)
+- Supabase (datos, estados)
+- MCP Central (actions layer)
+- Backend & Dashboard (Cloud Code)
+
+Objetivo:
+ORDENAR, UNIFICAR y PRIORIZAR.
+NO rehacer lo que ya funciona.
+
+==================================================
+
+[ ] VISIÓN GLOBAL DE PROCESOS
+
+El sistema se divide en 4 grandes bloques:
+
+1. Sales & Lead Management
+2. Guest Journey (Post-Booking)
+3. Owner Intelligence & Operations
+4. MCP Central (Reusable Actions Layer)
+
+==================================================
+
+[ ] BLOQUE 1 — SALES & LEAD MANAGEMENT (MÁXIMA PRIORIDAD)
+
+----------------------------------
+[ ] WF-SP-01 — Inbound Lead Handler
+----------------------------------
+
+Estado actual:
+PARCIALMENTE IMPLEMENTADO (disperso en varios flujos)
+
+Flujos tuyos relacionados:
+- WhatsApp AI Concierge
+- Webhook Manual / Webhook POST
+- New Property Notification (parcial)
+- Vapi Izumi Hotel (entrada leads)
+
+Qué YA hace:
+- Recibe contactos desde WhatsApp, IG, Email, Web
+- Normaliza mensajes
+- Responde con AI (en algunos casos)
+
+Qué FALTA (Cloud Code):
+- Modelo unificado de LEAD / CONTACT
+- Estados claros del lead (NEW, ENGAGED, HOT, WON, LOST)
+- Emisión de eventos estándar (lead_created, lead_updated)
+- API interna para que otros flujos reaccionen
+
+Impacto en backend/dashboard:
+- Tabla leads
+- Funnel comercial
+- Vista “Sales Inbox”
+- Base del sistema de ventas
+
+----------------------------------
+[ ] WF-SP-02 — AI Self-Assistance
+----------------------------------
+
+Estado actual:
+IMPLEMENTADO Y FUNCIONAL
+
+Flujos tuyos relacionados:
+- WhatsApp AI Concierge
+- Vapi Izumi Hotel
+- AI Agent con tools (availability, pricing, booking)
+
+Qué YA hace:
+- Responde 24/7
+- Da precios y disponibilidad
+- Crea bookings
+- Usa memoria básica
+
+Qué FALTA (Cloud Code):
+- Clasificación de intención comercial
+- Guardar contexto de venta
+- Emitir eventos hacia Follow-Up Engine
+- Métricas de conversación y conversión
+
+Impacto en backend/dashboard:
+- Historial de conversaciones
+- Lead scoring por AI
+- Métricas de intención
+- Vista “AI Sales Assistant”
+
+----------------------------------
+[ ] WF-SP-03 — Follow-Up Engine
+----------------------------------
+
+Estado actual:
+MUY AVANZADO (estructura hecha)
+
+Flujos tuyos relacionados:
+- Owner Alerts Engine
+- Owner Daily Intelligence
+- Cron Daily
+- Rule Engine
+- Action Executor
+
+Qué YA hace:
+- Mensajes automáticos
+- Alertas al owner
+- Reglas de seguimiento
+- Lógica temporal
+
+Qué FALTA (Cloud Code):
+- Conexión directa con estados de lead
+- Conversión a WON / LOST
+- Métricas de cierre
+- Timeline comercial visible
+
+Impacto en backend/dashboard:
+- Funnel de ventas real
+- KPIs de conversión
+- Alertas inteligentes
+- Vista “Sales Performance”
+
+==================================================
+
+[ ] BLOQUE 2 — GUEST JOURNEY (POST-BOOKING)
+
+----------------------------------
+[ ] WF-SP-04 — Guest Journey Builder
+----------------------------------
+
+Estado actual:
+IMPLEMENTADO Y VALIDADO
+
+Flujos tuyos relacionados:
+- GuestJourney-Scheduler
+- Pre-Arrival logic
+- WhatsApp + Email
+- Update Journey State
+- Log Journey Event
+
+Qué YA hace:
+- Gestiona experiencia del huésped
+- Mensajes pre-arrival / in-stay / post-stay
+- Actualiza estados
+- Funciona estable
+
+Decisión arquitectura:
+- Se mantiene como workflow independiente (MVP)
+- A futuro: migrar acciones a MCP Central
+
+Impacto en backend/dashboard:
+- Timeline del huésped
+- Estado del journey
+- Historial de comunicaciones
+
+==================================================
+
+[ ] BLOQUE 3 — OWNER INTELLIGENCE & OPS
+
+Flujos tuyos relacionados:
+- Owner Daily Intelligence
+- Owner Alerts Engine
+- KPI Calculator
+- Market / Ops logic
+
+Qué YA hace:
+- Información operativa
+- KPIs internos
+- Alertas diarias
+
+Qué HAY QUE ENRIQUECER:
+- Inteligencia de mercado Bali
+- Competencia (pricing, ocupación)
+- Tendencias
+- Señales macro para decisión
+
+Impacto en backend/dashboard:
+- Dashboard estratégico
+- Módulo Market Intelligence
+- Decisiones asistidas por AI
+
+==================================================
+
+[ ] BLOQUE 4 — MCP CENTRAL (ACTIONS LAYER)
+
+Estado actual:
+IMPLEMENTADO (BASE FUNCIONAL)
+
+Flujos tuyos relacionados:
+- MCP Central
+- Action Executor
+- Tools:
+  - send_whatsapp
+  - send_email
+  - create_booking
+  - check_availability
+  - logging
+
+Rol:
+- Acciones reutilizables
+- Auditoría
+- Multi-tenant
+- Control de costes
+
+Estrategia:
+- MVP: workflows independientes
+- Evolución: workflows → MCP Central
+
+Impacto en Cloud Code:
+- API unificada de acciones
+- Control de permisos
+- Observabilidad
+
+==================================================
+
+[ ] PRIORIDADES ACORDADAS
+
+1️⃣ WF-SP-01 — Inbound Lead Handler  
+2️⃣ WF-SP-03 — Follow-Up Engine  
+3️⃣ Completar WF-SP-02 — AI Self-Assistance  
+4️⃣ Mantener WF-SP-04 — Guest Journey  
+5️⃣ Expandir Owner Intelligence  
+6️⃣ Migración progresiva a MCP Central
+
+==================================================
+
+[ ] MENSAJE FINAL PARA CLOUD CODE
+
+El sistema YA funciona.
+No se rehace.
+Se estructura, se conecta y se convierte en producto.
+
+Este documento es la referencia única.

@@ -1,0 +1,945 @@
+{
+  "name": "WhatsApp AI Agent - Izumi Hotel (ChakraHQ) - MY HOST Bizmate VIII",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "894ed1af-89a5-44c9-a340-6e571eacbd53",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -832,
+        -80
+      ],
+      "id": "1b471894-a0d6-4bfc-a71d-360680fb3387",
+      "name": "Webhook",
+      "webhookId": "894ed1af-89a5-44c9-a340-6e571eacbd53"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=={{ $json.text }}",
+        "options": {
+          "systemMessage": "Eres el asistente virtual de Izumi Hotel, un hotel boutique de lujo 5 estrellas ubicado en Ubud, Bali, especializado en bienestar holístico, tratamientos médicos integrales y sanación transformadora.\n\nINFORMACIÓN DEL HOTEL:\n📍 Ubicación: Jl Raya Andong N. 18, Ubud, Bali, Indonesia\n⏰ Check-in: 14:00 | Check-out: 12:00\n❌ Cancelación: Gratuita hasta 24 horas antes de la llegada\n🗓️ Apertura: Verano 2026 (aceptamos pre-reservas)\n\nALOJAMIENTOS Y TARIFAS:\n- Tropical Room: $450/noche\n- River Villa: $500/noche\n- Nest Villa: $525/noche\n- Cave Villa: $550/noche\n- Sky Villa: $550/noche\n- Blossom Villa: $600/noche\n- 5BR Villa (ideal familias/grupos): $2,500/noche\n\nREGLAS DE CONVERSACIÓN:\n\n1. IDIOMA: Detecta el idioma del usuario y responde en el mismo idioma.\n\n2. TONO: Amable, profesional y cálido.\n\n3. HERRAMIENTAS DISPONIBLES - USA SIEMPRE QUE SEA NECESARIO:\n   - Check Availability: Para consultar disponibilidad de fechas\n   - Calculate Price: Para calcular el precio total de una estancia\n   - Create Booking: Para crear pre-reservas cuando tengas TODOS los datos\n\n4. PROCESO DE RESERVA:\n   Cuando un usuario quiera reservar, sigue este orden:\n   a) Primero pregunta: fechas de check-in/check-out, número de huéspedes y tipo de habitación preferida\n   b) Después pide EN UN SOLO MENSAJE: nombre completo, email y teléfono con código de país\n   c) Una vez tengas TODOS los datos, usa la herramienta Create Booking para crear la pre-reserva\n\n5. HANDOFF A HUMANO - SOLO en estos casos:\n   - El usuario pide explícitamente hablar con una persona\n   - Quejas o problemas urgentes\n   - Cancelación o modificación de reserva existente\n   - Negociación de precios o descuentos\n   - Grupos de +10 personas o eventos\n   \n   Respuesta de handoff: \"Voy a conectarte con nuestro equipo. Te contactarán pronto (8:00-22:00 hora Bali). WhatsApp: +62 813 2576 4867 / Email: reservations@izumi-hotel.com\"\n\n6. LIMITACIONES:\n   - No inventes información\n   - No prometas descuentos"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        128,
+        -80
+      ],
+      "id": "8af3f827-7cbc-475d-9011-04945eb00997",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4.1-mini"
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        240,
+        176
+      ],
+      "id": "adbdc55d-ba07-49c2-a4f2-32560fb446fd",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "hlVVk9ThwmKbr4yS",
+          "name": "OpenAi account 4"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.chakrahq.com/v1/ext/plugin/whatsapp/2e45a0bd-8600-41b4-ac92-599d59d6221c/api/v19.0/944855278702577/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer qiu1Z9eA3i2hhNjVM3Dm7QEK1Ey6iKQUE5IDWJlsFSAqXk5OlmQoD6DhqEwv9TOdgOVRWSYLWGxm6HfCs2LeCuwiU8Poqrw2Rgmvih0iEawZhoL6TTmMjVjvDUw2WuygAQgQ1vIeLCreDAKOGymGQCuR5bUYDHrRQQrvoMZLYwHw0LaGhFUuf4GxLpQbV3AQj8JDjhP2MzsCUYT4EVCARX6cODl1d1udr4pITGOmHQ793MUBtptq4XCvC8OGD3g"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({\n  \"messaging_product\": \"whatsapp\",\n  \"to\": $('Webhook').item.json.body.entry[0].changes[0].value.messages[0].from,\n  \"type\": \"text\",\n  \"text\": {\n    \"body\": $('AI Agent').item.json.output\n  }\n}) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        752,
+        -288
+      ],
+      "id": "2967197b-0615-4157-b5d8-80e03b43cd69",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "4cf0e8d2-dc31-4802-8078-25bfa450fe8d",
+              "leftValue": "={{ $json.body.entry[0].changes[0].value.messages ? 'mensaje' : 'status' }}",
+              "rightValue": "mensaje",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.2,
+      "position": [
+        -688,
+        -80
+      ],
+      "id": "a94f534f-dd36-4ef5-b1ed-dfb0a1c6c912",
+      "name": "Filter"
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "=={{ $('Webhook').item.json.body.entry[0].changes[0].value.messages[0].from }}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        384,
+        176
+      ],
+      "id": "2fb43d19-1414-4644-a95e-b4fefbc27039",
+      "name": "Simple Memory"
+    },
+    {
+      "parameters": {
+        "toolDescription": "Consulta la disponibilidad de habitaciones en Izumi Hotel para fechas específicas. Usa esta herramienta cuando el usuario pregunte si hay disponibilidad, si puede reservar, o quiera saber si hay habitaciones libres. Requiere fecha de check-in y check-out en formato YYYY-MM-DD.",
+        "method": "POST",
+        "url": "https://jjpscimtxrudtepzwhag.supabase.co/rest/v1/rpc/check_availability",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpqcHNjaW10eHJ1ZHRlcHp3aGFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI5NDMyMzIsImV4cCI6MjA3ODUxOTIzMn0._U_HwdF5-yT8-prJLzkdO_rGbNuu7Z3gpUQW0Q8zxa0"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpqcHNjaW10eHJ1ZHRlcHp3aGFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI5NDMyMzIsImV4cCI6MjA3ODUxOTIzMn0._U_HwdF5-yT8-prJLzkdO_rGbNuu7Z3gpUQW0Q8zxa0"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"p_property_id\": \"18711359-1378-4d12-9ea6-fb31c0b1bac2\",\n  \"p_check_in\": \"{{ $fromAI('check_in', 'fecha de llegada en formato YYYY-MM-DD') }}\",\n  \"p_check_out\": \"{{ $fromAI('check_out', 'fecha de salida en formato YYYY-MM-DD') }}\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.3,
+      "position": [
+        544,
+        160
+      ],
+      "id": "4523e668-22b3-49d8-ae90-16cf28b909a8",
+      "name": "Check Availability"
+    },
+    {
+      "parameters": {
+        "toolDescription": "Calcula el precio total de una estancia en Izumi Hotel. Usa esta herramienta cuando el usuario pregunte cuánto cuesta, el precio total, o quiera una cotización.",
+        "method": "POST",
+        "url": "https://jjpscimtxrudtepzwhag.supabase.co/rest/v1/rpc/calculate_booking_price",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpqcHNjaW10eHJ1ZHRlcHp3aGFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI5NDMyMzIsImV4cCI6MjA3ODUxOTIzMn0._U_HwdF5-yT8-prJLzkdO_rGbNuu7Z3gpUQW0Q8zxa0"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpqcHNjaW10eHJ1ZHRlcHp3aGFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI5NDMyMzIsImV4cCI6MjA3ODUxOTIzMn0._U_HwdF5-yT8-prJLzkdO_rGbNuu7Z3gpUQW0Q8zxa0"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"p_property_id\": \"18711359-1378-4d12-9ea6-fb31c0b1bac2\",\n  \"p_check_in\": \"{{ $fromAI('check_in', 'fecha de llegada en formato YYYY-MM-DD') }}\",\n  \"p_check_out\": \"{{ $fromAI('check_out', 'fecha de salida en formato YYYY-MM-DD') }}\",\n  \"p_guests\": \"{{ $fromAI('guests', 'número de huéspedes') }}\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.3,
+      "position": [
+        720,
+        160
+      ],
+      "id": "7364f49f-326c-49d4-b398-cf874ceda312",
+      "name": "Calculate Price"
+    },
+    {
+      "parameters": {
+        "toolDescription": "Crea una pre-reserva en Izumi Hotel. Usa esta herramienta cuando el usuario confirme que quiere reservar y hayas recopilado: nombre completo, email, teléfono, fechas de check-in/check-out y número de huéspedes.",
+        "method": "POST",
+        "url": "https://jjpscimtxrudtepzwhag.supabase.co/rest/v1/bookings",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpqcHNjaW10eHJ1ZHRlcHp3aGFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI5NDMyMzIsImV4cCI6MjA3ODUxOTIzMn0._U_HwdF5-yT8-prJLzkdO_rGbNuu7Z3gpUQW0Q8zxa0"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpqcHNjaW10eHJ1ZHRlcHp3aGFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI5NDMyMzIsImV4cCI6MjA3ODUxOTIzMn0._U_HwdF5-yT8-prJLzkdO_rGbNuu7Z3gpUQW0Q8zxa0"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=representation"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"property_id\": \"18711359-1378-4d12-9ea6-fb31c0b1bac2\",\n  \"guest_name\": \"{{ $fromAI('guest_name', 'nombre completo del huésped') }}\",\n  \"guest_email\": \"{{ $fromAI('guest_email', 'email del huésped') }}\",\n  \"guest_phone\": \"{{ $fromAI('guest_phone', 'teléfono del huésped con código de país') }}\",\n  \"check_in\": \"{{ $fromAI('check_in', 'fecha de llegada en formato YYYY-MM-DD') }}\",\n  \"check_out\": \"{{ $fromAI('check_out', 'fecha de salida en formato YYYY-MM-DD') }}\",\n  \"guests\": {{ $fromAI('guests', 'número de huéspedes como número entero') }},\n  \"total_price\": 0,\n  \"status\": \"inquiry\",\n  \"channel\": \"direct\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.3,
+      "position": [
+        880,
+        160
+      ],
+      "id": "c6a32ec2-3016-4bf7-a9bd-05c33dbae8dd",
+      "name": "Create Booking"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.body.entry[0].changes[0].value.messages[0].text }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "string",
+                      "operation": "exists",
+                      "singleValue": true
+                    },
+                    "id": "399faafc-a670-4715-9d62-4a7612084a5e"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Text"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "794de1b3-fa0b-4f82-ac2f-b157ba1a531e",
+                    "leftValue": "={{ $json.body.entry[0].changes[0].value.messages[0].audio }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "string",
+                      "operation": "exists",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Audio"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "99631e5f-e618-4d0a-8c95-6c0cafca2d41",
+                    "leftValue": "={{ $json.body.entry[0].changes[0].value.messages[0].image }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "string",
+                      "operation": "exists",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Image"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "018f5163-7013-46cb-a370-c4cd8f5c28de",
+                    "leftValue": "={{ $json.body.entry[0].changes[0].value.messages[0].document }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "string",
+                      "operation": "exists",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Document"
+            }
+          ]
+        },
+        "looseTypeValidation": true,
+        "options": {
+          "fallbackOutput": "=Extra Output"
+        }
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.3,
+      "position": [
+        -528,
+        -112
+      ],
+      "id": "48d0c306-69b2-4979-857f-6025f23dbc87",
+      "name": "Switch"
+    },
+    {
+      "parameters": {
+        "url": "=https://api.chakrahq.com/v1/whatsapp/v19.0/media/{{ $json.body.entry[0].changes[0].value.messages[0].image.id }}/show",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer qiu1Z9eA3i2hhNjVM3Dm7QEK1Ey6iKQUE5IDWJlsFSAqXk5OlmQoD6DhqEwv9TOdgOVRWSYLWGxm6HfCs2LeCuwiU8Poqrw2Rgmvih0iEawZhoL6TTmMjVjvDUw2WuygAQgQ1vIeLCreDAKOGymGQCuR5bUYDHrRQQrvoMZLYwHw0LaGhFUuf4GxLpQbV3AQj8JDjhP2MzsCUYT4EVCARX6cODl1d1udr4pITGOmHQ793MUBtptq4XCvC8OGD3g"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        -608,
+        144
+      ],
+      "id": "94f1f487-8602-47b8-ae58-d17e45b64f8c",
+      "name": "Download Image"
+    },
+    {
+      "parameters": {
+        "resource": "image",
+        "operation": "analyze",
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "GPT-4O-MINI"
+        },
+        "text": "Analiza esta imagen de forma objetiva y describe exactamente lo que ves. \n\nClasifica la imagen en una de estas categorías:\n1. HOTEL_RELEVANTE: habitaciones, instalaciones, piscinas, restaurantes, spas, áreas comunes de hotel/villa\n2. DOCUMENTO: reservas, comprobantes de pago, pasaportes, facturas, confirmaciones\n3. NO_RELACIONADO: cualquier otra cosa (logos, capturas de pantalla, fotos personales, etc.)\n\nFormato de respuesta:\nCATEGORÍA: [categoría]\nDESCRIPCIÓN: [descripción objetiva de lo que ves]\n\nSi es DOCUMENTO, extrae los datos importantes (fechas, nombres, números de reserva, montos).\nSi es NO_RELACIONADO, indica claramente que la imagen no está relacionada con servicios hoteleros.\n\nResponde en español.",
+        "inputType": "base64",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2,
+      "position": [
+        -464,
+        144
+      ],
+      "id": "98cab9f2-d677-4d3b-b5d4-0d4e4a4de719",
+      "name": "Analyze image",
+      "credentials": {
+        "openAiApi": {
+          "id": "hlVVk9ThwmKbr4yS",
+          "name": "OpenAi account 4"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "97928ac1-e6eb-4ae4-a3ec-b168b2da91eb",
+              "name": "text",
+              "value": "==User request on the image:\n{{ \"Describe the following image\" || $('Webhook').item.json.body.entry[0].changes[0].value.messages[0].image.caption }}\n\nImage description:\n{{ $json.content[0].text }}\n\n\n",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -304,
+        144
+      ],
+      "id": "a4ff8c8f-ffac-470e-b8c0-384b0b189d6b",
+      "name": "Image"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "588c8b7e-9bf1-42de-957b-1f0b169df850",
+              "name": "text",
+              "value": "=={{ $json.body.entry[0].changes[0].value.messages[0].text.body }}",
+              "type": "string"
+            },
+            {
+              "id": "b8bab867-5d38-467b-9987-3965aaacf52e",
+              "name": "inputType",
+              "value": "text",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -208,
+        -128
+      ],
+      "id": "4076d7ee-b8b8-47de-9ee4-7e8b93cc9b50",
+      "name": "Text"
+    },
+    {
+      "parameters": {
+        "url": "=https://api.chakrahq.com/v1/whatsapp/v19.0/media/{{ $json.body.entry[0].changes[0].value.messages[0].audio.id }}/show",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer qiu1Z9eA3i2hhNjVM3Dm7QEK1Ey6iKQUE5IDWJlsFSAqXk5OlmQoD6DhqEwv9TOdgOVRWSYLWGxm6HfCs2LeCuwiU8Poqrw2Rgmvih0iEawZhoL6TTmMjVjvDUw2WuygAQgQ1vIeLCreDAKOGymGQCuR5bUYDHrRQQrvoMZLYwHw0LaGhFUuf4GxLpQbV3AQj8JDjhP2MzsCUYT4EVCARX6cODl1d1udr4pITGOmHQ793MUBtptq4XCvC8OGD3g"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        -368,
+        -336
+      ],
+      "id": "c0fba840-abf0-4b86-b332-1462f2c39ba0",
+      "name": "Download audio"
+    },
+    {
+      "parameters": {
+        "resource": "audio",
+        "operation": "transcribe",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2,
+      "position": [
+        -192,
+        -336
+      ],
+      "id": "e67e645c-2c7a-412a-bca1-9fdba6a0d619",
+      "name": "Transcribe a recording",
+      "credentials": {
+        "openAiApi": {
+          "id": "hlVVk9ThwmKbr4yS",
+          "name": "OpenAi account 4"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "447369f5-f812-47d7-9893-5fc606671370",
+              "name": "text",
+              "value": "=={{ $json.text }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -16,
+        -336
+      ],
+      "id": "7b662427-9766-4fa7-a711-bd767a6fd8e1",
+      "name": "Audio"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "a13fdc7c-a238-4949-bc94-157c7f411c26",
+              "leftValue": "={{ $('Webhook').item.json.body.entry[0].changes[0].value.messages[0].audio }}",
+              "rightValue": "=",
+              "operator": {
+                "type": "object",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        496,
+        -304
+      ],
+      "id": "9d3cb32d-2a77-4b60-bce4-ef03fed76105",
+      "name": "From audio to audio?"
+    },
+    {
+      "parameters": {
+        "resource": "audio",
+        "input": "=={{ $('AI Agent').item.json.output }}",
+        "voice": "onyx",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2,
+      "position": [
+        240,
+        -528
+      ],
+      "id": "a9d34c13-1975-4fc3-8890-c2315e85a7ff",
+      "name": "Generate audio",
+      "credentials": {
+        "openAiApi": {
+          "id": "hlVVk9ThwmKbr4yS",
+          "name": "OpenAi account 4"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "for (const item of $input.all()) {\n  if (item.binary) {\n    const binaryPropertyNames = Object.keys(item.binary);\n    for (const propName of binaryPropertyNames) {\n      if (item.binary[propName].mimeType === 'audio/mp3') {\n        item.binary[propName].mimeType = 'audio/mpeg';\n      }\n    }\n  }\n}\n\nreturn $input.all();"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        432,
+        -528
+      ],
+      "id": "8d379259-11f6-4080-9425-bbc6c1702ec5",
+      "name": "Fix mimeType for Audio"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.chakrahq.com/v1/ext/plugin/whatsapp/2e45a0bd-8600-41b4-ac92-599d59d6221c/api/v19.0/944855278702577/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer qiu1Z9eA3i2hhNjVM3Dm7QEK1Ey6iKQUE5IDWJlsFSAqXk5OlmQoD6DhqEwv9TOdgOVRWSYLWGxm6HfCs2LeCuwiU8Poqrw2Rgmvih0iEawZhoL6TTmMjVjvDUw2WuygAQgQ1vIeLCreDAKOGymGQCuR5bUYDHrRQQrvoMZLYwHw0LaGhFUuf4GxLpQbV3AQj8JDjhP2MzsCUYT4EVCARX6cODl1d1udr4pITGOmHQ793MUBtptq4XCvC8OGD3g"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({\n  \"messaging_product\": \"whatsapp\",\n  \"to\": $('Webhook').item.json.body.entry[0].changes[0].value.messages[0].from,\n  \"type\": \"audio\",\n  \"audio\": {\n    \"link\": $json._data.publicMediaUrl\n  }\n}) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        800,
+        -528
+      ],
+      "id": "45f6d500-e520-43b3-813e-020bdbefbdc3",
+      "name": "Send audio"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.chakrahq.com/v1/ext/plugin/whatsapp/2e45a0bd-8600-41b4-ac92-599d59d6221c/upload-public-media",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer qiu1Z9eA3i2hhNjVM3Dm7QEK1Ey6iKQUE5IDWJlsFSAqXk5OlmQoD6DhqEwv9TOdgOVRWSYLWGxm6HfCs2LeCuwiU8Poqrw2Rgmvih0iEawZhoL6TTmMjVjvDUw2WuygAQgQ1vIeLCreDAKOGymGQCuR5bUYDHrRQQrvoMZLYwHw0LaGhFUuf4GxLpQbV3AQj8JDjhP2MzsCUYT4EVCARX6cODl1d1udr4pITGOmHQ793MUBtptq4XCvC8OGD3g"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "parameterType": "formBinaryData",
+              "name": "file",
+              "inputDataFieldName": "data"
+            },
+            {
+              "name": "filename",
+              "value": "audio.mp3"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        624,
+        -528
+      ],
+      "id": "e10d4418-a09c-4f64-8ce4-3b4ca19534c7",
+      "name": "Upload Audio to ChakraHQ"
+    }
+  ],
+  "pinData": {
+    "Audio": [
+      {
+        "json": {
+          "name": "First item",
+          "code": 1
+        }
+      },
+      {
+        "json": {
+          "name": "Second item",
+          "code": 2
+        }
+      }
+    ]
+  },
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Filter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "From audio to audio?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Availability": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calculate Price": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Booking": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "Text",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Download audio",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Download Image",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download Image": {
+      "main": [
+        [
+          {
+            "node": "Analyze image",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Analyze image": {
+      "main": [
+        [
+          {
+            "node": "Image",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Image": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Text": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download audio": {
+      "main": [
+        [
+          {
+            "node": "Transcribe a recording",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Transcribe a recording": {
+      "main": [
+        [
+          {
+            "node": "Audio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Audio": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "From audio to audio?": {
+      "main": [
+        [
+          {
+            "node": "Generate audio",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate audio": {
+      "main": [
+        [
+          {
+            "node": "Fix mimeType for Audio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fix mimeType for Audio": {
+      "main": [
+        [
+          {
+            "node": "Upload Audio to ChakraHQ",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upload Audio to ChakraHQ": {
+      "main": [
+        [
+          {
+            "node": "Send audio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "51239d5f-6d6b-4745-9369-7bac47a604cb",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "ca7bc7f182c365457ea4a94a4dc2efe81c23590ab8904858ce5cabfbdd56e40f"
+  },
+  "id": "ln2myAS3406D6F8W",
+  "tags": []
+}

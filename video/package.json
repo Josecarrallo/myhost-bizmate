@@ -1,0 +1,42 @@
+{
+  "name": "myhost-bizmate-videos",
+  "version": "1.0.0",
+  "description": "Marketing videos for MY HOST BizMate using Remotion",
+  "type": "module",
+  "scripts": {
+    "dev": "remotion studio",
+    "build": "remotion render",
+    "render": "remotion render HelloWorld out/video.mp4",
+    "render:stats": "remotion render StatsVideo out/stats.mp4",
+    "render:property": "remotion render PropertyShowcase out/property.mp4",
+    "render:nismara": "remotion render NismaraUmaAd out/nismara-uma-ad.mp4",
+    "render:monthly": "node scripts/render-monthly.js",
+    "render:overview": "node scripts/render-overview.js",
+    "ltx:generate": "ts-node scripts/pipeline.ts",
+    "ltx:render": "ts-node scripts/pipeline.ts && remotion render LtxPromo out/ltx-promo.mp4",
+    "upgrade": "remotion upgrade"
+  },
+  "keywords": [
+    "remotion",
+    "video",
+    "marketing"
+  ],
+  "author": "MY HOST BizMate",
+  "license": "ISC",
+  "dependencies": {
+    "@remotion/bundler": "^4.0.0",
+    "@remotion/cli": "^4.0.0",
+    "@supabase/supabase-js": "^2.95.3",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "remotion": "^4.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^25.2.3",
+    "@types/react": "^18.2.0",
+    "axios": "^1.13.5",
+    "replicate": "^1.4.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.0.0"
+  }
+}

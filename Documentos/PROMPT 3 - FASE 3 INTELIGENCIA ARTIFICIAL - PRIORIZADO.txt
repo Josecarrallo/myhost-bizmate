@@ -44,7 +44,14 @@ CAPACIDADES:
 ✓ Resolver problemas durante estancia (AC no funciona, WiFi lento)
 ✓ Procesar solicitudes (toallas extra, early check-in, late check-out)
 ✓ Multilingual: Inglés, Español, Francés, Alemán, Japonés, Chino
+✓ VOICE: Procesar mensajes de voz (speech-to-text con OpenAI Whisper)
+✓ PHOTOS: Interpretar fotos enviadas (image analysis con GPT-4 Vision)
 ✓ Escalar a humano si no puede resolver
+
+NOTA COMPETITIVA:
+Esta funcionalidad de voz/foto nos pone en PARIDAD con WeSpeak (integrado
+en Cloudbeds, MiniHotel, MyHotel). Nuestro diferenciador NO es el chat,
+sino Revenue optimization + Operations automation que ellos NO tienen.
 
 CONTEXTO QUE MANEJA:
 - Booking del huésped (property, dates, guests)
@@ -55,8 +62,14 @@ CONTEXTO QUE MANEJA:
 TECNOLOGÍA:
 - WhatsApp Business API + Cloud API
 - Claude 3.5 Sonnet con function calling
+- OpenAI Whisper API (speech-to-text): $0.006/min
+- OpenAI GPT-4 Vision (image analysis): $0.01/image
 - n8n workflow: webhook → Claude → respuesta
 - Supabase: guardar historial de conversaciones
+
+COSTO ADICIONAL VOZ/FOTO:
+- ~$30-45/mes por propiedad (estimado 100 mensajes voz + 50 fotos/mes)
+- Crítico para paridad competitiva con WeSpeak
 
 TABLA: whatsapp_conversations
 - id (UUID, PK)
@@ -73,12 +86,15 @@ TABLA: whatsapp_conversations
 
 n8n WORKFLOW:
 1. Webhook recibe mensaje WhatsApp
-2. Identificar booking por phone_number
-3. Cargar contexto (booking + property + knowledge base)
-4. Llamar Claude con contexto + historial
-5. Claude genera respuesta (o decide escalar)
-6. Enviar respuesta por WhatsApp
-7. Guardar conversación en DB
+2. Identificar tipo de mensaje (text/voice/image)
+3. SI es voz → OpenAI Whisper API → convertir a texto
+4. SI es foto → GPT-4 Vision API → describir imagen
+5. Identificar booking por phone_number
+6. Cargar contexto (booking + property + knowledge base)
+7. Llamar Claude con contexto + historial + mensaje procesado
+8. Claude genera respuesta (o decide escalar)
+9. Enviar respuesta por WhatsApp
+10. Guardar conversación en DB (incluir tipo: text/voice/image)
 
 PROMPT SYSTEM:
 ```

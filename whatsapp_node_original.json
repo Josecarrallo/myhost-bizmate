@@ -1,0 +1,32 @@
+{
+  "parameters": {
+    "method": "POST",
+    "url": "https://api.chakrahq.com/v1/ext/plugin/whatsapp/2e45a0bd-8600-41b4-ac92-599d59d6221c/api/v19.0/944855278702577/messages",
+    "sendHeaders": true,
+    "headerParameters": {
+      "parameters": [
+        {
+          "name": "Authorization",
+          "value": "Bearer qiu1Z9eA3i2hhNjVM3Dm7QEK1Ey6iKQUE5IDWJlsFSAqXk5OlmQoD6DhqEwv9TOdgOVRWSYLWGxm6HfCs2LeCuwiU8Poqrw2Rgmvih0iEawZhoL6TTmMjVjvDUw2WuygAQgQ1vIeLCreDAKOGymGQCuR5bUYDHrRQQrvoMZLYwHw0LaGhFUuf4GxLpQbV3AQj8JDjhP2MzsCUYT4EVCARX6cODl1d1udr4pITGOmHQ793MUBtptq4XCvC8OGD3g"
+        }
+      ]
+    },
+    "sendBody": true,
+    "specifyBody": "=json",
+    "bodyParameters": {
+      "parameters": [
+        {}
+      ]
+    },
+    "jsonBody": "={\n  \"messaging_product\": \"whatsapp\",\n  \"to\": \"{{$('Format Booking Data').item.json.guest_phone}}\",\n  \"type\": \"text\",\n  \"text\": {\n    \"body\": \"\u00e2\u0153\u2026 *Reserva Confirmada*\\n\\nHola {{$('Format Booking Data').item.json.guest_name}},\\n\\n\u00c2\u00a1Tu reserva ha sido confirmada!\\n\\n\u00f0\u0178\udc8f\u00a8 *Hotel:* {{$json.name}}\\n\u00f0\u0178\u201c\udc8d *Ubicaci\u00c3\u00b3n:* Jl Raya Andong N. 18, Ubud, Bali\\n\u00f0\u0178\u201c\u2026 *Check-in:* {{$('Format Booking Data').item.json.check_in}}\\n\u00f0\u0178\u201c\u2026 *Check-out:* {{$('Format Booking Data').item.json.check_out}}\\n\u00f0\u0178\u2018\u00a5 *Hu\u00c3\u00a9spedes:* {{$('Format Booking Data').item.json.guests}}\\n\u00f0\u0178\u2019\u00b0 *Total:* ${{$('Format Booking Data').item.json.total_price}}\\n\\n\u00c2\u00a1Te esperamos! \u00f0\u0178\u0152\u00ba\\n\\n\u00f0\u0178\u201c\u017e CONTACTO IZUMI HOTEL\\nWhatsApp: +62 813 2576 4867 (24/7)\\nTel\u00c3\u00a9fono: +62 813 2576 4867 (8:00-22:00)\\nWeb: www.my-host-bizmate.com (Asistente de voz 24/7)\"\n  }\n}",
+    "options": {}
+  },
+  "type": "n8n-nodes-base.httpRequest",
+  "typeVersion": 4.3,
+  "position": [
+    -464,
+    0
+  ],
+  "id": "d098f23a-c2c1-4ed2-9b7a-f0889c9a7dcf",
+  "name": "WhatsApp to Guest"
+}

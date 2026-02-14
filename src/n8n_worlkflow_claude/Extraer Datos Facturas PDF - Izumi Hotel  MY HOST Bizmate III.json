@@ -1,0 +1,346 @@
+{
+  "name": "Extraer Datos Facturas PDF - Izumi Hotel  MY HOST Bizmate III",
+  "nodes": [
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "triggerOn": "specificFolder",
+        "folderToWatch": {
+          "__rl": true,
+          "value": "1U0XC__hkoGWYf5SthfeYVBWFJiwJpwvI",
+          "mode": "id"
+        },
+        "event": "fileCreated",
+        "options": {}
+      },
+      "name": "Watch for New Invoices",
+      "type": "n8n-nodes-base.googleDriveTrigger",
+      "typeVersion": 1,
+      "position": [
+        256,
+        304
+      ],
+      "id": "d9fff980-719a-41a2-9a0f-a181535577ca",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "41ZwioZHapfwXkiA",
+          "name": "Google Drive account 3"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "download",
+        "fileId": {
+          "__rl": true,
+          "value": "={{ $json.id }}",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "name": "Download Invoice PDF",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        464,
+        304
+      ],
+      "id": "dfccde7b-0057-4bd7-933b-2342800f1f41",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "41ZwioZHapfwXkiA",
+          "name": "Google Drive account 3"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "pdf",
+        "options": {}
+      },
+      "name": "Extract PDF Text",
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1,
+      "position": [
+        656,
+        304
+      ],
+      "id": "50582cd1-32ca-4aa8-b6f2-e1cee2692756"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.openai.com/v1/chat/completions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer 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"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"gpt-4o-mini\",\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"You are an invoice data extraction assistant. Extract the following fields from the invoice text and return ONLY a valid JSON object with these exact keys: invoice_number, company_name, company_email, company_address, company_phone, invoice_date, due_date, total_amount. If a field is not found, use empty string. Do not include any explanation, only the JSON.\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": {{ JSON.stringify(\"Extract invoice data from this text:\\n\\n\" + $json.text) }}\n    }\n  ],\n  \"temperature\": 0.1\n}",
+        "options": {}
+      },
+      "name": "Parse Invoice with OpenAI",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        864,
+        304
+      ],
+      "id": "4a6604e1-7c31-4a09-a2d7-d476c1d986ee"
+    },
+    {
+      "parameters": {
+        "jsCode": "const response = $input.first().json;\nconst content = response.choices[0].message.content;\n\n// Parse JSON from OpenAI response\nlet invoiceData;\ntry {\n  // Remove markdown code blocks if present\n  let cleanContent = content.replace(/```json\\n?/g, '').replace(/```\\n?/g, '').trim();\n  invoiceData = JSON.parse(cleanContent);\n} catch (e) {\n  invoiceData = {\n    invoice_number: '',\n    company_name: '',\n    company_email: '',\n    company_address: '',\n    company_phone: '',\n    invoice_date: '',\n    due_date: '',\n    total_amount: ''\n  };\n}\n\nreturn [{ json: invoiceData }];"
+      },
+      "name": "Format Invoice Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1056,
+        304
+      ],
+      "id": "2d86cecf-50a4-43a0-bf78-b297cded2146"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1zbI6NMK1_H37eNCGHkBXZDGUI0wWC0gJVmoC_GDXc7w",
+          "mode": "list",
+          "cachedResultName": "Invoice Database - Izumi",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1zbI6NMK1_H37eNCGHkBXZDGUI0wWC0gJVmoC_GDXc7w/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1zbI6NMK1_H37eNCGHkBXZDGUI0wWC0gJVmoC_GDXc7w/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {
+            "Invoice_number": "{{ $json.invoice_number }}",
+            "Company_name": "{{ $json.company_name }}",
+            "Company_email": "{{ $json.company_email }}",
+            "Company_address": "{{ $json.company_address }}",
+            "Company_phone": "{{ $json.company_phone }}",
+            "Invoice_date": "{{ $json.invoice_date }}",
+            "Due_date": "{{ $json.due_date }}",
+            "Total_amount": "{{ $json.total_amount }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Invoice_number",
+              "displayName": "Invoice_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Company_name",
+              "displayName": "Company_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Company_email",
+              "displayName": "Company_email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Company_address",
+              "displayName": "Company_address",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Company_phone",
+              "displayName": "Company_phone",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Invoice_date",
+              "displayName": "Invoice_date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Due_date",
+              "displayName": "Due_date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Total_amount",
+              "displayName": "Total_amount",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "name": "Save to Google Sheets",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.4,
+      "position": [
+        1264,
+        304
+      ],
+      "id": "4947d215-16cf-4866-bca7-065227b9bab0",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "cynONWbvYFaJqzhn",
+          "name": "Google Sheets account 3"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "josecarrallodelafuente@gmail.com",
+        "subject": "=New Invoice Processed - {{ $json.company_name }}",
+        "emailType": "text",
+        "message": "=Hi,\n\nA new invoice has been processed and logged.\n\nDetails:\n- Invoice Number: {{ $json.invoice_number }}\n- Company: {{ $json.company_name }}\n- Total Amount: {{ $json.total_amount }}\n- Invoice Date: {{ $json.invoice_date }}\n- Due Date: {{ $json.due_date }}\n\nPlease review the Invoice Database for full details.\n\nRegards,\nIzumi Hotel Automation",
+        "options": {}
+      },
+      "name": "Send Email Notification",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        944,
+        112
+      ],
+      "id": "862da1df-f010-46d8-bdb2-789d75c8d3d6",
+      "webhookId": "4f2f1434-d910-43d8-a84d-95f8d3f75f41"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Watch for New Invoices": {
+      "main": [
+        [
+          {
+            "node": "Download Invoice PDF",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download Invoice PDF": {
+      "main": [
+        [
+          {
+            "node": "Extract PDF Text",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract PDF Text": {
+      "main": [
+        [
+          {
+            "node": "Parse Invoice with OpenAI",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Invoice with OpenAI": {
+      "main": [
+        [
+          {
+            "node": "Format Invoice Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Invoice Data": {
+      "main": [
+        [
+          {
+            "node": "Save to Google Sheets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save to Google Sheets": {
+      "main": [
+        []
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
+  },
+  "versionId": "b4feb80b-b28e-4b87-9556-724b6d02b04e",
+  "meta": {
+    "instanceId": "ca7bc7f182c365457ea4a94a4dc2efe81c23590ab8904858ce5cabfbdd56e40f"
+  },
+  "id": "s1s6mIHFuWvey6DB",
+  "tags": []
+}

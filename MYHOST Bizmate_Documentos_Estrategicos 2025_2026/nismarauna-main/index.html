@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <!-- Prevent initial gray flash before CSS/React bootstraps -->
+    <style>
+      html,
+      body {
+        /* Match hero image tones - warm olive/brown to prevent black flash */
+        background: linear-gradient(to bottom, #3d4a32 0%, #2a3425 100%);
+      }
+    </style>
+
+    <!-- Preload above-the-fold hero image (served from /public) -->
+    <link rel="preload" as="image" href="/hero-bali.jpg" fetchpriority="high" />
+    
+    <!-- SEO Meta Tags -->
+    <title>Nismara Uma Villa | Private Boutique Escape in Bali</title>
+    <meta name="description" content="Experience tranquility at Nismara Uma Villa - a peaceful private hideaway in Bali with 2 bedrooms, private pool, and rice field views. Perfect for couples and families seeking serenity." />
+    <meta name="keywords" content="Bali villa, private pool villa, boutique villa Bali, Nismara Uma, vacation rental Bali, luxury villa Indonesia" />
+    <meta name="author" content="Nismara Uma Villa" />
+    
+    <!-- Open Graph / Social Media -->
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Nismara Uma Villa | Private Boutique Escape in Bali" />
+    <meta property="og:description" content="A peaceful hideaway designed for slow, comfortable living. 2 bedrooms, private pool, surrounded by nature." />
+    <meta property="og:site_name" content="Nismara Uma Villa" />
+    <meta property="og:image" content="https://lovable.dev/opengraph-image-p98pqg.png" />
+    
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Nismara Uma Villa | Private Boutique Escape in Bali" />
+    <meta name="twitter:description" content="A peaceful hideaway designed for slow, comfortable living in Bali." />
+    <meta name="twitter:image" content="https://lovable.dev/opengraph-image-p98pqg.png" />
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+    
+    <!-- Preconnect for fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  </head>
+
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

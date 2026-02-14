@@ -1,0 +1,34 @@
+# OSIRIS V2 - Resumen de Estado
+## Actualizado: 23 Enero 2026
+
+---
+
+## ✅ COMPLETADO
+
+| Componente | Detalle |
+|------------|---------|
+| Workflow | `v8icxH6TOdCKO823` activo |
+| Endpoint | `POST /webhook/ai/chat-v2` |
+| Frontend | Integrado en `src/components/AISystems/AISystems.jsx` |
+| Modelo | GPT-4o con AI Agent + Tools dinámicos |
+
+---
+
+## ✅ Tools Funcionando (8)
+
+| Tool | Función |
+|------|---------|
+| `get_dashboard_kpis` | Revenue, ocupación, ADR, RevPAR (RPC) |
+| `get_payments` | Todos los pagos - completed/pending (REST + FK) |
+| `get_bookings` | Reservas con propiedades (REST) |
+| `get_leads` | Pipeline de ventas (REST) |
+| `get_checkins_today` | Llegadas/salidas del día (RPC) |
+| `get_property_stats` | Stats por villa con bookings (REST) |
+| `get_guests` | Info de huéspedes (REST) |
+| `get_alerts` | Alertas activas (RPC) |
+
+---
+
+## ✅ Fix Aplicado Hoy (23 Enero)
+
+- Agregada FK `payments.book

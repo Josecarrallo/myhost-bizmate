@@ -1,0 +1,475 @@
+SHEETS: [ '2025', '2026' ]
+
+=== SHEET: 2025 ===
+Rows: 41
+
+FIRST 30 ROWS:
+Row 1: [
+  'NO',
+  'MONTH',
+  'GUEST NAME',
+  'STAY PERIOD',
+  <1 empty item>,
+  'PAX',
+  'ROOM NIGHT',
+  'PRICE',
+  'BOOKING SOURCE',
+  'PAYMENT STATUS',
+  'SPECIAL REQUEST',
+  'TOTAL REVENUE\r\nON HAND'
+]
+Row 2: [ <3 empty items>, 'CHECK IN', 'CHECK OUT' ]
+Row 3: [
+  1,              'September',
+  'Alison Bell ', '31 August',
+  45903,          2,
+  3,              2950533,
+  'Bali Buntu',   'Done',
+  '-',            27310218
+]
+Row 4: [
+  2,
+  <1 empty item>,
+  'M. Hadi Ghanchi',
+  45904,
+  45905,
+  3,
+  1,
+  1042088,
+  'Bali Buntu',
+  'Done',
+  '-'
+]
+Row 5: [
+  3,
+  <1 empty item>,
+  'Anirban Mukherjee',
+  45905,
+  45908,
+  3,
+  3,
+  3651086,
+  'Bali Buntu',
+  'Done',
+  '-'
+]
+Row 6: [
+  4,                <1 empty item>,
+  'Hector Stezano', 45908,
+  45911,            2,
+  3,                3592940,
+  'Bali Buntu',     'Done',
+  '-'
+]
+Row 7: [
+  5,            <1 empty item>,
+  'Rebecca',    45912,
+  45916,        2,
+  4,            4349003,
+  'Bali Buntu', 'Done',
+  '-'
+]
+Row 8: [
+  6,              <1 empty item>,
+  'Namith Reddy', 45920,
+  45921,          2,
+  1,              885346,
+  'Bali Buntu',   'Done',
+  '-'
+]
+Row 9: [
+  7,            <1 empty item>,
+  'Anh Dao',    45921,
+  45924,        4,
+  3,            3352266,
+  'Bali Buntu', 'Done',
+  '-'
+]
+Row 10: [
+  8,
+  <1 empty item>,
+  'Vitaii',
+  45924,
+  45926,
+  3,
+  2,
+  1900000,
+  'Gita',
+  'Done',
+  '-'
+]
+Row 11: [
+  9,
+  <1 empty item>,
+  'Justin Berndsen',
+  45926,
+  '1 October',
+  2,
+  5,
+  5586956,
+  'Bali Buntu',
+  'Done',
+  '-'
+]
+Row 12: [
+  10,
+  'October',
+  'Mishal Alshahrani',
+  '3 October ',
+  '7 October',
+  4,
+  3,
+  3212542,
+  'Bali Buntu',
+  'On Scheduled',
+  '-',
+  23999637
+]
+Row 13: [
+  11,
+  <1 empty item>,
+  'Khaldun Schahab',
+  '7 October',
+  '12 October',
+  2,
+  5,
+  3901500,
+  'Bali Buntu',
+  'On Scheduled',
+  '-'
+]
+Row 14: [
+  12,           <1 empty item>,
+  'Charles',    '13 October',
+  '14 October', 3,
+  1,            1003656,
+  'Bali Buntu', 'On Scheduled ',
+  '-'
+]
+Row 15: [
+  13,           <1 empty item>,
+  'Valentin',   '14 October ',
+  '16 October', 2,
+  2,            2000398,
+  'Bali Buntu', 'On Scheduled ',
+  '-'
+]
+Row 16: [
+  14,           <1 empty item>,
+  'Valentin',   '16 October',
+  '17 October', 2,
+  1,            996395,
+  'Bali Buntu', 'On Scheduled',
+  '-'
+]
+Row 17: [
+  15,
+  <1 empty item>,
+  'Alexander Jeremia',
+  '18 October',
+  '20 October',
+  4,
+  2,
+  2234840,
+  'Bali Buntu',
+  'On Scheduled',
+  '-'
+]
+Row 18: [
+  16,           <1 empty item>,
+  'Tan Janice', '20 October',
+  '23 October', 3,
+  3,            2678265,
+  'Bali Buntu', 'On Scheduled',
+  '-'
+]
+Row 19: [
+  17,             <1 empty item>,
+  'Darcy Sharpe', '24 October',
+  '26 October',   3,
+  2,              2307338,
+  'Bali Buntu',   'On Scheduled',
+  '-'
+]
+Row 20: [
+  18,           <1 empty item>,
+  'Jose Rayas', '27 October ',
+  '29 October', 2,
+  2,            2203733,
+  'Bali Buntu', 'On Scheduled ',
+  '- '
+]
+Row 21: [
+  19,             <1 empty item>,
+  'Chinese Name', '30 October',
+  45963,          4,
+  3,              3460970,
+  'Bali Buntu',   'On Scheduled',
+  '-'
+]
+Row 22: [
+  20,              'November',
+  'Joshua Bumale', 45965,
+  45967,           1,
+  2,               2219670,
+  'Bali Buntu',    'On Scheduled',
+  '-',             23151031
+]
+Row 23: [
+  21,               <1 empty item>,
+  'Gautham Ramdas', 45976,
+  45979,            2,
+  3,                4566015,
+  'Bali Buntu',     'On Scheduled ',
+  '-'
+]
+Row 24: [
+  22,
+  <1 empty item>,
+  'Roberto Baccaro',
+  45979,
+  45981,
+  2,
+  2,
+  2043566,
+  'Bali Buntu',
+  'On Scheduled',
+  '-'
+]
+Row 25: [
+  23,               <1 empty item>,
+  'Charlotte Peer', 45981,
+  45982,            2,
+  1,                1021780,
+  'Bali Buntu',     'On Scheduled',
+  '-'
+]
+Row 26: [
+  24,           <1 empty item>,
+  'Veronica',   45982,
+  '4 December', 4,
+  13,           13300000,
+  'Gita',       'On Scheduled',
+  '-'
+]
+Row 27: [
+  25,
+  'December',
+  'Michelle Vocisano',
+  '22 December',
+  '29 December',
+  4,
+  7,
+  7667293,
+  'Bali Buntu',
+  'On Scheduled',
+  '-',
+  7667293
+]
+Row 28: [
+  26,           <1 empty item>,
+  'Chef Gerry', '30 December',
+  '1 January',  1,
+  2,            <1 empty item>,
+  'Ibu Santi',  'On Scheduled ',
+  '-'
+]
+Row 29: []
+Row 30: []
+
+=== SHEET: 2026 ===
+Rows: 21
+
+FIRST 30 ROWS:
+Row 1: [
+  'NO',
+  'MONTH',
+  'GUEST NAME',
+  'STAY PERIOD',
+  <1 empty item>,
+  'PAX',
+  'ROOM NIGHT',
+  'PRICE',
+  'PAYMENT STATUS',
+  'SPECIAL REQUEST'
+]
+Row 2: [ <3 empty items>, 'CHECK IN', 'CHECK OUT' ]
+Row 3: [
+  1,
+  'January',
+  'Abhisek V Deshetty',
+  '3 January',
+  '5 January',
+  2,
+  2,
+  2270636,
+  'On Scheduled',
+  '-'
+]
+Row 4: [
+  2,
+  <1 empty item>,
+  'Morganne Le Saulnier',
+  '6 January',
+  '9 January',
+  4,
+  3,
+  3611845,
+  'On Scheduled',
+  '-'
+]
+Row 5: [
+  3,              <1 empty item>,
+  'Rahul Zar',    '10 January',
+  '11 January',   4,
+  1,              1135319,
+  'On Scheduled', '-'
+]
+Row 6: [
+  4,
+  'February ',
+  'Chinese Name',
+  '19 February',
+  '26 February',
+  4,
+  7,
+  7549832,
+  'On Scheduled ',
+  '-'
+]
+Row 7: [
+  5,
+  'March',
+  'Nitin Kakkar',
+  '17 March',
+  '20 March',
+  4,
+  3,
+  3444389,
+  'On Scheduled ',
+  '-'
+]
+Row 8: [
+  6,
+  <1 empty item>,
+  'Johana Catharina',
+  '20 March',
+  45750,
+  2,
+  14,
+  15099653,
+  'On Scheduled',
+  '-'
+]
+Row 9: [
+  7,
+  'April',
+  'Tien Li Cheng',
+  46115,
+  46119,
+  2,
+  4,
+  '-',
+  'On Scheduled',
+  '-'
+]
+Row 10: [
+  8,
+  <1 empty item>,
+  'Nicolas Moreau',
+  45755,
+  45758,
+  3,
+  3,
+  4441300,
+  'On Scheduled ',
+  '-'
+]
+Row 11: [
+  9,
+  <1 empty item>,
+  'Gabriel Thomas',
+  46137,
+  46141,
+  2,
+  4,
+  3866825,
+  'On Scheduled ',
+  '-'
+]
+Row 12: [
+  10,
+  'May',
+  'Sara Palacious',
+  '17 May',
+  '26 May',
+  2,
+  10,
+  <1 empty item>,
+  'On Scheduled ',
+  '-'
+]
+Row 13: [
+  11,
+  'July',
+  'P Yerramareddy',
+  '10 July',
+  '13 July',
+  4,
+  3,
+  2971016,
+  'On Scheduled ',
+  '-'
+]
+Row 14: [
+  12,
+  <1 empty item>,
+  'Joppe Juindam',
+  '19 July',
+  '21 July',
+  4,
+  2,
+  2296572,
+  'On Scheduled ',
+  '-'
+]
+Row 15: [
+  13,
+  <1 empty item>,
+  'Lusy Kershaw',
+  '31 July',
+  '2 August',
+  2,
+  2,
+  2296581,
+  'On Scheduled ',
+  '-'
+]
+Row 16: [
+  14,
+  'August',
+  'Charlotte Morrow',
+  '2 August',
+  '5 August',
+  4,
+  3,
+  3444385,
+  'On Scheduled ',
+  '-'
+]
+Row 17: [
+  15,
+  'September ',
+  'Ann Smith',
+  45905,
+  45909,
+  2,
+  4,
+  5353453,
+  'On Scheduled ',
+  '-'
+]
+Row 18: []
+Row 19: []
+Row 20: []
+Row 21: []

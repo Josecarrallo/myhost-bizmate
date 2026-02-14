@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Test Supabase Session</title>
+</head>
+<body>
+  <h1>Supabase Session Test</h1>
+  <p>Open browser console to see results</p>
+
+  <script type="module">
+    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm'
+
+    const supabaseUrl = 'https://jjpscimtxrudtepzwhag.supabase.co'
+    const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpqcHNjaW10eHJ1ZHRlcHp3aGFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI5NDMyMzIsImV4cCI6MjA3ODUxOTIzMn0._U_HwdF5-yT8-prJLzkdO_rGbNuu7Z3gpUQW0Q8zxa0'
+
+    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+      auth: {
+        autoRefreshToken: true,
+        persistSession: true,
+        detectSessionInUrl: true,
+        storageKey: 'sb-jjpscimtxrudtepzwhag-auth-token',
+        storage: window.localStorage
+      }
+    })
+
+    console.log('🔍 Testing Supabase Session...')
+
+    // Test 1: Check session
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+    console.log('✅ Session:', session)
+    console.log('❌ Session Error:', sessionError)
+
+    if (session) {
+      console.log('🔑 Access Token:', session.access_token.substring(0, 50) + '...')
+      console.log('👤 User ID:', session.user.id)
+      console.log('📧 Email:', session.user.email)
+
+      // Test 2: Check if token is sent in queries
+      console.log('\n🔍 Testing RLS context...')
+      const { data: rlsData, error: rlsError } = await supabase.rpc('test_rls_context')
+      console.log('✅ RLS Test Result:', rlsData)
+      console.log('❌ RLS Test Error:', rlsError)
+
+      // Test 3: Query bookings
+      console.log('\n🔍 Testing bookings query...')
+      const { data: bookings, error: bookingsError } = await supabase
+        .from('bookings')
+        .select('id, guest_name, tenant_id')
+        .limit(5)
+      console.log('✅ Bookings:', bookings)
+      console.log('❌ Bookings Error:', bookingsError)
+      console.log('📊 Count:', bookings?.length || 0)
+    } else {
+      console.log('⚠️ No session found - user not logged in')
+    }
+  </script>
+</body>
+</html>

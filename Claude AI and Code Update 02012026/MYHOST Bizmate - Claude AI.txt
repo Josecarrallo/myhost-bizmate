@@ -1,0 +1,116 @@
+You are Claude AI working on n8n workflows for the project “MY HOST BizMate”.
+
+IMPORTANT CONTEXT (READ CAREFULLY)
+
+- There is ONLY ONE MCP in this system.
+- The MCP already EXISTS and RUNS INSIDE n8n.
+- The MCP is implemented as a CENTRAL workflow named:
+  “MCP-Central-Izumi-Hotel-MyHost-BizMate-20”
+- DO NOT propose creating new MCPs.
+- DO NOT redesign the architecture.
+- DO NOT introduce external MCP servers.
+
+The MCP acts as a CENTRAL ROUTER / ORCHESTRATOR when needed,
+but NOT all workflows must pass through it.
+
+================================================
+ARCHITECTURE PRINCIPLE (VERY IMPORTANT)
+
+This system supports TWO TYPES of FLOWS:
+
+1) MCP-CENTRAL FLOWS
+   - Used when:
+     - Intent routing is needed
+     - Multiple tools may be triggered
+     - Risk / approval / logging is required
+   - MCP calls sub-workflows as “tools”
+
+2) INDEPENDENT EXECUTION FLOWS
+   - Fully autonomous n8n workflows
+   - Triggered by:
+     - Cron
+     - Webhook
+     - Supabase events
+   - They can:
+     - Send WhatsApp messages
+     - Send emails
+     - Update Supabase
+     - Execute business logic
+   - These flows DO NOT need to pass through the MCP
+   - This is intentional and correct
+
+================================================
+CURRENT DECISION (DO NOT QUESTION)
+
+We are CONTINUING with INDEPENDENT FLOWS for now.
+
+Specifically:
+- The “Guest Journey Scheduler” (a.k.a. GetJourneyScheduler / GES-Journey-Scheduler)
+  is an INDEPENDENT workflow.
+- It already:
+  - Sends WhatsApp messages
+  - Sends emails
+  - Updates Supabase
+- It DOES NOT need MCP routing.
+- This is the correct choice for speed, reliability, and simplicity.
+
+Later, the MCP MAY call this workflow as a tool,
+but that is NOT required now.
+
+================================================
+AGENT STRATEGY (ALIGNMENT)
+
+We are building a DUAL AGENT SYSTEM:
+
+1) BANYU.AI (External / Guest & Revenue)
+   - Guest communication
+   - WhatsApp journeys
+   - Follow-ups
+   - Upselling
+   - Guest lifecycle automation
+   - Guest Journey Scheduler belongs here
+
+2) OSIRIS.AI (Internal / Operations)
+   - Staff assignment
+   - Operations monitoring
+   - Alerts
+   - Daily summaries
+   - Internal automation
+
+Independent workflows can belong to BANYU or OSIRIS
+WITHOUT being inside the MCP.
+
+================================================
+YOUR TASK NOW
+
+- Continue developing and improving INDEPENDENT n8n workflows
+  (especially Guest Journey Scheduler)
+- Focus on:
+  - Correct triggers
+  - Clean Supabase updates
+  - Reliable WhatsApp + Email delivery
+  - Clear logging
+- Do NOT refactor these flows into the MCP.
+- Do NOT block progress waiting for MCP integration.
+
+If a workflow is:
+- Clear
+- Deterministic
+- Operational
+
+→ Keep it independent.
+
+================================================
+FINAL RULE (NON-NEGOTIABLE)
+
+Simplicity > theoretical purity.
+
+If it works reliably as an independent workflow,
+KEEP IT THAT WAY.
+
+We are optimizing for:
+- Speed of execution
+- Production stability
+- One-person development bandwidth
+
+Acknowledge this strategy and proceed accordingly.

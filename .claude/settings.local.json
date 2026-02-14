@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(for commit in 5bf1adb aab14f7 2a42283 2e32d6b 6d83c2c 1894dc9 da943f9 4d36102 4bc8147 ba18f40 a41d0a8 cdfe2ec)",
+      "Bash(do echo \"=== Commit $commit ===\")",
+      "Bash(done)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

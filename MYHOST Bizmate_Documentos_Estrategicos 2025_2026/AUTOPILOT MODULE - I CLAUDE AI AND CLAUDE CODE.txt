@@ -1,0 +1,160 @@
+📦 DOCUMENTO BASE — AUTOPILOT (VERSIÓN LIMPIA Y DEFINITIVA)
+PROYECTO: MY HOST BizMate
+OBJETIVO: Crear un modo “Autopilot” que automatice el trabajo real del owner
+AUDIENCIA: Villa owners no técnicos (WhatsApp / Instagram first)
+REGLA CLAVE: SIMPLICIDAD · IMPLEMENTACIÓN POR FASES · SIN SOBRECARGA
+
+========================================================
+1) QUÉ ES AUTOPILOT (IDEA CENTRAL)
+========================================================
+Autopilot es un **modo de trabajo guiado** dentro de MY HOST BizMate.
+
+No es un agente nuevo.
+No es “IA complicada”.
+No requiere que el owner aprenda nada técnico.
+
+Autopilot hace automáticamente lo que hoy el owner hace:
+- responder mensajes
+- perseguir pagos
+- controlar reservas
+- no perder disponibilidad
+- saber qué ha pasado hoy / esta semana / este mes
+
+El owner solo:
+- ve lo que pasa
+- introduce datos manuales si hace falta
+- aprueba o ignora acciones sugeridas
+
+========================================================
+2) PROBLEMA REAL QUE RESUELVE
+========================================================
+Hoy el owner:
+- trabaja manualmente
+- responde tarde
+- no controla pagos
+- no sabe sus números
+- vive bajo presión constante
+
+Autopilot reduce esa presión:
+- disponibilidad 24/7
+- pagos controlados
+- claridad diaria
+- orden progresivo
+
+========================================================
+3) ESTRUCTURA DE AUTOPILOT
+========================================================
+Autopilot se divide en 3 niveles claros:
+
+- DAILY  → lo urgente y operativo
+- WEEKLY → control, prevención y planificación
+- MONTHLY → claridad financiera y visión
+
+Cada nivel tiene:
+- flujos automáticos (n8n)
+- pantallas simples en la app
+- datos guardados en Supabase
+
+========================================================
+4) CÓMO SE IMPLEMENTA (MUY IMPORTANTE)
+========================================================
+Autopilot **NO se implementa todo a la vez**.
+
+Se implementa **por fases**, en este orden:
+
+FASE 1 — AUTOPILOT DAILY (PRIMERA Y CRÍTICA)
+FASE 2 — AUTOPILOT WEEKLY
+FASE 3 — AUTOPILOT MONTHLY
+
+👉 Ahora mismo estamos ejecutando **SOLO FASE 1 (DAILY)**.
+
+========================================================
+5) RESPONSABILIDADES POR HERRAMIENTA
+========================================================
+
+CLAUDE AI (n8n):
+- Construye los flujos automáticos
+- Orquesta mensajes, pagos, resúmenes
+- Guarda estados y resúmenes en Supabase
+- No diseña UI
+
+CLAUDE CODE (APP):
+- Construye las pantallas de Autopilot
+- Permite entrada manual de datos
+- Muestra resúmenes y alertas
+- Lanza aprobaciones hacia n8n
+- No contiene lógica de negocio compleja
+
+SUPABASE:
+- Fuente única de datos
+- Estados, logs, resúmenes
+- Punto de integración entre n8n y app
+
+========================================================
+6) FASE 1 — AUTOPILOT DAILY (ALCANCE)
+========================================================
+Autopilot Daily cubre el trabajo diario real del owner.
+
+Incluye los siguientes flujos automáticos (n8n):
+
+- Always-On Inquiries
+  → responder mensajes 24/7 y capturar leads
+
+- Payment Protection
+  → controlar reservas sin pagar, recordatorios y expiración
+
+- Daily Owner Summary
+  → resumen diario simple (qué pasó hoy)
+
+(Opcional)
+- Review / Issue Watch
+
+Estos flujos:
+- corren solos
+- escriben resultados en Supabase
+- alimentan la pantalla Autopilot / Daily
+
+========================================================
+7) QUÉ VE EL OWNER (EXPERIENCIA)
+========================================================
+En la app, el owner ve:
+
+Menú:
+- Autopilot
+  - Daily
+  - Weekly (coming later)
+  - Monthly (coming later)
+
+En Autopilot / Daily:
+- Resumen del día
+- Alertas importantes
+- Acciones que requieren aprobación
+- Botón claro de “Add booking / payment” (entrada manual)
+
+El owner NO ve:
+- flujos
+- IA
+- n8n
+- complejidad técnica
+
+========================================================
+8) PRINCIPIOS DE DISEÑO (NO NEGOCIABLES)
+========================================================
+- Todo debe ser entendible en 30 segundos
+- Lenguaje humano, no técnico
+- Nada “enterprise” o intimidante
+- Autopilot debe dar tranquilidad, no más trabajo
+
+========================================================
+9) SIGUIENTES PASOS
+========================================================
+1) Ejecutar FASE 1 — Autopilot Daily (n8n + app)
+2) Validar con owners reales
+3) Solo después:
+   - diseñar Weekly
+   - diseñar Monthly
+
+========================================================
+FIN DEL DOCUMENTO
+ESTE ES EL CONTEXTO MAESTRO PARA CLAUDE AI Y CLAUDE CODE
+========================================================

@@ -1,0 +1,234 @@
+{
+  "name": "AUTOPILOT - Daily Summary API",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "autopilot/daily-summary",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "position": [
+        0,
+        0
+      ],
+      "webhookId": "autopilot-daily-summary",
+      "typeVersion": 2
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "={\n  \"tenant_id\": \"{{ $json.body.tenant_id || 'c24393db-d318-4d75-8bbf-0fa240b9c1db' }}\",\n  \"property_id\": \"{{ $json.body.property_id || '18711359-1378-4d12-9ea6-fb31c0b1bac2' }}\",\n  \"date\": \"{{ $json.body.date || $now.format('yyyy-MM-dd') }}\"\n}",
+        "options": {}
+      },
+      "id": "set-params",
+      "name": "Set Parameters",
+      "type": "n8n-nodes-base.set",
+      "position": [
+        224,
+        0
+      ],
+      "typeVersion": 3.4
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://jjpscimtxrudtepzwhag.supabase.co/rest/v1/rpc/generate_daily_summary",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpqcHNjaW10eHJ1ZHRlcHp3aGFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI5NDMyMzIsImV4cCI6MjA3ODUxOTIzMn0._U_HwdF5-yT8-prJLzkdO_rGbNuu7Z3gpUQW0Q8zxa0"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"p_tenant_id\": \"{{ $json.tenant_id }}\",\n  \"p_property_id\": \"{{ $json.property_id }}\"\n}",
+        "options": {}
+      },
+      "id": "generate-summary",
+      "name": "Generate Summary",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        448,
+        0
+      ],
+      "typeVersion": 4.2
+    },
+    {
+      "parameters": {
+        "url": "=https://jjpscimtxrudtepzwhag.supabase.co/rest/v1/autopilot_alerts?tenant_id=eq.{{ $('Set Parameters').item.json.tenant_id }}&is_resolved=eq.false&order=created_at.desc&limit=10",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpqcHNjaW10eHJ1ZHRlcHp3aGFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI5NDMyMzIsImV4cCI6MjA3ODUxOTIzMn0._U_HwdF5-yT8-prJLzkdO_rGbNuu7Z3gpUQW0Q8zxa0"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "get-alerts",
+      "name": "Get Alerts",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        672,
+        0
+      ],
+      "typeVersion": 4.2,
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "url": "=https://jjpscimtxrudtepzwhag.supabase.co/rest/v1/autopilot_actions?tenant_id=eq.{{ $('Set Parameters').item.json.tenant_id }}&status=eq.pending&order=created_at.desc&limit=20",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpqcHNjaW10eHJ1ZHRlcHp3aGFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI5NDMyMzIsImV4cCI6MjA3ODUxOTIzMn0._U_HwdF5-yT8-prJLzkdO_rGbNuu7Z3gpUQW0Q8zxa0"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "get-actions",
+      "name": "Get Pending Actions",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        880,
+        0
+      ],
+      "typeVersion": 4.2,
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const params = $('Set Parameters').item.json;\nconst summary = $('Generate Summary').item.json;\nconst alerts = $('Get Alerts').all().map(i => i.json);\nconst actions = $('Get Pending Actions').all().map(i => i.json);\n\nconst formattedAlerts = Array.isArray(alerts[0]) ? alerts[0] : alerts;\nconst formattedActions = Array.isArray(actions[0]) ? actions[0] : actions;\n\nreturn [{\n  json: {\n    success: true,\n    date: summary.date || params.date,\n    property_name: summary.property_name || 'Izumi Hotel',\n    metrics: {\n      new_inquiries_today: summary.metrics?.new_inquiries_today || 0,\n      pending_payments: summary.metrics?.pending_payments || 0,\n      confirmed_bookings_today: summary.metrics?.confirmed_bookings_today || 0,\n      checkins_today: summary.metrics?.checkins_today || 0,\n      checkouts_today: summary.metrics?.checkouts_today || 0,\n      expired_holds_today: summary.metrics?.expired_holds_today || 0\n    },\n    alerts: formattedAlerts.map(a => ({\n      id: a.id,\n      type: a.alert_type,\n      title: a.title,\n      message: a.message,\n      created_at: a.created_at\n    })),\n    pending_actions: formattedActions.map(a => ({\n      id: a.id,\n      action_type: a.action_type,\n      title: a.title,\n      description: a.description,\n      priority: a.priority,\n      created_at: a.created_at\n    })),\n    generated_at: new Date().toISOString()\n  }\n}];"
+      },
+      "id": "build-response",
+      "name": "Build Response",
+      "type": "n8n-nodes-base.code",
+      "position": [
+        1104,
+        0
+      ],
+      "typeVersion": 2
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              }
+            ]
+          }
+        }
+      },
+      "id": "respond",
+      "name": "Respond",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "position": [
+        1328,
+        0
+      ],
+      "typeVersion": 1.1
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Set Parameters",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Alerts": {
+      "main": [
+        [
+          {
+            "node": "Get Pending Actions",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Response": {
+      "main": [
+        [
+          {
+            "node": "Respond",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Parameters": {
+      "main": [
+        [
+          {
+            "node": "Generate Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Summary": {
+      "main": [
+        [
+          {
+            "node": "Get Alerts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Pending Actions": {
+      "main": [
+        [
+          {
+            "node": "Build Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
+  },
+  "versionId": "0536dc3a-46ca-4d2a-993c-0bfd5e826458",
+  "meta": {
+    "instanceId": "ca7bc7f182c365457ea4a94a4dc2efe81c23590ab8904858ce5cabfbdd56e40f"
+  },
+  "id": "2wVP7lYVQ9NZfkxz",
+  "tags": []
+}

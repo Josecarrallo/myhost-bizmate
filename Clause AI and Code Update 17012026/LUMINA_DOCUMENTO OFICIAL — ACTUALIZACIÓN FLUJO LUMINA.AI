@@ -1,0 +1,187 @@
+LUMINA
+DOCUMENTO OFICIAL — ACTUALIZACIÓN FLUJO LUMINA.AI
+PROYECTO: MYHOST BizMate
+BLOQUE: 02 — LUMINA.AI
+ESTADO: REDEFINICIÓN DE ROL Y FLUJO (ACTUALIZACIÓN)
+
+================================================
+0) CAMBIO CLAVE — CONTEXTO (MUY IMPORTANTE)
+================================================
+
+BANYU.AI (WhatsApp) y KORA.AI (Voice) YA SON CAPACES DE:
+- conversar con el huésped
+- responder preguntas
+- comprobar disponibilidad
+- calcular precios
+- crear reservas
+- enviar confirmaciones y mensajes
+
+Por lo tanto:
+LUMINA.AI NO debe duplicar ninguna lógica de:
+- check availability
+- calculate price
+- create booking
+- messaging directo con el huésped
+
+Estas funciones deben eliminarse del flujo de LUMINA.
+
+================================================
+1) NUEVO ROL DE LUMINA (DEFINITIVO)
+================================================
+
+LUMINA.AI = Lead Intelligence & Sales Orchestrator
+
+LUMINA NO conversa directamente con el huésped.
+LUMINA analiza, clasifica y decide qué hacer con cada lead.
+
+Frase simple:
+“BANYU y KORA hablan y reservan.
+LUMINA piensa y decide el siguiente paso.”
+
+================================================
+2) QUÉ HACE LUMINA AHORA
+================================================
+
+LUMINA se activa cuando ocurre un EVENTO DE LEAD.
+
+El lead puede llegar:
+- ya BOOKED
+- interesado (conversación activa)
+- frío (sin respuesta)
+- no encaja
+
+LUMINA analiza:
+- estado del lead
+- tiempo desde última interacción
+- canal de origen
+- intención
+- probabilidad de cierre
+- valor potencial
+
+LUMINA decide:
+- qué hacer
+- cuándo hacerlo
+- con qué sistema
+- con qué prioridad
+
+================================================
+3) DECISIONES QUE PUEDE TOMAR
+================================================
+
+SI lead_status = BOOKED
+→ cerrar lead como convertido
+→ disparar Guest Journey
+→ notificar OSIRIS
+→ log
+
+SI lead_status = INTERESTED (NO BOOKED)
+→ activar Follow-up Engine
+→ decidir timing (24h / 48h / 7 días)
+→ recomendar canal (WhatsApp / Voice)
+
+SI lead_status = COLD
+→ marcar como lost
+→ o disparar re-engagement suave
+
+SI lead_status = NOT A FIT
+→ cerrar lead
+→ log
+
+================================================
+4) ACCIONES QUE LUMINA PUEDE DISPARAR
+================================================
+
+LUMINA DISPARA — NO EJECUTA.
+
+Acciones posibles:
+- trigger_followup_engine
+- trigger_banyu_message (draft / follow-up)
+- trigger_kora_call (si aplica)
+- trigger_guest_journey
+- notify_osiris
+- update_lead_status
+- log_event
+
+================================================
+5) NODOS N8N QUE DEBEN ELIMINARSE
+================================================
+
+Eliminar completamente de LUMINA:
+- Check Availability
+- Calculate Price
+- Create Booking
+
+Estas funciones viven EXCLUSIVAMENTE en:
+- BANYU.AI
+- KORA.AI
+
+================================================
+6) NUEVA ESTRUCTURA DEL WORKFLOW N8N (LUMINA)
+================================================
+
+WF-02 — LUMINA Lead Intelligence
+
+NODO 1 — Trigger
+- Webhook / Event desde BANYU o KORA
+
+NODO 2 — Normalize Lead Event
+- source
+- lead_id
+- lead_status
+- timestamps
+- channel
+
+NODO 3 — LUMINA AI Node
+Rol:
+“Sales Intelligence & Lead Lifecycle Orchestrator”
+
+Responsabilidad:
+- analizar estado del lead
+- decidir next_action
+- definir urgencia
+- recomendar sistema a disparar
+
+NODO 4 — Decision Router
+- IF booked → Guest Journey
+- IF interested → Follow-up Engine
+- IF cold → close / re-engage
+- IF not_fit → close
+
+NODO 5 — Trigger External Systems
+- OSIRIS
+- BANYU
+- KORA
+- Follow-up Engine
+
+NODO 6 — Log & Metrics
+- lead lifecycle
+- decisiones tomadas
+- timestamps
+
+================================================
+7) OUTPUT ESPERADO DE LUMINA (JSON)
+================================================
+
+{
+  "lead_id": "string",
+  "lead_status": "booked | interested | cold | not_fit",
+  "next_action": "guest_journey | followup | close | reengage",
+  "recommended_channel": "whatsapp | voice | none",
+  "urgency": "low | medium | high",
+  "reason": "string"
+}
+
+================================================
+8) REGLAS CLAVE (NO ROMPER)
+================================================
+
+- LUMINA no habla con el huésped
+- LUMINA no reserva
+- LUMINA no calcula precios
+- LUMINA no envía mensajes finales
+- LUMINA solo analiza y decide
+- Todo debe quedar logueado
+
+================================================
+FIN — ACTUALIZACIÓN LUMINA.AI
+================================================

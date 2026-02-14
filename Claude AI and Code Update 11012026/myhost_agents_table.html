@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MY HOST BizMate - AI Agents</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: 'Inter', sans-serif;
+      background: linear-gradient(135deg, #FDF8F3 0%, #F5EDE4 100%);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 40px 20px;
+    }
+    
+    .container {
+      max-width: 1200px;
+      width: 100%;
+    }
+    
+    .header {
+      text-align: center;
+      margin-bottom: 40px;
+    }
+    
+    .header h1 {
+      font-family: 'Playfair Display', serif;
+      font-size: 42px;
+      color: #5D4E37;
+      margin-bottom: 8px;
+      letter-spacing: 2px;
+    }
+    
+    .header h1 span {
+      color: #E07B39;
+    }
+    
+    .header .subtitle {
+      font-size: 18px;
+      color: #8B7355;
+      font-weight: 300;
+      letter-spacing: 4px;
+      text-transform: uppercase;
+    }
+    
+    .agents-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 24px;
+      margin-bottom: 24px;
+    }
+    
+    .agent-card {
+      background: white;
+      border-radius: 20px;
+      padding: 32px 28px;
+      box-shadow: 0 4px 20px rgba(93, 78, 55, 0.08);
+      border: 1px solid rgba(93, 78, 55, 0.1);
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    
+    .agent-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 8px 30px rgba(93, 78, 55, 0.12);
+    }
+    
+    .agent-icon {
+      width: 56px;
+      height: 56px;
+      border-radius: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 20px;
+      font-size: 24px;
+    }
+    
+    .lumina .agent-icon {
+      background: linear-gradient(135deg, #F5E6D3 0%, #E8D4BE 100%);
+      border: 2px solid #C9A96E;
+    }
+    
+    .banyu .agent-icon {
+      background: linear-gradient(135deg, #E8F4F2 0%, #D4E8E4 100%);
+      border: 2px solid #5B9A8B;
+    }
+    
+    .kora .agent-icon {
+      background: linear-gradient(135deg, #F0E6E0 0%, #E2D4CC 100%);
+      border: 2px solid #A67B5B;
+    }
+    
+    .agent-name {
+      font-family: 'Playfair Display', serif;
+      font-size: 24px;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+    
+    .lumina .agent-name { color: #C9A96E; }
+    .banyu .agent-name { color: #5B9A8B; }
+    .kora .agent-name { color: #A67B5B; }
+    
+    .agent-role {
+      font-size: 14px;
+      color: #8B7355;
+      font-weight: 500;
+      margin-bottom: 20px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    
+    .agent-features {
+      list-style: none;
+    }
+    
+    .agent-features li {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 0;
+      border-bottom: 1px solid #F5EDE4;
+      font-size: 15px;
+      color: #5D4E37;
+    }
+    
+    .agent-features li:last-child {
+      border-bottom: none;
+    }
+    
+    .feature-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    
+    .lumina .feature-dot { background: #C9A96E; }
+    .banyu .feature-dot { background: #5B9A8B; }
+    .kora .feature-dot { background: #A67B5B; }
+    
+    .osiris-card {
+      background: linear-gradient(135deg, #5D4E37 0%, #4A3F2E 100%);
+      border-radius: 20px;
+      padding: 36px 40px;
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: 0 8px 30px rgba(93, 78, 55, 0.2);
+    }
+    
+    .osiris-left {
+      display: flex;
+      align-items: center;
+      gap: 24px;
+    }
+    
+    .osiris-icon {
+      width: 64px;
+      height: 64px;
+      background: linear-gradient(135deg, #6B8A8A 0%, #5B7A7A 100%);
+      border-radius: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 28px;
+    }
+    
+    .osiris-info h3 {
+      font-family: 'Playfair Display', serif;
+      font-size: 28px;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+    
+    .osiris-info p {
+      font-size: 14px;
+      opacity: 0.8;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+    }
+    
+    .osiris-features {
+      display: flex;
+      gap: 32px;
+    }
+    
+    .osiris-feature {
+      text-align: center;
+    }
+    
+    .osiris-feature .icon {
+      font-size: 24px;
+      margin-bottom: 8px;
+    }
+    
+    .osiris-feature .label {
+      font-size: 13px;
+      opacity: 0.9;
+      font-weight: 500;
+    }
+    
+    .tagline {
+      text-align: center;
+      margin-top: 32px;
+      font-family: 'Playfair Display', serif;
+      font-size: 20px;
+      color: #8B7355;
+      font-style: italic;
+    }
+    
+    .tagline span {
+      color: #E07B39;
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>MY HOST <span>BizMate</span></h1>
+      <p class="subtitle">IZUMI Hotel Edition</p>
+    </div>
+    
+    <div class="agents-grid">
+      <!-- LUMINA.AI -->
+      <div class="agent-card lumina">
+        <div class="agent-icon">🌟</div>
+        <h2 class="agent-name">LUMINA.AI</h2>
+        <p class="agent-role">Sales & Leads</p>
+        <ul class="agent-features">
+          <li><span class="feature-dot"></span>Central Inbox</li>
+          <li><span class="feature-dot"></span>Pipeline CRM</li>
+          <li><span class="feature-dot"></span>AI Follow-ups</li>
+          <li><span class="feature-dot"></span>Conversations</li>
+          <li><span class="feature-dot"></span>Templates</li>
+        </ul>
+      </div>
+      
+      <!-- BANYU.AI -->
+      <div class="agent-card banyu">
+        <div class="agent-icon">💧</div>
+        <h2 class="agent-name">BANYU.AI</h2>
+        <p class="agent-role">WhatsApp Concierge</p>
+        <ul class="agent-features">
+          <li><span class="feature-dot"></span>FAQ 24/7</li>
+          <li><span class="feature-dot"></span>Availability Check</li>
+          <li><span class="feature-dot"></span>Confirmations</li>
+          <li><span class="feature-dot"></span>Reminders</li>
+          <li><span class="feature-dot"></span>Coexistence Mode</li>
+        </ul>
+      </div>
+      
+      <!-- KORA.AI -->
+      <div class="agent-card kora">
+        <div class="agent-icon">📞</div>
+        <h2 class="agent-name">KORA.AI</h2>
+        <p class="agent-role">Voice Concierge</p>
+        <ul class="agent-features">
+          <li><span class="feature-dot"></span>Call Handling</li>
+          <li><span class="feature-dot"></span>Availability Info</li>
+          <li><span class="feature-dot"></span>Price Quotes</li>
+          <li><span class="feature-dot"></span>Call Logs</li>
+          <li><span class="feature-dot"></span>Handoff Rules</li>
+        </ul>
+      </div>
+    </div>
+    
+    <!-- OSIRIS.AI -->
+    <div class="osiris-card">
+      <div class="osiris-left">
+        <div class="osiris-icon">👁️</div>
+        <div class="osiris-info">
+          <h3>OSIRIS.AI</h3>
+          <p>Operations & Control</p>
+        </div>
+      </div>
+      <div class="osiris-features">
+        <div class="osiris-feature">
+          <div class="icon">📊</div>
+          <div class="label">Bookings</div>
+        </div>
+        <div class="osiris-feature">
+          <div class="icon">💰</div>
+          <div class="label">Payments</div>
+        </div>
+        <div class="osiris-feature">
+          <div class="icon">🔔</div>
+          <div class="label">Alerts</div>
+        </div>
+        <div class="osiris-feature">
+          <div class="icon">📈</div>
+          <div class="label">Analytics</div>
+        </div>
+      </div>
+    </div>
+    
+    <p class="tagline">"The owner supervises. <span>The system executes.</span>"</p>
+  </div>
+</body>
+</html>

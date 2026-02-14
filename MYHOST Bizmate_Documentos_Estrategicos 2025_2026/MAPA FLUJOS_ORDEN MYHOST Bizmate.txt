@@ -1,0 +1,137 @@
+
+DIAGRAMA VISUAL
+┌───────────────────────────────────────────────┐
+│           CANALES DE ENTRADA (REALIDAD)        │
+├───────────────────────────────────────────────┤
+│  BANYU.AI  │  KORA.AI  │  Web  │  IG / FB │ OTA │
+│ (WhatsApp) │ (Voice)  │ Forms │ Messages │     │
+└───────────────────────────────────────────────┘
+                     │
+                     ▼
+┌───────────────────────────────────────────────┐
+│        [01] INBOUND LEAD HANDLER               │
+├───────────────────────────────────────────────┤
+│ - Recibe leads desde TODOS los canales         │
+│ - Normaliza datos                              │
+│ - Deduplica                                   │
+│ - Añade source / timestamps / metadata        │
+│ - Crea o actualiza el lead                    │
+└───────────────────────────────────────────────┘
+                     │
+                     ▼
+┌───────────────────────────────────────────────┐
+│        [02] LUMINA.AI                          │
+│   Lead Intelligence / Sales Orchestrator      │
+├───────────────────────────────────────────────┤
+│ - Analiza estado del lead                     │
+│   (booked / interested / cold / not_fit)      │
+│ - Decide el siguiente paso                    │
+│ - NO conversa                                 │
+│ - NO reserva                                  │
+│ - NO calcula precios                          │
+└───────────────────────────────────────────────┘
+            │                              │
+            │                              │
+            ▼                              ▼
+┌──────────────────────────────┐   ┌──────────────────────────────┐
+│   IF BOOKED                  │   │ IF NOT BOOKED                │
+│                              │   │ (interested / cold)          │
+▼                              ▼   ▼                              ▼
+┌──────────────────────────────┐   ┌──────────────────────────────┐
+│ [05] GUEST JOURNEY           │   │ [04] FOLLOW-UP ENGINE         │
+├──────────────────────────────┤   ├──────────────────────────────┤
+│ - Pre-arrival                │   │ - Secuencias automáticas      │
+│ - Arrival                    │   │ - T+2h / 24h / 72h / 7d       │
+│ - In-stay                    │   │ - Re-engagement suave         │
+│ - Check-out                  │   │ - Se detiene al responder     │
+│ - Post-stay                  │   │   o reservar                  │
+└──────────────────────────────┘   └──────────────────────────────┘
+            │                              │
+            │                              │
+            ▼                              ▼
+┌────────────────────────────────────────────────┐
+│      BANYU.AI / KORA.AI (EJECUCIÓN)            │
+├────────────────────────────────────────────────┤
+│ - Envían mensajes WhatsApp                     │
+│ - Hacen llamadas de voz                        │
+│ - Confirman reservas                          │
+│ - Devuelven eventos al sistema                │
+└────────────────────────────────────────────────┘
+                     │
+                     ▼
+┌───────────────────────────────────────────────┐
+│        [03] OSIRIS.AI                          │
+│      Operations & Control                     │
+├───────────────────────────────────────────────┤
+│ - Crear tasks (housekeeping / maintenance)    │
+│ - Alertas                                     │
+│ - Escalaciones                                │
+│ - Reporting                                  │
+└───────────────────────────────────────────────┘
+
+FLUJO
+MAPA — ORDEN DE LOS FLUJOS (ACTUALIZADO Y CORRECTO)
+(ENTRADA REAL → ORQUESTACIÓN → EJECUCIÓN)
+
+CANALES DE ENTRADA (PRIMERO, SIEMPRE)
+-----------------------------------
+- BANYU.AI (WhatsApp)
+- KORA.AI (Voice)
+- Web forms
+- Instagram / Facebook
+- OTAs (Booking, Airbnb, etc.)
+
+          |
+          v
+
+[01] INBOUND LEAD HANDLER
+-----------------------------------
+- Recibe eventos desde TODOS los canales
+- Normaliza datos del lead
+- Crea / actualiza lead record
+- Deduplica
+- Añade metadata (source, timestamps, channel)
+
+          |
+          v
+
+[02] LUMINA.AI — Lead Intelligence / Orchestrator
+-----------------------------------
+- Analiza estado del lead:
+  booked | interested | cold | not_fit
+- Decide next_action
+- NO conversa
+- NO reserva
+- NO calcula precios
+
+          |
+   +------+-------------------------------+
+   |                                      |
+   v                                      v
+
+IF booked                           IF not booked (interested / cold)
+
+[05] GUEST JOURNEY                  [04] FOLLOW-UP ENGINE
+--------------------------------    --------------------------------
+- Pre-arrival                        - Secuencias automáticas
+- Arrival                            - T+2h / 24h / 72h / 7d
+- In-stay                            - Re-engagement suave
+- Check-out                          - Se detiene al responder/reservar
+- Post-stay
+
+          |                                      |
+          v                                      v
+
+BANYU / KORA ejecutan               BANYU / KORA ejecutan
+mensajes y llamadas                 mensajes / llamadas
+(OSIRIS crea tasks si issues)       (y devuelven eventos)
+
+          |
+          v
+
+[03] OSIRIS — Operations & Control
+-----------------------------------
+- Tasks
+- Alerts
+- Escalations
+- Reporting

@@ -16,7 +16,8 @@ import {
   MessageSquare,
   Activity,
   ArrowUpRight,
-  ArrowDownRight
+  ArrowDownRight,
+  Loader2
 } from 'lucide-react';
 import {
   LineChart,
@@ -34,56 +35,122 @@ import {
   Tooltip,
   ResponsiveContainer
 } from 'recharts';
+import { dataService } from '../../services/data';
 
 const ReportsInsights = ({ onBack }) => {
   const [activeTab, setActiveTab] = useState('overview');
+  const [loading, setLoading] = useState(true);
+  const [monthlyData, setMonthlyData] = useState([]);
+  const [recentClients, setRecentClients] = useState([]);
+  const [topGuests, setTopGuests] = useState([]);
+  const [propertyDistribution, setPropertyDistribution] = useState([]);
 
   useEffect(() => {
     window.scrollTo(0, 0);
+    loadReportsData();
   }, []);
 
-  const monthlyData = [
-    { month: 'Nov 24', revenue: 38500, bookings: 24, occupancy: 78, adr: 385 },
-    { month: 'Dec 24', revenue: 52000, bookings: 32, occupancy: 89, adr: 412 },
-    { month: 'Jan 25', revenue: 45200, bookings: 28, occupancy: 87, adr: 398 },
-    { month: 'Feb 25', revenue: 41800, bookings: 26, occupancy: 82, adr: 392 },
-    { month: 'Mar 25', revenue: 48500, bookings: 31, occupancy: 88, adr: 405 },
-    { month: 'Apr 25', revenue: 55200, bookings: 35, occupancy: 92, adr: 425 },
-    { month: 'May 25', revenue: 51800, bookings: 33, occupancy: 90, adr: 415 },
-    { month: 'Jun 25', revenue: 58900, bookings: 38, occupancy: 94, adr: 438 },
-    { month: 'Jul 25', revenue: 62500, bookings: 42, occupancy: 96, adr: 445 },
-    { month: 'Aug 25', revenue: 59800, bookings: 39, occupancy: 93, adr: 432 },
-    { month: 'Sep 25', revenue: 53200, bookings: 34, occupancy: 89, adr: 418 },
-    { month: 'Oct 25', revenue: 56700, bookings: 36, occupancy: 91, adr: 428 }
-  ];
+  const loadReportsData = async () => {
+    try {
+      setLoading(true);
 
+      const [monthly, clients, guests, distribution] = await Promise.all([
+        dataService.getMonthlyAnalytics(),
+        dataService.getRecentClients(),
+        dataService.getTopGuests(),
+        dataService.getPropertyDistribution()
+      ]);
+
+      console.log('[Reports] Loaded from Supabase:', {
+        monthly: monthly?.length,
+        clients: clients?.length,
+        guests: guests?.length,
+        distribution: distribution?.length
+      });
+
+      // Set monthly data (fallback to empty array)
+      setMonthlyData(monthly && monthly.length > 0 ? monthly : []);
+
+      // Map recent clients
+      const mappedClients = clients.map(booking => {
+        const checkIn = new Date(booking.check_in);
+        const checkOut = new Date(booking.check_out);
+        const nights = Math.ceil((checkOut - checkIn) / (1000 * 60 * 60 * 24));
+        const initials = booking.guest_name
+          ? booking.guest_name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
+          : 'GU';
+
+        return {
+          id: booking.id,
+          name: booking.guest_name || 'Guest',
+          property: booking.properties?.name || 'Property',
+          checkIn: checkIn.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+          nights,
+          revenue: parseFloat(booking.total_price) || 0,
+          status: booking.status,
+          avatar: initials,
+          rating: 5 // Default rating (could come from reviews table)
+        };
+      });
+      setRecentClients(mappedClients);
+
+      // Map top guests
+      const mappedGuests = guests.map(guest => {
+        const initials = guest.full_name
+          ? guest.full_name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
+          : 'GU';
+        const lastVisit = guest.last_stay_date
+          ? new Date(guest.last_stay_date).toLocaleDateString('en-US', { month: 'short', year: '2-digit' })
+          : 'N/A';
+
+        return {
+          id: guest.id,
+          name: guest.full_name || 'Guest',
+          avatar: initials,
+          bookings: guest.total_stays || 0,
+          spent: guest.total_revenue || 0,
+          lastVisit,
+          favorite: 'N/A', // Could come from most booked property
+          rating: 5 // Default
+        };
+      });
+      setTopGuests(mappedGuests);
+
+      // Set property distribution
+      setPropertyDistribution(distribution);
+
+    } catch (error) {
+      console.error('[Reports] Error loading data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Calculate stats from real data
   const totalRevenue = monthlyData.reduce((sum, month) => sum + month.revenue, 0);
   const totalBookings = monthlyData.reduce((sum, month) => sum + month.bookings, 0);
-  const avgOccupancy = (monthlyData.reduce((sum, month) => sum + month.occupancy, 0) / monthlyData.length).toFixed(1);
-  const avgADR = (monthlyData.reduce((sum, month) => sum + month.adr, 0) / monthlyData.length).toFixed(0);
+  const avgOccupancy = monthlyData.length > 0
+    ? (monthlyData.reduce((sum, month) => sum + month.occupancy, 0) / monthlyData.length).toFixed(1)
+    : 0;
+  const avgADR = monthlyData.length > 0
+    ? (monthlyData.reduce((sum, month) => sum + month.adr, 0) / monthlyData.length).toFixed(0)
+    : 0;
 
-  const currentMonth = monthlyData[monthlyData.length - 1];
-  const previousMonth = monthlyData[monthlyData.length - 2];
+  const currentMonth = monthlyData[monthlyData.length - 1] || { revenue: 0, bookings: 0, occupancy: 0, adr: 0 };
+  const previousMonth = monthlyData[monthlyData.length - 2] || { revenue: 0, bookings: 0, occupancy: 0, adr: 0 };
 
-  const revenueChange = (((currentMonth.revenue - previousMonth.revenue) / previousMonth.revenue) * 100).toFixed(1);
-  const bookingsChange = (((currentMonth.bookings - previousMonth.bookings) / previousMonth.bookings) * 100).toFixed(1);
+  const revenueChange = previousMonth.revenue > 0
+    ? (((currentMonth.revenue - previousMonth.revenue) / previousMonth.revenue) * 100).toFixed(1)
+    : 0;
+  const bookingsChange = previousMonth.bookings > 0
+    ? (((currentMonth.bookings - previousMonth.bookings) / previousMonth.bookings) * 100).toFixed(1)
+    : 0;
   const occupancyChange = (currentMonth.occupancy - previousMonth.occupancy).toFixed(1);
-  const adrChange = (((currentMonth.adr - previousMonth.adr) / previousMonth.adr) * 100).toFixed(1);
+  const adrChange = previousMonth.adr > 0
+    ? (((currentMonth.adr - previousMonth.adr) / previousMonth.adr) * 100).toFixed(1)
+    : 0;
 
-  const recentClients = [
-    { id: 1, name: 'Sarah Johnson', property: 'Villa Sunset', checkIn: 'Oct 25', nights: 5, revenue: 2125, status: 'active', avatar: 'SJ', rating: 5 },
-    { id: 2, name: 'Michael Chen', property: 'Beach House', checkIn: 'Oct 28', nights: 5, revenue: 2600, status: 'confirmed', avatar: 'MC', rating: 5 },
-    { id: 3, name: 'Emma Wilson', property: 'City Loft', checkIn: 'Oct 24', nights: 3, revenue: 1140, status: 'active', avatar: 'EW', rating: 4 },
-    { id: 4, name: 'David Park', property: 'Mountain Cabin', checkIn: 'Oct 22', nights: 3, revenue: 735, status: 'completed', avatar: 'DP', rating: 5 }
-  ];
-
-  const topGuests = [
-    { id: 1, name: 'Jennifer Martinez', avatar: 'JM', bookings: 8, spent: 18500, lastVisit: 'Sep 25', favorite: 'Villa Sunset', rating: 5 },
-    { id: 2, name: 'Robert Taylor', avatar: 'RT', bookings: 6, spent: 14200, lastVisit: 'Aug 25', favorite: 'Beach House', rating: 5 },
-    { id: 3, name: 'Lisa Anderson', avatar: 'LA', bookings: 5, spent: 11800, lastVisit: 'Oct 25', favorite: 'City Loft', rating: 5 },
-    { id: 4, name: 'James Wilson', avatar: 'JW', bookings: 5, spent: 10950, lastVisit: 'Jul 25', favorite: 'Mountain Cabin', rating: 4 }
-  ];
-
+  // Top Content - Keep as mock (not in DB)
   const topContent = [
     { id: 1, type: 'video', title: 'Villa Sunset Tour - Luxury Bali Experience', views: 45200, likes: 3840, comments: 286, shares: 892, platform: 'Instagram', thumbnail: '🏖️', engagement: 11.2 },
     { id: 2, type: 'post', title: 'Top 10 Activities Near Our Beach House', views: 38500, likes: 2950, comments: 184, shares: 645, platform: 'Facebook', thumbnail: '🌊', engagement: 9.8 },
@@ -92,14 +159,7 @@ const ReportsInsights = ({ onBack }) => {
     { id: 5, type: 'video', title: 'Behind the Scenes: Villa Preparation', views: 24500, likes: 1920, comments: 98, shares: 287, platform: 'Instagram', thumbnail: '✨', engagement: 9.4 }
   ];
 
-  const propertyDistribution = [
-    { name: 'Villa Sunset', value: 142, color: '#F97316' },
-    { name: 'Beach House', value: 128, color: '#EC4899' },
-    { name: 'Mountain Cabin', value: 95, color: '#8B5CF6' },
-    { name: 'City Loft', value: 89, color: '#3B82F6' }
-  ];
-
-  const COLORS = ['#F97316', '#EC4899', '#8B5CF6', '#3B82F6'];
+  const COLORS = ['#F97316', '#EC4899', '#8B5CF6', '#3B82F6', '#10B981', '#F59E0B'];
 
   const KPICard = ({ icon: Icon, label, value, change, prefix = '', suffix = '', gradient }) => {
     const isPositive = parseFloat(change) >= 0;
@@ -108,7 +168,7 @@ const ReportsInsights = ({ onBack }) => {
     return (
       <div className={`bg-gradient-to-br ${gradient} text-white p-6 rounded-3xl transform transition-all hover:scale-105 hover:shadow-2xl`}>
         <div className="flex items-start justify-between mb-4">
-          <div className="p-3 bg-white/20 rounded-2xl backdrop-blur-sm">
+          <div className="p-3 bg-[#d85a2a]/10 rounded-2xl backdrop-blur-sm">
             <Icon className="w-6 h-6" strokeWidth={2.5} />
           </div>
           <div className={`flex items-center gap-1 px-3 py-1.5 rounded-full ${isPositive ? 'bg-green-500/20' : 'bg-red-500/20'}`}>
@@ -138,7 +198,7 @@ const ReportsInsights = ({ onBack }) => {
           <div className="flex-1 min-w-0">
             <div className="flex items-start justify-between mb-2">
               <div className="flex-1">
-                <h4 className="font-bold text-orange-600 text-lg mb-1">{client.name}</h4>
+                <h4 className="font-bold text-[#FF8C42] text-lg mb-1">{client.name}</h4>
                 <p className="text-gray-500 text-sm flex items-center gap-1">
                   <MapPin className="w-3.5 h-3.5" /> {client.property}
                 </p>
@@ -264,7 +324,7 @@ const ReportsInsights = ({ onBack }) => {
                 <div className="flex items-center justify-center gap-1 text-gray-600 mb-1">
                   <Activity className="w-4 h-4" />
                 </div>
-                <p className="text-sm font-bold text-orange-600">{content.engagement}%</p>
+                <p className="text-sm font-bold text-[#FF8C42]">{content.engagement}%</p>
               </div>
             </div>
           </div>
@@ -289,26 +349,36 @@ const ReportsInsights = ({ onBack }) => {
     return null;
   };
 
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[#2a2f3a] flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="w-12 h-12 text-[#d85a2a] animate-spin mx-auto mb-4" />
+          <p className="text-white text-lg">Loading reports...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-400 via-orange-500 to-orange-600 p-4 pb-24 relative overflow-hidden">
+    <div className="min-h-screen bg-[#2a2f3a] p-4 pb-24 relative overflow-hidden">
       {/* Animated background elements */}
       <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute w-96 h-96 bg-orange-300/20 rounded-full blur-3xl top-20 -left-48 animate-pulse"></div>
-        <div className="absolute w-96 h-96 bg-orange-300/20 rounded-full blur-3xl bottom-20 -right-48 animate-pulse" style={{ animationDelay: '1s' }}></div>
-        <div className="absolute w-72 h-72 bg-orange-200/30 rounded-full blur-2xl top-1/2 right-1/4 animate-pulse" style={{ animationDelay: '0.5s' }}></div>
+        <div className="absolute w-96 h-96 bg-[#d85a2a]/5 rounded-full blur-3xl top-20 -left-48 animate-pulse"></div>
+        <div className="absolute w-96 h-96 bg-[#d85a2a]/5 rounded-full blur-3xl bottom-20 -right-48 animate-pulse" style={{ animationDelay: '1s' }}></div>
+        <div className="absolute w-72 h-72 bg-[#d85a2a]/5 rounded-full blur-2xl top-1/2 right-1/4 animate-pulse" style={{ animationDelay: '0.5s' }}></div>
       </div>
 
       <div className="max-w-7xl mx-auto relative z-10">
         <div className="flex items-center justify-between mb-8">
-          <button onClick={onBack} className="p-3 bg-white/95 backdrop-blur-sm rounded-2xl hover:bg-white transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 border-2 border-white/50">
-            <ChevronLeft className="w-6 h-6 text-orange-600" />
+          <button onClick={onBack} className="p-3 bg-[#1f2937]/95 backdrop-blur-sm rounded-2xl hover:bg-[#1f2937] transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 border-2 border-[#d85a2a]/20">
+            <ChevronLeft className="w-6 h-6 text-[#FF8C42]" />
           </button>
           <div className="text-center">
-            <h2 className="text-4xl md:text-5xl font-black text-white drop-shadow-2xl mb-1">MY HOST</h2>
-            <p className="text-2xl md:text-3xl font-bold text-orange-100 drop-shadow-xl">BizMate</p>
+            <h2 className="text-4xl md:text-5xl font-black text-white drop-shadow-2xl">Reports</h2>
           </div>
           <div className="flex gap-2">
-            <button className="px-6 py-3 bg-white/95 backdrop-blur-sm border-2 border-white/50 rounded-2xl font-bold hover:bg-white transition-all duration-300 shadow-lg text-orange-600">
+            <button className="px-6 py-3 bg-[#1f2937]/95 backdrop-blur-sm border-2 border-[#d85a2a]/20 rounded-2xl font-bold hover:bg-[#1f2937] transition-all duration-300 shadow-lg text-[#FF8C42]">
               Last 12 Months
             </button>
           </div>
@@ -322,21 +392,21 @@ const ReportsInsights = ({ onBack }) => {
         </div>
 
         <div className="flex gap-2 mb-8 overflow-x-auto pb-2">
-          <button onClick={() => setActiveTab('overview')} className={`px-6 py-3 rounded-2xl font-bold whitespace-nowrap transition-all shadow-lg ${activeTab === 'overview' ? 'bg-white text-orange-600' : 'bg-white/60 text-white hover:bg-white/80 border-2 border-white/50'}`}>
+          <button onClick={() => setActiveTab('overview')} className={`px-6 py-3 rounded-2xl font-bold whitespace-nowrap transition-all shadow-lg ${activeTab === 'overview' ? 'bg-white text-[#FF8C42]' : 'bg-white/60 text-white hover:bg-white/80 border-2 border-[#d85a2a]/20'}`}>
             <BarChart3 className="w-5 h-5 inline mr-2" />Overview
           </button>
-          <button onClick={() => setActiveTab('clients')} className={`px-6 py-3 rounded-2xl font-bold whitespace-nowrap transition-all shadow-lg ${activeTab === 'clients' ? 'bg-white text-orange-600' : 'bg-white/60 text-white hover:bg-white/80 border-2 border-white/50'}`}>
+          <button onClick={() => setActiveTab('clients')} className={`px-6 py-3 rounded-2xl font-bold whitespace-nowrap transition-all shadow-lg ${activeTab === 'clients' ? 'bg-white text-[#FF8C42]' : 'bg-white/60 text-white hover:bg-white/80 border-2 border-[#d85a2a]/20'}`}>
             <Users className="w-5 h-5 inline mr-2" />Clients & Top Guests
           </button>
-          <button onClick={() => setActiveTab('content')} className={`px-6 py-3 rounded-2xl font-bold whitespace-nowrap transition-all shadow-lg ${activeTab === 'content' ? 'bg-white text-orange-600' : 'bg-white/60 text-white hover:bg-white/80 border-2 border-white/50'}`}>
+          <button onClick={() => setActiveTab('content')} className={`px-6 py-3 rounded-2xl font-bold whitespace-nowrap transition-all shadow-lg ${activeTab === 'content' ? 'bg-white text-[#FF8C42]' : 'bg-white/60 text-white hover:bg-white/80 border-2 border-[#d85a2a]/20'}`}>
             <Eye className="w-5 h-5 inline mr-2" />Top Content
           </button>
         </div>
 
         {activeTab === 'overview' && (
           <div className="space-y-6">
-            <div className="bg-white rounded-3xl p-6 border-2 border-gray-100 shadow-lg">
-              <h3 className="text-2xl font-black text-orange-600 mb-6 flex items-center gap-2">
+            <div className="bg-[#1f2937] rounded-3xl p-6 border-2 border-gray-100 shadow-lg">
+              <h3 className="text-2xl font-black text-[#FF8C42] mb-6 flex items-center gap-2">
                 <TrendingUp className="w-6 h-6 text-orange-500" />
                 Monthly Revenue Trend
               </h3>
@@ -358,8 +428,8 @@ const ReportsInsights = ({ onBack }) => {
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <div className="bg-white rounded-3xl p-6 border-2 border-gray-100 shadow-lg">
-                <h3 className="text-xl font-black text-orange-600 mb-6 flex items-center gap-2">
+              <div className="bg-[#1f2937] rounded-3xl p-6 border-2 border-gray-100 shadow-lg">
+                <h3 className="text-xl font-black text-[#FF8C42] mb-6 flex items-center gap-2">
                   <Calendar className="w-6 h-6 text-blue-500" />
                   Bookings per Month
                 </h3>
@@ -374,8 +444,8 @@ const ReportsInsights = ({ onBack }) => {
                 </ResponsiveContainer>
               </div>
 
-              <div className="bg-white rounded-3xl p-6 border-2 border-gray-100 shadow-lg">
-                <h3 className="text-xl font-black text-orange-600 mb-6 flex items-center gap-2">
+              <div className="bg-[#1f2937] rounded-3xl p-6 border-2 border-gray-100 shadow-lg">
+                <h3 className="text-xl font-black text-[#FF8C42] mb-6 flex items-center gap-2">
                   <Percent className="w-6 h-6 text-purple-500" />
                   Occupancy Rate %
                 </h3>
@@ -391,8 +461,8 @@ const ReportsInsights = ({ onBack }) => {
               </div>
             </div>
 
-            <div className="bg-white rounded-3xl p-6 border-2 border-gray-100 shadow-lg">
-              <h3 className="text-2xl font-black text-orange-600 mb-6 flex items-center gap-2">
+            <div className="bg-[#1f2937] rounded-3xl p-6 border-2 border-gray-100 shadow-lg">
+              <h3 className="text-2xl font-black text-[#FF8C42] mb-6 flex items-center gap-2">
                 <BarChart3 className="w-6 h-6 text-pink-500" />
                 Bookings by Property (12M)
               </h3>

@@ -136,9 +136,16 @@ AGENTE 9: WhatsApp Hospitality Concierge Agent (PRIORIDAD MÁXIMA)
 ------------------------------------------------------------------
 ✓ Atiende consultas huéspedes 24/7 en WhatsApp
 ✓ Responde en 6 idiomas (EN, ES, FR, DE, JP, CN)
+✓ VOICE: Procesa mensajes de voz (OpenAI Whisper)
+✓ PHOTOS: Interpreta fotos enviadas (GPT-4 Vision)
 ✓ Da recomendaciones locales personalizadas
 ✓ Resuelve problemas durante estancia
 ✓ Escala a humano cuando necesario
+
+COMPETITIVIDAD:
+- Paridad con WeSpeak (usado por Cloudbeds, MiniHotel, MyHotel)
+- Costo adicional: $30-45/mes por propiedad (voz/foto APIs)
+- Diferenciador: Nuestro valor NO es solo chat, sino Revenue + Operations
 
 IMPACTO:
 - Ahorro: 15-20 horas/semana por propiedad
@@ -173,6 +180,8 @@ IMPACTO:
 
 TECNOLOGÍA FASE 3A:
 - Claude 3.5 Sonnet API (Anthropic)
+- OpenAI Whisper API (speech-to-text): $0.006/min
+- OpenAI GPT-4 Vision (image analysis): $0.01/image
 - n8n workflows (ya instalado en Railway)
 - WhatsApp Business Cloud API
 - Supabase Functions + Webhooks

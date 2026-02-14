@@ -1,0 +1,188 @@
+Contexto: qué ya tienes hecho
+
+He importado y probado en n8n el workflow:
+
+  myhost-media-to-video-whatsapp-mvp-v1.json
+
+Este flujo hace:
+
+- Entrada (Webhook /media-to-video):
+  {
+    "property_id": "villa_123",
+    "property_name": "Villa Suerte",
+    "language": "es",
+    "objective": "bookings",
+    "platform_focus": "instagram_reels",
+    "target_audience": "parejas",
+    "media_url": "https://.../raw_media/foto.jpg",          // opcional
+    "text_description": "Foto de piscina infinita...",       // opcional
+    "owner_whatsapp": "+628123456789"
+  }
+
+- Procesa:
+  - Normaliza media_description.
+  - Inserta un registro en Supabase (tabla media_jobs, status = 'received').
+  - Llama a Claude (creativo) para generar:
+    - video_concept (estructura), caption, cta, hashtags, notes_for_video_engine, vibe, etc.
+  - Actualiza media_jobs (status = 'processing', guarda claude_output y campos clave).
+  - Llama a Fal.ai (modelo fal-ai/wan-i2v) con:
+    - image_url = input_media_url
+    - prompt = notes_for_video_engine
+    - aspect_ratio = "9:16"
+  - Extrae final_video_url de la respuesta de Fal.
+  - Actualiza media_jobs (status = 'ready', final_video_url).
+  - Envía el vídeo al owner vía WhatsApp usando final_video_url + caption.
+  - Responde al Webhook con:
+    {
+      "status": "ok",
+      "message": "Video generated and sent via WhatsApp",
+      "media_job_id": "...",
+      "video_url": "..."
+    }
+
+- Tablas Supabase utilizadas:
+  Tabla media_jobs:
+  - id uuid PK
+  - property_id text
+  - input_media_url text
+  - has_media boolean
+  - media_description text
+  - language text
+  - objective text
+  - target_audience text
+  - platform_focus text
+  - status text ('received' | 'processing' | 'ready' | 'error')
+  - final_video_url text
+  - caption text
+  - cta text
+  - hashtags text[]
+  - vibe text
+  - clauded_output jsonb
+  - error_message text
+  - owner_whatsapp text
+  - created_at timestamptz
+  - updated_at timestamptz
+
+  (Tabla social_posts la reservamos para la siguiente fase de scheduling/publicación.)
+
+────────────────────────────────────────
+Objetivo ahora con Claude Code
+
+Quiero que actualices/crees:
+
+1) Backend (API MYHOST Bizmate)
+   - Endpoints REST internos para el panel del owner.
+   - Integraciones limpias con n8n y Supabase.
+
+2) Frontend (dashboard owner)
+   - Pantallas para:
+     - Subir foto / escribir texto.
+     - Ver el histórico de media_jobs.
+     - Ver estado (received, processing, ready, error).
+     - Ver y reproducir el vídeo final.
+     - Reenviar el vídeo (más adelante: aprobar y programar social_posts).
+
+Stack deseado (ejemplo, ajústalo a lo que usemos):
+- Frontend: Next.js + React + Chakra UI.
+- Backend: Node/Express (o Next.js API routes), usando Supabase JS client.
+- Auth multi-tenant simple (por ahora puedes asumir que ya tengo user_id y property_id resueltos en middleware).
+
+────────────────────────────────────────
+Qué necesito que hagas (Claude Code)
+
+1) Backend – Endpoints API
+
+Diseña y escribe el código de los siguientes endpoints:
+
+A) POST /api/media-jobs
+   - Uso: el frontend del owner lo llama cuando sube una foto o escribe un texto.
+   - Body:
+     {
+       "property_id": "villa_123",
+       "property_name": "Villa Suerte",
+       "language": "es",
+       "objective": "bookings",
+       "platform_focus": "instagram_reels",
+       "target_audience": "parejas",
+       "media_url": "https://.../raw_media/foto.jpg",         // opcional
+       "text_description": "Foto de piscina infinita...",      // opcional
+       "owner_whatsapp": "+628123456789"
+     }
+   - Lógica:
+     1) Valida que haya al menos media_url o text_description.
+     2) Hace POST al Webhook de n8n (/media-to-video) con el mismo body.
+     3) Devuelve al frontend:
+        {
+          "status": "queued",
+          "media_job_id": "...",
+          "video_url": null
+        }
+     (media_job_id viene de la respuesta del Webhook de n8n.)
+
+B) GET /api/media-jobs?property_id=...
+   - Devuelve listado de media_jobs de esa propiedad, ordenados por created_at desc.
+   - Campos mínimos:
+     - id, status, final_video_url, caption, created_at, error_message.
+
+C) GET /api/media-jobs/:id
+   - Devuelve el detalle de un media_job:
+     - Todos los campos relevantes (status, final_video_url, caption, claude_output, etc.).
+
+2) Frontend – Componentes/páginas
+
+A) Página: /owner/content
+   - Muestra:
+     - Selector de property (si aplica).
+     - Formulario “Crear vídeo de prueba”:
+       - Campo upload de imagen (opcional).
+       - Campo textarea text_description (opcional).
+       - Select language (es/en/id).
+       - Select objective (bookings/awareness/last_minute/upsell).
+       - Select platform_focus (instagram_reels/tiktok/whatsapp_status).
+       - Input owner_whatsapp.
+       - Botón “Generar vídeo”.
+     - Al hacer submit:
+       - Llama a POST /api/media-jobs.
+       - Muestra un mensaje de “Job en cola” y el id devuelto.
+
+B) Tabla de histórico media_jobs
+   - En la misma página /owner/content debajo del formulario, muestra una tabla:
+     - Columnas:
+       - Fecha (created_at).
+       - Estado (status con badge: received, processing, ready, error).
+       - Preview (si final_video_url no es null, un botón “Ver vídeo”).
+       - Mensaje de error si status = error.
+     - Hace polling cada 10–15s (o WS si quieres) llamando a GET /api/media-jobs?property_id=...
+
+C) Modal de preview de vídeo
+   - Al hacer clic en “Ver vídeo”, abre modal con:
+     - Reproductor de vídeo usando final_video_url.
+     - Texto: caption + CTA + hashtags (formateados con #).
+     - Más adelante aquí podremos añadir botones “Publicar en Instagram/TikTok”.
+
+3) Integración con Supabase desde backend
+
+- Usa supabase-js para:
+  - Validar que la property_id pertenece al usuario (si quieres hacer un check simple).
+  - O directamente delegar la escritura/lectura a la REST API de Supabase como ya hace n8n.
+
+────────────────────────────────────────
+Formato de respuesta que espero de ti
+
+1) Código backend:
+   - Ejemplo en Node/Express o Next.js API routes (elige uno y sé consistente).
+   - Endpoints: POST /api/media-jobs, GET /api/media-jobs, GET /api/media-jobs/:id.
+   - Uso de fetch/axios para llamar al Webhook de n8n.
+   - Manejo básico de errores y status HTTP.
+
+2) Código frontend:
+   - Componentes React (con Chakra UI si es posible) para:
+     - Formulario de creación.
+     - Tabla de histórico.
+     - Modal de preview.
+
+3) Breve explicación (2–3 frases por bloque) de:
+   - Cómo conectar el endpoint de backend con el Webhook de n8n.
+   - Cómo mapear los campos de media_jobs a la UI.
+
+No reescribas el flujo de n8n ni el prompt de Claude; considéralos ya fijos y en producción. Solo céntrate en integrar frontend/backend con lo que ya funciona.

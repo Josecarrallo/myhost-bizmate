@@ -1,0 +1,778 @@
+{
+  "name": "WF-03-LEAD-HANDLER",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "inbound-johnson-v1",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "position": [
+        -1200,
+        0
+      ],
+      "webhookId": "inbound-johnson-v1",
+      "typeVersion": 2.1
+    },
+    {
+      "parameters": {
+        "jsCode": "// Validate Johnson Contract v1 - Original format for BANYU\nconst e = $json.body || $json;\n\n// Validation for Johnson Contract v1\nif (!e.version || e.version !== 'johnson.v1') {\n  throw new Error('Invalid or missing version. Expected: johnson.v1');\n}\nif (!e.tenant || !e.tenant.tenant_id) {\n  throw new Error('Missing tenant.tenant_id');\n}\n\nconst lead = e.lead || {};\nconst channel = e.channel || {};\nconst property = e.property || {};\nconst booking = e.booking || {};\nconst message = e.message || {};\nconst ai = e.ai || {};\nconst trace = e.trace || {};\n\nreturn [{\n  json: {\n    // Contract info\n    version: e.version,\n    event_type: e.event_type,\n    \n    // Tenant & Property\n    tenant_id: e.tenant.tenant_id,\n    tenant_slug: e.tenant.slug || null,\n    property_id: property.property_id || '18711359-1378-4d12-9ea6-fb31c0b1bac2',\n    property_name: property.property_name || null,\n    \n    // Lead info\n    existing_lead_id: lead.lead_id || null,\n    name: lead.name || 'Unknown',\n    phone: lead.phone || null,\n    email: lead.email || null,\n    \n    // Channel\n    channel: channel.source || 'whatsapp',\n    thread_id: channel.thread_id || null,\n    \n    // Message\n    message: message.text || '',\n    language: message.language || 'en',\n    \n    // Booking\n    booking_id: booking.booking_id || null,\n    check_in: booking.check_in || null,\n    check_out: booking.check_out || null,\n    guests: booking.guests || null,\n    booking_status: booking.status || 'inquiry',\n    \n    // AI\n    intent: ai.intent || 'info',\n    score: ai.score || 10,\n    is_hot: ai.is_hot || false,\n    \n    // Trace\n    source_workflow: trace.source_workflow || 'BANYU',\n    execution_id: trace.execution_id || null,\n    timestamp: trace.timestamp || new Date().toISOString(),\n    call_id: trace.call_id || null,\n    \n    // Raw\n    raw_payload: JSON.stringify(e)\n  }\n}];"
+      },
+      "id": "validate-johnson",
+      "name": "Validate Johnson Contract",
+      "type": "n8n-nodes-base.code",
+      "position": [
+        -992,
+        0
+      ],
+      "typeVersion": 2
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://jjpscimtxrudtepzwhag.supabase.co/rest/v1/rpc/find_lead_by_contact",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpqcHNjaW10eHJ1ZHRlcHp3aGFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI5NDMyMzIsImV4cCI6MjA3ODUxOTIzMn0._U_HwdF5-yT8-prJLzkdO_rGbNuu7Z3gpUQW0Q8zxa0"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"p_phone\": {{ $json.phone ? '\"' + $json.phone + '\"' : 'null' }},\n  \"p_email\": {{ $json.email ? '\"' + $json.email + '\"' : 'null' }},\n  \"p_tenant_id\": \"{{ $json.tenant_id }}\"\n}",
+        "options": {}
+      },
+      "id": "buscar-lead",
+      "name": "Buscar Lead",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        -784,
+        0
+      ],
+      "typeVersion": 4.3,
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "db_lead_id",
+              "name": "db_lead_id",
+              "type": "string",
+              "value": "={{ $json.id || '' }}"
+            },
+            {
+              "id": "db_lead_state",
+              "name": "db_lead_state",
+              "type": "string",
+              "value": "={{ $json.state || '' }}"
+            },
+            {
+              "id": "tenant_id",
+              "name": "tenant_id",
+              "type": "string",
+              "value": "={{ $('Validate Johnson Contract').item.json.tenant_id }}"
+            },
+            {
+              "id": "property_id",
+              "name": "property_id",
+              "type": "string",
+              "value": "={{ $('Validate Johnson Contract').item.json.property_id }}"
+            },
+            {
+              "id": "channel",
+              "name": "channel",
+              "type": "string",
+              "value": "={{ $('Validate Johnson Contract').item.json.channel }}"
+            },
+            {
+              "id": "name",
+              "name": "name",
+              "type": "string",
+              "value": "={{ $('Validate Johnson Contract').item.json.name }}"
+            },
+            {
+              "id": "email",
+              "name": "email",
+              "type": "string",
+              "value": "={{ $('Validate Johnson Contract').item.json.email }}"
+            },
+            {
+              "id": "phone",
+              "name": "phone",
+              "type": "string",
+              "value": "={{ $('Validate Johnson Contract').item.json.phone }}"
+            },
+            {
+              "id": "message",
+              "name": "message",
+              "type": "string",
+              "value": "={{ $('Validate Johnson Contract').item.json.message }}"
+            },
+            {
+              "id": "language",
+              "name": "language",
+              "type": "string",
+              "value": "={{ $('Validate Johnson Contract').item.json.language }}"
+            },
+            {
+              "id": "intent",
+              "name": "intent",
+              "type": "string",
+              "value": "={{ $('Validate Johnson Contract').item.json.intent }}"
+            },
+            {
+              "id": "score",
+              "name": "score",
+              "type": "number",
+              "value": "={{ $('Validate Johnson Contract').item.json.score }}"
+            },
+            {
+              "id": "is_hot",
+              "name": "is_hot",
+              "type": "boolean",
+              "value": "={{ $('Validate Johnson Contract').item.json.is_hot }}"
+            },
+            {
+              "id": "source_workflow",
+              "name": "source_workflow",
+              "type": "string",
+              "value": "={{ $('Validate Johnson Contract').item.json.source_workflow }}"
+            },
+            {
+              "id": "check_in",
+              "name": "check_in",
+              "type": "string",
+              "value": "={{ $('Validate Johnson Contract').item.json.check_in }}"
+            },
+            {
+              "id": "check_out",
+              "name": "check_out",
+              "type": "string",
+              "value": "={{ $('Validate Johnson Contract').item.json.check_out }}"
+            },
+            {
+              "id": "guests",
+              "name": "guests",
+              "type": "number",
+              "value": "={{ $('Validate Johnson Contract').item.json.guests }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "merge-data",
+      "name": "Merge Data",
+      "type": "n8n-nodes-base.set",
+      "position": [
+        -576,
+        0
+      ],
+      "typeVersion": 3.4
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "version": 2,
+                  "caseSensitive": true,
+                  "typeValidation": "loose"
+                },
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "operator": {
+                      "type": "string",
+                      "operation": "empty"
+                    },
+                    "leftValue": "={{ $json.db_lead_id }}"
+                  }
+                ]
+              },
+              "renameOutput": true,
+              "outputKey": "New"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "version": 2,
+                  "caseSensitive": true,
+                  "typeValidation": "loose"
+                },
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "operator": {
+                      "type": "string",
+                      "operation": "notEmpty"
+                    },
+                    "leftValue": "={{ $json.db_lead_id }}"
+                  }
+                ]
+              },
+              "renameOutput": true,
+              "outputKey": "Existing"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "switch-lead",
+      "name": "Switch Lead",
+      "type": "n8n-nodes-base.switch",
+      "position": [
+        -368,
+        0
+      ],
+      "typeVersion": 3.3
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://jjpscimtxrudtepzwhag.supabase.co/rest/v1/leads",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpqcHNjaW10eHJ1ZHRlcHp3aGFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI5NDMyMzIsImV4cCI6MjA3ODUxOTIzMn0._U_HwdF5-yT8-prJLzkdO_rGbNuu7Z3gpUQW0Q8zxa0"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpqcHNjaW10eHJ1ZHRlcHp3aGFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI5NDMyMzIsImV4cCI6MjA3ODUxOTIzMn0._U_HwdF5-yT8-prJLzkdO_rGbNuu7Z3gpUQW0Q8zxa0"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=representation"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"tenant_id\": \"{{ $json.tenant_id }}\",\n  \"property_id\": \"{{ $json.property_id }}\",\n  \"name\": \"{{ $json.name }}\",\n  \"phone\": {{ $json.phone ? '\"' + $json.phone + '\"' : 'null' }},\n  \"email\": {{ $json.email ? '\"' + $json.email + '\"' : 'null' }},\n  \"channel\": \"{{ $json.channel }}\",\n  \"state\": \"{{ $json.is_hot ? 'HOT' : 'NEW' }}\",\n  \"intent\": \"{{ $json.intent }}\",\n  \"score\": {{ $json.score }},\n  \"source\": \"{{ $json.channel }}\"\n}",
+        "options": {}
+      },
+      "id": "insert-lead",
+      "name": "INSERT",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        -160,
+        -144
+      ],
+      "typeVersion": 4.3
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "=https://jjpscimtxrudtepzwhag.supabase.co/rest/v1/leads?id=eq.{{ $json.db_lead_id }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpqcHNjaW10eHJ1ZHRlcHp3aGFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI5NDMyMzIsImV4cCI6MjA3ODUxOTIzMn0._U_HwdF5-yT8-prJLzkdO_rGbNuu7Z3gpUQW0Q8zxa0"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpqcHNjaW10eHJ1ZHRlcHp3aGFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI5NDMyMzIsImV4cCI6MjA3ODUxOTIzMn0._U_HwdF5-yT8-prJLzkdO_rGbNuu7Z3gpUQW0Q8zxa0"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=representation"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"last_contacted_at\": \"{{ new Date().toISOString() }}\",\n  \"state\": \"{{ $json.is_hot ? 'HOT' : 'ENGAGED' }}\",\n  \"intent\": \"{{ $json.intent }}\",\n  \"score\": {{ $json.score }},\n  \"updated_at\": \"{{ new Date().toISOString() }}\",\n  \"next_followup_at\": \"{{ new Date(Date.now() + 2*60*60*1000).toISOString() }}\"\n}",
+        "options": {}
+      },
+      "id": "update-lead",
+      "name": "UPDATE",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        -160,
+        144
+      ],
+      "typeVersion": 4.3
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://jjpscimtxrudtepzwhag.supabase.co/rest/v1/lead_events",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpqcHNjaW10eHJ1ZHRlcHp3aGFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI5NDMyMzIsImV4cCI6MjA3ODUxOTIzMn0._U_HwdF5-yT8-prJLzkdO_rGbNuu7Z3gpUQW0Q8zxa0"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpqcHNjaW10eHJ1ZHRlcHp3aGFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI5NDMyMzIsImV4cCI6MjA3ODUxOTIzMn0._U_HwdF5-yT8-prJLzkdO_rGbNuu7Z3gpUQW0Q8zxa0"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=representation"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"lead_id\": \"{{ $json[0]?.id || $json.id }}\",\n  \"event_type\": \"lead_created\",\n  \"payload_json\": {\n    \"channel\": \"{{ $('Merge Data').item.json.channel }}\",\n    \"message\": \"{{ $('Merge Data').item.json.message }}\",\n    \"intent\": \"{{ $('Merge Data').item.json.intent }}\",\n    \"score\": {{ $('Merge Data').item.json.score }},\n    \"source_workflow\": \"{{ $('Merge Data').item.json.source_workflow }}\"\n  }\n}",
+        "options": {}
+      },
+      "id": "log-created",
+      "name": "Log Created",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        48,
+        -144
+      ],
+      "typeVersion": 4.3
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://jjpscimtxrudtepzwhag.supabase.co/rest/v1/lead_events",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpqcHNjaW10eHJ1ZHRlcHp3aGFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI5NDMyMzIsImV4cCI6MjA3ODUxOTIzMn0._U_HwdF5-yT8-prJLzkdO_rGbNuu7Z3gpUQW0Q8zxa0"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpqcHNjaW10eHJ1ZHRlcHp3aGFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI5NDMyMzIsImV4cCI6MjA3ODUxOTIzMn0._U_HwdF5-yT8-prJLzkdO_rGbNuu7Z3gpUQW0Q8zxa0"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=representation"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"lead_id\": \"{{ $json[0]?.id || $json.id }}\",\n  \"event_type\": \"message_received\",\n  \"payload_json\": {\n    \"channel\": \"{{ $('Merge Data').item.json.channel }}\",\n    \"message\": \"{{ $('Merge Data').item.json.message }}\",\n    \"intent\": \"{{ $('Merge Data').item.json.intent }}\",\n    \"score\": {{ $('Merge Data').item.json.score }},\n    \"source_workflow\": \"{{ $('Merge Data').item.json.source_workflow }}\"\n  }\n}",
+        "options": {}
+      },
+      "id": "log-received",
+      "name": "Log Received",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        48,
+        144
+      ],
+      "typeVersion": 4.3
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "version": 2,
+                  "caseSensitive": true,
+                  "typeValidation": "loose"
+                },
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "leftValue": "={{ $('Merge Data').item.json.channel }}",
+                    "rightValue": "whatsapp"
+                  }
+                ]
+              },
+              "renameOutput": true,
+              "outputKey": "WhatsApp"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "version": 2,
+                  "caseSensitive": true,
+                  "typeValidation": "loose"
+                },
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "operator": {
+                      "type": "string",
+                      "operation": "notEquals"
+                    },
+                    "leftValue": "={{ $('Merge Data').item.json.channel }}",
+                    "rightValue": "whatsapp"
+                  }
+                ]
+              },
+              "renameOutput": true,
+              "outputKey": "Other"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "switch-canal",
+      "name": "Switch Canal",
+      "type": "n8n-nodes-base.switch",
+      "position": [
+        256,
+        0
+      ],
+      "typeVersion": 3.3
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "version": 2,
+                  "caseSensitive": true,
+                  "typeValidation": "loose"
+                },
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "operator": {
+                      "type": "string",
+                      "operation": "notEmpty"
+                    },
+                    "leftValue": "={{ $('Merge Data').item.json.email }}"
+                  }
+                ]
+              },
+              "renameOutput": true,
+              "outputKey": "Yes"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "version": 2,
+                  "caseSensitive": true,
+                  "typeValidation": "loose"
+                },
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "operator": {
+                      "type": "string",
+                      "operation": "empty"
+                    },
+                    "leftValue": "={{ $('Merge Data').item.json.email }}"
+                  }
+                ]
+              },
+              "renameOutput": true,
+              "outputKey": "No"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "check-email",
+      "name": "Check Email",
+      "type": "n8n-nodes-base.switch",
+      "position": [
+        464,
+        144
+      ],
+      "typeVersion": 3.3
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.sendgrid.com/v3/mail/send",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer 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"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"personalizations\": [{\"to\": [{\"email\": \"{{ $('Merge Data').item.json.email }}\"}]}],\n  \"from\": {\"email\": \"josecarrallodelafuente@gmail.com\", \"name\": \"Izumi Hotel\"},\n  \"subject\": \"Gracias por contactar Izumi Hotel\",\n  \"content\": [{\"type\": \"text/plain\", \"value\": \"Hola {{ $('Merge Data').item.json.name }},\\n\\nGracias por tu interes en Izumi Hotel.\\n\\nHemos recibido tu mensaje y nuestro equipo te contactara pronto.\\n\\nSaludos,\\nEl equipo de Izumi Hotel\"}]\n}",
+        "options": {}
+      },
+      "id": "send-email",
+      "name": "Email",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        736,
+        224
+      ],
+      "typeVersion": 4.3
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"success\": true,\n  \"version\": \"johnson.v1\",\n  \"lead_id\": \"{{ $json[0]?.id || $json.id || 'unknown' }}\",\n  \"message\": \"Lead processed via Johnson Contract v1\"\n}",
+        "options": {}
+      },
+      "id": "respond",
+      "name": "Respond",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "position": [
+        736,
+        0
+      ],
+      "typeVersion": 1.1
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://n8n-production-bb2d.up.railway.app/webhook/lumina-analyze",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({\n  lead_id: $json.lead_id || $json[0]?.id || $json.id || null,\n  tenant_id: $('Merge Data').item.json.tenant_id,\n  property_id: $('Merge Data').item.json.property_id,\n  name: $('Merge Data').item.json.name,\n  phone: $('Merge Data').item.json.phone || null,\n  email: $('Merge Data').item.json.email || null,\n  channel: $('Merge Data').item.json.channel,\n  intent: $('Merge Data').item.json.intent,\n  score: $('Merge Data').item.json.score,\n  state: $('Merge Data').item.json.is_hot ? \"HOT\" : ($('Merge Data').item.json.db_lead_id ? \"ENGAGED\" : \"NEW\"),\n  check_in: $('Merge Data').item.json.check_in || null,\n  check_out: $('Merge Data').item.json.check_out || null,\n  guests: $('Merge Data').item.json.guests || null\n}) }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "99893602-a6d0-4cf5-9c7b-f3329f438b38",
+      "name": "Call LUMINA",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        944,
+        0
+      ],
+      "typeVersion": 4.3
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Validate Johnson Contract",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Johnson Contract": {
+      "main": [
+        [
+          {
+            "node": "Buscar Lead",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar Lead": {
+      "main": [
+        [
+          {
+            "node": "Merge Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge Data": {
+      "main": [
+        [
+          {
+            "node": "Switch Lead",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch Lead": {
+      "main": [
+        [
+          {
+            "node": "INSERT",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "UPDATE",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "INSERT": {
+      "main": [
+        [
+          {
+            "node": "Log Created",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "UPDATE": {
+      "main": [
+        [
+          {
+            "node": "Log Received",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Created": {
+      "main": [
+        [
+          {
+            "node": "Switch Canal",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Received": {
+      "main": [
+        [
+          {
+            "node": "Switch Canal",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch Canal": {
+      "main": [
+        [
+          {
+            "node": "Respond",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Check Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Email": {
+      "main": [
+        [
+          {
+            "node": "Respond",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Email": {
+      "main": [
+        []
+      ]
+    },
+    "Call LUMINA": {
+      "main": [
+        []
+      ]
+    },
+    "Respond": {
+      "main": [
+        [
+          {
+            "node": "Call LUMINA",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
+  },
+  "versionId": "a0225d69-b09c-48ac-89dc-6fad9e41e04b",
+  "meta": {
+    "instanceId": "ca7bc7f182c365457ea4a94a4dc2efe81c23590ab8904858ce5cabfbdd56e40f"
+  },
+  "id": "OZmq7E9wzODJrzej",
+  "tags": []
+}

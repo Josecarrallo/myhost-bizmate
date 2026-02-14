@@ -1,0 +1,310 @@
+{
+  "name": "Owner Daily Intelligence - MYHOST Bizmate XI",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 9
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        144,
+        -304
+      ],
+      "id": "0f485933-348b-485b-8fa0-a579e1688da5",
+      "name": "Schedule Trigger 9AM"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "owner-daily-intelligence",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        144,
+        64
+      ],
+      "id": "12702854-177d-4bb3-ad78-e90ca349493e",
+      "name": "Webhook Manual",
+      "webhookId": "owner-daily-intelligence"
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "bookings",
+        "returnAll": true
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        448,
+        -48
+      ],
+      "id": "ae34fade-6c00-44a5-91da-27f0e906a4ac",
+      "name": "Get All Bookings",
+      "executeOnce": true,
+      "credentials": {
+        "supabaseApi": {
+          "id": "SJLQzwU9BVHEVAGc",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Configuración\nconst today = new Date().toISOString().split('T')[0];\nconst todayDate = new Date(today);\n\n// Fechas de referencia\nconst next7Days = new Date(todayDate);\nnext7Days.setDate(next7Days.getDate() + 7);\nconst next7DaysStr = next7Days.toISOString().split('T')[0];\n\nconst next30Days = new Date(todayDate);\nnext30Days.setDate(next30Days.getDate() + 30);\nconst next30DaysStr = next30Days.toISOString().split('T')[0];\n\nconst last7Days = new Date(todayDate);\nlast7Days.setDate(last7Days.getDate() - 7);\nconst last7DaysStr = last7Days.toISOString().split('T')[0];\n\n// Obtener todos los bookings\nconst allBookings = $input.all().map(item => item.json);\n\n// Filtrar por métricas\nconst checkinsToday = allBookings.filter(b => b.check_in === today && (b.status === 'confirmed' || b.status === 'checked_in'));\nconst checkoutsToday = allBookings.filter(b => b.check_out === today && (b.status === 'confirmed' || b.status === 'checked_in'));\n\n// Huéspedes in-house (suma de guests, incluye confirmed y checked_in)\nconst inHouseBookings = allBookings.filter(b => \n  b.check_in <= today && \n  b.check_out > today && \n  (b.status === 'confirmed' || b.status === 'checked_in')\n);\nconst in_house = inHouseBookings.reduce((sum, b) => sum + (parseInt(b.guests) || 1), 0);\n\n// Próximos 7 días\nconst next7DaysBookings = allBookings.filter(b => \n  b.check_in >= today && \n  b.check_in <= next7DaysStr && \n  b.status === 'confirmed'\n);\n\n// Próximos 30 días\nconst next30DaysBookings = allBookings.filter(b => \n  b.check_in >= today && \n  b.check_in <= next30DaysStr && \n  b.status === 'confirmed'\n);\n\n// Cancelaciones últimos 7 días\nconst cancellationsLast7d = allBookings.filter(b => \n  b.status === 'cancelled' && \n  b.updated_at && \n  b.updated_at.split('T')[0] >= last7DaysStr\n);\n\n// Calcular KPIs\nconst checkins_today = checkinsToday.length;\nconst checkouts_today = checkoutsToday.length;\nconst cancellations_last_7d = cancellationsLast7d.length;\n\n// Revenue próximos 7 días\nconst revenue_next_7d = next7DaysBookings.reduce((sum, b) => {\n  return sum + (parseFloat(b.total_price) || 0);\n}, 0);\n\n// Ocupación próximos 7 días (heurística simple)\nconst occupancy_next_7d = Math.min(next7DaysBookings.length / 7, 1.0);\n\n// Eventos de hoy\nconst events = [];\ncheckinsToday.forEach(b => {\n  events.push({\n    type: 'checkin',\n    guest: b.guest_name || 'Guest',\n    property_id: b.property_id\n  });\n});\ncheckoutsToday.forEach(b => {\n  events.push({\n    type: 'checkout',\n    guest: b.guest_name || 'Guest',\n    property_id: b.property_id\n  });\n});\n\n// Alertas\nconst alerts = [];\nif (occupancy_next_7d < 0.55) {\n  alerts.push({\n    severity: 'medium',\n    message: 'Ocupación baja próximos 7 días: ' + Math.round(occupancy_next_7d * 100) + '%'\n  });\n}\nif (cancellations_last_7d >= 2) {\n  alerts.push({\n    severity: 'medium',\n    message: cancellations_last_7d + ' cancelaciones en últimos 7 días'\n  });\n}\n\n// Output estructurado\nconst output = {\n  tenant_id: '00000000-0000-0000-0000-000000000000',\n  date: today,\n  owner_phone: '34619794604',\n  owner_email: 'josecarrallodelafuente@gmail.com',\n  kpis: {\n    checkins_today,\n    checkouts_today,\n    in_house,\n    occupancy_next_7d: Math.round(occupancy_next_7d * 100) / 100,\n    revenue_next_7d,\n    cancellations_last_7d\n  },\n  events,\n  alerts,\n  outlook: {\n    next_7d_bookings: next7DaysBookings.length,\n    next_30d_bookings: next30DaysBookings.length\n  }\n};\n\nreturn [{ json: output }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        640,
+        -48
+      ],
+      "id": "36576c89-13e3-4d51-8dd0-8cbe6964018e",
+      "name": "Calculate KPIs"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-api-key",
+              "value": "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"
+            },
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            },
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"claude-sonnet-4-20250514\",\n  \"max_tokens\": 500,\n  \"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": \"Genera un resumen diario breve para WhatsApp en español. Datos: tenant_id={{ $json.tenant_id }}, date={{ $json.date }}, checkins={{ $json.kpis.checkins_today }}, checkouts={{ $json.kpis.checkouts_today }}, in_house={{ $json.kpis.in_house }}, occupancy={{ $json.kpis.occupancy_next_7d }}, revenue={{ $json.kpis.revenue_next_7d }}, cancellations={{ $json.kpis.cancellations_last_7d }}, outlook_7d={{ $json.outlook.next_7d_bookings }}, outlook_30d={{ $json.outlook.next_30d_bookings }}. Formato: Saludo con fecha, 3 bullets KPIs, alertas si hay, 1 acción. Max 400 chars. Usa emojis.\"\n    }\n  ]\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        880,
+        -48
+      ],
+      "id": "dc124b99-70be-43e5-9617-e077107aa463",
+      "name": "Generate WhatsApp Text"
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "={\n  \"tenant_id\": \"{{ $('Calculate KPIs').item.json.tenant_id }}\",\n  \"date\": \"{{ $('Calculate KPIs').item.json.date }}\",\n  \"owner_phone\": \"{{ $('Calculate KPIs').item.json.owner_phone }}\",\n  \"payload_json\": {{ JSON.stringify($('Calculate KPIs').item.json) }},\n  \"summary_text\": {{ JSON.stringify($json.content[0].text) }}\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1136,
+        -48
+      ],
+      "id": "eaf70ac8-cca1-4f17-85bb-82eec81576d5",
+      "name": "Format Output"
+    },
+    {
+      "parameters": {
+        "tableId": "owner_insights",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "tenant_id",
+              "fieldValue": "={{ $json.tenant_id }}"
+            },
+            {
+              "fieldId": "date",
+              "fieldValue": "={{ $json.date }}"
+            },
+            {
+              "fieldId": "payload_json",
+              "fieldValue": "={{ $json.payload_json }}"
+            },
+            {
+              "fieldId": "summary_text",
+              "fieldValue": "={{ $json.summary_text }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        1392,
+        -48
+      ],
+      "id": "6ab5fc87-9298-42e9-981b-b1972a067aee",
+      "name": "Save to Owner Insights",
+      "credentials": {
+        "supabaseApi": {
+          "id": "SJLQzwU9BVHEVAGc",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.chakrahq.com/v1/ext/plugin/whatsapp/2e45a0bd-8600-41b4-ac92-599d59d6221c/api/v19.0/944855278702577/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer qiu1Z9eA3i2hhNjVM3Dm7QEK1Ey6iKQUE5IDWJlsFSAqXk5OlmQoD6DhqEwv9TOdgOVRWSYLWGxm6HfCs2LeCuwiU8Poqrw2Rgmvih0iEawZhoL6TTmMjVjvDUw2WuygAQgQ1vIeLCreDAKOGymGQCuR5bUYDHrRQQrvoMZLYwHw0LaGhFUuf4GxLpQbV3AQj8JDjhP2MzsCUYT4EVCARX6cODl1d1udr4pITGOmHQ793MUBtptq4XCvC8OGD3g"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"messaging_product\": \"whatsapp\",\n  \"to\": \"{{ $('Calculate KPIs').item.json.owner_phone }}\",\n  \"type\": \"text\",\n  \"text\": {\n    \"body\": {{ JSON.stringify($json.summary_text) }}\n  }\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        1616,
+        -48
+      ],
+      "id": "97268007-078a-4e22-9c4b-6980086ca3f3",
+      "name": "Send WhatsApp Summary"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        144,
+        -128
+      ],
+      "id": "96abd5c8-0390-4f69-9de0-c7d2325e6b64",
+      "name": "When clicking ‘Execute workflow’"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Schedule Trigger 9AM": {
+      "main": [
+        [
+          {
+            "node": "Get All Bookings",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook Manual": {
+      "main": [
+        [
+          {
+            "node": "Get All Bookings",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get All Bookings": {
+      "main": [
+        [
+          {
+            "node": "Calculate KPIs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calculate KPIs": {
+      "main": [
+        [
+          {
+            "node": "Generate WhatsApp Text",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate WhatsApp Text": {
+      "main": [
+        [
+          {
+            "node": "Format Output",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Output": {
+      "main": [
+        [
+          {
+            "node": "Save to Owner Insights",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save to Owner Insights": {
+      "main": [
+        [
+          {
+            "node": "Send WhatsApp Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "Get All Bookings",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "saveDataErrorExecution": "all",
+    "saveDataSuccessExecution": "all",
+    "saveExecutionProgress": true,
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
+  },
+  "versionId": "47d5247b-b39a-4d73-b211-8dc2887c1bb6",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "ca7bc7f182c365457ea4a94a4dc2efe81c23590ab8904858ce5cabfbdd56e40f"
+  },
+  "id": "aergpRINvoJEyufR",
+  "tags": []
+}

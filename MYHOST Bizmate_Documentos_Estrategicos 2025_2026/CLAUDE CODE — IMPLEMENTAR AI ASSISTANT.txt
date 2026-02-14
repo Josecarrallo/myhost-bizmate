@@ -1,0 +1,178 @@
+[CLAUDECODE — IMPLEMENTAR “AI ASSISTANT / AI SYSTEMS” (UI + INTEGRACIÓN CON n8n)]
+Proyecto: MY HOST BizMate
+Objetivo: añadir una pantalla central para interrogar a los agentes IA (OSIRIS/LUMINA/IRIS/BANYU/KORA/AURA) siguiendo arquitectura híbrida:
+UI (ClaudeCode) = interfaz; n8n (Claude AI) = cerebro/acciones; Supabase = datos + RLS.
+
+================================================================================
+A) CAMBIOS DE NAVEGACIÓN / MENÚ (OBLIGATORIO)
+1) Añadir nuevo item en el menú izquierdo (nivel 1) debajo de “Market Intelligence”:
+   - Label: “AI Systems” (o “AI Assistant” si ya usáis ese naming)
+   - Icono: Sparkles/Bot (cualquiera consistente)
+   - Ruta: /ai (o /ai-systems)
+
+2) Mantener el drawer derecho “AI Agents” que ya existe:
+   - Cuando el usuario pulse “Ask/Chat” en un agente del drawer:
+     → navegar a /ai y preseleccionar ese agente en el selector
+     → opcional: abrir el chat con ese agente y focus en input
+
+================================================================================
+B) PANTALLA /AI (AI SYSTEMS) — ESTRUCTURA EXACTA (OBLIGATORIO)
+Construir una página con 3 zonas:
+
+1) HEADER (arriba)
+- Title: “AI Assistant” (o “AI Systems”)
+- Subtitle: “Ask your AI team anything about your property”
+- Agent Selector (dropdown):
+  Opciones (id / label / description):
+   - osiris  → OSIRIS (Operations)
+   - lumina  → LUMINA (Sales & Leads)
+   - iris    → IRIS (Marketing)
+   - banyu   → BANYU (Guest Concierge)
+   - kora    → KORA (Communications/Voice)
+   - aura    → AURA (Proactive Insights)
+- Botones:
+  - “New chat” (reset del hilo actual)
+  - (Opcional) “Open Agent Center” (abre el drawer derecho si aplica)
+
+2) CHAT AREA (zona central)
+- Mensajes en formato chat (user + assistant)
+- Mensaje de bienvenida al cargar (según agente seleccionado):
+  Ejemplo OSIRIS:
+  “Hello! I’m OSIRIS. I can help you with:
+   • Occupancy analysis
+   • Revenue insights
+   • Upcoming check-ins
+   • Outstanding payments
+   • Active alerts”
+- Mostrar siempre el estado de contexto:
+  “Active Agent: OSIRIS • Context: Operations”
+
+3) INPUT BAR (abajo)
+- Input: “Ask me anything…”
+- Botón Send
+- Loading state (“typing…”) mientras se espera respuesta del backend (n8n)
+- Zona “Suggested Actions” (si vienen acciones en la respuesta) como botones
+
+================================================================================
+C) QUICK QUESTIONS (OBLIGATORIO)
+Debajo del header (o arriba del input), renderizar chips/botones rápidos que cambien por agente.
+
+Ejemplos mínimos:
+- OSIRIS: “What’s my occupancy rate?”, “Any check-ins today?”, “Pending payments?”
+- LUMINA: “Show hot leads”, “Follow-ups due today”, “Create booking”
+- IRIS: “Draft 3 IG posts”, “Campaign performance”, “Latest reviews summary”
+- BANYU: “Last WhatsApp messages”, “Send welcome message”, “Guest requests today”
+- KORA: “Next follow-ups”, “Open comms log”
+- AURA: “Today’s insights”, “Anomalies & alerts”, “Suggested actions”
+
+Al pulsar un chip:
+- Se envía como mensaje normal al backend n8n (igual que si lo escribiera el usuario).
+
+================================================================================
+D) RENDER DE RESULTADOS (TABLAS / KPI / ACCIONES) (OBLIGATORIO)
+La respuesta del backend n8n puede venir con:
+1) reply (texto) → mostrar en chat
+2) kpis[] (opcional) → renderizar mini KPI cards (label, value, delta)
+3) table (opcional) → renderizar DataTable (embebida en la conversación o panel “Results”)
+   - columns + rows
+   - paginación simple
+   - search local
+   - botón “Open in Module” (si viene meta.module o meta.route)
+4) actions[] (opcional) → renderizar botones
+   - si needs_confirm=true: abrir modal de confirmación STOP/GO
+   - confirm → ejecutar acción vía backend (ver sección E)
+
+================================================================================
+E) INTEGRACIÓN CON BACKEND (n8n) — CONTRATO DE API (OBLIGATORIO)
+IMPORTANTE: Para el chat/IA, NO consultar Supabase directo desde el frontend.
+Todo va a n8n (Claude AI).
+
+1) Endpoint principal:
+- POST {N8N_AI_WEBHOOK_URL}/ai/chat
+- Headers:
+  - Authorization: Bearer <AI_WEBHOOK_TOKEN> (si lo usamos)
+  - Content-Type: application/json
+
+2) Request payload (App → n8n):
+{
+  "tenant_id": "<currentTenantId>",
+  "user_id": "<currentUserId>",
+  "session_id": "<uuid>",
+  "agent_id": "osiris|lumina|iris|banyu|kora|aura",
+  "message": "<user text>",
+  "page_context": "overview|operations|sales|marketing|payments|messages"
+}
+
+3) Response payload (n8n → App):
+{
+  "reply": "texto",
+  "agent": "osiris",
+  "intent": "insight|list|action",
+  "kpis": [{"label":"Total Revenue","value":"$380,050","delta":"+12%"}],
+  "table": {"columns":["..."],"rows":[...]},
+  "actions": [{"id":"send_whatsapp_reminder","label":"Send WhatsApp reminder","needs_confirm":true,"payload":{...}}],
+  "meta": {"module":"payments","route":"/payments","execution_id":"...","sources":["rpc:get_dashboard_stats"]}
+}
+(Reglas: kpis/table/actions pueden venir o no. reply siempre.)
+
+4) Ejecutar acciones:
+Opción simple (recomendado):
+- Reusar el mismo endpoint /ai/chat enviando:
+  message = "__RUN_ACTION__"
+  action_id + payload
+O bien endpoint separado:
+- POST {N8N_AI_WEBHOOK_URL}/ai/action
+Payload:
+{
+  "tenant_id": "...",
+  "user_id": "...",
+  "session_id": "...",
+  "agent_id": "...",
+  "action_id": "...",
+  "payload": {...}
+}
+Respuesta:
+{ "ok": true, "result": "...", "execution_id": "..." }
+
+================================================================================
+F) ESTADOS / UX (OBLIGATORIO)
+- Mostrar estados claros:
+  - Sending...
+  - Agent typing...
+  - Error: “Could not reach AI service. Please retry.”
+- En error, permitir “Retry”.
+- Mantener historial del chat por sesión (en memoria local UI). 
+  (Persistencia en DB la hace n8n/Supabase, no es requisito del UI.)
+
+================================================================================
+G) IMPLEMENTACIÓN TÉCNICA (SUGERENCIA DE ESTRUCTURA)
+Crear componentes:
+- /components/ai/AiAssistantPage.tsx
+- /components/ai/AgentSelector.tsx
+- /components/ai/QuickQuestions.tsx
+- /components/ai/ChatThread.tsx
+- /components/ai/ResultTable.tsx
+- /components/ai/ActionConfirmModal.tsx
+- /lib/api/aiClient.ts  (wrapper fetch a n8n)
+
+Fuente única de agentes:
+const AGENTS = [
+  { id:"osiris", label:"OSIRIS", desc:"Operations", defaultContext:"operations" },
+  { id:"lumina", label:"LUMINA", desc:"Sales & Leads", defaultContext:"sales" },
+  { id:"iris",   label:"IRIS",   desc:"Marketing", defaultContext:"marketing" },
+  { id:"banyu",  label:"BANYU",  desc:"Guest Concierge", defaultContext:"messages" },
+  { id:"kora",   label:"KORA",   desc:"Communications/Voice", defaultContext:"messages" },
+  { id:"aura",   label:"AURA",   desc:"Proactive Insights", defaultContext:"overview" }
+];
+
+================================================================================
+H) CRITERIOS DE ACEPTACIÓN (CHECKLIST FINAL)
+1) Existe el item “AI Systems” en el menú izquierdo y abre /ai.
+2) /ai muestra: header + selector de agente + quick questions + chat + input.
+3) Al enviar un mensaje, llama a n8n /ai/chat y muestra la respuesta (reply).
+4) Si viene table, se renderiza DataTable + botón “Open in Module”.
+5) Si vienen actions, se muestran botones y hay confirmación STOP/GO antes de ejecutar.
+6) Desde el drawer derecho “AI Agents”, el botón Ask/Chat abre /ai con el agente preseleccionado.
+7) No hay consultas “libres” a Supabase desde el frontend para IA (todo via n8n).
+
+FIN

@@ -1,0 +1,117 @@
+Resumen ejecutivo MYHOST Bizmate – Módulo de Contenido Social (para Claude y Claude Code)
+
+OBJETIVO GLOBAL
+MYHOST Bizmate quiere un módulo completo para que los owners de villas en Bali puedan generar y publicar contenido en redes sociales casi automático a partir de una foto o vídeo simple, usando n8n, Supabase, Claude y Wan/Fal.ai.
+
+────────────────────────────────────
+1. Resumen para Claude (creativo)
+────────────────────────────────────
+
+Flujo 1 – “Media → Vídeo → WhatsApp (MVP)”
+- Entrada: foto (media_url) o texto (text_description) que el owner envía, más datos de la propiedad (idioma, objetivo, público, etc.).
+- Tarea de Claude:
+  - Analizar la escena (villa en Bali, tipo de huésped, vibe).
+  - Diseñar un concepto de vídeo corto vertical (5–25s) con estructura por segundos.
+  - Generar caption, CTA y hashtags en el idioma especificado (es/en/id).
+  - Devolver TODO en JSON estricto (sin explicaciones) para que n8n lo use.
+- Resto del flujo:
+  - n8n llama a Wan/Fal.ai (modelo wan-i2v) con image_url + notes_for_video_engine para generar el vídeo 9:16.
+  - Guarda un registro en Supabase tabla media_jobs (input, estado, final_video_url, caption, etc.).
+  - Envía el vídeo al owner por WhatsApp como prueba.
+
+Flujo 2 – “Social Publishing (Factory + Scheduler)”
+- Entrada: un media_job ya “ready” de Supabase (final_video_url + caption base + hashtags base).
+- Tarea de Claude:
+  - Recibir un JSON con:
+    - property_id, property_name, location, language,
+    - base_video_url, base_caption, base_cta, base_hashtags,
+    - target_platforms (instagram, facebook, tiktok),
+    - objective, target_audience.
+  - Generar contenido optimizado por plataforma (Instagram, Facebook, TikTok) siguiendo un schema de fábrica:
+    - Bloque common_root/common (nombre interno, hashtags comunes, descripción visual).
+    - Bloque instagram (caption, CTA, emojis, etc.).
+    - Bloque facebook (post + CTA).
+    - Bloque tiktok (caption corto, CTA, notas para overlay).
+  - Devolver un único JSON con estos bloques, sin texto extra.
+
+Rol de Claude en resumen:
+- Flujo 1: transformar foto/texto → idea de vídeo + caption/CTA/hashtags para Bali villas.
+- Flujo 2: transformar ese caption base → variantes específicas para IG/FB/TikTok en JSON.
+
+────────────────────────────────────
+2. Resumen para Claude Code (técnico)
+────────────────────────────────────
+
+Arquitectura alta:
+
+- n8n
+  - Workflow 1: “Media → Video → WhatsApp (MVP)” (ya definido)
+    - Webhook /media-to-video.
+    - Nodos:
+      - Prepare Media Description.
+      - Supabase Insert media_job (status='received').
+      - Call Claude Creative (flujo 1).
+      - Supabase Update media_job (status='processing' + salida de Claude).
+      - Call Fal Wan i2v → obtener final_video_url.
+      - Supabase Update media_job (status='ready', final_video_url).
+      - Send WhatsApp Video al owner.
+    - Respuesta: JSON con status, media_job_id, video_url.
+
+  - Workflow 2: “Social Publishing (Factory + Scheduler)” (esqueleto definido)
+    - Parte A (Webhook /generate-social-posts):
+      - Entrada: media_job_id, target_platforms, scheduled_at.
+      - Supabase Get media_job (status='ready').
+      - Preparar factory_input con base_video_url, base_caption, base_hashtags, etc.
+      - Call Claude Social Factory (flujo 2).
+      - Parsear JSON de fábrica (common_root/common/instagram/facebook/tiktok).
+      - Construir filas para social_posts (una por plataforma).
+      - Insertar en Supabase tabla social_posts con status='scheduled'.
+      - Responder con info de plataformas creadas.
+    - Parte B (Cron interno):
+      - Cada X minutos:
+        - Supabase Fetch social_posts donde status='scheduled' y scheduled_at<=now().
+        - Iterar posts y enrutar por plataforma:
+          - Instagram: Graph API (crear contenedor + publicar Reel/Video).
+          - Facebook: Graph API (subir vídeo/post).
+          - TikTok: Business API (upload + publish).
+        - Supabase Update social_posts → status='published', published_at, IDs redes.
+
+- Supabase
+  - Tabla media_jobs (ya utilizada por Workflow 1):
+    - id, property_id, input_media_url, has_media, media_description,
+      language, objective, target_audience, platform_focus,
+      status, final_video_url, caption, cta, hashtags, vibe,
+      clauded_output, error_message, owner_whatsapp, created_at, updated_at.
+  - Tabla social_posts (utilizada en Workflow 2):
+    - id, property_id, media_job_id,
+      platform ('instagram' | 'facebook' | 'tiktok'),
+      status ('scheduled' | 'published' | 'failed'),
+      language, objective, media_type ('video'),
+      video_url, caption, cta, hashtags, vibe, platform_focus,
+      scheduled_at, published_at,
+      instagram_post_id, facebook_post_id, tiktok_video_id,
+      created_at, updated_at.
+
+- Backend (Next.js API routes o Express)
+  - Endpoints clave:
+    - POST /api/media-jobs → llama al Webhook /media-to-video (Workflow 1).
+    - GET /api/media-jobs, GET /api/media-jobs/:id → listar y ver vídeos generados.
+    - POST /api/social-posts-from-media-job → llama al Webhook /generate-social-posts (Workflow 2).
+    - GET /api/social-posts, GET /api/social-posts/:id → listar/ver posts sociales.
+    - PATCH /api/social-posts/:id → editar caption/hashtags/scheduled_at/status.
+    - POST /api/social-posts/:id/publish-now → disparar publicación manual de un post vía n8n.
+
+- Frontend (Next.js + Chakra UI)
+  - Pantalla /owner/content/media:
+    - Formulario “crear vídeo” (subir foto/poner texto, selects idioma/objetivo/plataforma, owner_whatsapp).
+    - Llama a POST /api/media-jobs.
+    - Lista de media_jobs por property (estado, fecha, botón “Ver vídeo” y “Crear posts sociales”).
+  - Pantalla /owner/content/social:
+    - Lista de social_posts por property y plataforma.
+    - Estado (scheduled/published/failed), fechas.
+    - Botones “Ver/Editar” (caption/hashtags/hora) y “Publicar ahora”.
+
+Rol de Claude Code en resumen:
+- Generar el código backend (endpoints API) que conecte frontend ↔ n8n ↔ Supabase.
+- Generar los componentes de frontend (formularios, tablas, modales) en Next.js + Chakra UI.
+- Mantener el contrato de datos consistente con media_jobs y social_posts y con los workflows de n8n que ya están definidos.

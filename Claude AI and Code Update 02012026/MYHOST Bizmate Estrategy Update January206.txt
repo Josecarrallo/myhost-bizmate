@@ -1,0 +1,254 @@
+You are working on the project “MY HOST BizMate”.
+
+This document is the MASTER STRATEGY and replaces ALL previous strategy, vision,
+product, agent or architecture descriptions.
+
+Everything must align with this document.
+
+================================================
+VISION
+================================================
+MY HOST BizMate is NOT a chatbot.
+MY HOST BizMate is NOT a traditional PMS.
+
+MY HOST BizMate is an AI-OPERATED BUSINESS SYSTEM for hospitality.
+
+We do not sell software.
+We sell an AUTONOMOUS WORKFORCE.
+
+The owner does not work inside the system.
+The owner SUPERVISES the system.
+
+The objective is to eliminate 90–95% of daily operational and commercial work.
+
+================================================
+CORE DIFFERENTIATOR
+================================================
+We break the paradigm of “passive chatbot assistance”.
+
+Instead of tools that help the owner work,
+we provide agents that WORK FOR the owner.
+
+MY HOST BizMate is a “Dual AI Operating System”.
+
+================================================
+DUAL AGENT SYSTEM (FOUNDATION)
+================================================
+
+The system is built around two specialized AI agents,
+each with a clear mission, psychology and domain.
+
+------------------------------------------------
+1) BANYU.AI — External Agent (Revenue / Guest Facing)
+------------------------------------------------
+
+Meaning:
+“Banyu” means “water” in Balinese and Javanese culture.
+Water represents flow, adaptability, life and connection.
+
+Role:
+BANYU.AI is the REVENUE ENGINE.
+
+Mission:
+- 24/7 concierge
+- Talk to guests
+- Convert leads
+- Close bookings
+- Upsell experiences
+- Handle guest journeys
+
+Channels:
+- WhatsApp (via Coexistence)
+- Voice (Vapi)
+- Future channels without logic duplication
+
+Key characteristics:
+- Fluid across channels
+- Context-aware
+- Sales-oriented
+- Persuasive but premium
+- Hyper-local Bali knowledge (Ubud, Canggu, Uluwatu, Sidemen, etc.)
+
+What makes BANYU different:
+- Does not wait for guests to buy
+- Actively pursues conversion
+- Escalates to voice when needed
+- Uses real context (time, availability, events)
+
+Examples:
+- Abandoned booking → Banyu calls the guest
+- Rain forecast → Banyu proposes indoor alternatives
+- Guest already in Bali → last-minute upsell
+- Airport transfer upsell before arrival
+
+------------------------------------------------
+2) OSIRIS.AI — Internal Agent (Operations / Owner Facing)
+------------------------------------------------
+
+Meaning:
+Osiris is the god of order, structure and judgment.
+
+Role:
+OSIRIS.AI is the OPERATIONAL BRAIN.
+
+Mission:
+- Protect margins
+- Control logistics
+- Assign staff
+- Detect incidents
+- Solve problems BEFORE the owner is involved
+
+Psychology:
+- Executive
+- Short messages
+- KPI-driven
+- Solution-first
+- Never emotional
+
+What makes OSIRIS different:
+- Manages humans and resources
+- Acts autonomously within limits
+- Only escalates when necessary
+- Operates as a virtual COO
+
+Examples:
+- Driver sick → OSIRIS reassigns replacement
+- Booking paid, no staff → OSIRIS fixes it
+- Negative sentiment detected → OSIRIS alerts owner
+- Low occupancy → OSIRIS triggers promo logic
+
+================================================
+PRODUCT PHILOSOPHY
+================================================
+
+Management by Exception.
+
+The system:
+- Executes automatically
+- Logs everything
+- Alerts the owner only when needed
+
+The dashboard is NOT for data entry.
+The dashboard is a CONTROL TOWER.
+
+The owner:
+- Reviews
+- Approves exceptions
+- Adjusts rules
+- Sleeps at night
+
+================================================
+TECHNICAL BACKBONE (CONFIRMED)
+================================================
+
+- n8n → orchestration brain
+- Supabase → database, memory, RLS, multi-tenant
+- WhatsApp Coexistence (ChakraHQ)
+- Voice (Vapi)
+- Claude / OpenAI for reasoning
+- Frontend → supervision & approval
+
+================================================
+MCP CLARIFICATION
+================================================
+
+There is ONE MCP.
+
+- It already exists
+- It runs inside n8n
+- Central workflow:
+  “MCP-Central-Izumi-Hotel-MyHost-BizMate-20”
+
+The MCP:
+- Routes intents
+- Executes tools
+- Logs actions
+- Applies rules
+
+Other workflows MAY exist independently
+(e.g. Guest Journey Scheduler).
+
+We do NOT over-centralize everything.
+
+================================================
+MASTER WORKFLOWS (n8n)
+================================================
+
+1) Identity & Coexistence Router
+- Detects human vs AI control
+- Pauses AI when owner intervenes
+- Routes to BANYU or OSIRIS
+
+2) Memory & Knowledge Layer (RAG)
+- Uses Supabase + embeddings
+- No hallucinated prices or policies
+
+3) Omnichannel Continuity
+- WhatsApp ↔ Voice with shared context
+
+4) Operations Sentinel (Cron)
+- Detects missing staff
+- Detects risks
+- Triggers OSIRIS actions
+
+================================================
+MVP FOCUS (VERY IMPORTANT)
+================================================
+
+We are a SOLO-FOUNDER project.
+We prioritize REAL EXECUTION over perfection.
+
+BANYU.AI v1:
+- WhatsApp booking assistant
+- Simple upsells (airport transfer)
+- Lead follow-ups
+- No complex negotiation logic
+
+OSIRIS.AI v1:
+- Staff assignment
+- Incident detection
+- Daily operational summary
+- No advanced yield math yet
+
+Everything else = v2+
+
+================================================
+OWNER CONTROL & SAFETY
+================================================
+
+The owner defines:
+- Autonomy level (strict / mixed / free)
+- Price change limits
+- Allowed channels
+- Quiet hours (no calls at night)
+
+High-impact actions require approval:
+- Large price changes
+- Reassigning guests
+- Payments
+
+Everything is logged and auditable.
+
+================================================
+POSITIONING
+================================================
+
+Competitors sell:
+“Tools to help you manage.”
+
+MY HOST BizMate sells:
+“Agents that manage for you.”
+
+Message to market:
+“Stop managing your property.
+Start supervising an autonomous business.”
+
+================================================
+THIS DOCUMENT IS FINAL
+================================================
+
+All design, code, workflows and decisions
+must align with this document.
+
+If something conflicts with this document,
+THIS DOCUMENT WINS.

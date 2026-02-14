@@ -1,0 +1,102 @@
+GUEST JOURNY
+DOCUMENTO OFICIAL — WF-05 GUEST JOURNEY (POST-BOOKING) (n8n)
+PROYECTO: MYHOST BizMate
+OBJETIVO: Automatizar experiencia huésped antes/durante/después
+REGLA CLAVE: SOLO entra aquí si booking_status = booked
+
+================================================
+1) CUÁNDO SE ACTIVA (TRIGGERS)
+================================================
+Trigger principal:
+- booking_created/confirmed (desde BANYU o KORA)
+
+Triggers por tiempo:
+- X días antes del check-in
+- día de check-in
+- durante estancia (mid-stay)
+- check-out day
+- X días después (review + rebook)
+
+================================================
+2) INPUT (DATA CONTRACT)
+================================================
+{
+  "booking_id": "string",
+  "property_id": "string",
+  "guest": {
+    "name": "string",
+    "phone": "string|null",
+    "email": "string|null",
+    "language": "en|es|id"
+  },
+  "dates": {
+    "check_in": "iso_date",
+    "check_out": "iso_date"
+  },
+  "journey_state": "pre_arrival|arrival|in_stay|check_out|post_stay",
+  "notes": "string|null",
+  "preferences": {
+    "channel": "whatsapp|email",
+    "special_requests": "string|null"
+  },
+  "risk_rules": {
+    "mode": "safe|autopilot",
+    "requires_approval": false
+  }
+}
+
+================================================
+3) ETAPAS (MVP)
+================================================
+A) PRE-ARRIVAL (T-3d / T-1d)
+- Welcome + what to expect
+- Directions / map / check-in time
+- Request arrival time
+- Upsell soft (transport, breakfast, massage)
+
+B) ARRIVAL DAY
+- “Welcome, we’re ready”
+- Quick help: wifi, access, contact
+
+C) IN-STAY (mid-stay)
+- “How is everything?”
+- Issue capture (if problem → create task in OSIRIS)
+
+D) CHECK-OUT DAY
+- checkout instructions
+- airport transport reminder
+
+E) POST-STAY (T+1d / T+3d)
+- thank you
+- review request
+- rebook offer / referral
+
+================================================
+4) ACCIONES INTERNAS (OSIRIS INTEGRATION)
+================================================
+Si el huésped reporta un problema:
+- create_task (housekeeping/maintenance)
+- escalate_to_manager si severity high
+- log in audit
+
+================================================
+5) N8N — NODOS (WORKFLOW LINEAL POR ETAPA)
+================================================
+NODO 1  Trigger (booking_confirmed OR timed trigger)
+NODO 2  Load Booking + Guest
+NODO 3  Determine Journey Stage (pre/arrival/in-stay/checkout/post)
+NODO 4  Claude Message Generator (output JSON: message + intent)
+NODO 5  Send via BANYU (WhatsApp) / Email
+NODO 6  Listen for Reply (optional)
+NODO 7  If issue → OSIRIS task/alert
+NODO 8  Update journey_state
+NODO 9  Log outcome (audit)
+
+================================================
+6) OUTPUT / LOG (OBLIGATORIO)
+================================================
+Guardar:
+- booking_id, stage, message_sent, delivery_status,
+- guest_reply_summary, issue_flag, task_created, timestamps
+
+FIN WF-05

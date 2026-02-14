@@ -1,0 +1,277 @@
+# PROMPT DE RECUPERACIÓN - 06 DICIEMBRE 2025 (NOCHE) - REDISEÑO COMPLETO
+
+## ESTADO ACTUAL DEL PROYECTO
+
+**Último commit exitoso:** 9ebc02e (06 DIC 2025)
+**Rama activa:** backup-antes-de-automatizacion
+**Estado:** ✅ APLICACIÓN FUNCIONANDO 100% CON DISEÑO PREMIUM
+
+## TRABAJO COMPLETADO EN ESTA SESIÓN
+
+### 🎨 REDISEÑO PREMIUM DE PANTALLAS 1 Y 2
+
+**Duración de sesión:** ~2 horas
+**Resultado:** ✅ 100% ÉXITO - Pantallas rediseñadas e implementadas
+
+### Pantalla 1 (Home/Splash) - COMPLETAMENTE REDISEÑADA
+
+**Ubicación:** `src/App.jsx` líneas ~195-375
+
+**Características implementadas:**
+- ✅ Logo Building2 en círculo blanco con animaciones (breathe, ringPulse, orbit)
+- ✅ 3 orbs animados de fondo (yellow-400/25, orange-300/20, amber-400/15)
+- ✅ 4 íconos flotantes alineados (Wifi, Shield, Zap, Sparkles)
+  - Posiciones: top-[20%], bottom-[20%] en left-[5%]/[3%] y right-[5%]/[3%]
+- ✅ Texto "MY HOST" (text-5xl) y "BizMate" (text-4xl)
+- ✅ Taglines: "Smart Management for Modern Hospitality" y "Powered by Artificial Intelligence"
+- ✅ Botón "Enter Dashboard" con gradiente orange-700 → orange-800 → amber-900
+- ✅ Animaciones fade-in progresivas con delays
+- ✅ Version badge "v2.0 · All systems operational" con pulse
+- ✅ Bottom wave SVG decorativo
+- ✅ CSS animations inline: float, breathe, orbit, pulse, ringPulse
+
+### Pantalla 2 (Dashboard/Modules) - COMPLETAMENTE REDISEÑADA
+
+**Ubicación:** `src/App.jsx` líneas ~471-607
+
+**Características implementadas:**
+- ✅ Grid de 4 columnas mobile-first (`grid-cols-4 gap-3`)
+- ✅ Header con back button, branding, y logout button
+- ✅ User info bar con:
+  - Avatar circular con gradiente amber-400 to orange-500
+  - Email del usuario
+  - Botones Search y Bell (con badge de 3 notificaciones)
+- ✅ 18 módulos organizados en 2 secciones con nombres cortos:
+
+**Property Management System (11 módulos):**
+1. Dashboard
+2. Bookings
+3. PMS
+4. Properties
+5. Operations
+6. Channel
+7. Payment
+8. Reports
+9. Smart Pricing
+10. Assistant
+11. Culture
+
+**Guest Experience & Marketing (7 módulos):**
+1. Booking Engine
+2. Check-in
+3. Guest Portal
+4. Reviews
+5. WhatsApp
+6. Media Hype
+7. Social
+
+- ✅ Glassmorphism cards (`bg-white/10 backdrop-blur-sm border border-white/20`)
+- ✅ Hover effects: scale-105, rotate-3, gradient glow overlay
+- ✅ Animaciones fadeSlideUp escalonadas (delay: index * 50ms)
+- ✅ Quick Stats footer con 3 métricas:
+  - 12 Active Bookings
+  - 3 Properties
+  - 94% Occupancy
+- ✅ Orbs de fondo con patrón de puntos sutil (radial gradient dots)
+- ✅ CSS animations inline: fadeSlideUp
+
+## COMPONENTES NUEVOS CREADOS
+
+### FloatingIcon Component
+```javascript
+const FloatingIcon = ({ icon: Icon, className, delay })
+```
+- Íconos flotantes con animación float
+- Glassmorphism card w-12 h-12
+- Animation delay personalizable
+
+### ModuleCard Component
+```javascript
+const ModuleCard = ({ icon: Icon, label, color, delay, onClick })
+```
+- Cards de módulos con glassmorphism
+- Hover states: scale, rotate, gradient glow
+- Icon container con gradientes personalizados
+- Animation fadeSlideUp con delay
+
+### SectionTitle Component
+```javascript
+const SectionTitle = ({ children })
+```
+- Títulos de sección con línea decorativa
+- Gradient line: `from-white/30 to-transparent`
+
+## ARCHIVOS MODIFICADOS
+
+### Principal
+- `src/App.jsx` - Ambas pantallas completamente rediseñadas
+  - Líneas de código: 608 (antes era ~542)
+  - Imports actualizados con nuevos iconos
+  - Componentes nuevos: FloatingIcon, ModuleCard, SectionTitle
+  - Module definitions organizadas
+  - CSS animations inline en ambas pantallas
+
+### Backups
+- `src/App.jsx.backup-06DIC2025-ANTES-REDESIGN` - Backup antes del rediseño
+
+### Documentos de diseño
+- `Documentos/STYLE_GUIDE.md` - Guía completa del sistema de diseño
+- `Documentos/myhost-splash.jsx` - Referencia de diseño para splash screen
+- `Documentos/myhost-redesign.jsx` - Referencia de diseño para dashboard
+
+## COMMITS IMPORTANTES
+
+```
+9ebc02e - fix: Align floating icons and shorten module names (06 DIC 2025)
+ebf3a77 - feat: Implement premium redesign for Screens 1 and 2 (06 DIC 2025)
+d831474 - fix: Add timeouts to Supabase auth to prevent infinite loading (06 DIC 2025)
+```
+
+## CONFIGURACIÓN ACTUAL
+
+### Stack Tecnológico
+- React 18.2 + Vite
+- Supabase (Auth + Database)
+- Tailwind CSS
+- Lucide React Icons (expandidos con Wifi, Shield, Zap, Bell, Search, etc.)
+
+### Credenciales Supabase
+- URL: https://jjpscimtxrudtepzwhag.supabase.co
+- Proyecto: myhost-bizmate
+- Usuario test: jose@myhost.com / Test1234!
+- Estado Supabase: ✅ Proyecto activo y funcionando
+
+### URLs
+- Desarrollo: http://localhost:5175/ (o puerto disponible)
+- Network: http://192.168.18.168:5175/ (para móvil)
+- Producción: https://my-host-bizmate.vercel.app
+
+## FUNCIONALIDAD VERIFICADA
+
+✅ Login con email/password funciona
+✅ Sesión se mantiene al recargar página
+✅ Logout funciona correctamente
+✅ Navegación entre Pantalla 1 y Pantalla 2
+✅ Animaciones funcionando (orbs, float, breathe, orbit, pulse, fadeSlideUp)
+✅ Responsive design mobile-first
+✅ Hover effects en todas las cards
+✅ Íconos alineados correctamente
+✅ Nombres de módulos cortos (sin overflow)
+✅ Diseño premium implementado 100%
+
+## PROBLEMAS CONOCIDOS Y SOLUCIONES
+
+### Problema: Múltiples servidores Node corriendo
+**Solución:**
+1. Usar KillShell para matar todos los shells
+2. Iniciar un solo servidor limpio con `npm run dev -- --host`
+
+### Problema: Necesidad de exponer en red local
+**Solución:** Usar `npm run dev -- --host` para acceso desde móvil
+
+## PRÓXIMOS PASOS PENDIENTES
+
+### AJUSTES MENORES (NO URGENTES)
+1. Posibles cambios de texto en Pantalla 2 (nombres de módulos/secciones)
+2. Ajustes finos de espaciado si es necesario
+3. Posibles cambios de colores de gradientes
+
+### FUNCIONALIDAD FUTURA
+1. Implementar contenido real en cada módulo (actualmente son placeholders)
+2. Conectar datos reales de Supabase a Quick Stats
+3. Implementar notificaciones funcionales (actualmente badge estático con "3")
+4. Añadir funcionalidad a botón Search
+
+## COMANDOS ÚTILES
+
+### Desarrollo
+```bash
+cd C:\myhost-bizmate
+npm run dev                # Servidor local
+npm run dev -- --host      # Servidor con acceso de red (para móvil)
+```
+
+### Git
+```bash
+git status
+git log --oneline -10
+git show 9ebc02e           # Ver último commit
+git show ebf3a77           # Ver commit del rediseño principal
+```
+
+### Recuperar Estado
+```bash
+git checkout backup-antes-de-automatizacion
+git pull origin backup-antes-de-automatizacion
+npm install
+npm run dev -- --host
+```
+
+## NOTAS IMPORTANTES
+
+1. **NO modificar** el código de autenticación (AuthContext.jsx está estable con timeouts)
+2. **Las animaciones CSS están inline** en cada pantalla (dentro de `<style>` tags)
+3. **El diseño es mobile-first** - grid de 4 columnas que se adapta
+4. **Los gradientes son específicos** por módulo según STYLE_GUIDE.md
+5. **Los backups están en:** `src/App.jsx.backup-06DIC2025-ANTES-REDESIGN`
+
+## DISEÑO PREMIUM - ESPECIFICACIONES CLAVE
+
+### Colores y Gradientes
+- **Background principal:** `from-orange-500 via-orange-600 to-amber-700`
+- **Glassmorphism:** `bg-white/10 backdrop-blur-sm border border-white/20`
+- **Botón CTA:** `from-orange-700 via-orange-800 to-amber-900`
+- **Gradientes de módulos:** Cada módulo tiene su gradient único (ver modules definitions)
+
+### Animaciones
+```css
+@keyframes float - Íconos flotantes (translateY + rotate)
+@keyframes breathe - Orbs y glows (scale + opacity)
+@keyframes orbit - Dot orbitando el logo (rotate + translateX)
+@keyframes pulse - Orbs de fondo (opacity + scale)
+@keyframes ringPulse - Anillo pulsante del logo (scale + opacity)
+@keyframes fadeSlideUp - Entrada de cards (opacity + translateY)
+```
+
+### Typography
+- **"MY HOST":** text-5xl font-black text-white tracking-tight
+- **"BizMate":** text-4xl font-black text-white/90 tracking-tight
+- **Taglines:** text-lg font-medium text-white/90
+- **Section titles:** text-lg font-semibold text-white tracking-wide
+- **Module labels:** text-sm font-medium text-white/90
+
+## CONTEXTO DE LA SESIÓN DE HOY
+
+Duración: ~2 horas
+Archivos modificados: 1 principal (App.jsx) + 3 documentos de diseño + 1 backup
+
+Problemas enfrentados:
+- Ninguno crítico
+- Ajustes menores de alineación de íconos
+- Acortamiento de nombres para evitar overflow
+
+Lecciones aprendidas:
+- El diseño de Claude AI se implementó exitosamente sin modificaciones mayores
+- Los nombres cortos de módulos previenen problemas de altura inconsistente
+- Mobile-first con grid de 4 columnas funciona perfectamente
+- Las animaciones inline son más fáciles de mantener que archivos CSS separados
+
+Estado final: ✅ Aplicación 100% funcional con diseño premium implementado
+
+## PARA PRÓXIMA SESIÓN
+
+**OBJETIVO:** Ajustes finos de texto y posibles mejoras visuales menores
+
+**ENFOQUE:** Cambios pequeños, verificación en móvil, commits frecuentes.
+
+**RECORDATORIOS:**
+- Siempre probar en móvil (http://192.168.18.168:5175/)
+- Hacer backup antes de cambios grandes
+- Commit frecuentemente cuando algo funciona
+- Mantener nombres de módulos cortos (máx 2 palabras)
+
+---
+Documento creado: 06 DIC 2025 - 21:00
+Última actualización: 06 DIC 2025 - 21:00
+Estado: REDISEÑO PREMIUM COMPLETADO - APLICACIÓN 100% FUNCIONAL
+Commits: ebf3a77, 9ebc02e

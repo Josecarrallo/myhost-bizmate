@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MY HOST BizMate - Arquitectura de Workflows</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            padding: 40px;
+            color: #fff;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 10px;
+            font-size: 2.5rem;
+            background: linear-gradient(90deg, #00d4ff, #7c3aed);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .subtitle {
+            text-align: center;
+            color: #888;
+            margin-bottom: 40px;
+            font-size: 1.1rem;
+        }
+        .diagram {
+            background: rgba(255,255,255,0.03);
+            border-radius: 20px;
+            padding: 40px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        /* Canales de entrada */
+        .channels {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+        .channel {
+            background: linear-gradient(135deg, #0f3460, #16213e);
+            border: 2px solid #00d4ff;
+            border-radius: 12px;
+            padding: 20px 30px;
+            text-align: center;
+            min-width: 140px;
+        }
+        .channel-icon {
+            font-size: 2rem;
+            margin-bottom: 8px;
+        }
+        .channel-name {
+            font-weight: 600;
+            font-size: 1rem;
+        }
+        
+        /* Flechas */
+        .arrow-down {
+            text-align: center;
+            font-size: 2rem;
+            color: #00d4ff;
+            margin: 15px 0;
+        }
+        
+        /* Workflows */
+        .workflow {
+            background: linear-gradient(135deg, #1e3a5f, #0f2744);
+            border-radius: 12px;
+            padding: 20px;
+            margin: 15px auto;
+            max-width: 500px;
+            border-left: 4px solid;
+        }
+        .workflow.active {
+            border-left-color: #10b981;
+        }
+        .workflow-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 8px;
+        }
+        .workflow-status {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #10b981;
+            box-shadow: 0 0 10px #10b981;
+        }
+        .workflow-name {
+            font-weight: 700;
+            font-size: 1.1rem;
+            color: #fff;
+        }
+        .workflow-id {
+            font-size: 0.75rem;
+            color: #666;
+            font-family: monospace;
+        }
+        .workflow-trigger {
+            font-size: 0.85rem;
+            color: #00d4ff;
+            margin-top: 5px;
+        }
+        
+        /* Decision box */
+        .decision {
+            background: linear-gradient(135deg, #7c3aed, #5b21b6);
+            border-radius: 12px;
+            padding: 25px;
+            margin: 20px auto;
+            max-width: 400px;
+            text-align: center;
+        }
+        .decision-name {
+            font-weight: 700;
+            font-size: 1.3rem;
+            margin-bottom: 10px;
+        }
+        .decision-options {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-top: 15px;
+            flex-wrap: wrap;
+        }
+        .decision-option {
+            background: rgba(0,0,0,0.3);
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+        }
+        
+        /* Branches */
+        .branches {
+            display: flex;
+            justify-content: center;
+            gap: 40px;
+            margin-top: 30px;
+            flex-wrap: wrap;
+        }
+        .branch {
+            flex: 1;
+            max-width: 350px;
+            min-width: 280px;
+        }
+        .branch-title {
+            text-align: center;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-weight: 600;
+            margin-bottom: 15px;
+        }
+        .branch-booked .branch-title {
+            background: linear-gradient(90deg, #10b981, #059669);
+        }
+        .branch-notbooked .branch-title {
+            background: linear-gradient(90deg, #f59e0b, #d97706);
+        }
+        .branch-close .branch-title {
+            background: linear-gradient(90deg, #ef4444, #dc2626);
+        }
+        
+        /* Legend */
+        .legend {
+            margin-top: 40px;
+            padding: 20px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 12px;
+        }
+        .legend-title {
+            font-weight: 600;
+            margin-bottom: 15px;
+            color: #888;
+        }
+        .legend-items {
+            display: flex;
+            gap: 30px;
+            flex-wrap: wrap;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.9rem;
+        }
+        .legend-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+        .legend-dot.active { background: #10b981; }
+        .legend-dot.webhook { background: #00d4ff; }
+        .legend-dot.cron { background: #f59e0b; }
+        
+        /* Table */
+        .table-container {
+            margin-top: 40px;
+            overflow-x: auto;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+        }
+        th, td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        th {
+            background: rgba(124, 58, 237, 0.3);
+            font-weight: 600;
+        }
+        td {
+            font-family: monospace;
+        }
+        tr:hover {
+            background: rgba(255,255,255,0.05);
+        }
+        .status-active {
+            color: #10b981;
+            font-weight: 600;
+        }
+        
+        @media (max-width: 768px) {
+            body { padding: 20px; }
+            h1 { font-size: 1.8rem; }
+            .channels { flex-direction: column; align-items: center; }
+            .branches { flex-direction: column; align-items: center; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🏨 MY HOST BizMate</h1>
+        <p class="subtitle">Arquitectura de Workflows - Izumi Hotel | 24 Enero 2026</p>
+        
+        <div class="diagram">
+            <!-- Canales de entrada -->
+            <div class="channels">
+                <div class="channel">
+                    <div class="channel-icon">📞</div>
+                    <div class="channel-name">KORA.AI</div>
+                    <div style="font-size:0.8rem;color:#888;">Voice (VAPI)</div>
+                </div>
+                <div class="channel">
+                    <div class="channel-icon">💬</div>
+                    <div class="channel-name">BANYU.AI</div>
+                    <div style="font-size:0.8rem;color:#888;">WhatsApp</div>
+                </div>
+                <div class="channel">
+                    <div class="channel-icon">🌐</div>
+                    <div class="channel-name">Web Form</div>
+                    <div style="font-size:0.8rem;color:#888;">Landing Page</div>
+                </div>
+            </div>
+            
+            <div class="arrow-down">↓</div>
+            
+            <!-- WF-02 KORA -->
+            <div class="workflow active">
+                <div class="workflow-header">
+                    <div class="workflow-status"></div>
+                    <div class="workflow-name">WF-02 KORA-POST-CALL</div>
+                </div>
+                <div class="workflow-id">ID: gsMMQrc9T2uZ7LVA</div>
+                <div class="workflow-trigger">🔗 Webhook: /webhook/kora-post-call-v2</div>
+            </div>
+            
+            <div class="arrow-down">↓</div>
+            
+            <!-- WF-03 Lead Handler -->
+            <div class="workflow active">
+                <div class="workflow-header">
+                    <div class="workflow-status"></div>
+                    <div class="workflow-name">WF-03-LEAD-HANDLER</div>
+                </div>
+                <div class="workflow-id">ID: OZmq7E9wzODJrzej</div>
+                <div class="workflow-trigger">🔗 Webhook: /webhook/inbound-johnson-v1</div>
+                <div style="margin-top:10px;font-size:0.85rem;color:#aaa;">
+                    • Valida Johnson Contract v1<br>
+                    • Busca lead existente<br>
+                    • INSERT nuevo o UPDATE existente<br>
+                    • Log evento → Llama LUMINA
+                </div>
+            </div>
+            
+            <div class="arrow-down">↓</div>
+            
+            <!-- LUMINA Decision -->
+            <div class="decision">
+                <div class="decision-name">🧠 WF-SP-02 LUMINA</div>
+                <div style="font-size:0.85rem;color:#ddd;">Lead Intelligence & Sales Orchestrator</div>
+                <div class="workflow-id" style="color:#aaa;">ID: EtrQnkgWqqbvRjEB</div>
+                <div class="decision-options">
+                    <div class="decision-option">✅ BOOKED</div>
+                    <div class="decision-option">📋 NOT_BOOKED</div>
+                    <div class="decision-option">❌ CLOSE</div>
+                </div>
+            </div>
+            
+            <!-- Branches -->
+            <div class="branches">
+                <!-- BOOKED Branch -->
+                <div class="branch branch-booked">
+                    <div class="branch-title">✅ IF BOOKED</div>
+                    
+                    <div class="workflow active" style="max-width:100%;">
+                        <div class="workflow-header">
+                            <div class="workflow-status"></div>
+                            <div class="workflow-name">WF-04-BOOKING-NOTIFICATIONS</div>
+                        </div>
+                        <div class="workflow-id">ID: p3ukMWIbKN4bf5Gz</div>
+                        <div class="workflow-trigger">🔗 Webhook: /booking-notifications-v3</div>
+                        <div style="margin-top:10px;font-size:0.85rem;color:#aaa;">
+                            📱 WhatsApp → Guest<br>
+                            📱 WhatsApp → Owner<br>
+                            📧 Email → Guest
+                        </div>
+                    </div>
+                    
+                    <div class="arrow-down">↓</div>
+                    
+                    <div class="workflow active" style="max-width:100%;">
+                        <div class="workflow-header">
+                            <div class="workflow-status"></div>
+                            <div class="workflow-name">WF-05 Guest Journey</div>
+                        </div>
+                        <div class="workflow-id">ID: cQLiQnqR2AHkYOjd</div>
+                        <div class="workflow-trigger">⏰ CRON: Cada hora</div>
+                        <div style="margin-top:10px;font-size:0.85rem;color:#aaa;">
+                            📅 7 días antes → Bali Tips<br>
+                            📅 48h antes → Airport Pickup<br>
+                            📅 Check-in → Welcome<br>
+                            📅 Check-out → Thanks<br>
+                            📅 Post-stay → Review (Email)
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- NOT BOOKED Branch -->
+                <div class="branch branch-notbooked">
+                    <div class="branch-title">📋 IF NOT_BOOKED</div>
+                    
+                    <div class="workflow active" style="max-width:100%;">
+                        <div class="workflow-header">
+                            <div class="workflow-status"></div>
+                            <div class="workflow-name">WF-04 Follow-Up Engine</div>
+                        </div>
+                        <div class="workflow-id">ID: HndGXnQAEyaYDKFZ</div>
+                        <div class="workflow-trigger">⏰ CRON: Cada hora</div>
+                        <div style="margin-top:10px;font-size:0.85rem;color:#aaa;">
+                            Step 1: +2h → Soft Check<br>
+                            Step 2: +24h → Value Reminder<br>
+                            Step 3: +48h → Last Direct<br>
+                            Step 4: +72h → Reengagement<br>
+                            Step 5: +7d → Incentive<br>
+                            Step 6: +14d → Closure → LOST
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- CLOSE Branch -->
+                <div class="branch branch-close">
+                    <div class="branch-title">❌ IF CLOSE</div>
+                    <div style="text-align:center;padding:20px;color:#888;">
+                        Lead marcado como<br>
+                        <strong style="color:#ef4444;">LOST</strong>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Legend -->
+        <div class="legend">
+            <div class="legend-title">LEYENDA</div>
+            <div class="legend-items">
+                <div class="legend-item">
+                    <div class="legend-dot active"></div>
+                    <span>Workflow Activo</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-dot webhook"></div>
+                    <span>Trigger: Webhook</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-dot cron"></div>
+                    <span>Trigger: CRON (cada hora)</span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Table -->
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Workflow</th>
+                        <th>ID</th>
+                        <th>Endpoint</th>
+                        <th>Estado</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>WF-02 KORA-POST-CALL</td>
+                        <td>gsMMQrc9T2uZ7LVA</td>
+                        <td>/webhook/kora-post-call-v2</td>
+                        <td class="status-active">✅ ACTIVO</td>
+                    </tr>
+                    <tr>
+                        <td>WF-03-LEAD-HANDLER</td>
+                        <td>OZmq7E9wzODJrzej</td>
+                        <td>/webhook/inbound-johnson-v1</td>
+                        <td class="status-active">✅ ACTIVO</td>
+                    </tr>
+                    <tr>
+                        <td>WF-SP-02 LUMINA</td>
+                        <td>EtrQnkgWqqbvRjEB</td>
+                        <td>/webhook/lumina-analyze</td>
+                        <td class="status-active">✅ ACTIVO</td>
+                    </tr>
+                    <tr>
+                        <td>WF-04-BOOKING-NOTIFICATIONS</td>
+                        <td>p3ukMWIbKN4bf5Gz</td>
+                        <td>/webhook/booking-notifications-v3</td>
+                        <td class="status-active">✅ ACTIVO</td>
+                    </tr>
+                    <tr>
+                        <td>WF-04 Follow-Up Engine</td>
+                        <td>HndGXnQAEyaYDKFZ</td>
+                        <td>CRON (cada hora)</td>
+                        <td class="status-active">✅ ACTIVO</td>
+                    </tr>
+                    <tr>
+                        <td>WF-05 Guest Journey</td>
+                        <td>cQLiQnqR2AHkYOjd</td>
+                        <td>CRON (cada hora)</td>
+                        <td class="status-active">✅ ACTIVO</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</body>
+</html>

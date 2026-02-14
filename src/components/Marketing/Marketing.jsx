@@ -12,154 +12,91 @@ import {
   MousePointer,
   X
 } from 'lucide-react';
+import { dataService } from '../../services/data';
 
 const MarketingSuite = ({ onBack }) => {
   const [selectedCampaign, setSelectedCampaign] = useState(null);
   const [filter, setFilter] = useState('all'); // all, active, scheduled, completed
   const [searchQuery, setSearchQuery] = useState('');
+  const [campaigns, setCampaigns] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     window.scrollTo(0, 0);
+    loadCampaigns();
   }, []);
 
-  const campaigns = [
-    {
-      id: 1,
-      name: "Summer Villa Special",
-      platform: "Instagram",
-      platformIcon: "📸",
-      status: "Active",
-      reach: "45.2K",
-      engagement: "3.8K",
-      clicks: "892",
-      conversions: 24,
-      budget: "1,500",
-      spent: "1,245",
-      startDate: "Oct 1",
-      endDate: "Oct 31",
-      ctr: "1.97%",
-      cpc: "$1.40"
-    },
-    {
-      id: 2,
-      name: "Beach House Getaway",
-      platform: "Facebook",
-      platformIcon: "📘",
-      status: "Active",
-      reach: "38.5K",
-      engagement: "2.9K",
-      clicks: "756",
-      conversions: 18,
-      budget: "1,200",
-      spent: "890",
-      startDate: "Oct 15",
-      endDate: "Nov 15",
-      ctr: "1.96%",
-      cpc: "$1.18"
-    },
-    {
-      id: 3,
-      name: "Mountain Escape",
-      platform: "LinkedIn",
-      platformIcon: "💼",
-      status: "Scheduled",
-      reach: "0",
-      engagement: "0",
-      clicks: "0",
-      conversions: 0,
-      budget: "800",
-      spent: "0",
-      startDate: "Nov 1",
-      endDate: "Nov 30",
-      ctr: "0%",
-      cpc: "$0"
-    },
-    {
-      id: 4,
-      name: "Luxury Bali Experience",
-      platform: "Google Ads",
-      platformIcon: "🔍",
-      status: "Active",
-      reach: "52.3K",
-      engagement: "4.2K",
-      clicks: "1,245",
-      conversions: 32,
-      budget: "2,000",
-      spent: "1,780",
-      startDate: "Sep 20",
-      endDate: "Nov 20",
-      ctr: "2.38%",
-      cpc: "$1.43"
-    },
-    {
-      id: 5,
-      name: "Weekend Special Offer",
-      platform: "Facebook",
-      platformIcon: "📘",
-      status: "Completed",
-      reach: "28.7K",
-      engagement: "2.1K",
-      clicks: "512",
-      conversions: 14,
-      budget: "600",
-      spent: "600",
-      startDate: "Sep 1",
-      endDate: "Sep 30",
-      ctr: "1.78%",
-      cpc: "$1.17"
-    },
-    {
-      id: 6,
-      name: "Christmas Holiday Campaign",
-      platform: "Instagram",
-      platformIcon: "📸",
-      status: "Scheduled",
-      reach: "0",
-      engagement: "0",
-      clicks: "0",
-      conversions: 0,
-      budget: "2,500",
-      spent: "0",
-      startDate: "Dec 1",
-      endDate: "Dec 25",
-      ctr: "0%",
-      cpc: "$0"
-    },
-    {
-      id: 7,
-      name: "New Year Villa Package",
-      platform: "Google Ads",
-      platformIcon: "🔍",
-      status: "Scheduled",
-      reach: "0",
-      engagement: "0",
-      clicks: "0",
-      conversions: 0,
-      budget: "3,000",
-      spent: "0",
-      startDate: "Dec 20",
-      endDate: "Jan 10",
-      ctr: "0%",
-      cpc: "$0"
-    },
-    {
-      id: 8,
-      name: "Fall Promotion",
-      platform: "LinkedIn",
-      platformIcon: "💼",
-      status: "Completed",
-      reach: "15.4K",
-      engagement: "1.2K",
-      clicks: "298",
-      conversions: 8,
-      budget: "500",
-      spent: "500",
-      startDate: "Aug 1",
-      endDate: "Sep 15",
-      ctr: "1.93%",
-      cpc: "$1.68"
+  const loadCampaigns = async () => {
+    try {
+      setLoading(true);
+
+      const campaignsData = await dataService.getCampaigns();
+
+      console.log('[Marketing] Loaded from Supabase:', campaignsData?.length || 0);
+
+      if (campaignsData && campaignsData.length > 0) {
+        const mappedCampaigns = campaignsData.map(campaign => ({
+          id: campaign.id,
+          name: campaign.name,
+          platform: getPlatformName(campaign.platform),
+          platformIcon: getPlatformIcon(campaign.platform),
+          status: capitalizeFirst(campaign.status),
+          reach: formatNumber(campaign.impressions || 0),
+          engagement: formatNumber(campaign.leads_count || 0),
+          clicks: formatNumber(campaign.clicks || 0),
+          conversions: campaign.leads_count || 0,
+          budget: formatCurrency(campaign.daily_budget ? campaign.daily_budget * 30 : 0),
+          spent: formatCurrency(campaign.total_spend_mtd || 0),
+          startDate: campaign.created_at ? new Date(campaign.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'N/A',
+          endDate: 'N/A', // Not in schema
+          ctr: campaign.ctr ? `${(campaign.ctr * 100).toFixed(2)}%` : '0%',
+          cpc: formatCurrency(campaign.clicks ? (campaign.total_spend_mtd / campaign.clicks) : 0)
+        }));
+        setCampaigns(mappedCampaigns);
+      }
+    } catch (error) {
+      console.error('[Marketing] Error loading:', error);
+    } finally {
+      setLoading(false);
     }
-  ];
+  };
+
+  const capitalizeFirst = (str) => {
+    if (!str) return '';
+    return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
+  };
+
+  const getPlatformName = (platform) => {
+    const platforms = {
+      'meta': 'Facebook',
+      'google': 'Google Ads',
+      'tiktok': 'TikTok'
+    };
+    return platforms[platform] || platform;
+  };
+
+  const getPlatformIcon = (platform) => {
+    const icons = {
+      'meta': '📘',
+      'google': '🔍',
+      'tiktok': '🎵'
+    };
+    return icons[platform] || '📱';
+  };
+
+  const formatNumber = (num) => {
+    if (num >= 1000000) {
+      return `${(num / 1000000).toFixed(1)}M`;
+    } else if (num >= 1000) {
+      return `${(num / 1000).toFixed(1)}K`;
+    }
+    return num.toString();
+  };
+
+  const formatCurrency = (amount) => {
+    if (amount === 0) return '$0';
+    return `$${Math.round(amount).toLocaleString()}`;
+  };
 
   const filteredCampaigns = campaigns.filter(campaign => {
     const matchesFilter = filter === 'all' || campaign.status.toLowerCase() === filter.toLowerCase();
@@ -178,23 +115,23 @@ const MarketingSuite = ({ onBack }) => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-400 via-orange-500 to-orange-600 flex flex-col relative overflow-hidden">
+    <div className="min-h-screen bg-[#2a2f3a] flex flex-col relative overflow-hidden">
       {/* Animated background elements */}
       <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute w-96 h-96 bg-orange-300/20 rounded-full blur-3xl top-20 -left-48 animate-pulse"></div>
-        <div className="absolute w-96 h-96 bg-orange-300/20 rounded-full blur-3xl bottom-20 -right-48 animate-pulse" style={{ animationDelay: '1s' }}></div>
-        <div className="absolute w-72 h-72 bg-orange-200/30 rounded-full blur-2xl top-1/2 right-1/4 animate-pulse" style={{ animationDelay: '0.5s' }}></div>
+        <div className="absolute w-96 h-96 bg-[#d85a2a]/5 rounded-full blur-3xl top-20 -left-48 animate-pulse"></div>
+        <div className="absolute w-96 h-96 bg-[#d85a2a]/5 rounded-full blur-3xl bottom-20 -right-48 animate-pulse" style={{ animationDelay: '1s' }}></div>
+        <div className="absolute w-72 h-72 bg-[#d85a2a]/5 rounded-full blur-2xl top-1/2 right-1/4 animate-pulse" style={{ animationDelay: '0.5s' }}></div>
       </div>
 
       {/* Header */}
-      <div className="bg-white/95 backdrop-blur-sm border-b-2 border-white/50 p-4 relative z-10 shadow-lg">
+      <div className="bg-[#1f2937]/95 backdrop-blur-sm border-b-2 border-[#d85a2a]/20 p-4 relative z-10 shadow-lg">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <button onClick={onBack} className="flex items-center gap-2 text-orange-600 hover:text-orange-500 transition-colors">
+          <button onClick={onBack} className="flex items-center gap-2 text-[#FF8C42] hover:text-orange-500 transition-colors">
             <ChevronLeft className="w-5 h-5" />
             <span className="font-semibold">Back</span>
           </button>
           <div className="text-center">
-            <h2 className="text-3xl md:text-4xl font-black text-orange-600 mb-1">Marketing</h2>
+            <h2 className="text-3xl md:text-4xl font-black text-[#FF8C42] mb-1">Marketing</h2>
             <p className="text-sm md:text-base font-semibold text-orange-500">Campaign Management</p>
           </div>
           <button className="px-4 py-2 bg-orange-600 text-white rounded-xl font-bold hover:bg-orange-700 transition-all flex items-center gap-2">
@@ -209,40 +146,40 @@ const MarketingSuite = ({ onBack }) => {
         <div className="max-w-7xl mx-auto space-y-6">
           {/* Stats */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div className="bg-gradient-to-br from-orange-500 to-orange-600 rounded-2xl p-6 border-2 border-white/50 shadow-lg text-white">
+            <div className="bg-gradient-to-br from-orange-500 to-orange-600 rounded-2xl p-6 border-2 border-[#d85a2a]/20 shadow-lg text-white">
               <div className="flex items-center gap-3 mb-2">
                 <Megaphone className="w-6 h-6" />
                 <span className="text-sm font-bold opacity-90">Active Campaigns</span>
               </div>
               <div className="text-3xl font-black">{stats.active}</div>
             </div>
-            <div className="bg-white/95 backdrop-blur-sm rounded-2xl p-6 border-2 border-white/50 shadow-lg">
+            <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-2xl p-6 border-2 border-[#d85a2a]/20 shadow-lg">
               <div className="flex items-center gap-3 mb-2">
-                <Users className="w-6 h-6 text-orange-600" />
+                <Users className="w-6 h-6 text-[#FF8C42]" />
                 <span className="text-sm font-bold text-gray-600">Total Reach</span>
               </div>
-              <div className="text-3xl font-black text-orange-600">{stats.totalReach}</div>
+              <div className="text-3xl font-black text-[#FF8C42]">{stats.totalReach}</div>
               <div className="text-xs text-green-600 font-bold mt-1">+24% growth</div>
             </div>
-            <div className="bg-white/95 backdrop-blur-sm rounded-2xl p-6 border-2 border-white/50 shadow-lg">
+            <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-2xl p-6 border-2 border-[#d85a2a]/20 shadow-lg">
               <div className="flex items-center gap-3 mb-2">
-                <ThumbsUp className="w-6 h-6 text-orange-600" />
+                <ThumbsUp className="w-6 h-6 text-[#FF8C42]" />
                 <span className="text-sm font-bold text-gray-600">Engagement</span>
               </div>
-              <div className="text-3xl font-black text-orange-600">{stats.totalEngagement}</div>
+              <div className="text-3xl font-black text-[#FF8C42]">{stats.totalEngagement}</div>
               <div className="text-xs text-green-600 font-bold mt-1">+12% increase</div>
             </div>
-            <div className="bg-white/95 backdrop-blur-sm rounded-2xl p-6 border-2 border-white/50 shadow-lg">
+            <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-2xl p-6 border-2 border-[#d85a2a]/20 shadow-lg">
               <div className="flex items-center gap-3 mb-2">
-                <DollarSign className="w-6 h-6 text-orange-600" />
+                <DollarSign className="w-6 h-6 text-[#FF8C42]" />
                 <span className="text-sm font-bold text-gray-600">Total Spent</span>
               </div>
-              <div className="text-3xl font-black text-orange-600">${stats.totalSpent}</div>
+              <div className="text-3xl font-black text-[#FF8C42]">${stats.totalSpent}</div>
             </div>
           </div>
 
           {/* Filters */}
-          <div className="bg-white/95 backdrop-blur-sm rounded-2xl p-4 border-2 border-white/50 shadow-lg">
+          <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-2xl p-4 border-2 border-[#d85a2a]/20 shadow-lg">
             <div className="flex flex-col md:flex-row gap-3">
               {/* Search */}
               <div className="relative flex-1">
@@ -308,13 +245,13 @@ const MarketingSuite = ({ onBack }) => {
               <div
                 key={campaign.id}
                 onClick={() => setSelectedCampaign(campaign)}
-                className="bg-white/95 backdrop-blur-sm rounded-3xl p-6 border-2 border-white/50 hover:shadow-2xl transition-all cursor-pointer shadow-xl"
+                className="bg-[#1f2937]/95 backdrop-blur-sm rounded-3xl p-6 border-2 border-[#d85a2a]/20 hover:shadow-2xl transition-all cursor-pointer shadow-xl"
               >
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex items-center gap-3">
                     <div className="text-3xl">{campaign.platformIcon}</div>
                     <div>
-                      <h3 className="text-xl font-black text-orange-600">{campaign.name}</h3>
+                      <h3 className="text-xl font-black text-[#FF8C42]">{campaign.name}</h3>
                       <p className="text-sm font-semibold text-gray-600">{campaign.platform}</p>
                     </div>
                   </div>
@@ -330,31 +267,31 @@ const MarketingSuite = ({ onBack }) => {
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
                   <div className="bg-orange-50 rounded-xl p-3">
                     <div className="flex items-center gap-2 mb-1">
-                      <Eye className="w-4 h-4 text-orange-600" />
+                      <Eye className="w-4 h-4 text-[#FF8C42]" />
                       <span className="text-xs font-bold text-gray-600">Reach</span>
                     </div>
-                    <p className="text-xl font-black text-orange-600">{campaign.reach}</p>
+                    <p className="text-xl font-black text-[#FF8C42]">{campaign.reach}</p>
                   </div>
                   <div className="bg-orange-50 rounded-xl p-3">
                     <div className="flex items-center gap-2 mb-1">
-                      <ThumbsUp className="w-4 h-4 text-orange-600" />
+                      <ThumbsUp className="w-4 h-4 text-[#FF8C42]" />
                       <span className="text-xs font-bold text-gray-600">Engagement</span>
                     </div>
-                    <p className="text-xl font-black text-orange-600">{campaign.engagement}</p>
+                    <p className="text-xl font-black text-[#FF8C42]">{campaign.engagement}</p>
                   </div>
                   <div className="bg-orange-50 rounded-xl p-3">
                     <div className="flex items-center gap-2 mb-1">
-                      <MousePointer className="w-4 h-4 text-orange-600" />
+                      <MousePointer className="w-4 h-4 text-[#FF8C42]" />
                       <span className="text-xs font-bold text-gray-600">Clicks</span>
                     </div>
-                    <p className="text-xl font-black text-orange-600">{campaign.clicks}</p>
+                    <p className="text-xl font-black text-[#FF8C42]">{campaign.clicks}</p>
                   </div>
                   <div className="bg-orange-50 rounded-xl p-3">
                     <div className="flex items-center gap-2 mb-1">
-                      <DollarSign className="w-4 h-4 text-orange-600" />
+                      <DollarSign className="w-4 h-4 text-[#FF8C42]" />
                       <span className="text-xs font-bold text-gray-600">Budget</span>
                     </div>
-                    <p className="text-xl font-black text-orange-600">${campaign.budget}</p>
+                    <p className="text-xl font-black text-[#FF8C42]">${campaign.budget}</p>
                   </div>
                 </div>
 
@@ -364,10 +301,10 @@ const MarketingSuite = ({ onBack }) => {
                   </span>
                   <div className="flex items-center gap-4">
                     <span className="text-gray-600">
-                      Spent: <span className="font-bold text-orange-600">${campaign.spent}</span>
+                      Spent: <span className="font-bold text-[#FF8C42]">${campaign.spent}</span>
                     </span>
                     <span className="text-gray-600">
-                      CTR: <span className="font-bold text-orange-600">{campaign.ctr}</span>
+                      CTR: <span className="font-bold text-[#FF8C42]">{campaign.ctr}</span>
                     </span>
                   </div>
                 </div>
@@ -380,7 +317,7 @@ const MarketingSuite = ({ onBack }) => {
       {/* Campaign Details Modal */}
       {selectedCampaign && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-3xl max-w-3xl w-full max-h-[90vh] overflow-auto shadow-2xl">
+          <div className="bg-[#1f2937] rounded-3xl max-w-3xl w-full max-h-[90vh] overflow-auto shadow-2xl">
             <div className="sticky top-0 bg-gradient-to-r from-orange-500 to-orange-600 p-6 rounded-t-3xl">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
@@ -392,7 +329,7 @@ const MarketingSuite = ({ onBack }) => {
                 </div>
                 <button
                   onClick={() => setSelectedCampaign(null)}
-                  className="w-10 h-10 bg-white/20 hover:bg-white/30 rounded-full flex items-center justify-center transition-all"
+                  className="w-10 h-10 bg-[#d85a2a]/10 hover:bg-white/30 rounded-full flex items-center justify-center transition-all"
                 >
                   <X className="w-6 h-6 text-white" />
                 </button>
@@ -402,34 +339,34 @@ const MarketingSuite = ({ onBack }) => {
             <div className="p-6 space-y-6">
               {/* Performance Metrics */}
               <div className="bg-orange-50 rounded-2xl p-6 border-2 border-orange-200">
-                <h4 className="text-lg font-black text-orange-600 mb-4 flex items-center gap-2">
+                <h4 className="text-lg font-black text-[#FF8C42] mb-4 flex items-center gap-2">
                   <TrendingUp className="w-5 h-5" />
                   Performance Metrics
                 </h4>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <p className="text-xs text-gray-600 font-semibold mb-1">Total Reach</p>
-                    <p className="text-2xl font-black text-orange-600">{selectedCampaign.reach}</p>
+                    <p className="text-2xl font-black text-[#FF8C42]">{selectedCampaign.reach}</p>
                   </div>
                   <div>
                     <p className="text-xs text-gray-600 font-semibold mb-1">Engagement</p>
-                    <p className="text-2xl font-black text-orange-600">{selectedCampaign.engagement}</p>
+                    <p className="text-2xl font-black text-[#FF8C42]">{selectedCampaign.engagement}</p>
                   </div>
                   <div>
                     <p className="text-xs text-gray-600 font-semibold mb-1">Total Clicks</p>
-                    <p className="text-2xl font-black text-orange-600">{selectedCampaign.clicks}</p>
+                    <p className="text-2xl font-black text-[#FF8C42]">{selectedCampaign.clicks}</p>
                   </div>
                   <div>
                     <p className="text-xs text-gray-600 font-semibold mb-1">Conversions</p>
-                    <p className="text-2xl font-black text-orange-600">{selectedCampaign.conversions}</p>
+                    <p className="text-2xl font-black text-[#FF8C42]">{selectedCampaign.conversions}</p>
                   </div>
                   <div>
                     <p className="text-xs text-gray-600 font-semibold mb-1">CTR</p>
-                    <p className="text-2xl font-black text-orange-600">{selectedCampaign.ctr}</p>
+                    <p className="text-2xl font-black text-[#FF8C42]">{selectedCampaign.ctr}</p>
                   </div>
                   <div>
                     <p className="text-xs text-gray-600 font-semibold mb-1">CPC</p>
-                    <p className="text-2xl font-black text-orange-600">{selectedCampaign.cpc}</p>
+                    <p className="text-2xl font-black text-[#FF8C42]">{selectedCampaign.cpc}</p>
                   </div>
                 </div>
               </div>
@@ -438,11 +375,11 @@ const MarketingSuite = ({ onBack }) => {
               <div className="grid grid-cols-2 gap-4">
                 <div className="bg-gray-50 rounded-xl p-4 border-2 border-gray-200">
                   <p className="text-xs text-gray-600 font-semibold mb-2">Budget</p>
-                  <p className="text-3xl font-black text-orange-600">${selectedCampaign.budget}</p>
+                  <p className="text-3xl font-black text-[#FF8C42]">${selectedCampaign.budget}</p>
                 </div>
                 <div className="bg-gray-50 rounded-xl p-4 border-2 border-gray-200">
                   <p className="text-xs text-gray-600 font-semibold mb-2">Spent</p>
-                  <p className="text-3xl font-black text-orange-600">${selectedCampaign.spent}</p>
+                  <p className="text-3xl font-black text-[#FF8C42]">${selectedCampaign.spent}</p>
                   <p className="text-xs text-gray-500 mt-1">
                     {((parseFloat(selectedCampaign.spent.replace(',', '')) / parseFloat(selectedCampaign.budget.replace(',', ''))) * 100).toFixed(0)}% used
                   </p>

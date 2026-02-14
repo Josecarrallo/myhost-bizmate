@@ -1,0 +1,193 @@
+# PROMPT DE RECUPERACIÓN - 06 DICIEMBRE 2025 (NOCHE)
+
+## ESTADO ACTUAL DEL PROYECTO
+
+**Último commit exitoso:** d831474 (06 DIC 2025)
+**Rama activa:** backup-antes-de-automatizacion
+**Estado:** ✅ APLICACIÓN FUNCIONANDO 100%
+
+## PROBLEMA RESUELTO HOY
+
+### Descripción del Problema
+La aplicación se quedaba atascada en pantalla naranja "Loading..." infinito después de hacer login o al recargar la página. Esto era causado por llamadas a Supabase (getSession y signOut) que no respondían a tiempo.
+
+### Solución Implementada
+Añadidos timeouts a todas las llamadas críticas de Supabase en `src/contexts/AuthContext.jsx`:
+
+1. **checkUser()**: Timeout de 3 segundos
+   - Si Supabase no responde, limpia localStorage y muestra login
+   - Previene pantalla de loading infinito
+
+2. **signOut()**: Timeout de 2 segundos
+   - Siempre limpia localStorage y state local
+   - Fuerza reload de la página para estado limpio
+   - Garantiza que el logout funciona incluso si Supabase falla
+
+### Archivos Modificados
+- `src/contexts/AuthContext.jsx` - Añadidos timeouts y manejo robusto de errores
+
+## CONFIGURACIÓN ACTUAL
+
+### Stack Tecnológico
+- React 18.2 + Vite
+- Supabase (Auth + Database)
+- Tailwind CSS
+- Lucide React Icons
+
+### Credenciales Supabase
+- URL: https://jjpscimtxrudtepzwhag.supabase.co
+- Proyecto: myhost-bizmate
+- Usuario test: jose@myhost.com / Test1234!
+- Estado Supabase: ✅ Proyecto activo y funcionando
+
+### URLs
+- Desarrollo: http://localhost:5173/
+- Producción: https://my-host-bizmate.vercel.app
+
+## FUNCIONALIDAD VERIFICADA
+
+✅ Login con email/password funciona
+✅ Sesión se mantiene al recargar página
+✅ Logout funciona correctamente (limpia sesión y vuelve a login)
+✅ No más pantallas de loading infinito
+✅ Aplicación se recupera automáticamente de timeouts de Supabase
+
+## COMMITS IMPORTANTES
+
+```
+d831474 - fix: Add timeouts to Supabase auth to prevent infinite loading
+d1524da - Add authentication and Supabase integration - FASE 2 inicio
+cb3575a - STRATEGY PIVOT: Small operators (9-59) not enterprise (35)
+```
+
+## PRÓXIMOS PASOS PENDIENTES
+
+### OBJETIVO PRINCIPAL: Reemplazar Pantallas 1 y 2
+
+**IMPORTANTE:** Estos archivos de diseño fueron creados HOY pero se borraron durante troubleshooting:
+
+1. `Documentos/STYLE_GUIDE.md` - Guía de diseño completa
+2. `Documentos/myhost-splash.jsx` - Diseño de pantalla splash premium
+3. `Documentos/myhost-redesign.jsx` - Diseño de dashboard premium
+
+**Necesitan ser recreados** para proceder con el rediseño de UI.
+
+### Pantalla 1 (Home/Splash)
+**Ubicación:** `src/App.jsx` líneas ~62-116 (if currentScreen === 'home')
+
+**Cambios necesarios:**
+- Logo Building2 en círculo blanco con animaciones
+- 3 orbs animados de fondo (yellow-400/25, orange-300/20, amber-400/15)
+- 1 ícono Sparkles flotante debajo de "BizMate"
+- Texto grande: "MY HOST" (text-7xl) y "BizMate" (text-6xl)
+- Botón oscuro "Enter Dashboard" con gradiente orange-700 a amber-900
+- Animaciones: orbit, breathe, pulse, fadeSlideUp
+
+### Pantalla 2 (Dashboard/Módulos)
+**Ubicación:** `src/App.jsx` líneas ~218-280 (if currentScreen === 'modules')
+
+**Cambios necesarios:**
+- Grid 4 columnas (mobile-first)
+- Nombres cortos de módulos: Home, Booking, Property, Payment, Culture, Check-in, Promo
+- Glassmorphism cards con hover effects
+- Header: "MY HOST" y "BizMate" en líneas separadas
+- User info bar con Search y Bell icons
+- Quick Stats footer (Active Bookings, Properties, Occupancy)
+
+### Archivos Necesarios para Continuar
+
+**1. Archivo de animaciones CSS:**
+```
+src/styles/animations.css
+```
+Contiene: float, breathe, orbit, pulse, ringPulse, fadeSlideUp
+
+**2. Import en main.jsx:**
+```javascript
+import './styles/animations.css'
+```
+
+**3. Iconos adicionales necesarios:**
+```javascript
+import { ..., CalendarDays, Settings, ArrowLeftRight, Rocket, Users, Bell, Search } from 'lucide-react';
+```
+
+## COMANDOS ÚTILES
+
+### Desarrollo
+```bash
+cd C:\myhost-bizmate
+npm run dev          # Servidor en localhost:5173
+npm run dev -- --host  # Exponer en red local
+```
+
+### Git
+```bash
+git status
+git log --oneline -10
+git show d831474  # Ver último commit
+```
+
+### Recuperar Estado
+```bash
+git checkout backup-antes-de-automatizacion
+git pull origin backup-antes-de-automatizacion
+npm install
+npm run dev
+```
+
+## PROBLEMAS CONOCIDOS Y SOLUCIONES
+
+### Problema: Pantalla naranja loading infinito
+**Solución:** Ya resuelto con timeouts en AuthContext
+
+### Problema: Múltiples servidores Node corriendo
+**Solución:**
+1. Cerrar todas las terminales
+2. Abrir Task Manager
+3. Terminar todos los procesos "Node.js"
+4. Arrancar un solo servidor limpio
+
+### Problema: .env no se carga
+**Solución:** Reiniciar COMPLETAMENTE el servidor (matar procesos Node)
+
+## NOTAS IMPORTANTES
+
+1. **NO modificar** el código de autenticación que funciona (AuthContext.jsx ya está estable)
+2. **Crear siempre backups** antes de cambios grandes: `cp App.jsx App.jsx.backup-FECHA`
+3. **Probar en EDGE** además de Chrome (diferentes comportamientos de caché)
+4. **Hacer commit frecuentemente** cuando algo funciona
+5. **Los timeouts de Supabase son críticos** - no eliminar
+
+## CONTEXTO DE LA SESIÓN DE HOY
+
+Duración: ~4 horas
+Problemas enfrentados:
+- Loading infinito por Supabase sin timeout
+- Múltiples servidores causando conflictos
+- Botón logout no funcionaba
+
+Lecciones aprendidas:
+- Siempre añadir timeouts a llamadas externas (APIs, Supabase)
+- Verificar que NO hay múltiples procesos Node antes de debuggear
+- Hacer commits frecuentes cuando algo funciona
+- No intentar cambios grandes sin backup
+
+Estado final: ✅ Aplicación 100% funcional con login/logout robusto
+
+## ACTUALIZACIÓN - REDISEÑO COMPLETADO
+
+**✅ TAREA COMPLETADA EN SESIÓN POSTERIOR (06 DIC 2025 - NOCHE)**
+
+Ver documento actualizado: `PROMPT_NUEVA_SESION_REDESIGN_06DIC2025.txt`
+
+**Commits completados:**
+- ebf3a77 - feat: Implement premium redesign for Screens 1 and 2
+- 9ebc02e - fix: Align floating icons and shorten module names
+
+**Estado final:** ✅ REDISEÑO PREMIUM IMPLEMENTADO 100%
+
+---
+Documento creado: 06 DIC 2025 - 20:30
+Última actualización: 06 DIC 2025 - 21:00
+Estado: REDISEÑO COMPLETADO - VER DOCUMENTO ACTUALIZADO

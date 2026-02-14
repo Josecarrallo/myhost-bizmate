@@ -1,0 +1,510 @@
+{
+  "name": "WF-D2 Payment Protection",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "autopilot/payment/start",
+        "options": {}
+      },
+      "id": "node1",
+      "name": "1. Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "position": [
+        0,
+        304
+      ],
+      "webhookId": "payment-protection",
+      "typeVersion": 2
+    },
+    {
+      "parameters": {
+        "url": "=https://jjpscimtxrudtepzwhag.supabase.co/rest/v1/bookings?id=eq.{{ $json.body.booking_id }}&select=*",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpqcHNjaW10eHJ1ZHRlcHp3aGFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI5NDMyMzIsImV4cCI6MjA3ODUxOTIzMn0._U_HwdF5-yT8-prJLzkdO_rGbNuu7Z3gpUQW0Q8zxa0"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "node2",
+      "name": "2. Load Booking",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        256,
+        304
+      ],
+      "typeVersion": 4.2
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "=https://jjpscimtxrudtepzwhag.supabase.co/rest/v1/bookings?id=eq.{{ $('1. Webhook Trigger').item.json.body.booking_id }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpqcHNjaW10eHJ1ZHRlcHp3aGFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI5NDMyMzIsImV4cCI6MjA3ODUxOTIzMn0._U_HwdF5-yT8-prJLzkdO_rGbNuu7Z3gpUQW0Q8zxa0"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\"status\": \"pending_payment\", \"payment_status\": \"pending\"}",
+        "options": {}
+      },
+      "id": "node3",
+      "name": "3. Update Status",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        512,
+        304
+      ],
+      "typeVersion": 4.2
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.chakrahq.com/v1/ext/plugin/whatsapp/2e45a0bd-8600-41b4-ac92-599d59d6221c/api/v19.0/944855278702577/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer qiu1Z9eA3i2hhNjVM3Dm7QEK1Ey6iKQUE5IDWJlsFSAqXk5OlmQoD6DhqEwv9TOdgOVRWSYLWGxm6HfCs2LeCuwiU8Poqrw2Rgmvih0iEawZhoL6TTmMjVjvDUw2WuygAQgQ1vIeLCreDAKOGymGQCuR5bUYDHrRQQrvoMZLYwHw0LaGhFUuf4GxLpQbV3AQj8JDjhP2MzsCUYT4EVCARX6cODl1d1udr4pITGOmHQ793MUBtptq4XCvC8OGD3g"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"messaging_product\": \"whatsapp\",\n  \"to\": \"{{ $('1. Webhook Trigger').item.json.body.guest_contact.replace(/[^0-9]/g, '') }}\",\n  \"type\": \"text\",\n  \"text\": {\n    \"body\": \"Hi! Your booking is confirmed pending payment.\\n\\nAmount: ${{ $('1. Webhook Trigger').item.json.body.amount }} {{ $('1. Webhook Trigger').item.json.body.currency }}\\n\\nPlease complete payment within 24 hours to secure your dates.\\n\\nReply here once payment is made.\"\n  }\n}",
+        "options": {}
+      },
+      "id": "node4",
+      "name": "4. Send Payment Instructions",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        752,
+        304
+      ],
+      "typeVersion": 4.2
+    },
+    {
+      "parameters": {
+        "amount": 6,
+        "unit": "hours"
+      },
+      "id": "node5",
+      "name": "5. Wait 6h",
+      "type": "n8n-nodes-base.wait",
+      "position": [
+        1008,
+        304
+      ],
+      "webhookId": "wait-6h",
+      "typeVersion": 1.1
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.chakrahq.com/v1/ext/plugin/whatsapp/2e45a0bd-8600-41b4-ac92-599d59d6221c/api/v19.0/944855278702577/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer qiu1Z9eA3i2hhNjVM3Dm7QEK1Ey6iKQUE5IDWJlsFSAqXk5OlmQoD6DhqEwv9TOdgOVRWSYLWGxm6HfCs2LeCuwiU8Poqrw2Rgmvih0iEawZhoL6TTmMjVjvDUw2WuygAQgQ1vIeLCreDAKOGymGQCuR5bUYDHrRQQrvoMZLYwHw0LaGhFUuf4GxLpQbV3AQj8JDjhP2MzsCUYT4EVCARX6cODl1d1udr4pITGOmHQ793MUBtptq4XCvC8OGD3g"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"messaging_product\": \"whatsapp\",\n  \"to\": \"{{ $('1. Webhook Trigger').item.json.body.guest_contact.replace(/[^0-9]/g, '') }}\",\n  \"type\": \"text\",\n  \"text\": {\n    \"body\": \"Hi! Friendly reminder - your booking payment is still pending.\\n\\nAmount: ${{ $('1. Webhook Trigger').item.json.body.amount }}\\n\\n18 hours remaining to secure your dates.\"\n  }\n}",
+        "options": {}
+      },
+      "id": "node6",
+      "name": "6. Reminder 1",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        1264,
+        304
+      ],
+      "typeVersion": 4.2
+    },
+    {
+      "parameters": {
+        "amount": 14,
+        "unit": "hours"
+      },
+      "id": "node7",
+      "name": "7. Wait 14h",
+      "type": "n8n-nodes-base.wait",
+      "position": [
+        1504,
+        304
+      ],
+      "webhookId": "wait-14h",
+      "typeVersion": 1.1
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.chakrahq.com/v1/ext/plugin/whatsapp/2e45a0bd-8600-41b4-ac92-599d59d6221c/api/v19.0/944855278702577/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer qiu1Z9eA3i2hhNjVM3Dm7QEK1Ey6iKQUE5IDWJlsFSAqXk5OlmQoD6DhqEwv9TOdgOVRWSYLWGxm6HfCs2LeCuwiU8Poqrw2Rgmvih0iEawZhoL6TTmMjVjvDUw2WuygAQgQ1vIeLCreDAKOGymGQCuR5bUYDHrRQQrvoMZLYwHw0LaGhFUuf4GxLpQbV3AQj8JDjhP2MzsCUYT4EVCARX6cODl1d1udr4pITGOmHQ793MUBtptq4XCvC8OGD3g"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"messaging_product\": \"whatsapp\",\n  \"to\": \"{{ $('1. Webhook Trigger').item.json.body.guest_contact.replace(/[^0-9]/g, '') }}\",\n  \"type\": \"text\",\n  \"text\": {\n    \"body\": \"FINAL REMINDER\\n\\nYour booking expires in 4 hours.\\n\\nAmount: ${{ $('1. Webhook Trigger').item.json.body.amount }}\\n\\nAfter expiration, dates will be released.\"\n  }\n}",
+        "options": {}
+      },
+      "id": "node8",
+      "name": "8. Reminder 2",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        1760,
+        304
+      ],
+      "typeVersion": 4.2
+    },
+    {
+      "parameters": {
+        "url": "=https://jjpscimtxrudtepzwhag.supabase.co/rest/v1/bookings?id=eq.{{ $('1. Webhook Trigger').item.json.body.booking_id }}&select=id,payment_status",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpqcHNjaW10eHJ1ZHRlcHp3aGFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI5NDMyMzIsImV4cCI6MjA3ODUxOTIzMn0._U_HwdF5-yT8-prJLzkdO_rGbNuu7Z3gpUQW0Q8zxa0"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "node9",
+      "name": "9. Final Check",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        2000,
+        304
+      ],
+      "typeVersion": 4.2
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json[0].payment_status }}",
+              "value2": "paid",
+              "operation": "equals"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "node9b",
+      "name": "9b. IF Paid",
+      "type": "n8n-nodes-base.if",
+      "position": [
+        2256,
+        304
+      ],
+      "typeVersion": 2
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "=https://jjpscimtxrudtepzwhag.supabase.co/rest/v1/bookings?id=eq.{{ $('1. Webhook Trigger').item.json.body.booking_id }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpqcHNjaW10eHJ1ZHRlcHp3aGFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI5NDMyMzIsImV4cCI6MjA3ODUxOTIzMn0._U_HwdF5-yT8-prJLzkdO_rGbNuu7Z3gpUQW0Q8zxa0"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\"status\": \"confirmed\", \"payment_status\": \"paid\"}",
+        "options": {}
+      },
+      "id": "node9c-confirm",
+      "name": "9c. Confirm Booking",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        2512,
+        208
+      ],
+      "typeVersion": 4.2
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "=https://jjpscimtxrudtepzwhag.supabase.co/rest/v1/bookings?id=eq.{{ $('1. Webhook Trigger').item.json.body.booking_id }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpqcHNjaW10eHJ1ZHRlcHp3aGFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI5NDMyMzIsImV4cCI6MjA3ODUxOTIzMn0._U_HwdF5-yT8-prJLzkdO_rGbNuu7Z3gpUQW0Q8zxa0"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\"status\": \"expired\", \"payment_status\": \"expired\"}",
+        "options": {}
+      },
+      "id": "node9c-expire",
+      "name": "9c. Expire Booking",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        2512,
+        400
+      ],
+      "typeVersion": 4.2
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://jjpscimtxrudtepzwhag.supabase.co/rest/v1/autopilot_activity_log",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpqcHNjaW10eHJ1ZHRlcHp3aGFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI5NDMyMzIsImV4cCI6MjA3ODUxOTIzMn0._U_HwdF5-yT8-prJLzkdO_rGbNuu7Z3gpUQW0Q8zxa0"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\"tenant_id\": \"{{ $('1. Webhook Trigger').item.json.body.tenant_id }}\", \"property_id\": \"{{ $('1. Webhook Trigger').item.json.body.property_id }}\", \"activity_type\": \"payment_confirmed\", \"workflow_id\": \"WF-D2\", \"details\": {\"booking_id\": \"{{ $('1. Webhook Trigger').item.json.body.booking_id }}\"}}",
+        "options": {}
+      },
+      "id": "node10-confirm",
+      "name": "10. Log Confirmed",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        2752,
+        208
+      ],
+      "typeVersion": 4.2
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://jjpscimtxrudtepzwhag.supabase.co/rest/v1/autopilot_activity_log",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpqcHNjaW10eHJ1ZHRlcHp3aGFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI5NDMyMzIsImV4cCI6MjA3ODUxOTIzMn0._U_HwdF5-yT8-prJLzkdO_rGbNuu7Z3gpUQW0Q8zxa0"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\"tenant_id\": \"{{ $('1. Webhook Trigger').item.json.body.tenant_id }}\", \"property_id\": \"{{ $('1. Webhook Trigger').item.json.body.property_id }}\", \"activity_type\": \"payment_expired\", \"workflow_id\": \"WF-D2\", \"details\": {\"booking_id\": \"{{ $('1. Webhook Trigger').item.json.body.booking_id }}\"}}",
+        "options": {}
+      },
+      "id": "node10-expire",
+      "name": "10. Log Expired",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        2752,
+        400
+      ],
+      "typeVersion": 4.2
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "1. Webhook Trigger": {
+      "main": [
+        [
+          {
+            "node": "2. Load Booking",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "2. Load Booking": {
+      "main": [
+        [
+          {
+            "node": "3. Update Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "3. Update Status": {
+      "main": [
+        [
+          {
+            "node": "4. Send Payment Instructions",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "4. Send Payment Instructions": {
+      "main": [
+        [
+          {
+            "node": "5. Wait 6h",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "5. Wait 6h": {
+      "main": [
+        [
+          {
+            "node": "6. Reminder 1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "6. Reminder 1": {
+      "main": [
+        [
+          {
+            "node": "7. Wait 14h",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "7. Wait 14h": {
+      "main": [
+        [
+          {
+            "node": "8. Reminder 2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "8. Reminder 2": {
+      "main": [
+        [
+          {
+            "node": "9. Final Check",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "9. Final Check": {
+      "main": [
+        [
+          {
+            "node": "9b. IF Paid",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "9b. IF Paid": {
+      "main": [
+        [
+          {
+            "node": "9c. Confirm Booking",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "9c. Expire Booking",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "9c. Confirm Booking": {
+      "main": [
+        [
+          {
+            "node": "10. Log Confirmed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "9c. Expire Booking": {
+      "main": [
+        [
+          {
+            "node": "10. Log Expired",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "timezone": "Asia/Makassar",
+    "executionOrder": "v1",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
+  },
+  "versionId": "30f45aa0-eb08-4e5f-b144-8ed0646e3133",
+  "meta": {
+    "instanceId": "ca7bc7f182c365457ea4a94a4dc2efe81c23590ab8904858ce5cabfbdd56e40f"
+  },
+  "id": "o471FL9bpMewcJIr",
+  "tags": []
+}

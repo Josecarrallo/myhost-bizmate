@@ -1,0 +1,15 @@
+{
+  "name": "myhost-bizmate-business-reports",
+  "version": "1.0.0",
+  "description": "Business Reports Generator for MY HOST BizMate AUTOPILOT",
+  "type": "module",
+  "scripts": {
+    "test": "node test-queries.js",
+    "generate": "node generate-report.js"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.39.0"
+  },
+  "author": "MY HOST BizMate",
+  "license": "MIT"
+}
