@@ -345,84 +345,157 @@ const Bookings = ({ onBack }) => {
             </h3>
           </div>
 
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-gradient-to-r from-orange-50 to-white">
-                <tr>
-                  <th className="px-6 py-4 text-left text-xs font-black text-[#FF8C42] uppercase tracking-wider">Guest</th>
-                  <th className="px-6 py-4 text-left text-xs font-black text-[#FF8C42] uppercase tracking-wider">Property</th>
-                  <th className="px-6 py-4 text-left text-xs font-black text-[#FF8C42] uppercase tracking-wider">Dates</th>
-                  <th className="px-6 py-4 text-left text-xs font-black text-[#FF8C42] uppercase tracking-wider">Status</th>
-                  <th className="px-6 py-4 text-left text-xs font-black text-[#FF8C42] uppercase tracking-wider">Guests</th>
-                  <th className="px-6 py-4 text-left text-xs font-black text-[#FF8C42] uppercase tracking-wider">Channel</th>
-                  <th className="px-6 py-4 text-left text-xs font-black text-[#FF8C42] uppercase tracking-wider">Revenue</th>
-                  <th className="px-6 py-4 text-left text-xs font-black text-[#FF8C42] uppercase tracking-wider">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y-2 divide-gray-200">
+          {filteredBookings.length === 0 ? (
+            <div className="p-12 text-center">
+              <p className="text-[#FF8C42] font-bold">No bookings found matching your filters.</p>
+            </div>
+          ) : (
+            <>
+              {/* MOBILE VERSION: Cards (< 768px) */}
+              <div className="block md:hidden p-4 space-y-4">
                 {filteredBookings.map((booking) => (
-                  <tr
+                  <div
                     key={booking.id}
-                    className="hover:bg-[#d85a2a]/5 transition-colors cursor-pointer"
+                    className="bg-[#2a2f3a] rounded-xl p-4 border-l-4 border-orange-500 shadow-lg hover:bg-[#374151] transition-colors cursor-pointer"
                     onClick={() => setSelectedBooking(booking)}
                   >
-                    <td className="px-6 py-4">
-                      <div className="font-bold text-[#FF8C42]">{booking.guest}</div>
-                      <div className="text-xs text-gray-500">{booking.email}</div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-2">
-                        <MapPin className="w-4 h-4 text-orange-400" />
-                        <span className="text-[#FF8C42] font-medium">{booking.property}</span>
+                    <div className="flex justify-between items-start mb-3">
+                      <div className="flex-1">
+                        <h3 className="text-white font-bold text-lg">{booking.guest}</h3>
+                        <p className="text-gray-400 text-sm mt-1">{booking.email}</p>
                       </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="text-[#FF8C42] font-medium">{booking.checkIn}</div>
-                      <div className="text-xs text-gray-500">{booking.checkOut}</div>
-                      <div className="text-xs text-gray-500">{booking.nights} nights</div>
-                    </td>
-                    <td className="px-6 py-4">
                       <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold border-2 ${getStatusStyle(booking.status)}`}>
                         {getStatusIcon(booking.status)}
                         {booking.status}
                       </span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-1 text-[#FF8C42] font-bold">
-                        <Users className="w-4 h-4" />
-                        {booking.guests}
+                    </div>
+                    <div className="grid grid-cols-2 gap-3 mb-3">
+                      <div>
+                        <p className="text-gray-500 text-xs">Property</p>
+                        <p className="text-orange-400 text-sm font-medium flex items-center gap-1">
+                          <MapPin className="w-3 h-3" />
+                          {booking.property}
+                        </p>
                       </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className="text-[#FF8C42] font-medium">{booking.channel}</span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-1 text-[#FF8C42] font-black">
-                        <DollarSign className="w-4 h-4" />
-                        {booking.revenue.toLocaleString()}
+                      <div>
+                        <p className="text-gray-500 text-xs">Channel</p>
+                        <p className="text-white text-sm font-medium">{booking.channel}</p>
                       </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setSelectedBooking(booking);
-                        }}
-                        className="px-4 py-2 bg-orange-500 text-white rounded-xl text-xs font-bold hover:bg-orange-600 transition-colors shadow-md"
-                      >
-                        View Details
-                      </button>
-                    </td>
-                  </tr>
+                      <div>
+                        <p className="text-gray-500 text-xs">Check-in</p>
+                        <p className="text-white text-sm font-medium">{booking.checkIn}</p>
+                      </div>
+                      <div>
+                        <p className="text-gray-500 text-xs">Check-out</p>
+                        <p className="text-white text-sm font-medium">{booking.checkOut}</p>
+                      </div>
+                      <div>
+                        <p className="text-gray-500 text-xs">Nights</p>
+                        <p className="text-white text-sm font-medium">{booking.nights} nights</p>
+                      </div>
+                      <div>
+                        <p className="text-gray-500 text-xs">Guests</p>
+                        <p className="text-white text-sm font-medium flex items-center gap-1">
+                          <Users className="w-3 h-3" />
+                          {booking.guests}
+                        </p>
+                      </div>
+                      <div className="col-span-2">
+                        <p className="text-gray-500 text-xs">Revenue</p>
+                        <p className="text-green-400 text-lg font-bold flex items-center gap-1">
+                          <DollarSign className="w-4 h-4" />
+                          {booking.revenue.toLocaleString()}
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedBooking(booking);
+                      }}
+                      className="w-full bg-orange-500 hover:bg-orange-600 text-white px-4 py-2.5 rounded-lg font-semibold transition-colors"
+                    >
+                      View Details
+                    </button>
+                  </div>
                 ))}
-              </tbody>
-            </table>
-          </div>
+              </div>
 
-          {filteredBookings.length === 0 && (
-            <div className="p-12 text-center">
-              <p className="text-[#FF8C42] font-bold">No bookings found matching your filters.</p>
-            </div>
+              {/* DESKTOP VERSION: Table (>= 768px) */}
+              <div className="hidden md:block overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-gradient-to-r from-orange-50 to-white">
+                    <tr>
+                      <th className="px-6 py-4 text-left text-xs font-black text-[#FF8C42] uppercase tracking-wider">Guest</th>
+                      <th className="px-6 py-4 text-left text-xs font-black text-[#FF8C42] uppercase tracking-wider">Property</th>
+                      <th className="px-6 py-4 text-left text-xs font-black text-[#FF8C42] uppercase tracking-wider">Dates</th>
+                      <th className="px-6 py-4 text-left text-xs font-black text-[#FF8C42] uppercase tracking-wider">Status</th>
+                      <th className="px-6 py-4 text-left text-xs font-black text-[#FF8C42] uppercase tracking-wider">Guests</th>
+                      <th className="px-6 py-4 text-left text-xs font-black text-[#FF8C42] uppercase tracking-wider">Channel</th>
+                      <th className="px-6 py-4 text-left text-xs font-black text-[#FF8C42] uppercase tracking-wider">Revenue</th>
+                      <th className="px-6 py-4 text-left text-xs font-black text-[#FF8C42] uppercase tracking-wider">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y-2 divide-gray-200">
+                    {filteredBookings.map((booking) => (
+                      <tr
+                        key={booking.id}
+                        className="hover:bg-[#d85a2a]/5 transition-colors cursor-pointer"
+                        onClick={() => setSelectedBooking(booking)}
+                      >
+                        <td className="px-6 py-4">
+                          <div className="font-bold text-[#FF8C42]">{booking.guest}</div>
+                          <div className="text-xs text-gray-500">{booking.email}</div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-2">
+                            <MapPin className="w-4 h-4 text-orange-400" />
+                            <span className="text-[#FF8C42] font-medium">{booking.property}</span>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="text-[#FF8C42] font-medium">{booking.checkIn}</div>
+                          <div className="text-xs text-gray-500">{booking.checkOut}</div>
+                          <div className="text-xs text-gray-500">{booking.nights} nights</div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold border-2 ${getStatusStyle(booking.status)}`}>
+                            {getStatusIcon(booking.status)}
+                            {booking.status}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-1 text-[#FF8C42] font-bold">
+                            <Users className="w-4 h-4" />
+                            {booking.guests}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <span className="text-[#FF8C42] font-medium">{booking.channel}</span>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-1 text-[#FF8C42] font-black">
+                            <DollarSign className="w-4 h-4" />
+                            {booking.revenue.toLocaleString()}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedBooking(booking);
+                            }}
+                            className="px-4 py-2 bg-orange-500 text-white rounded-xl text-xs font-bold hover:bg-orange-600 transition-colors shadow-md"
+                          >
+                            View Details
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </>
           )}
         </div>
       </div>

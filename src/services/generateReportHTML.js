@@ -1,5 +1,6 @@
 // Generate complete HTML for business report
 export function generateReportHTML(ownerName, propertyName, currency, data, osirisAnalysis) {
+  console.log('✅ generateReportHTML v2.1 - MOBILE RESPONSIVE with Rate label');
   const { metrics, channels, propertyMetrics } = data;
   const properties = propertyMetrics; // Alias
 
@@ -398,6 +399,55 @@ export function generateReportHTML(ownerName, propertyName, currency, data, osir
             background: #f97316;
             color: white;
         }
+
+        /* Mobile Responsive Styles */
+        @media (max-width: 767px) {
+            .page {
+                padding: 20px !important;
+            }
+
+            .metrics-grid {
+                grid-template-columns: repeat(2, 1fr) !important;
+                gap: 5px !important;
+            }
+
+            .metric-box {
+                padding: 8px 4px !important;
+                overflow: hidden !important;
+            }
+
+            .metric-label {
+                font-size: 8px !important;
+                word-break: break-word !important;
+                overflow-wrap: break-word !important;
+                line-height: 1.2 !important;
+                letter-spacing: -0.3px !important;
+                text-transform: uppercase !important;
+            }
+
+            .metric-value {
+                font-size: 16px !important;
+                margin-top: 4px !important;
+            }
+
+            .metric-subtitle {
+                font-size: 6px !important;
+                word-break: break-word !important;
+                margin-top: 2px !important;
+            }
+
+            .header {
+                padding: 15px !important;
+            }
+
+            .title {
+                font-size: 18px !important;
+            }
+
+            .subtitle {
+                font-size: 11px !important;
+            }
+        }
     </style>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
@@ -407,27 +457,28 @@ export function generateReportHTML(ownerName, propertyName, currency, data, osir
         <div class="header">
             <h1>${propertyName.toUpperCase()}</h1>
             <div class="subtitle">Business Performance Analysis | ${START_DATE} to ${END_DATE}</div>
+            <div style="font-size:8px;color:#999;text-align:center;margin-top:5px;">VERSION 2.1 MOBILE</div>
         </div>
 
         <!-- KEY METRICS -->
         <div class="metrics-grid">
             <div class="metric-box">
-                <div class="metric-label">Total Bookings</div>
+                <div class="metric-label">Bookings</div>
                 <div class="metric-value">${metrics.totalBookings}</div>
             </div>
             <div class="metric-box">
-                <div class="metric-label">Total Revenue</div>
+                <div class="metric-label">Revenue</div>
                 <div class="metric-value">${formatCurrency(metrics.totalRevenue, currency)}</div>
                 ${currency === 'IDR' ? `<div class="metric-subtitle">~$${Math.round(metrics.totalRevenue / 16000).toLocaleString()}</div>` : ''}
             </div>
             <div class="metric-box">
-                <div class="metric-label">Avg Booking Value</div>
+                <div class="metric-label">Avg Value</div>
                 <div class="metric-value">${formatCurrency(metrics.avgBookingValue, currency)}</div>
             </div>
             <div class="metric-box">
-                <div class="metric-label">Occupancy Rate</div>
+                <div class="metric-label">Rate</div>
                 <div class="metric-value">${metrics.occupancyRate.toFixed(1)}%</div>
-                <div class="metric-subtitle">${metrics.avgStayLength.toFixed(1)} avg nights</div>
+                <div class="metric-subtitle">${metrics.avgStayLength.toFixed(1)} nights</div>
             </div>
         </div>
 
@@ -436,8 +487,8 @@ export function generateReportHTML(ownerName, propertyName, currency, data, osir
             <div class="section-title">Key Observations</div>
             <div class="observations-grid">
                 <div class="observation-card ${metrics.occupancyRate < 30 ? 'critical' : ''}">
-                    <div class="observation-title">Occupancy Performance</div>
-                    <div class="observation-text">${metrics.occupancyRate.toFixed(1)}% occupancy with ${metrics.totalNights} room nights. ${metrics.occupancyRate < 30 ? 'Below industry average. Action needed.' : 'Performing well.'}</div>
+                    <div class="observation-title">Rate Performance</div>
+                    <div class="observation-text">${metrics.occupancyRate.toFixed(1)}% rate with ${metrics.totalNights} room nights. ${metrics.occupancyRate < 30 ? 'Below industry average. Action needed.' : 'Performing well.'}</div>
                 </div>
 
                 <div class="observation-card ${metrics.otaDependency > 70 ? 'critical' : 'warning'}">
@@ -517,11 +568,11 @@ export function generateReportHTML(ownerName, propertyName, currency, data, osir
                 <thead>
                     <tr>
                         <th>Villa</th>
-                        <th>Bookings</th>
+                        <th>Bkgs</th>
                         <th>Revenue</th>
-                        <th>Avg Value</th>
-                        <th>Room Nights</th>
-                        <th>Occupancy</th>
+                        <th>Avg</th>
+                        <th>Nights</th>
+                        <th>Rate</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -556,7 +607,7 @@ export function generateReportHTML(ownerName, propertyName, currency, data, osir
 
         <!-- VILLA OCCUPANCY CHART -->
         <div class="section">
-            <div class="section-title">Occupancy Rate by Villa</div>
+            <div class="section-title">Rate by Villa</div>
             <div style="background: #f7fafc; padding: 15px; border-radius: 8px; border: 1px solid #e2e8f0;">
                 <canvas id="villaOccupancyChart" style="max-height: 180px;"></canvas>
             </div>
@@ -590,7 +641,7 @@ export function generateReportHTML(ownerName, propertyName, currency, data, osir
                 </thead>
                 <tbody>
                     <tr>
-                        <td>Occupancy Rate</td>
+                        <td>Rate</td>
                         <td>${metrics.occupancyRate.toFixed(1)}%</td>
                         <td>40%</td>
                         <td>60%</td>
