@@ -28,9 +28,9 @@ async function uploadImage(imagePath) {
   console.log(`📊 Size: ${(imageBuffer.length / 1024).toFixed(2)} KB\n`);
 
   try {
-    // Upload to Supabase Storage in 'villa-images' bucket
+    // Upload to Supabase Storage in 'Nismara Uma Villas' bucket
     const { data, error } = await supabase.storage
-      .from('villa-images')
+      .from('Nismara Uma Villas')
       .upload(fileName, imageBuffer, {
         contentType: 'image/jpeg',
         cacheControl: '3600',
@@ -43,7 +43,7 @@ async function uploadImage(imagePath) {
 
     // Get public URL
     const { data: { publicUrl } } = supabase.storage
-      .from('villa-images')
+      .from('Nismara Uma Villas')
       .getPublicUrl(fileName);
 
     console.log('✅ Upload successful!');

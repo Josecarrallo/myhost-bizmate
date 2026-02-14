@@ -887,9 +887,6 @@ export default function App() {
       case 'analytics':
         return <GuestAnalytics key="analytics" onBack={() => setCurrentView('overview')} />;
 
-      case 'workflows':
-        return <Workflows onBack={() => setCurrentView('overview')} onNavigate={setCurrentView} />;
-
       case 'trip-planner':
         return <AITripPlanner onBack={() => setCurrentView('workflows')} />;
 
