@@ -45,6 +45,7 @@ import MetaAds from './components/MetaAds/MetaAds';
 import GuestAnalytics from './components/GuestAnalytics/GuestAnalytics';
 import AIOperatorDemo from './components/ai-operator/AIOperatorDemo';
 import MarketingOverview from './components/Marketing/MarketingOverview';
+import MarketingHub from './components/Marketing/MarketingHub';
 import ContentPlanner from './components/Marketing/ContentPlanner';
 import ContentStudio from './components/ContentStudio/ContentStudio';
 import WebsiteAds from './components/Marketing/WebsiteAds';

@@ -46,6 +46,11 @@ const ManualDataEntry = ({ onBack }) => {
   const [leads, setLeads] = useState([]);
   const [isLoadingLeads, setIsLoadingLeads] = useState(false);
 
+  // Mobile pagination to prevent freeze
+  const [mobileBookingsPage, setMobileBookingsPage] = useState(1);
+  const [mobileLeadsPage, setMobileLeadsPage] = useState(1);
+  const MOBILE_PAGE_SIZE = 10; // Show 10 records at a time on mobile
+
   // Edit/Delete modals
   const [editingBooking, setEditingBooking] = useState(null);
   const [deletingBooking, setDeletingBooking] = useState(null);
@@ -1190,7 +1195,8 @@ const ManualDataEntry = ({ onBack }) => {
                         No bookings found
                       </div>
                     ) : (
-                      bookings.map((booking) => (
+                      <>
+                      {bookings.slice(0, mobileBookingsPage * MOBILE_PAGE_SIZE).map((booking) => (
                         <div
                           key={booking.id}
                           className="bg-[#2a2f3a] rounded-xl p-4 border-l-4 border-orange-500 shadow-lg hover:bg-[#374151] transition-colors"
@@ -1258,7 +1264,20 @@ const ManualDataEntry = ({ onBack }) => {
                             </button>
                           </div>
                         </div>
-                      ))
+                      ))}
+                      {/* Load More Button */}
+                      {bookings.length > mobileBookingsPage * MOBILE_PAGE_SIZE && (
+                        <button
+                          onClick={() => setMobileBookingsPage(prev => prev + 1)}
+                          className="w-full bg-orange-500 hover:bg-orange-600 text-white px-4 py-3 rounded-xl font-semibold transition-colors flex items-center justify-center gap-2"
+                        >
+                          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                          </svg>
+                          Load More ({bookings.length - (mobileBookingsPage * MOBILE_PAGE_SIZE)} remaining)
+                        </button>
+                      )}
+                      </>
                     )}
                   </div>
 
@@ -1523,7 +1542,8 @@ const ManualDataEntry = ({ onBack }) => {
                       No customers or leads yet
                     </div>
                   ) : (
-                    leads.map((lead) => (
+                    <>
+                    {leads.slice(0, mobileLeadsPage * MOBILE_PAGE_SIZE).map((lead) => (
                       <div
                         key={lead.id}
                         className="bg-[#2a2f3a] rounded-xl p-4 border-l-4 border-orange-500 shadow-lg hover:bg-[#374151] transition-colors"
@@ -1599,7 +1619,20 @@ const ManualDataEntry = ({ onBack }) => {
                           </button>
                         </div>
                       </div>
-                    ))
+                    ))}
+                    {/* Load More Button */}
+                    {leads.length > mobileLeadsPage * MOBILE_PAGE_SIZE && (
+                      <button
+                        onClick={() => setMobileLeadsPage(prev => prev + 1)}
+                        className="w-full bg-orange-500 hover:bg-orange-600 text-white px-4 py-3 rounded-xl font-semibold transition-colors flex items-center justify-center gap-2"
+                      >
+                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                        </svg>
+                        Load More ({leads.length - (mobileLeadsPage * MOBILE_PAGE_SIZE)} remaining)
+                      </button>
+                    )}
+                    </>
                   )}
                 </div>
 
@@ -2005,7 +2038,8 @@ const ManualDataEntry = ({ onBack }) => {
                       No bookings found
                     </div>
                   ) : (
-                    bookings.map((booking) => (
+                    <>
+                    {bookings.slice(0, mobileBookingsPage * MOBILE_PAGE_SIZE).map((booking) => (
                       <div
                         key={booking.id}
                         className="bg-[#2a2f3a] rounded-xl p-4 border-l-4 border-orange-500 shadow-lg"
@@ -2055,7 +2089,20 @@ const ManualDataEntry = ({ onBack }) => {
                           {booking.payment_status === 'paid' ? 'Paid' : 'Add Payment'}
                         </button>
                       </div>
-                    ))
+                    ))}
+                    {/* Load More Button */}
+                    {bookings.length > mobileBookingsPage * MOBILE_PAGE_SIZE && (
+                      <button
+                        onClick={() => setMobileBookingsPage(prev => prev + 1)}
+                        className="w-full bg-orange-500 hover:bg-orange-600 text-white px-4 py-3 rounded-xl font-semibold transition-colors flex items-center justify-center gap-2"
+                      >
+                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                        </svg>
+                        Load More ({bookings.length - (mobileBookingsPage * MOBILE_PAGE_SIZE)} remaining)
+                      </button>
+                    )}
+                    </>
                   )}
                 </div>
 
