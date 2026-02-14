@@ -37,6 +37,7 @@ import ManualDataEntry from '../ManualDataEntry/ManualDataEntry';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
 import { generateReportHTML } from '../../services/generateReportHTML';
+import { supabaseService as dataService } from '../../services/supabase';
 
 const Autopilot = ({ onBack }) => {
   const { userData } = useAuth();
@@ -369,31 +370,34 @@ const Autopilot = ({ onBack }) => {
 
       setAllBookings(bookings || []);
 
-      // Load villas (properties) based on unique property_ids from bookings
-      const propertyIds = [...new Set((bookings || []).map(b => b.property_id).filter(Boolean))];
+      // Load villas (properties) - Filter only Gita's 3 villas
+      try {
+        const villas = await dataService.getVillas();
+        console.log('🔍 [AUTOPILOT] Loaded villas:', villas);
 
-      if (propertyIds.length > 0) {
-        const { data: villas, error: villasError } = await supabase
-          .from('villas')
-          .select('*')
-          .in('property_id', propertyIds);
+        if (villas && villas.length > 0) {
+          // Filter only Gita's villas (Nismara and Graha Uma)
+          const gitaVillas = villas.filter(villa =>
+            villa.name.includes('Nismara') || villa.name.includes('Graha Uma')
+          );
+          console.log('🔍 [AUTOPILOT] Filtered Gita villas:', gitaVillas.length, 'of', villas.length);
 
-        if (villasError) {
-          console.error('Error loading villas:', villasError);
-        } else {
-          // Map villas to properties format with available fields
-          properties = (villas || []).map(villa => ({
+          // Map villas to properties format
+          properties = gitaVillas.map(villa => ({
             id: villa.id,
             name: villa.name,
-            location: villa.location || 'Ubud, Bali', // Fallback to default
-            property_type: villa.property_type || `${villa.bedrooms || 'N/A'} Bedroom Villa`, // Use bedrooms if no type
+            location: villa.location || 'Ubud, Bali',
+            property_type: villa.property_type || `${villa.bedrooms || 'N/A'} Bedroom Villa`,
             address: villa.address || 'Bali, Indonesia',
             bedrooms: villa.bedrooms,
             bathrooms: villa.bathrooms,
             description: villa.description
           }));
+          console.log('✅ [AUTOPILOT] Properties mapped:', properties.length);
           setUserProperties(properties);
         }
+      } catch (error) {
+        console.error('❌ [AUTOPILOT] Error loading villas:', error);
       }
 
       // Calculate unique countries (excluding null/empty)

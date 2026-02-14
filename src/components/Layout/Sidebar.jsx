@@ -157,6 +157,7 @@ const Sidebar = ({ currentView, onNavigate, isOpen, onClose }) => {
         // Marketing Campaigns sub-section
         { id: 'marketing-campaigns-header', label: 'Marketing Campaigns', isSubHeader: true, icon: Megaphone },
         { id: 'marketing-overview', label: 'Overview', icon: PieChart, indent: true },
+        { id: 'content-studio', label: 'Content Studio (AI Video)', icon: Sparkles, indent: true },
         { id: 'content-planner', label: 'Content Planner', icon: CalendarCheck, indent: true },
         { id: 'social-publisher', label: 'Social Publisher', icon: Instagram, indent: true },
         { id: 'meta-ads', label: 'Meta Ads', icon: Target, indent: true },

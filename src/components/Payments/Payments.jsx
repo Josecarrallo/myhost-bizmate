@@ -228,70 +228,125 @@ const Payments = ({ onBack }) => {
             <p className="text-orange-100 text-sm font-semibold">All payment records and transaction history</p>
           </div>
 
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-gray-50 border-b-2 border-gray-200">
-                <tr>
-                  <th className="px-6 py-4 text-left text-xs font-black text-gray-600 uppercase tracking-wider">Transaction ID</th>
-                  <th className="px-6 py-4 text-left text-xs font-black text-gray-600 uppercase tracking-wider">Guest</th>
-                  <th className="px-6 py-4 text-left text-xs font-black text-gray-600 uppercase tracking-wider">Property</th>
-                  <th className="px-6 py-4 text-left text-xs font-black text-gray-600 uppercase tracking-wider">Date & Time</th>
-                  <th className="px-6 py-4 text-left text-xs font-black text-gray-600 uppercase tracking-wider">Amount</th>
-                  <th className="px-6 py-4 text-left text-xs font-black text-gray-600 uppercase tracking-wider">Method</th>
-                  <th className="px-6 py-4 text-left text-xs font-black text-gray-600 uppercase tracking-wider">Status</th>
-                  <th className="px-6 py-4 text-left text-xs font-black text-gray-600 uppercase tracking-wider">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y-2 divide-gray-100">
-                {filteredTransactions.map((txn) => (
-                  <tr key={txn.id} className="hover:bg-orange-50 transition-colors">
-                    <td className="px-6 py-4">
-                      <span className="font-bold text-[#FF8C42]">{txn.id}</span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div>
-                        <p className="font-bold text-gray-900">{txn.guest}</p>
-                        <p className="text-sm text-gray-500">{txn.email}</p>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className="font-semibold text-gray-700">{txn.property}</span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div>
-                        <p className="font-semibold text-gray-900">{txn.date}</p>
-                        <p className="text-sm text-gray-500">{txn.time}</p>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className="text-xl font-black text-[#FF8C42]">${txn.amount.toLocaleString()}</span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className="font-semibold text-gray-700">{txn.method}</span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className={`px-3 py-1 rounded-full text-xs font-bold border-2 ${getStatusColor(txn.status)}`}>
-                        {txn.status}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <button
-                        onClick={() => setSelectedPayment(txn)}
-                        className="text-[#FF8C42] hover:text-orange-700 font-bold text-sm hover:underline"
-                      >
-                        View Details
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-
-          {filteredTransactions.length === 0 && (
+          {filteredTransactions.length === 0 ? (
             <div className="p-12 text-center">
               <p className="text-gray-500 text-lg font-semibold">No transactions found matching your filters</p>
             </div>
+          ) : (
+            <>
+              {/* MOBILE VERSION: Cards (< 768px) */}
+              <div className="block md:hidden p-4 space-y-4">
+                {filteredTransactions.map((txn) => (
+                  <div
+                    key={txn.id}
+                    className="bg-[#2a2f3a] rounded-xl p-4 border-l-4 border-orange-500 shadow-lg"
+                  >
+                    <div className="flex justify-between items-start mb-3">
+                      <div className="flex-1">
+                        <p className="text-gray-400 text-xs mb-1">Transaction ID</p>
+                        <h3 className="text-orange-400 font-bold text-sm">{txn.id}</h3>
+                      </div>
+                      <span className={`px-3 py-1 rounded-full text-xs font-bold border-2 ${getStatusColor(txn.status)}`}>
+                        {txn.status}
+                      </span>
+                    </div>
+                    <div className="mb-3">
+                      <h4 className="text-white font-bold text-lg">{txn.guest}</h4>
+                      <p className="text-gray-400 text-sm">{txn.email}</p>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3 mb-3">
+                      <div>
+                        <p className="text-gray-500 text-xs">Property</p>
+                        <p className="text-white text-sm font-medium">{txn.property}</p>
+                      </div>
+                      <div>
+                        <p className="text-gray-500 text-xs">Method</p>
+                        <p className="text-white text-sm font-medium">{txn.method}</p>
+                      </div>
+                      <div>
+                        <p className="text-gray-500 text-xs">Date</p>
+                        <p className="text-white text-sm font-medium">{txn.date}</p>
+                      </div>
+                      <div>
+                        <p className="text-gray-500 text-xs">Time</p>
+                        <p className="text-white text-sm font-medium">{txn.time}</p>
+                      </div>
+                      <div className="col-span-2">
+                        <p className="text-gray-500 text-xs">Amount</p>
+                        <p className="text-green-400 text-2xl font-black">${txn.amount.toLocaleString()}</p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => setSelectedPayment(txn)}
+                      className="w-full bg-orange-500 hover:bg-orange-600 text-white px-4 py-2.5 rounded-lg font-semibold transition-colors"
+                    >
+                      View Details
+                    </button>
+                  </div>
+                ))}
+              </div>
+
+              {/* DESKTOP VERSION: Table (>= 768px) */}
+              <div className="hidden md:block overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-gray-50 border-b-2 border-gray-200">
+                    <tr>
+                      <th className="px-6 py-4 text-left text-xs font-black text-gray-600 uppercase tracking-wider">Transaction ID</th>
+                      <th className="px-6 py-4 text-left text-xs font-black text-gray-600 uppercase tracking-wider">Guest</th>
+                      <th className="px-6 py-4 text-left text-xs font-black text-gray-600 uppercase tracking-wider">Property</th>
+                      <th className="px-6 py-4 text-left text-xs font-black text-gray-600 uppercase tracking-wider">Date & Time</th>
+                      <th className="px-6 py-4 text-left text-xs font-black text-gray-600 uppercase tracking-wider">Amount</th>
+                      <th className="px-6 py-4 text-left text-xs font-black text-gray-600 uppercase tracking-wider">Method</th>
+                      <th className="px-6 py-4 text-left text-xs font-black text-gray-600 uppercase tracking-wider">Status</th>
+                      <th className="px-6 py-4 text-left text-xs font-black text-gray-600 uppercase tracking-wider">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y-2 divide-gray-100">
+                    {filteredTransactions.map((txn) => (
+                      <tr key={txn.id} className="hover:bg-orange-50 transition-colors">
+                        <td className="px-6 py-4">
+                          <span className="font-bold text-[#FF8C42]">{txn.id}</span>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div>
+                            <p className="font-bold text-gray-900">{txn.guest}</p>
+                            <p className="text-sm text-gray-500">{txn.email}</p>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <span className="font-semibold text-gray-700">{txn.property}</span>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div>
+                            <p className="font-semibold text-gray-900">{txn.date}</p>
+                            <p className="text-sm text-gray-500">{txn.time}</p>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <span className="text-xl font-black text-[#FF8C42]">${txn.amount.toLocaleString()}</span>
+                        </td>
+                        <td className="px-6 py-4">
+                          <span className="font-semibold text-gray-700">{txn.method}</span>
+                        </td>
+                        <td className="px-6 py-4">
+                          <span className={`px-3 py-1 rounded-full text-xs font-bold border-2 ${getStatusColor(txn.status)}`}>
+                            {txn.status}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4">
+                          <button
+                            onClick={() => setSelectedPayment(txn)}
+                            className="text-[#FF8C42] hover:text-orange-700 font-bold text-sm hover:underline"
+                          >
+                            View Details
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </>
           )}
         </div>
       </div>

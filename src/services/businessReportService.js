@@ -5,9 +5,6 @@ const OWNER_IDS = {
   jose: 'c24393db-d318-4d75-8bbf-0fa240b9c1db'
 };
 
-const START_DATE = '2026-01-01';
-const END_DATE = '2026-12-31';
-
 // Call OSIRIS AI for business analysis
 async function callOSIRIS(tenantId, prompt) {
   try {
@@ -36,16 +33,16 @@ async function callOSIRIS(tenantId, prompt) {
 }
 
 // Generate business report for an owner
-export async function generateBusinessReport(ownerId, ownerName, propertyName, currency) {
-  console.log(`Generating report for ${ownerName}...`);
+export async function generateBusinessReport(ownerId, ownerName, propertyName, currency, startDate = '2026-01-01', endDate = '2026-12-31') {
+  console.log(`Generating report for ${ownerName} from ${startDate} to ${endDate}...`);
 
   // Get bookings
   const { data: bookings, error: bookingsError } = await supabase
     .from('bookings')
     .select('*')
     .eq('tenant_id', ownerId)
-    .gte('check_in', START_DATE)
-    .lte('check_in', END_DATE)
+    .gte('check_in', startDate)
+    .lte('check_in', endDate)
     .order('check_in', { ascending: false });
 
   if (bookingsError || !bookings || bookings.length === 0) {
@@ -226,7 +223,7 @@ export async function generateBusinessReport(ownerId, ownerName, propertyName, c
   const osirisPrompt = `
 You are OSIRIS, an expert business analyst for luxury vacation rental properties.
 
-Analyze the following business performance data for ${propertyName} (${START_DATE} to ${END_DATE}):
+Analyze the following business performance data for ${propertyName} (${startDate} to ${endDate}):
 
 **KEY METRICS:**
 - Total Bookings: ${metrics.totalBookings}

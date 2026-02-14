@@ -46,6 +46,11 @@ const ManualDataEntry = ({ onBack }) => {
   const [leads, setLeads] = useState([]);
   const [isLoadingLeads, setIsLoadingLeads] = useState(false);
 
+  // Mobile pagination to prevent freeze
+  const [mobileBookingsPage, setMobileBookingsPage] = useState(1);
+  const [mobileLeadsPage, setMobileLeadsPage] = useState(1);
+  const MOBILE_PAGE_SIZE = 10; // Show 10 records at a time on mobile
+
   // Edit/Delete modals
   const [editingBooking, setEditingBooking] = useState(null);
   const [deletingBooking, setDeletingBooking] = useState(null);
@@ -1183,7 +1188,101 @@ const ManualDataEntry = ({ onBack }) => {
                     </svg>
                     Click on any row to edit • Click trash icon to delete
                   </p>
-                  <div className="bg-[#2a2f3a] rounded-xl overflow-hidden border-2 border-gray-200">
+                  {/* MOBILE VERSION: Cards (< 768px) */}
+                  <div className="block md:hidden space-y-4">
+                    {bookings.length === 0 ? (
+                      <div className="bg-[#2a2f3a] rounded-xl p-8 text-center text-gray-400 border-2 border-gray-200">
+                        No bookings found
+                      </div>
+                    ) : (
+                      <>
+                      {bookings.slice(0, mobileBookingsPage * MOBILE_PAGE_SIZE).map((booking) => (
+                        <div
+                          key={booking.id}
+                          className="bg-[#2a2f3a] rounded-xl p-4 border-l-4 border-orange-500 shadow-lg hover:bg-[#374151] transition-colors"
+                          onClick={() => handleEditBooking(booking)}
+                        >
+                          <div className="flex justify-between items-start mb-3">
+                            <div className="flex-1">
+                              <h3 className="text-white font-bold text-lg">{booking.guest_name}</h3>
+                              <p className="text-gray-400 text-sm mt-1">
+                                {properties.find(p => p.id === booking.property_id)?.name || 'N/A'}
+                              </p>
+                            </div>
+                            <span className={`px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap ${
+                              booking.status === 'confirmed' ? 'bg-green-500 text-white' :
+                              booking.status === 'pending_payment' ? 'bg-yellow-500 text-black' :
+                              booking.status === 'cancelled' ? 'bg-red-500 text-white' :
+                              'bg-gray-500 text-white'
+                            }`}>
+                              {booking.status === 'pending_payment' ? 'pending' : booking.status}
+                            </span>
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-3 mb-3">
+                            <div>
+                              <p className="text-gray-500 text-xs">Check-in</p>
+                              <p className="text-white text-sm font-medium">{booking.check_in}</p>
+                            </div>
+                            <div>
+                              <p className="text-gray-500 text-xs">Check-out</p>
+                              <p className="text-white text-sm font-medium">{booking.check_out}</p>
+                            </div>
+                            <div>
+                              <p className="text-gray-500 text-xs">Nights</p>
+                              <p className="text-white text-sm font-medium">{booking.nights} nights</p>
+                            </div>
+                            <div>
+                              <p className="text-gray-500 text-xs">Total Price</p>
+                              <p className="text-green-400 text-sm font-bold">
+                                IDR {booking.total_price?.toLocaleString()}
+                              </p>
+                            </div>
+                          </div>
+
+                          <div className="flex gap-2 mt-4 pt-3 border-t border-gray-700">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleEditBooking(booking);
+                              }}
+                              className="flex-1 bg-orange-500 hover:bg-orange-600 text-white px-4 py-2.5 rounded-lg font-semibold transition-colors"
+                            >
+                              Edit Booking
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setDeletingBooking(booking);
+                              }}
+                              className="bg-red-500 hover:bg-red-600 text-white px-4 py-2.5 rounded-lg transition-colors"
+                              title="Delete booking"
+                            >
+                              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                              </svg>
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                      {/* Load More Button */}
+                      {bookings.length > mobileBookingsPage * MOBILE_PAGE_SIZE && (
+                        <button
+                          onClick={() => setMobileBookingsPage(prev => prev + 1)}
+                          className="w-full bg-orange-500 hover:bg-orange-600 text-white px-4 py-3 rounded-xl font-semibold transition-colors flex items-center justify-center gap-2"
+                        >
+                          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                          </svg>
+                          Load More ({bookings.length - (mobileBookingsPage * MOBILE_PAGE_SIZE)} remaining)
+                        </button>
+                      )}
+                      </>
+                    )}
+                  </div>
+
+                  {/* DESKTOP VERSION: Table (>= 768px) */}
+                  <div className="hidden md:block bg-[#2a2f3a] rounded-xl overflow-hidden border-2 border-gray-200">
                     <div className="overflow-x-auto">
                       <table className="w-full table-fixed">
                         <thead className="bg-orange-500">
@@ -1436,7 +1535,109 @@ const ManualDataEntry = ({ onBack }) => {
               </div>
             ) : (
               <>
-                <div className="bg-[#2a2f3a] rounded-xl overflow-hidden border-2 border-gray-200">
+                {/* MOBILE VERSION: Cards (< 768px) */}
+                <div className="block md:hidden space-y-4">
+                  {leads.length === 0 ? (
+                    <div className="bg-[#2a2f3a] rounded-xl p-8 text-center text-gray-400 border-2 border-gray-200">
+                      No customers or leads yet
+                    </div>
+                  ) : (
+                    <>
+                    {leads.slice(0, mobileLeadsPage * MOBILE_PAGE_SIZE).map((lead) => (
+                      <div
+                        key={lead.id}
+                        className="bg-[#2a2f3a] rounded-xl p-4 border-l-4 border-orange-500 shadow-lg hover:bg-[#374151] transition-colors"
+                        onClick={() => handleEditLead(lead)}
+                      >
+                        <div className="flex justify-between items-start mb-3">
+                          <div className="flex-1">
+                            <h3 className="text-white font-bold text-lg">{lead.name}</h3>
+                            <p className="text-gray-400 text-sm mt-1 flex items-center gap-2">
+                              <span>{lead.country || '-'}</span>
+                              {lead.current_phase && (
+                                <>
+                                  <span>•</span>
+                                  <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${
+                                    lead.current_phase === 'CUSTOMER' ? 'bg-green-500/20 text-green-400' : 'bg-blue-500/20 text-blue-400'
+                                  }`}>
+                                    {lead.current_phase}
+                                  </span>
+                                </>
+                              )}
+                            </p>
+                          </div>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setDeletingLead(lead);
+                            }}
+                            className="p-2 hover:bg-red-500/20 rounded-lg transition-colors"
+                            title="Delete"
+                          >
+                            <svg className="w-5 h-5 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                          </button>
+                        </div>
+                        <div className="grid grid-cols-2 gap-3 mb-3">
+                          <div>
+                            <p className="text-gray-500 text-xs">Source</p>
+                            <p className="text-white text-sm font-medium capitalize">{lead.source || 'manual'}</p>
+                          </div>
+                          <div>
+                            <p className="text-gray-500 text-xs">Check-in</p>
+                            <p className="text-white text-sm font-medium">
+                              {lead.booking_check_in ? new Date(lead.booking_check_in).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '-'}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-gray-500 text-xs">Total (Rp)</p>
+                            <p className={`text-sm font-bold ${
+                              lead.booking_total > 0 ? 'text-green-400' : 'text-gray-400'
+                            }`}>
+                              {lead.booking_total > 0 ? lead.booking_total.toLocaleString() : '0'}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-gray-500 text-xs">Payment</p>
+                            <p className="text-white text-sm font-medium capitalize">{lead.booking_payment_status || '-'}</p>
+                          </div>
+                          <div className="col-span-2">
+                            <p className="text-gray-500 text-xs">Journey State</p>
+                            <p className="text-white text-sm font-medium">{lead.booking_journey_state || '-'}</p>
+                          </div>
+                        </div>
+                        <div className="pt-3 border-t border-gray-700">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleEditLead(lead);
+                            }}
+                            className="w-full bg-orange-500 hover:bg-orange-600 text-white px-4 py-2.5 rounded-lg font-semibold transition-colors"
+                          >
+                            Edit Customer
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                    {/* Load More Button */}
+                    {leads.length > mobileLeadsPage * MOBILE_PAGE_SIZE && (
+                      <button
+                        onClick={() => setMobileLeadsPage(prev => prev + 1)}
+                        className="w-full bg-orange-500 hover:bg-orange-600 text-white px-4 py-3 rounded-xl font-semibold transition-colors flex items-center justify-center gap-2"
+                      >
+                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                        </svg>
+                        Load More ({leads.length - (mobileLeadsPage * MOBILE_PAGE_SIZE)} remaining)
+                      </button>
+                    )}
+                    </>
+                  )}
+                </div>
+
+                {/* DESKTOP VERSION: Table (>= 768px) */}
+                <div className="hidden md:block bg-[#2a2f3a] rounded-xl overflow-hidden border-2 border-gray-200">
                   <div className="overflow-x-auto">
                     <table className="w-full table-fixed text-xs">
                       <thead className="bg-orange-500">
@@ -1829,7 +2030,84 @@ const ManualDataEntry = ({ onBack }) => {
                   </svg>
                   Click "Add Payment" button to record a payment
                 </p>
-                <div className="bg-[#2a2f3a] rounded-xl overflow-hidden border-2 border-gray-200">
+
+                {/* MOBILE VERSION: Cards (< 768px) */}
+                <div className="block md:hidden space-y-4">
+                  {bookings.length === 0 ? (
+                    <div className="bg-[#2a2f3a] rounded-xl p-8 text-center text-gray-400 border-2 border-gray-200">
+                      No bookings found
+                    </div>
+                  ) : (
+                    <>
+                    {bookings.slice(0, mobileBookingsPage * MOBILE_PAGE_SIZE).map((booking) => (
+                      <div
+                        key={booking.id}
+                        className="bg-[#2a2f3a] rounded-xl p-4 border-l-4 border-orange-500 shadow-lg"
+                      >
+                        <div className="flex justify-between items-start mb-3">
+                          <div className="flex-1">
+                            <h3 className="text-white font-bold text-lg">{booking.guest_name}</h3>
+                            <p className="text-gray-400 text-sm mt-1">
+                              {properties.find(p => p.id === booking.property_id)?.name || 'N/A'}
+                            </p>
+                          </div>
+                          <span className={`px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap ${
+                            booking.payment_status === 'paid' ? 'bg-green-500 text-white' :
+                            booking.payment_status === 'pending' ? 'bg-yellow-500 text-black' :
+                            'bg-gray-500 text-white'
+                          }`}>
+                            {booking.payment_status || 'pending'}
+                          </span>
+                        </div>
+                        <div className="grid grid-cols-2 gap-3 mb-3">
+                          <div>
+                            <p className="text-gray-500 text-xs">Check-in</p>
+                            <p className="text-white text-sm font-medium">{booking.check_in}</p>
+                          </div>
+                          <div>
+                            <p className="text-gray-500 text-xs">Check-out</p>
+                            <p className="text-white text-sm font-medium">{booking.check_out}</p>
+                          </div>
+                          <div className="col-span-2">
+                            <p className="text-gray-500 text-xs">Total Price</p>
+                            <p className="text-green-400 text-lg font-bold">
+                              IDR {booking.total_price?.toLocaleString()}
+                            </p>
+                            {booking.payment_status !== 'paid' && (
+                              <p className="text-gray-400 text-xs mt-1">
+                                Due: IDR {booking.total_price?.toLocaleString()}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => handleAddPaymentClick(booking)}
+                          disabled={booking.payment_status === 'paid'}
+                          className="w-full bg-orange-500 hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed text-white px-4 py-2.5 rounded-lg font-semibold transition-colors flex items-center justify-center gap-2"
+                        >
+                          <DollarSign className="w-5 h-5" />
+                          {booking.payment_status === 'paid' ? 'Paid' : 'Add Payment'}
+                        </button>
+                      </div>
+                    ))}
+                    {/* Load More Button */}
+                    {bookings.length > mobileBookingsPage * MOBILE_PAGE_SIZE && (
+                      <button
+                        onClick={() => setMobileBookingsPage(prev => prev + 1)}
+                        className="w-full bg-orange-500 hover:bg-orange-600 text-white px-4 py-3 rounded-xl font-semibold transition-colors flex items-center justify-center gap-2"
+                      >
+                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                        </svg>
+                        Load More ({bookings.length - (mobileBookingsPage * MOBILE_PAGE_SIZE)} remaining)
+                      </button>
+                    )}
+                    </>
+                  )}
+                </div>
+
+                {/* DESKTOP VERSION: Table (>= 768px) */}
+                <div className="hidden md:block bg-[#2a2f3a] rounded-xl overflow-hidden border-2 border-gray-200">
                   <div className="overflow-x-auto">
                     <table className="w-full table-fixed">
                       <thead className="bg-orange-500">
