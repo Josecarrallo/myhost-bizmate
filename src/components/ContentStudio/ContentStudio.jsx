@@ -18,6 +18,9 @@ import {
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
 
+// Backend API URL - uses environment variable or defaults to localhost
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+
 const ContentStudio = ({ onBack }) => {
   const { userData } = useAuth();
   const [step, setStep] = useState(1); // 1: Upload, 2: Customize, 3: Generate, 4: Result, 5: History
@@ -170,7 +173,7 @@ const ContentStudio = ({ onBack }) => {
       console.log('🚀 Sending video generation request to backend...');
 
       // Call backend API
-      const response = await fetch('http://localhost:3001/api/generate-video', {
+      const response = await fetch(`${API_URL}/api/generate-video`, {
         method: 'POST',
         body: formDataToSend
       });
@@ -187,7 +190,7 @@ const ContentStudio = ({ onBack }) => {
       setProgress(100);
       setGenerating(false);
       setGeneratedVideo({
-        url: `http://localhost:3001${result.videoUrl}`,
+        url: `${API_URL}${result.videoUrl}`,
         thumbnail: imagePreview,
         title: formData.title,
         filename: result.filename
