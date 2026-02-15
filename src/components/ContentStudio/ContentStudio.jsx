@@ -18,6 +18,9 @@ import {
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
 
+// Backend API URL - uses environment variable or defaults to localhost
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+
 const ContentStudio = ({ onBack }) => {
   const { userData } = useAuth();
   const [step, setStep] = useState(1); // 1: Upload, 2: Customize, 3: Generate, 4: Result, 5: History
@@ -170,7 +173,7 @@ const ContentStudio = ({ onBack }) => {
       console.log('🚀 Sending video generation request to backend...');
 
       // Call backend API
-      const response = await fetch('http://localhost:3001/api/generate-video', {
+      const response = await fetch(`${API_URL}/api/generate-video`, {
         method: 'POST',
         body: formDataToSend
       });
@@ -187,7 +190,7 @@ const ContentStudio = ({ onBack }) => {
       setProgress(100);
       setGenerating(false);
       setGeneratedVideo({
-        url: `http://localhost:3001${result.videoUrl}`,
+        url: `${API_URL}${result.videoUrl}`,
         thumbnail: imagePreview,
         title: formData.title,
         filename: result.filename
@@ -585,61 +588,39 @@ const ContentStudio = ({ onBack }) => {
                     </button>
                   </div>
                 ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {videoHistory.map((video) => (
-                      <div
-                        key={video.id}
-                        className="bg-white/5 rounded-xl border border-white/10 overflow-hidden hover:border-[#FF8C42]/50 transition-all group"
-                      >
-                        {/* Thumbnail */}
-                        <div className="relative aspect-video bg-black">
-                          {video.thumbnail_url ? (
-                            <img
-                              src={video.thumbnail_url}
-                              alt={video.title}
-                              className="w-full h-full object-cover"
-                            />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center">
-                              <Film className="w-12 h-12 text-white/20" />
-                            </div>
-                          )}
-                          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                            <Play className="w-12 h-12 text-white" />
-                          </div>
-                        </div>
-
-                        {/* Info */}
-                        <div className="p-4 space-y-3">
-                          <div>
-                            <h4 className="font-bold text-white text-lg truncate">{video.title}</h4>
-                            {video.subtitle && (
-                              <p className="text-white/60 text-sm truncate">{video.subtitle}</p>
-                            )}
-                          </div>
-
-                          <div className="flex items-center gap-4 text-xs text-white/40">
-                            <div className="flex items-center gap-1">
-                              <Clock className="w-3 h-3" />
-                              {new Date(video.created_at).toLocaleDateString()}
-                            </div>
-                            <div>{video.file_size_mb} MB</div>
-                            <div>{video.resolution}</div>
-                          </div>
-
-                          {/* Actions */}
-                          <a
-                            href={video.video_url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="block w-full px-4 py-2 bg-gradient-to-r from-[#d85a2a] to-[#f5a524] text-white rounded-lg hover:shadow-lg transition-all text-center text-sm font-semibold"
-                          >
-                            Watch Video
-                          </a>
-                          <p className="text-xs text-white/40 mt-2 text-center">Click ⋮ in video player to download</p>
-                        </div>
-                      </div>
-                    ))}
+                  <div className="bg-white/5 rounded-xl border border-white/10 overflow-hidden">
+                    <table className="w-full">
+                      <thead className="bg-white/5 border-b border-white/10">
+                        <tr>
+                          <th className="px-6 py-4 text-left text-sm font-semibold text-white">Title</th>
+                          <th className="px-6 py-4 text-left text-sm font-semibold text-white">Subtitle</th>
+                          <th className="px-6 py-4 text-left text-sm font-semibold text-white">Date</th>
+                          <th className="px-6 py-4 text-left text-sm font-semibold text-white">Size</th>
+                          <th className="px-6 py-4 text-left text-sm font-semibold text-white">Resolution</th>
+                          <th className="px-6 py-4 text-left text-sm font-semibold text-white">File</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-white/10">
+                        {videoHistory.map((video) => (
+                          <tr key={video.id} className="hover:bg-white/5 transition-colors">
+                            <td className="px-6 py-4 text-white font-medium">{video.title}</td>
+                            <td className="px-6 py-4 text-white/60 text-sm">{video.subtitle || '-'}</td>
+                            <td className="px-6 py-4 text-white/60 text-sm">
+                              {new Date(video.created_at).toLocaleDateString('es-ES', {
+                                day: '2-digit',
+                                month: '2-digit',
+                                year: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit'
+                              })}
+                            </td>
+                            <td className="px-6 py-4 text-white/60 text-sm">{video.file_size_mb} MB</td>
+                            <td className="px-6 py-4 text-white/60 text-sm">{video.resolution}</td>
+                            <td className="px-6 py-4 text-white/60 text-sm font-mono text-xs">{video.filename}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
                   </div>
                 )}
               </div>

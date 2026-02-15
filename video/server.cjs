@@ -7,16 +7,22 @@ const fs = require('fs');
 const { createClient } = require('@supabase/supabase-js');
 
 const app = express();
-const PORT = 3001;
+const PORT = process.env.PORT || 3001;
+
+// CORS configuration
+const corsOptions = {
+  origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+  credentials: true
+};
 
 // Middleware
-app.use(cors());
+app.use(cors(corsOptions));
 app.use(express.json());
 app.use('/videos', express.static(path.join(__dirname, 'out')));
 
 // Supabase client
-const supabaseUrl = 'https://jjpscimtxrudtepzwhag.supabase.co';
-const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpqcHNjaW10eHJ1ZHRlcHp3aGFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI5NDMyMzIsImV4cCI6MjA3ODUxOTIzMn0._U_HwdF5-yT8-prJLzkdO_rGbNuu7Z3gpUQW0Q8zxa0';
+const supabaseUrl = process.env.SUPABASE_URL || 'https://jjpscimtxrudtepzwhag.supabase.co';
+const supabaseKey = process.env.SUPABASE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpqcHNjaW10eHJ1ZHRlcHp3aGFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI5NDMyMzIsImV4cCI6MjA3ODUxOTIzMn0._U_HwdF5-yT8-prJLzkdO_rGbNuu7Z3gpUQW0Q8zxa0';
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 // Multer storage
@@ -45,7 +51,7 @@ app.post('/api/generate-video', upload.single('image'), async (req, res) => {
   try {
     console.log('\n🎬 Video Generation Request Received');
 
-    const { title, subtitle, cameraMovement, music } = req.body;
+    const { title, subtitle, cameraMovement, music, userId } = req.body;
     const imagePath = req.file.path;
 
     console.log(`📸 Image: ${req.file.filename}`);
@@ -112,7 +118,7 @@ app.post('/api/generate-video', upload.single('image'), async (req, res) => {
 
     await new Promise((resolve, reject) => {
       exec(
-        `cd "${__dirname}" && npx remotion render LtxPromo "${outputPath}"`,
+        `cd "${__dirname}" && npx remotion render LtxPromo "${outputPath}" --props="${propsFile}"`,
         { maxBuffer: 1024 * 1024 * 10 },
         (error, stdout, stderr) => {
           if (error) {
@@ -126,13 +132,25 @@ app.post('/api/generate-video', upload.single('image'), async (req, res) => {
       );
     });
 
+    // Get video file size
+    const stats = fs.statSync(outputPath);
+    const fileSizeMB = (stats.size / (1024 * 1024)).toFixed(2);
+
     // Save to Supabase database
     const { data: videoData, error: dbError } = await supabase
       .from('generated_videos')
       .insert([{
+        user_id: userId,
         title,
         subtitle,
         video_url: `/videos/${outputFileName}`,
+        thumbnail_url: null,
+        filename: outputFileName,
+        file_size_mb: parseFloat(fileSizeMB),
+        duration_seconds: 10,
+        resolution: '1920x1080',
+        camera_prompt: cameraMovement,
+        music_file: music,
         status: 'completed',
         created_at: new Date().toISOString()
       }])
