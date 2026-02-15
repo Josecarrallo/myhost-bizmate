@@ -20,7 +20,8 @@ import {
   Edit,
   Eye,
   CheckCircle,
-  Clock
+  Clock,
+  Trash2
 } from 'lucide-react';
 import { StatCard } from '../common';
 import { dataService } from '../../services/data';
@@ -35,12 +36,17 @@ const Properties = ({ onBack }) => {
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
   const [showDemoMessage, setShowDemoMessage] = useState(false);
+  const [editMode, setEditMode] = useState(false);
+  const [editingVillaId, setEditingVillaId] = useState(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [villaToDelete, setVillaToDelete] = useState(null);
   const [formData, setFormData] = useState({
     name: '',
     location: '',
     type: 'villa',
     bedrooms: '',
-    price: ''
+    price: '',
+    photo: null
   });
 
   // Mock Properties Data (expanded)
@@ -198,53 +204,78 @@ const Properties = ({ onBack }) => {
     e.preventDefault();
 
     try {
-      setShowDemoMessage(true);
+      if (editMode) {
+        // UPDATE existing villa
+        const updates = {
+          name: formData.name,
+          bedrooms: parseInt(formData.bedrooms),
+          bathrooms: Math.max(1, Math.floor(parseInt(formData.bedrooms) / 2)),
+          max_guests: parseInt(formData.bedrooms) * 2,
+          base_price: parseFloat(formData.price)
+        };
 
-      // Create property in Supabase
-      const newProperty = {
-        name: formData.name,
-        description: `Beautiful ${formData.type} in ${formData.location}`,
-        address: formData.location.split(',')[0]?.trim() || formData.location,
-        city: formData.location.split(',')[1]?.trim() || 'Bali',
-        country: 'Indonesia',
-        bedrooms: parseInt(formData.bedrooms),
-        bathrooms: Math.max(1, Math.floor(parseInt(formData.bedrooms) / 2)),
-        max_guests: parseInt(formData.bedrooms) * 2,
-        base_price: parseFloat(formData.price),
-        currency: 'USD',
-        status: 'active',
-        amenities: [],
-        house_rules: [],
-        photos: []
-      };
+        console.log('[Properties] Updating villa:', editingVillaId, updates);
+        await supabaseService.updateVilla(editingVillaId, updates);
+        console.log('[Properties] Villa updated successfully');
 
-      console.log('[Properties] Creating property:', newProperty);
-      const createdProperty = await supabaseService.createProperty(newProperty);
-      console.log('[Properties] Property created:', createdProperty);
+        // Reload properties
+        await loadProperties();
 
-      // Trigger n8n workflow for new property
-      console.log('[Properties] Triggering n8n workflow...');
-      const workflowResult = await n8nService.onPropertyCreated(createdProperty);
-      console.log('[Properties] n8n workflow result:', workflowResult);
+        // Close modal and reset
+        setShowAddModal(false);
+        setEditMode(false);
+        setEditingVillaId(null);
+        setFormData({
+          name: '',
+          location: '',
+          type: 'villa',
+          bedrooms: '',
+          price: '',
+          photo: null
+        });
 
-      // Reload properties to show the new one
-      await loadProperties();
+      } else {
+        // CREATE new villa
+        const baseSlug = formData.name.toLowerCase().replace(/\s+/g, '-');
+        const timestamp = Date.now();
+        const uniqueSlug = `${baseSlug}-${timestamp}`;
 
-      // Close modal after 2 seconds
-      setTimeout(() => {
-        setShowDemoMessage(false);
+        const newVilla = {
+          name: formData.name,
+          slug: uniqueSlug,
+          description: `Beautiful ${formData.type} in ${formData.location}`,
+          bedrooms: parseInt(formData.bedrooms),
+          bathrooms: Math.max(1, Math.floor(parseInt(formData.bedrooms) / 2)),
+          max_guests: parseInt(formData.bedrooms) * 2,
+          base_price: parseFloat(formData.price),
+          currency: 'IDR',
+          status: 'active',
+          amenities: [],
+          photos: [],
+          property_id: '18711359-1378-4d12-9ea6-fb31c0b1bac2'
+        };
+
+        console.log('[Properties] Creating villa:', newVilla);
+        const createdVilla = await supabaseService.createProperty(newVilla);
+        console.log('[Properties] Villa created:', createdVilla);
+
+        // Reload properties to show the new one
+        await loadProperties();
+
+        // Close modal and reset
         setShowAddModal(false);
         setFormData({
           name: '',
           location: '',
           type: 'villa',
           bedrooms: '',
-          price: ''
+          price: '',
+          photo: null
         });
-      }, 2000);
+      }
     } catch (error) {
-      console.error('[Properties] Error creating property:', error);
-      alert('Failed to create property. Check console for details.');
+      console.error('[Properties] Error:', error);
+      alert(`Failed to ${editMode ? 'update' : 'create'} property: ${error.message}`);
       setShowDemoMessage(false);
     }
   };
@@ -305,7 +336,18 @@ const Properties = ({ onBack }) => {
             <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-black text-white drop-shadow-2xl">Properties</h2>
           </div>
           <button
-            onClick={() => setShowAddModal(true)}
+            onClick={() => {
+              setFormData({
+                name: '',
+                location: '',
+                type: 'villa',
+                bedrooms: '',
+                price: ''
+              });
+              setEditMode(false);
+              setEditingVillaId(null);
+              setShowAddModal(true);
+            }}
             className="w-full sm:w-auto px-4 sm:px-6 py-2 sm:py-3 bg-[#1f2937]/95 backdrop-blur-sm text-[#FF8C42] rounded-2xl font-bold hover:bg-[#1f2937] transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 border-2 border-[#d85a2a]/20"
           >
             <Plus className="w-4 h-4 sm:w-5 sm:h-5 inline mr-2" /> Add Property
@@ -417,7 +459,7 @@ const Properties = ({ onBack }) => {
                   <div className="flex items-center justify-between pt-4 border-t-2 border-gray-200">
                     <div>
                       <p className="text-xs text-gray-500 mb-1">Base Price</p>
-                      <p className="text-2xl font-black text-[#FF8C42]">{formatPrice(property.basePrice, property.currency)}<span className="text-sm font-medium">/night</span></p>
+                      <p className="text-xl font-black text-[#FF8C42]">{formatPrice(property.basePrice, property.currency)}<span className="text-xs font-medium">/night</span></p>
                     </div>
                     <div className="text-right">
                       <div className="flex items-center gap-1 text-[#FF8C42] font-bold mb-1">
@@ -800,9 +842,33 @@ const Properties = ({ onBack }) => {
 
             {/* Modal Footer */}
             <div className="p-4 sm:p-6 border-t-2 border-gray-200 flex flex-col sm:flex-row gap-3">
-              <button className="flex-1 px-4 sm:px-6 py-3 bg-orange-500 text-white rounded-2xl text-sm sm:text-base font-bold hover:bg-orange-600 transition-colors shadow-md">
+              <button
+                onClick={() => {
+                  setEditMode(true);
+                  setEditingVillaId(selectedProperty.id);
+                  setFormData({
+                    name: selectedProperty.name,
+                    location: selectedProperty.location,
+                    type: selectedProperty.type,
+                    bedrooms: selectedProperty.beds.toString(),
+                    price: selectedProperty.basePrice.toString(),
+                    photo: null
+                  });
+                  setSelectedProperty(null);
+                  setShowAddModal(true);
+                }}
+                className="flex-1 px-4 sm:px-6 py-3 bg-orange-500 text-white rounded-2xl text-sm sm:text-base font-bold hover:bg-orange-600 transition-colors shadow-md">
                 <Edit className="w-4 h-4 sm:w-5 sm:h-5 inline mr-2" />
                 Edit Property
+              </button>
+              <button
+                onClick={() => {
+                  setVillaToDelete(selectedProperty);
+                  setShowDeleteConfirm(true);
+                }}
+                className="px-4 sm:px-6 py-3 bg-red-500 text-white rounded-2xl text-sm sm:text-base font-bold hover:bg-red-600 transition-colors shadow-md">
+                <Trash2 className="w-4 h-4 sm:w-5 sm:h-5 inline mr-2" />
+                Delete
               </button>
               <button
                 onClick={() => setSelectedProperty(null)}
@@ -817,14 +883,18 @@ const Properties = ({ onBack }) => {
 
       {/* Add Property Modal */}
       {showAddModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50" onClick={() => setShowAddModal(false)}>
-          <div className="bg-[#1f2937] rounded-3xl shadow-2xl max-w-2xl w-full" onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50 overflow-y-auto" onClick={() => setShowAddModal(false)}>
+          <div className="bg-[#1f2937] rounded-3xl shadow-2xl max-w-2xl w-full my-8 max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
             {/* Modal Header */}
             <div className="bg-gradient-to-r from-orange-500 to-orange-600 p-6 rounded-t-3xl">
               <div className="flex items-center justify-between">
-                <h3 className="text-2xl font-black text-white">Add New Property</h3>
+                <h3 className="text-2xl font-black text-white">{editMode ? 'Edit Property' : 'Add New Property'}</h3>
                 <button
-                  onClick={() => setShowAddModal(false)}
+                  onClick={() => {
+                    setShowAddModal(false);
+                    setEditMode(false);
+                    setEditingVillaId(null);
+                  }}
                   className="p-2 bg-[#d85a2a]/10 hover:bg-white/30 rounded-xl transition-colors"
                 >
                   <X className="w-6 h-6 text-white" />
@@ -921,6 +991,24 @@ const Properties = ({ onBack }) => {
                   />
                 </div>
 
+                {/* Property Photo */}
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-2">
+                    Property Photo
+                  </label>
+                  <input
+                    type="file"
+                    name="photo"
+                    accept="image/*"
+                    onChange={(e) => {
+                      const file = e.target.files[0];
+                      setFormData(prev => ({ ...prev, photo: file }));
+                    }}
+                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-orange-500 focus:outline-none font-medium file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-orange-50 file:text-orange-700 hover:file:bg-orange-100"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">Recommended: JPG, PNG (max 5MB)</p>
+                </div>
+
                 {/* Demo Message */}
                 {showDemoMessage && (
                   <div className="bg-blue-50 border-2 border-blue-300 rounded-xl p-4 animate-fade-in">
@@ -946,8 +1034,17 @@ const Properties = ({ onBack }) => {
                   className="flex-1 px-6 py-3 bg-orange-500 text-white rounded-2xl font-bold hover:bg-orange-600 transition-colors shadow-md"
                   disabled={showDemoMessage}
                 >
-                  <Plus className="w-5 h-5 inline mr-2" />
-                  {showDemoMessage ? 'Property Added!' : 'Add Property'}
+                  {editMode ? (
+                    <>
+                      <Edit className="w-5 h-5 inline mr-2" />
+                      Update Property
+                    </>
+                  ) : (
+                    <>
+                      <Plus className="w-5 h-5 inline mr-2" />
+                      {showDemoMessage ? 'Property Added!' : 'Add Property'}
+                    </>
+                  )}
                 </button>
                 <button
                   type="button"
@@ -959,6 +1056,51 @@ const Properties = ({ onBack }) => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteConfirm && villaToDelete && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
+                <Trash2 className="w-6 h-6 text-red-600" />
+              </div>
+              <div>
+                <h3 className="text-xl font-black text-gray-900">Delete Property</h3>
+                <p className="text-sm text-gray-600">This action cannot be undone</p>
+              </div>
+            </div>
+            <p className="text-gray-700 mb-6">
+              Are you sure you want to delete <span className="font-bold">"{villaToDelete.name}"</span>?
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={async () => {
+                  try {
+                    await supabaseService.deleteVilla(villaToDelete.id);
+                    await loadProperties();
+                    setSelectedProperty(null);
+                    setShowDeleteConfirm(false);
+                    setVillaToDelete(null);
+                  } catch (error) {
+                    alert(`Failed to delete: ${error.message}`);
+                  }
+                }}
+                className="flex-1 px-6 py-3 bg-red-500 text-white rounded-2xl font-bold hover:bg-red-600 transition-colors">
+                Delete
+              </button>
+              <button
+                onClick={() => {
+                  setShowDeleteConfirm(false);
+                  setVillaToDelete(null);
+                }}
+                className="flex-1 px-6 py-3 bg-gray-200 text-gray-800 rounded-2xl font-bold hover:bg-gray-300 transition-colors">
+                Cancel
+              </button>
+            </div>
           </div>
         </div>
       )}

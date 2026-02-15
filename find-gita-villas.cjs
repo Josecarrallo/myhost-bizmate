@@ -1,37 +1,24 @@
 const { createClient } = require('@supabase/supabase-js');
 
-const supabase = createClient(
-  'https://jjpscimtxrudtepzwhag.supabase.co',
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpqcHNjaW10eHJ1ZHRlcHp3aGFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI5NDMyMzIsImV4cCI6MjA3ODUxOTIzMn0._U_HwdF5-yT8-prJLzkdO_rGbNuu7Z3gpUQW0Q8zxa0'
-);
+const supabaseUrl = 'https://jjpscimtxrudtepzwhag.supabase.co';
+const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpqcHNjaW10eHJ1ZHRlcHp3aGFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI5NDMyMzIsImV4cCI6MjA3ODUxOTIzMn0._U_HwdF5-yT8-prJLzkdO_rGbNuu7Z3gpUQW0Q8zxa0';
+const supabase = createClient(supabaseUrl, supabaseKey);
 
-async function findGitaVillas() {
-  console.log('\n🔍 Finding Gita\'s 3 villas...\n');
-
-  // Get all villas
-  const { data: allVillas } = await supabase
+async function findVillas() {
+  const { data, error } = await supabase
     .from('villas')
-    .select('*');
+    .select('*')
+    .eq('property_id', '3551cd18-af6b-48c2-85ba-4c5dc0074892');
 
-  console.log(`Total villas in database: ${allVillas?.length || 0}\n`);
-
-  // Filter for Nismara and Graha Uma (Gita's villas)
-  const gitaVillas = (allVillas || []).filter(v =>
-    v.name.includes('Nismara') ||
-    v.name.includes('Graha Uma')
-  );
-
-  console.log(`Gita's villas (containing 'Nismara' or 'Graha Uma'): ${gitaVillas.length}\n`);
-
-  gitaVillas.forEach(v => {
-    console.log(`✅ ${v.name}`);
-    console.log(`   ID: ${v.id}`);
-    console.log(`   property_id: ${v.property_id}`);
-    console.log(`   bedrooms: ${v.bedrooms}`);
-    console.log('');
-  });
-
-  console.log('\n');
+  if (error) {
+    console.log('Error:', error);
+  } else {
+    console.log('Encontradas', data?.length || 0, 'villas');
+    data?.forEach((v, i) => {
+      console.log((i + 1) + '. ' + v.name);
+      console.log('   ID: ' + v.id);
+    });
+  }
 }
 
-findGitaVillas();
+findVillas();

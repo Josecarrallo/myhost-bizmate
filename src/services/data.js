@@ -865,5 +865,22 @@ export const dataService = {
       console.error('Error in getOverviewStats:', error);
       return null;
     }
+  },
+
+  // Obtener las 3 villas de Gita (filtradas por currency = IDR)
+  async getVillas() {
+    const { data, error } = await supabase
+      .from('villas')
+      .select('*')
+      .eq('property_id', '18711359-1378-4d12-9ea6-fb31c0b1bac2')
+      .eq('currency', 'IDR')
+      .eq('status', 'active');
+
+    if (error) {
+      console.error('Error fetching villas:', error);
+      return [];
+    }
+
+    return data || [];
   }
 };

@@ -8,14 +8,14 @@ export const supabaseService = {
   // =====================================================
 
   async createProperty(data) {
-    const { data: property, error } = await supabase
-      .from('properties')
+    const { data: villa, error } = await supabase
+      .from('villas')
       .insert(data)
       .select()
       .single();
 
-    if (error) throw new Error(error.message || 'Failed to create property');
-    return property;
+    if (error) throw new Error(error.message || 'Failed to create villa');
+    return villa;
   },
 
   async getProperties(filters = {}) {
@@ -568,6 +568,28 @@ export const supabaseService = {
     const { data, error } = await query;
     if (error) throw new Error('Failed to fetch villas');
     return data;
+  },
+
+  async updateVilla(id, updates) {
+    const { data, error} = await supabase
+      .from('villas')
+      .update(updates)
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) throw new Error(error.message || 'Failed to update villa');
+    return data;
+  },
+
+  async deleteVilla(id) {
+    const { error } = await supabase
+      .from('villas')
+      .delete()
+      .eq('id', id);
+
+    if (error) throw new Error(error.message || 'Failed to delete villa');
+    return true;
   },
 
   // =====================================================
