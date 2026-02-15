@@ -69,6 +69,23 @@ export async function generateBusinessReport(ownerId, ownerName, propertyName, c
 
   console.log(`✓ Found ${allVillas.length} villas`);
 
+  // Get properties to use as fallback when villa name is not found
+  let allProperties = [];
+
+  for (const propId of uniquePropertyIds) {
+    const { data: property } = await supabase
+      .from('properties')
+      .select('*')
+      .eq('id', propId)
+      .single();
+
+    if (property) {
+      allProperties.push(property);
+    }
+  }
+
+  console.log(`✓ Found ${allProperties.length} properties`);
+
   // Calculate channel distribution
   const channelBreakdown = {};
   let totalChannelRevenue = 0;
@@ -158,9 +175,21 @@ export async function generateBusinessReport(ownerId, ownerName, propertyName, c
   const villaGroups = {};
   bookings.forEach(booking => {
     let villaName = 'Unknown Villa';
+
+    // Try to get villa name from villa_id first
     if (booking.villa_id) {
       const villa = allVillas.find(v => v.id === booking.villa_id);
-      villaName = villa ? villa.name : booking.villa_id;
+      if (villa && villa.name) {
+        villaName = villa.name;
+      }
+    }
+
+    // Fallback: use property name if villa name not found
+    if (villaName === 'Unknown Villa' && booking.property_id) {
+      const property = allProperties.find(p => p.id === booking.property_id);
+      if (property && property.name) {
+        villaName = property.name;
+      }
     }
 
     if (!villaGroups[villaName]) {
