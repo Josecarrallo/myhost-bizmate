@@ -45,7 +45,7 @@ app.post('/api/generate-video', upload.single('image'), async (req, res) => {
   try {
     console.log('\n🎬 Video Generation Request Received');
 
-    const { title, subtitle, cameraMovement, music } = req.body;
+    const { title, subtitle, cameraMovement, music, userId } = req.body;
     const imagePath = req.file.path;
 
     console.log(`📸 Image: ${req.file.filename}`);
@@ -112,7 +112,7 @@ app.post('/api/generate-video', upload.single('image'), async (req, res) => {
 
     await new Promise((resolve, reject) => {
       exec(
-        `cd "${__dirname}" && npx remotion render LtxPromo "${outputPath}"`,
+        `cd "${__dirname}" && npx remotion render LtxPromo "${outputPath}" --props="${propsFile}"`,
         { maxBuffer: 1024 * 1024 * 10 },
         (error, stdout, stderr) => {
           if (error) {
@@ -126,13 +126,25 @@ app.post('/api/generate-video', upload.single('image'), async (req, res) => {
       );
     });
 
+    // Get video file size
+    const stats = fs.statSync(outputPath);
+    const fileSizeMB = (stats.size / (1024 * 1024)).toFixed(2);
+
     // Save to Supabase database
     const { data: videoData, error: dbError } = await supabase
       .from('generated_videos')
       .insert([{
+        user_id: userId,
         title,
         subtitle,
         video_url: `/videos/${outputFileName}`,
+        thumbnail_url: null,
+        filename: outputFileName,
+        file_size_mb: parseFloat(fileSizeMB),
+        duration_seconds: 10,
+        resolution: '1920x1080',
+        camera_prompt: cameraMovement,
+        music_file: music,
         status: 'completed',
         created_at: new Date().toISOString()
       }])

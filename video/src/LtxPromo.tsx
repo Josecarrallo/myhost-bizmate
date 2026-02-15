@@ -22,10 +22,16 @@ import {
 } from 'remotion';
 
 interface LtxPromoProps {
+  title?: string;
+  subtitle?: string;
   musicFile?: string; // Optional: defaults to 'background-music.mp3'
 }
 
-export const LtxPromo: React.FC<LtxPromoProps> = ({ musicFile = 'background-music.mp3' }) => {
+export const LtxPromo: React.FC<LtxPromoProps> = ({
+  title = 'NISMARA UMA VILLA',
+  subtitle = 'Discover Your Balinese Sanctuary',
+  musicFile = 'background-music.mp3'
+}) => {
   const frame = useCurrentFrame();
   const { fps, durationInFrames } = useVideoConfig();
 
@@ -159,7 +165,7 @@ export const LtxPromo: React.FC<LtxPromoProps> = ({ musicFile = 'background-musi
                   letterSpacing: '4px',
                 }}
               >
-                NISMARA UMA VILLA
+                {title}
               </h1>
             </div>
           </AbsoluteFill>
@@ -204,7 +210,7 @@ export const LtxPromo: React.FC<LtxPromoProps> = ({ musicFile = 'background-musi
                   textShadow: '0 4px 20px rgba(212,175,55,0.5)',
                 }}
               >
-                Discover Your Balinese Sanctuary
+                {subtitle}
               </h2>
               <p
                 style={{
@@ -269,7 +275,7 @@ export const LtxPromo: React.FC<LtxPromoProps> = ({ musicFile = 'background-musi
               letterSpacing: '1px',
             }}
           >
-            Nismara Uma Villa
+            {title}
           </span>
         </div>
       </AbsoluteFill>
