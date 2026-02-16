@@ -73,6 +73,9 @@ export const supabaseService = {
     if (filters.status) {
       query = query.eq('status', filters.status);
     }
+    if (filters.payment_status) {
+      query = query.eq('payment_status', filters.payment_status);
+    }
     if (filters.property_id) {
       query = query.eq('property_id', filters.property_id);
     }
@@ -557,6 +560,16 @@ export const supabaseService = {
     return data;
   },
 
+  async deleteLead(id) {
+    const { error } = await supabase
+      .from('leads')
+      .delete()
+      .eq('id', id);
+
+    if (error) throw new Error(error.message || 'Failed to delete lead');
+    return { success: true };
+  },
+
   // =====================================================
   // VILLAS - Read Operations
   // =====================================================
@@ -623,6 +636,16 @@ export const supabaseService = {
     const { data, error } = await query;
     if (error) throw new Error('Failed to fetch tasks');
     return data;
+  },
+
+  async deleteTask(id) {
+    const { error } = await supabase
+      .from('autopilot_actions')
+      .delete()
+      .eq('id', id);
+
+    if (error) throw new Error(error.message || 'Failed to delete task');
+    return { success: true };
   }
 };
 
