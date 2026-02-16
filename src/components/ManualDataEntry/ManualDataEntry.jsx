@@ -130,9 +130,17 @@ const ManualDataEntry = ({ onBack }) => {
     category: 'housekeeping',
     priority: 'medium',
     assignedTo: '',
-    dueDate: '',
     description: ''
   });
+
+  // Tasks table data
+  const [tasks, setTasks] = useState([]);
+  const [isLoadingTasks, setIsLoadingTasks] = useState(false);
+  const [filterTaskStatus, setFilterTaskStatus] = useState('');
+  const [filterTaskProperty, setFilterTaskProperty] = useState('');
+  const [mobileTasksPage, setMobileTasksPage] = useState(1);
+  const [deletingTask, setDeletingTask] = useState(null);
+  const [isDeletingTask, setIsDeletingTask] = useState(false);
 
   // Load villas directly for Gita (bypassing properties table)
   useEffect(() => {
@@ -307,8 +315,15 @@ const ManualDataEntry = ({ onBack }) => {
         console.log('[DEBUG] Added villa_id filter:', villaFilter);
       }
 
+      // Apply status filter based on active tab
       if (filterStatus) {
-        filters.status = filterStatus;
+        if (activeTab === 'payment') {
+          // In payment tab, filter by payment_status
+          filters.payment_status = filterStatus;
+        } else {
+          // In view-bookings tab, filter by booking status
+          filters.status = filterStatus;
+        }
       }
 
       if (searchGuest) {
@@ -410,7 +425,10 @@ const ManualDataEntry = ({ onBack }) => {
     if (activeTab === 'view-bookings' || activeTab === 'payment') {
       loadBookings();
     }
-  }, [activeTab, filterProperty, filterStatus, searchGuest, userData]);
+    if (activeTab === 'task') {
+      loadTasks();
+    }
+  }, [activeTab, filterProperty, filterStatus, searchGuest, filterTaskProperty, filterTaskStatus, userData]);
 
   // Load leads when tab changes to lead
   useEffect(() => {
@@ -487,23 +505,19 @@ const ManualDataEntry = ({ onBack }) => {
     try {
       setIsDeletingLead(true);
 
-      // Use Supabase service to delete
-      const { error } = await supabaseService.updateLead(deletingLead.id, {
-        // Soft delete or hard delete - for now we'll use hard delete
-        deleted_at: new Date().toISOString()
-      });
-
-      if (error) throw error;
+      // Use Supabase service to delete (hard delete)
+      await supabaseService.deleteLead(deletingLead.id);
 
       // Success - reload leads
-      setSuccessMessage(`${deletingLead.state === 'CUSTOMER' ? 'Customer' : 'Lead'} ${deletingLead.name} deleted successfully`);
+      setSuccessMessage(`${deletingLead.current_phase === 'CUSTOMER' ? 'Customer' : 'Lead'} ${deletingLead.name} deleted successfully`);
       setDeletingLead(null);
       loadLeads();
 
       setTimeout(() => setSuccessMessage(''), 5000);
     } catch (error) {
       console.error('Error deleting lead:', error);
-      setErrorMessage('Failed to delete lead');
+      setErrorMessage(`Failed to delete lead: ${error.message}`);
+      setTimeout(() => setErrorMessage(''), 5000);
     } finally {
       setIsDeletingLead(false);
     }
@@ -1012,8 +1026,8 @@ const ManualDataEntry = ({ onBack }) => {
         action_type: taskForm.category,      // REQUIRED (housekeeping, maintenance, inventory)
         title: taskForm.title,               // REQUIRED
         description: taskForm.description || null,
-        priority: taskForm.priority || 'medium',
-        due_date: taskForm.dueDate || null
+        priority: taskForm.priority || 'medium'
+        // due_date NO EXISTE en la tabla
         // assigned_to NO EXISTE en la tabla
         // status: 'pending' (auto-default)
         // created_at, updated_at (auto-generated)
@@ -1033,9 +1047,11 @@ const ManualDataEntry = ({ onBack }) => {
         category: 'housekeeping',
         priority: 'medium',
         assignedTo: '',
-        dueDate: '',
         description: ''
       });
+
+      // Reload tasks list
+      await loadTasks();
 
       // Clear success message after 5 seconds
       setTimeout(() => setSuccessMessage(''), 5000);
@@ -1048,12 +1064,71 @@ const ManualDataEntry = ({ onBack }) => {
     }
   };
 
+  // Load tasks
+  const loadTasks = async (customPropertyFilter = null) => {
+    const tenantId = user?.id || userData?.id;
+    if (!tenantId) {
+      console.warn('❌ No user.id or userData.id - cannot load tasks');
+      return;
+    }
+
+    try {
+      setIsLoadingTasks(true);
+
+      const filters = {
+        tenant_id: tenantId
+      };
+
+      const propertyFilter = customPropertyFilter !== null ? customPropertyFilter : filterTaskProperty;
+      if (propertyFilter) {
+        filters.property_id = propertyFilter;
+      }
+
+      if (filterTaskStatus) {
+        filters.status = filterTaskStatus;
+      }
+
+      console.log('🔍 Loading tasks with filters:', JSON.stringify(filters, null, 2));
+
+      const tasksData = await supabaseService.getTasks(filters);
+      setTasks(tasksData);
+      console.log(`✅ Loaded ${tasksData.length} tasks`);
+    } catch (error) {
+      console.error('Error loading tasks:', error);
+      setErrorMessage('Failed to load tasks');
+    } finally {
+      setIsLoadingTasks(false);
+    }
+  };
+
+  // Handle delete task
+  const handleDeleteTask = async () => {
+    if (!deletingTask) return;
+
+    try {
+      setIsDeletingTask(true);
+      await supabaseService.deleteTask(deletingTask.id);
+
+      setSuccessMessage(`Task "${deletingTask.title}" deleted successfully`);
+      setDeletingTask(null);
+      loadTasks();
+
+      setTimeout(() => setSuccessMessage(''), 5000);
+    } catch (error) {
+      console.error('Error deleting task:', error);
+      setErrorMessage(`Failed to delete task: ${error.message}`);
+      setTimeout(() => setErrorMessage(''), 5000);
+    } finally {
+      setIsDeletingTask(false);
+    }
+  };
+
   const tabs = [
     { id: 'view-bookings', label: 'View/Edit Bookings', icon: ClipboardList },
     { id: 'booking', label: 'Add Booking', icon: Calendar },
     { id: 'lead', label: 'Add Customer & Lead', icon: UserPlus },
     { id: 'payment', label: 'View/Edit Payments', icon: DollarSign },
-    { id: 'task', label: 'Add Task', icon: CheckCircle }
+    { id: 'task', label: 'View/Edit Tasks', icon: CheckCircle }
   ];
 
   return (
@@ -1736,11 +1811,18 @@ const ManualDataEntry = ({ onBack }) => {
                               <td className="px-2 py-2 text-gray-300 overflow-hidden">
                                 <div className="truncate">{lead.booking_journey_state}</div>
                               </td>
-                              <td className="px-1 py-2 text-center" onClick={(e) => e.stopPropagation()}>
+                              <td className="px-1 py-2 text-center">
                                 <button
-                                  onClick={() => setDeletingLead(lead)}
+                                  onClick={(e) => {
+                                    console.log('[DELETE BUTTON] Clicked for lead:', lead.name);
+                                    e.stopPropagation();
+                                    e.preventDefault();
+                                    console.log('[DELETE BUTTON] Setting deletingLead to:', lead);
+                                    setDeletingLead(lead);
+                                  }}
                                   className="p-1 hover:bg-red-500/20 rounded transition-colors"
                                   title="Delete"
+                                  type="button"
                                 >
                                   <svg className="w-3 h-3 text-red-400 hover:text-red-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -2008,22 +2090,29 @@ const ManualDataEntry = ({ onBack }) => {
 
             {/* Filters */}
             <div className="grid grid-cols-1 md:grid-cols-5 gap-3 mb-4">
-              {/* Property Filter */}
+              {/* Villa Filter */}
               <select
                 value={filterProperty}
-                onChange={(e) => setFilterProperty(e.target.value)}
+                onChange={(e) => {
+                  const newValue = e.target.value;
+                  setFilterProperty(newValue);
+                  loadBookings(newValue);
+                }}
                 className="px-4 py-2 bg-[#2a2f3a] border-2 border-gray-200 rounded-xl text-white focus:outline-none focus:border-orange-300"
               >
-                <option value="">All Properties</option>
-                {properties.map(p => (
-                  <option key={p.id} value={p.id}>{p.name}</option>
+                <option value="">All Villas</option>
+                {villas.map(v => (
+                  <option key={v.id} value={v.id}>{v.name}</option>
                 ))}
               </select>
 
               {/* Payment Status Filter */}
               <select
                 value={filterStatus}
-                onChange={(e) => setFilterStatus(e.target.value)}
+                onChange={(e) => {
+                  setFilterStatus(e.target.value);
+                  loadBookings();
+                }}
                 className="px-4 py-2 bg-[#2a2f3a] border-2 border-gray-200 rounded-xl text-white focus:outline-none focus:border-orange-300"
               >
                 <option value="">All Payment Status</option>
@@ -2242,119 +2331,218 @@ const ManualDataEntry = ({ onBack }) => {
           </div>
         )}
 
-        {/* TAB D: Add Task (Ops) */}
+        {/* TAB D: View/Edit Tasks */}
         {activeTab === 'task' && (
-          <form onSubmit={handleSubmitTask} className="space-y-4">
-            <h3 className="text-2xl font-black text-[#FF8C42] mb-4 flex items-center gap-2">
-              <CheckCircle className="w-6 h-6 text-[#FF8C42]" />
-              Add Operational Task
-            </h3>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Task Title */}
-              <div className="md:col-span-2">
-                <label className="block text-[#FF8C42] font-medium mb-2">Task Title *</label>
-                <input
-                  type="text"
-                  required
-                  value={taskForm.title}
-                  onChange={(e) => setTaskForm({...taskForm, title: e.target.value})}
-                  className="w-full px-4 py-3 bg-[#2a2f3a] border-2 border-gray-200 rounded-xl text-[#FF8C42] placeholder-gray-400 focus:outline-none focus:border-orange-300"
-                  placeholder="e.g. Deep clean Villa Sunset"
-                />
-              </div>
-
-              {/* Category */}
-              <div>
-                <label className="block text-[#FF8C42] font-medium mb-2">Category *</label>
-                <select
-                  required
-                  value={taskForm.category}
-                  onChange={(e) => setTaskForm({...taskForm, category: e.target.value})}
-                  className="w-full px-4 py-3 bg-[#2a2f3a] border-2 border-gray-200 rounded-xl text-[#FF8C42] focus:outline-none focus:border-orange-300 [&>option]:bg-[#1f2937] [&>option]:text-white"
-                >
-                  <option value="housekeeping">Housekeeping</option>
-                  <option value="maintenance">Maintenance</option>
-                  <option value="inventory">Inventory</option>
-                  <option value="guest_service">Guest Service</option>
-                  <option value="security">Security</option>
-                  <option value="other">Other</option>
-                </select>
-              </div>
-
-              {/* Priority */}
-              <div>
-                <label className="block text-[#FF8C42] font-medium mb-2">Priority *</label>
-                <select
-                  required
-                  value={taskForm.priority}
-                  onChange={(e) => setTaskForm({...taskForm, priority: e.target.value})}
-                  className="w-full px-4 py-3 bg-[#2a2f3a] border-2 border-gray-200 rounded-xl text-[#FF8C42] focus:outline-none focus:border-orange-300 [&>option]:bg-[#1f2937] [&>option]:text-white"
-                >
-                  <option value="low">Low</option>
-                  <option value="medium">Medium</option>
-                  <option value="high">High</option>
-                  <option value="urgent">Urgent</option>
-                </select>
-              </div>
-
-              {/* Assigned To */}
-              <div>
-                <label className="block text-[#FF8C42] font-medium mb-2">Assigned To</label>
-                <input
-                  type="text"
-                  value={taskForm.assignedTo}
-                  onChange={(e) => setTaskForm({...taskForm, assignedTo: e.target.value})}
-                  className="w-full px-4 py-3 bg-[#2a2f3a] border-2 border-gray-200 rounded-xl text-[#FF8C42] placeholder-gray-400 focus:outline-none focus:border-orange-300"
-                  placeholder="Staff name or team"
-                />
-              </div>
-
-              {/* Due Date */}
-              <div>
-                <label className="block text-[#FF8C42] font-medium mb-2">Due Date</label>
-                <input
-                  type="date"
-                  value={taskForm.dueDate}
-                  onChange={(e) => setTaskForm({...taskForm, dueDate: e.target.value})}
-                  className="w-full px-4 py-3 bg-white/10 border border-white/30 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-white/50"
-                />
-              </div>
-
-              {/* Description */}
-              <div className="md:col-span-2">
-                <label className="block text-[#FF8C42] font-medium mb-2">Description</label>
+          <div className="space-y-6">
+            {/* Quick Add Task Form */}
+            <div className="bg-[#1f2937] rounded-xl p-4 border-2 border-orange-500">
+              <h4 className="text-lg font-bold text-[#FF8C42] mb-3 flex items-center gap-2">
+                <Save className="w-5 h-5" />
+                Quick Add Task
+              </h4>
+              <form onSubmit={handleSubmitTask} className="space-y-3">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <input
+                    type="text"
+                    required
+                    placeholder="Task Title *"
+                    value={taskForm.title}
+                    onChange={(e) => setTaskForm({...taskForm, title: e.target.value})}
+                    className="px-3 py-2 bg-[#2a2f3a] border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-orange-300 text-sm"
+                  />
+                  <select
+                    required
+                    value={taskForm.category}
+                    onChange={(e) => setTaskForm({...taskForm, category: e.target.value})}
+                    className="px-3 py-2 bg-[#2a2f3a] border border-gray-600 rounded-lg text-white focus:outline-none focus:border-orange-300 text-sm"
+                  >
+                    <option value="housekeeping">Housekeeping</option>
+                    <option value="maintenance">Maintenance</option>
+                    <option value="inventory">Inventory</option>
+                    <option value="guest_service">Guest Service</option>
+                    <option value="security">Security</option>
+                    <option value="other">Other</option>
+                  </select>
+                  <select
+                    required
+                    value={taskForm.priority}
+                    onChange={(e) => setTaskForm({...taskForm, priority: e.target.value})}
+                    className="px-3 py-2 bg-[#2a2f3a] border border-gray-600 rounded-lg text-white focus:outline-none focus:border-orange-300 text-sm"
+                  >
+                    <option value="low">Low</option>
+                    <option value="medium">Medium</option>
+                    <option value="high">High</option>
+                    <option value="urgent">Urgent</option>
+                  </select>
+                </div>
                 <textarea
+                  placeholder="Description (optional)"
                   value={taskForm.description}
                   onChange={(e) => setTaskForm({...taskForm, description: e.target.value})}
-                  rows={4}
-                  className="w-full px-4 py-3 bg-[#2a2f3a] border-2 border-gray-200 rounded-xl text-[#FF8C42] placeholder-gray-400 focus:outline-none focus:border-orange-300"
-                  placeholder="Detailed task description, special instructions, etc."
+                  rows={2}
+                  className="w-full px-3 py-2 bg-[#2a2f3a] border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-orange-300 text-sm"
                 />
-              </div>
+                <div className="flex justify-end gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setTaskForm({ title: '', category: 'housekeeping', priority: 'medium', assignedTo: '', description: '' })}
+                    className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg font-medium transition-all text-sm"
+                  >
+                    Clear
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg font-medium transition-all flex items-center gap-2 text-sm disabled:opacity-50"
+                  >
+                    <Save className="w-4 h-4" />
+                    {isSubmitting ? 'Creating...' : 'Create Task'}
+                  </button>
+                </div>
+              </form>
             </div>
 
-            {/* Submit Button */}
-            <div className="flex justify-end gap-3 pt-4">
-              <button
-                type="button"
-                onClick={() => setTaskForm({
-                  title: '', category: 'housekeeping', priority: 'medium',
-                  assignedTo: '', dueDate: '', description: ''
-                })}
-                className="px-6 py-3 bg-[#2a2f3a] hover:bg-[#374151] text-[#FF8C42] rounded-xl font-medium transition-all border-2 border-gray-200"
-              >
-                Clear
-              </button>
-              <button
-                type="submit"
-                className="px-6 py-3 bg-orange-500 hover:bg-orange-600 text-white rounded-xl font-medium transition-all flex items-center gap-2"
-              >
-                <Save className="w-5 h-5" />
-                Create Task
-              </button>
+            {/* Tasks List */}
+            <div>
+              <h3 className="text-2xl font-black text-[#FF8C42] mb-4 flex items-center gap-2">
+                <CheckCircle className="w-6 h-6 text-[#FF8C42]" />
+                All Tasks
+              </h3>
+
+              {/* Filters */}
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-4">
+                <select
+                  value={filterTaskProperty}
+                  onChange={(e) => {
+                    const newValue = e.target.value;
+                    setFilterTaskProperty(newValue);
+                    loadTasks(newValue);
+                  }}
+                  className="px-4 py-2 bg-[#2a2f3a] border-2 border-gray-200 rounded-xl text-white focus:outline-none focus:border-orange-300"
+                >
+                  <option value="">All Properties</option>
+                  {properties.map(p => (
+                    <option key={p.id} value={p.id}>{p.name}</option>
+                  ))}
+                </select>
+
+                <select
+                  value={filterTaskStatus}
+                  onChange={(e) => {
+                    setFilterTaskStatus(e.target.value);
+                    loadTasks();
+                  }}
+                  className="px-4 py-2 bg-[#2a2f3a] border-2 border-gray-200 rounded-xl text-white focus:outline-none focus:border-orange-300"
+                >
+                  <option value="">All Status</option>
+                  <option value="pending">Pending</option>
+                  <option value="in_progress">In Progress</option>
+                  <option value="completed">Completed</option>
+                </select>
+
+                <button
+                  onClick={() => {
+                    setFilterTaskProperty('');
+                    setFilterTaskStatus('');
+                    loadTasks();
+                  }}
+                  className="px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-xl font-medium transition-all md:col-span-2"
+                >
+                  Clear Filters
+                </button>
+              </div>
+
+              {isLoadingTasks ? (
+                <div className="flex justify-center items-center py-12">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500"></div>
+                </div>
+              ) : tasks.length === 0 ? (
+                <div className="bg-[#2a2f3a] rounded-xl p-8 text-center text-gray-400 border-2 border-gray-200">
+                  No tasks found. Create your first task above!
+                </div>
+              ) : (
+                <div className="bg-[#2a2f3a] rounded-xl overflow-hidden border-2 border-gray-200">
+                  <table className="w-full">
+                    <thead className="bg-orange-500">
+                      <tr>
+                        <th className="px-4 py-3 text-left text-white font-bold">Title</th>
+                        <th className="px-4 py-3 text-left text-white font-bold">Category</th>
+                        <th className="px-4 py-3 text-left text-white font-bold">Priority</th>
+                        <th className="px-4 py-3 text-left text-white font-bold">Status</th>
+                        <th className="px-4 py-3 text-left text-white font-bold">Created</th>
+                        <th className="px-4 py-3 text-left text-white font-bold">Description</th>
+                        <th className="px-2 py-3 text-center text-white font-bold"></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {tasks.map((task, index) => (
+                        <tr
+                          key={task.id}
+                          className={`border-b border-gray-700 ${index % 2 === 0 ? 'bg-[#2a2f3a]' : 'bg-[#1f2937]'} hover:bg-[#374151] transition-colors`}
+                        >
+                          <td className="px-4 py-3 text-white font-medium">{task.title}</td>
+                          <td className="px-4 py-3 text-gray-300 capitalize">{task.action_type || 'general'}</td>
+                          <td className="px-4 py-3">
+                            <span className={`px-2 py-1 rounded-full text-xs font-bold ${
+                              task.priority === 'urgent' ? 'bg-red-500 text-white' :
+                              task.priority === 'high' ? 'bg-orange-500 text-white' :
+                              task.priority === 'medium' ? 'bg-yellow-500 text-black' :
+                              'bg-green-500 text-white'
+                            }`}>
+                              {task.priority || 'medium'}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3">
+                            <span className={`px-2 py-1 rounded-full text-xs font-bold ${
+                              task.status === 'completed' ? 'bg-green-500 text-white' :
+                              task.status === 'in_progress' ? 'bg-blue-500 text-white' :
+                              'bg-yellow-500 text-black'
+                            }`}>
+                              {task.status || 'pending'}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-gray-300">
+                            {new Date(task.created_at).toLocaleDateString()}
+                          </td>
+                          <td className="px-4 py-3 text-gray-300">
+                            <div className="max-w-xs truncate">{task.description || '-'}</div>
+                          </td>
+                          <td className="px-2 py-3 text-center">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setDeletingTask(task);
+                              }}
+                              className="p-1 hover:bg-red-500/20 rounded transition-colors"
+                              title="Delete"
+                            >
+                              <svg className="w-4 h-4 text-red-400 hover:text-red-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                              </svg>
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+
+              {/* Summary */}
+              {tasks.length > 0 && (
+                <div className="flex justify-between items-center text-sm text-gray-300 mt-4">
+                  <div>
+                    Showing <span className="text-orange-400 font-bold">{tasks.length}</span> tasks
+                  </div>
+                  <div className="flex gap-4">
+                    <span>Pending: <span className="text-yellow-400 font-bold">{tasks.filter(t => t.status === 'pending' || !t.status).length}</span></span>
+                    <span>In Progress: <span className="text-blue-400 font-bold">{tasks.filter(t => t.status === 'in_progress').length}</span></span>
+                    <span>Completed: <span className="text-green-400 font-bold">{tasks.filter(t => t.status === 'completed').length}</span></span>
+                  </div>
+                </div>
+              )}
             </div>
-          </form>
+          </div>
         )}
       </div>
 
@@ -2889,13 +3077,13 @@ const ManualDataEntry = ({ onBack }) => {
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
           <div className="bg-[#1f2937] rounded-2xl p-6 max-w-md w-full border-2 border-red-500">
             <h3 className="text-2xl font-bold text-red-400 mb-4">Confirm Delete</h3>
-            <p className="text-white mb-2">Are you sure you want to delete this {deletingLead.state === 'CUSTOMER' ? 'customer' : 'lead'}?</p>
+            <p className="text-white mb-2">Are you sure you want to delete this {deletingLead.current_phase === 'CUSTOMER' ? 'customer' : 'lead'}?</p>
             <div className="bg-[#2a2f3a] p-4 rounded-xl mb-6 space-y-2">
               <p className="text-white"><span className="font-bold">Name:</span> {deletingLead.name}</p>
               <p className="text-gray-300"><span className="font-bold">Phone:</span> {deletingLead.phone}</p>
               <p className="text-gray-300"><span className="font-bold">Email:</span> {deletingLead.email || '-'}</p>
-              <p className={`font-bold ${deletingLead.state === 'CUSTOMER' ? 'text-green-400' : 'text-blue-400'}`}>
-                Type: {deletingLead.state === 'CUSTOMER' ? 'Customer' : 'Lead'}
+              <p className={`font-bold ${deletingLead.current_phase === 'CUSTOMER' ? 'text-green-400' : 'text-blue-400'}`}>
+                Type: {deletingLead.current_phase === 'CUSTOMER' ? 'Customer' : 'Lead'}
               </p>
             </div>
             <div className="flex gap-3">
@@ -2914,6 +3102,62 @@ const ManualDataEntry = ({ onBack }) => {
                 }`}
               >
                 {isDeletingLead ? 'Deleting...' : 'Delete'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Task Confirmation Modal */}
+      {deletingTask && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+          <div className="bg-[#1f2937] rounded-2xl p-6 max-w-md w-full border-2 border-red-500">
+            <h3 className="text-2xl font-bold text-red-400 mb-4">Confirm Delete</h3>
+            <p className="text-white mb-2">Are you sure you want to delete this task?</p>
+            <div className="bg-[#2a2f3a] p-4 rounded-xl mb-6 space-y-2">
+              <p className="text-white"><span className="font-bold">Title:</span> {deletingTask.title}</p>
+              <p className="text-gray-300"><span className="font-bold">Category:</span> {deletingTask.action_type || 'general'}</p>
+              <p className="text-gray-300">
+                <span className="font-bold">Priority:</span>{' '}
+                <span className={`font-bold ${
+                  deletingTask.priority === 'urgent' ? 'text-red-400' :
+                  deletingTask.priority === 'high' ? 'text-orange-400' :
+                  deletingTask.priority === 'medium' ? 'text-yellow-400' :
+                  'text-green-400'
+                }`}>
+                  {deletingTask.priority || 'medium'}
+                </span>
+              </p>
+              <p className="text-gray-300">
+                <span className="font-bold">Status:</span>{' '}
+                <span className={`font-bold ${
+                  deletingTask.status === 'completed' ? 'text-green-400' :
+                  deletingTask.status === 'in_progress' ? 'text-blue-400' :
+                  'text-yellow-400'
+                }`}>
+                  {deletingTask.status || 'pending'}
+                </span>
+              </p>
+              {deletingTask.description && (
+                <p className="text-gray-300"><span className="font-bold">Description:</span> {deletingTask.description}</p>
+              )}
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setDeletingTask(null)}
+                disabled={isDeletingTask}
+                className="flex-1 px-4 py-3 bg-gray-600 hover:bg-gray-700 text-white rounded-xl font-medium transition-all"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDeleteTask}
+                disabled={isDeletingTask}
+                className={`flex-1 px-4 py-3 bg-red-500 hover:bg-red-600 text-white rounded-xl font-medium transition-all ${
+                  isDeletingTask ? 'opacity-50 cursor-not-allowed' : ''
+                }`}
+              >
+                {isDeletingTask ? 'Deleting...' : 'Delete'}
               </button>
             </div>
           </div>

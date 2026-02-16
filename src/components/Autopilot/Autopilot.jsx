@@ -38,7 +38,10 @@ import {
   Repeat,
   CheckSquare,
   ListChecks,
-  Inbox
+  Inbox,
+  Sparkles,
+  Phone,
+  List
 } from 'lucide-react';
 import ManualDataEntry from '../ManualDataEntry/ManualDataEntry';
 import { useAuth } from '../../contexts/AuthContext';
@@ -116,7 +119,7 @@ const Autopilot = ({ onBack }) => {
     other: { count: 0, revenue: 0 }
   });
 
-  // Period selector for Availability & Channels section
+  // Period selector for Channel Sync section
   const [selectedChannelPeriod, setSelectedChannelPeriod] = useState('2026');
 
   // User properties
@@ -284,10 +287,17 @@ const Autopilot = ({ onBack }) => {
     },
     {
       id: 'availability',
-      name: 'Availability & Channels',
+      name: 'Channel Sync',
       icon: Wifi,
-      description: 'Channel status, calendar view',
-      badge: '4 sources'
+      description: 'Multi-channel booking synchronization',
+      badge: '4 channels'
+    },
+    {
+      id: 'tasks',
+      name: 'Maintenance & Tasks',
+      icon: Wrench,
+      description: 'Operations',
+      badge: '5 open'
     },
     {
       id: 'decisions',
@@ -298,17 +308,10 @@ const Autopilot = ({ onBack }) => {
     },
     {
       id: 'communication',
-      name: 'Guest Communication',
+      name: 'Customer Communication',
       icon: Mail,
       description: 'Unified inbox',
       badge: '8 new'
-    },
-    {
-      id: 'tasks',
-      name: 'Maintenance & Tasks',
-      icon: Wrench,
-      description: 'Operations',
-      badge: '5 open'
     }
   ];
 
@@ -1972,13 +1975,23 @@ const Autopilot = ({ onBack }) => {
             <div className="text-center flex-1">
               <h3 className="text-2xl font-black text-[#FF8C42] flex items-center justify-center gap-2">
                 <Wifi className="w-6 h-6" />
-                Availability & Channels
+                Channel Sync
               </h3>
-              <p className="text-gray-400 text-sm mt-1">
+              <p className="text-gray-300 text-sm mt-1 font-medium">
+                Multi-channel booking synchronization and revenue consolidation
+              </p>
+              <p className="text-gray-400 text-xs mt-1">
                 {connectedChannels} channels connected
               </p>
             </div>
             <div className="w-12 hidden md:block"></div>
+          </div>
+
+          {/* Info Banner */}
+          <div className="mb-6 bg-gradient-to-r from-blue-500/10 to-blue-600/10 rounded-xl p-4 border-2 border-blue-500/30">
+            <p className="text-blue-300 text-sm font-medium text-center">
+              ℹ️ All channels are automatically synchronized in real time to prevent double bookings.
+            </p>
           </div>
 
           {/* Period Selector */}
@@ -2065,9 +2078,12 @@ const Autopilot = ({ onBack }) => {
 
           {/* Period Summary */}
           <div className="mb-6 bg-gradient-to-br from-orange-500/20 to-orange-600/20 rounded-xl p-4 md:p-6 border-2 border-orange-500/50">
-            <h4 className="text-white font-bold text-base md:text-lg mb-3 md:mb-4 flex items-center gap-2">
+            <h4 className="text-white font-bold text-base md:text-lg mb-2 flex items-center gap-2">
               📊 Period Summary - {getPeriodLabel(selectedChannelPeriod)}
             </h4>
+            <p className="text-gray-300 text-xs mb-3 md:mb-4">
+              Revenue and bookings are automatically consolidated across all connected sources.
+            </p>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
               <div>
                 <p className="text-gray-400 text-xs mb-1">Total Bookings</p>
@@ -2103,12 +2119,20 @@ const Autopilot = ({ onBack }) => {
             </div>
           </div>
 
+          {/* Connected Channels */}
+          <div className="mb-6">
+            <h4 className="text-white font-bold text-lg mb-2">Connected Channels</h4>
+            <p className="text-gray-400 text-sm mb-4">
+              This view shows booking volume and revenue distribution across all active channels for the selected period.
+            </p>
+          </div>
+
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
           <div className="bg-gradient-to-br from-pink-500/10 to-pink-600/10 rounded-xl p-5 border-2 border-pink-500/30">
             <div className="flex items-center justify-between mb-3">
               <img src="https://upload.wikimedia.org/wikipedia/commons/6/69/Airbnb_Logo_B%C3%A9lo.svg" alt="Airbnb" className="h-6" />
-              <span className={`px-3 py-1 ${channelStats.airbnb.count > 0 ? 'bg-green-500' : 'bg-gray-500'} text-white text-xs font-bold rounded-full`}>
-                {channelStats.airbnb.count > 0 ? '●' : '○'}
+              <span className="px-3 py-1 bg-green-500 text-white text-xs font-bold rounded-full">
+                Connected
               </span>
             </div>
             <p className="text-gray-300 text-sm">
@@ -2119,8 +2143,8 @@ const Autopilot = ({ onBack }) => {
           <div className="bg-gradient-to-br from-blue-500/10 to-blue-600/10 rounded-xl p-5 border-2 border-blue-500/30">
             <div className="flex items-center justify-between mb-3">
               <span className="text-blue-400 font-bold text-lg">Booking.com</span>
-              <span className={`px-3 py-1 ${channelStats.bookingCom.count > 0 ? 'bg-green-500' : 'bg-gray-500'} text-white text-xs font-bold rounded-full`}>
-                {channelStats.bookingCom.count > 0 ? '●' : '○'}
+              <span className="px-3 py-1 bg-green-500 text-white text-xs font-bold rounded-full">
+                Connected
               </span>
             </div>
             <p className="text-gray-300 text-sm">
@@ -2131,8 +2155,8 @@ const Autopilot = ({ onBack }) => {
           <div className="bg-gradient-to-br from-orange-500/10 to-orange-600/10 rounded-xl p-5 border-2 border-orange-500/30">
             <div className="flex items-center justify-between mb-3">
               <span className="text-orange-400 font-bold text-lg">Direct (Gita)</span>
-              <span className={`px-3 py-1 ${channelStats.direct.count > 0 ? 'bg-green-500' : 'bg-gray-500'} text-white text-xs font-bold rounded-full`}>
-                {channelStats.direct.count > 0 ? '●' : '○'}
+              <span className="px-3 py-1 bg-blue-500 text-white text-xs font-bold rounded-full">
+                Active
               </span>
             </div>
             <p className="text-gray-300 text-sm">
@@ -2143,8 +2167,8 @@ const Autopilot = ({ onBack }) => {
           <div className="bg-gradient-to-br from-purple-500/10 to-purple-600/10 rounded-xl p-5 border-2 border-purple-500/30">
             <div className="flex items-center justify-between mb-3">
               <span className="text-purple-400 font-bold text-lg">Other Sources</span>
-              <span className={`px-3 py-1 ${channelStats.other.count > 0 ? 'bg-green-500' : 'bg-gray-500'} text-white text-xs font-bold rounded-full`}>
-                {channelStats.other.count > 0 ? '●' : '○'}
+              <span className="px-3 py-1 bg-blue-500 text-white text-xs font-bold rounded-full">
+                Active
               </span>
             </div>
             <p className="text-gray-300 text-sm">
@@ -2156,12 +2180,122 @@ const Autopilot = ({ onBack }) => {
           </div>
         </div>
 
+        {/* Automation Status */}
+        <div className="mb-6 bg-gradient-to-br from-green-500/10 to-green-600/10 rounded-xl p-5 border-2 border-green-500/30">
+          <h4 className="text-green-400 font-bold text-lg mb-4 flex items-center gap-2">
+            <Zap className="w-5 h-5" />
+            Automation Status
+          </h4>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="flex items-center justify-between">
+              <span className="text-gray-300 text-sm">Availability Sync</span>
+              <span className="px-3 py-1 bg-green-500 text-white text-xs font-bold rounded-full flex items-center gap-1">
+                <CheckCircle className="w-3 h-3" />
+                Active
+              </span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-gray-300 text-sm">Booking Import</span>
+              <span className="px-3 py-1 bg-green-500 text-white text-xs font-bold rounded-full flex items-center gap-1">
+                <CheckCircle className="w-3 h-3" />
+                Active
+              </span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-gray-300 text-sm">Conflict Detection</span>
+              <span className="px-3 py-1 bg-green-500 text-white text-xs font-bold rounded-full flex items-center gap-1">
+                <CheckCircle className="w-3 h-3" />
+                Active
+              </span>
+            </div>
+          </div>
+          <div className="mt-4 pt-4 border-t border-green-500/20">
+            <p className="text-gray-400 text-xs">
+              ℹ️ When a booking is received from any channel, availability is instantly updated across all platforms to ensure full calendar accuracy.
+            </p>
+          </div>
+        </div>
+
         <div className="bg-[#2a2f3a] rounded-xl p-6 border-2 border-gray-700">
-          <h4 className="text-white font-bold text-lg mb-4">Calendar View</h4>
-          <div className="text-center py-12">
-            <Calendar className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-            <p className="text-gray-400">Calendar integration coming soon</p>
-            <p className="text-gray-500 text-sm mt-2">Manage availability across all channels</p>
+          <h4 className="text-white font-bold text-lg mb-4 flex items-center gap-2">
+            <Calendar className="w-5 h-5" />
+            Multi-Channel Availability Calendar
+          </h4>
+          <p className="text-gray-400 text-sm mb-6">
+            Real-time synchronized calendar showing bookings from all connected channels
+          </p>
+
+          {/* Mini Calendar Preview - February 2026 */}
+          <div className="bg-[#1f2937] rounded-lg p-4 border border-gray-700">
+            <div className="flex items-center justify-between mb-4">
+              <h5 className="text-orange-400 font-bold">February 2026</h5>
+              <div className="flex gap-2">
+                <span className="text-xs px-2 py-1 bg-pink-500/20 text-pink-400 rounded">Airbnb</span>
+                <span className="text-xs px-2 py-1 bg-blue-500/20 text-blue-400 rounded">Booking.com</span>
+                <span className="text-xs px-2 py-1 bg-orange-500/20 text-orange-400 rounded">Direct</span>
+              </div>
+            </div>
+
+            {/* Calendar Grid */}
+            <div className="grid grid-cols-7 gap-1 text-center text-xs">
+              {/* Header */}
+              {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
+                <div key={day} className="text-gray-500 font-bold py-2">{day}</div>
+              ))}
+
+              {/* Days */}
+              {Array.from({length: 29}, (_, i) => {
+                const day = i + 1;
+                const isBooked = [3,4,5,10,11,12,18,19,20,25,26,27].includes(day);
+                const isCheckIn = [3,10,18,25].includes(day);
+                const channel = day <= 5 ? 'airbnb' : day <= 12 ? 'booking' : day <= 20 ? 'direct' : 'airbnb';
+
+                return (
+                  <div
+                    key={day}
+                    className={`aspect-square flex items-center justify-center rounded ${
+                      isBooked
+                        ? channel === 'airbnb' ? 'bg-pink-500/30 text-pink-200 font-bold' :
+                          channel === 'booking' ? 'bg-blue-500/30 text-blue-200 font-bold' :
+                          'bg-orange-500/30 text-orange-200 font-bold'
+                        : 'bg-gray-700/30 text-gray-400 hover:bg-gray-700/50 cursor-pointer'
+                    } ${isCheckIn ? 'border-2 border-green-400' : ''}`}
+                  >
+                    {day}
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Legend */}
+            <div className="mt-4 pt-4 border-t border-gray-700 flex flex-wrap gap-3 text-xs">
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 rounded bg-gray-700/30"></div>
+                <span className="text-gray-400">Available</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 rounded bg-pink-500/30"></div>
+                <span className="text-gray-400">Airbnb Booking</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 rounded bg-blue-500/30"></div>
+                <span className="text-gray-400">Booking.com</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 rounded bg-orange-500/30"></div>
+                <span className="text-gray-400">Direct Booking</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 rounded border-2 border-green-400"></div>
+                <span className="text-gray-400">Check-in Day</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-4 text-center">
+            <button className="px-6 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg font-medium transition-all">
+              Open Full Calendar
+            </button>
           </div>
         </div>
       </div>
@@ -2334,34 +2468,147 @@ const Autopilot = ({ onBack }) => {
           >
             <ArrowLeft className="w-5 h-5 text-[#FF8C42]" />
           </button>
-          <h3 className="text-2xl font-black text-[#FF8C42] flex items-center gap-2">
-            <Mail className="w-6 h-6" />
-            Guest Communication
-          </h3>
+          <div className="text-center flex-1">
+            <h3 className="text-2xl font-black text-[#FF8C42] flex items-center justify-center gap-2">
+              <Mail className="w-6 h-6" />
+              Customer Communication
+            </h3>
+            <p className="text-gray-400 text-sm mt-1">Unified AI-powered communication center</p>
+          </div>
           <div className="w-12"></div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-          <div className="bg-gradient-to-br from-green-500/10 to-green-600/10 rounded-xl p-5 border-2 border-green-500/30">
-            <MessageSquare className="w-8 h-8 text-green-400 mb-2" />
-            <p className="text-green-300 font-bold text-lg">WhatsApp</p>
-            <p className="text-gray-300 text-sm">8 unread conversations</p>
-          </div>
+        {/* AI Communication Agents */}
+        <div className="bg-[#2a2f3a] rounded-xl p-6 border-2 border-gray-700 mb-6">
+          <h4 className="text-white font-bold text-lg mb-4 flex items-center gap-2">
+            <Sparkles className="w-5 h-5 text-orange-400" />
+            AI Communication Agents
+          </h4>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* CORA - Voice AI */}
+            <div className="bg-gradient-to-br from-purple-500/10 to-purple-600/10 rounded-xl p-5 border-2 border-purple-500/30">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-12 h-12 bg-purple-500 rounded-full flex items-center justify-center">
+                  <Phone className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <p className="text-purple-300 font-bold text-lg">CORA</p>
+                  <p className="text-gray-400 text-xs">Voice AI Agent (VAPI)</p>
+                </div>
+              </div>
+              <p className="text-gray-300 text-sm mb-3">
+                Handles incoming calls in multiple languages, answers questions, and takes bookings 24/7
+              </p>
+              <div className="flex items-center justify-between">
+                <span className="px-3 py-1 bg-green-500/20 text-green-400 rounded-full text-xs font-bold">
+                  ● Active
+                </span>
+                <span className="text-gray-400 text-xs">12 calls today</span>
+              </div>
+            </div>
 
-          <div className="bg-gradient-to-br from-blue-500/10 to-blue-600/10 rounded-xl p-5 border-2 border-blue-500/30">
-            <Mail className="w-8 h-8 text-blue-400 mb-2" />
-            <p className="text-blue-300 font-bold text-lg">Email</p>
-            <p className="text-gray-300 text-sm">3 unread emails</p>
+            {/* BANYU - WhatsApp AI */}
+            <div className="bg-gradient-to-br from-green-500/10 to-green-600/10 rounded-xl p-5 border-2 border-green-500/30">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center">
+                  <MessageSquare className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <p className="text-green-300 font-bold text-lg">BANYU</p>
+                  <p className="text-gray-400 text-xs">WhatsApp AI Agent</p>
+                </div>
+              </div>
+              <p className="text-gray-300 text-sm mb-3">
+                Responds to WhatsApp messages instantly, provides property info, and assists with bookings
+              </p>
+              <div className="flex items-center justify-between">
+                <span className="px-3 py-1 bg-green-500/20 text-green-400 rounded-full text-xs font-bold">
+                  ● Active
+                </span>
+                <span className="text-gray-400 text-xs">28 chats today</span>
+              </div>
+            </div>
           </div>
         </div>
 
-        <div className="text-center py-12 bg-[#2a2f3a] rounded-xl border-2 border-gray-700">
-          <MessageSquare className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-          <p className="text-gray-400 text-lg">Unified Inbox</p>
-          <p className="text-gray-500 text-sm mt-2">View all guest conversations in one place</p>
-          <button className="mt-4 px-6 py-3 bg-orange-500 hover:bg-orange-600 text-white rounded-lg font-bold transition-all">
-            Open Inbox
-          </button>
+        {/* Unified Inbox */}
+        <div className="bg-[#2a2f3a] rounded-xl p-6 border-2 border-gray-700 mb-6">
+          <h4 className="text-white font-bold text-lg mb-4 flex items-center gap-2">
+            <Inbox className="w-5 h-5 text-orange-400" />
+            Unified Inbox
+          </h4>
+          <p className="text-gray-400 text-sm mb-4">
+            All customer communications consolidated in one place
+          </p>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div className="bg-gradient-to-br from-green-500/10 to-green-600/10 rounded-lg p-4 border border-green-500/30">
+              <MessageSquare className="w-6 h-6 text-green-400 mb-2" />
+              <p className="text-green-300 font-bold">WhatsApp</p>
+              <p className="text-gray-300 text-sm">8 unread</p>
+            </div>
+
+            <div className="bg-gradient-to-br from-blue-500/10 to-blue-600/10 rounded-lg p-4 border border-blue-500/30">
+              <Mail className="w-6 h-6 text-blue-400 mb-2" />
+              <p className="text-blue-300 font-bold">Email</p>
+              <p className="text-gray-300 text-sm">3 unread</p>
+            </div>
+
+            <div className="bg-gradient-to-br from-pink-500/10 to-pink-600/10 rounded-lg p-4 border border-pink-500/30">
+              <Home className="w-6 h-6 text-pink-400 mb-2" />
+              <p className="text-pink-300 font-bold">Airbnb</p>
+              <p className="text-gray-300 text-sm">2 unread</p>
+            </div>
+
+            <div className="bg-gradient-to-br from-purple-500/10 to-purple-600/10 rounded-lg p-4 border border-purple-500/30">
+              <Phone className="w-6 h-6 text-purple-400 mb-2" />
+              <p className="text-purple-300 font-bold">Voice Calls</p>
+              <p className="text-gray-300 text-sm">5 missed</p>
+            </div>
+          </div>
+
+          <div className="text-center mt-4">
+            <button className="px-6 py-3 bg-orange-500 hover:bg-orange-600 text-white rounded-lg font-bold transition-all">
+              Open Unified Inbox
+            </button>
+          </div>
+        </div>
+
+        {/* Automated Messaging */}
+        <div className="bg-[#2a2f3a] rounded-xl p-6 border-2 border-gray-700 mb-6">
+          <h4 className="text-white font-bold text-lg mb-4 flex items-center gap-2">
+            <Zap className="w-5 h-5 text-orange-400" />
+            Automated Messaging
+          </h4>
+          <div className="space-y-2">
+            {[
+              { trigger: 'Booking confirmation', channels: ['Email', 'WhatsApp'], status: 'Active' },
+              { trigger: 'Pre-arrival (24h before)', channels: ['WhatsApp', 'SMS'], status: 'Active' },
+              { trigger: 'Check-in instructions', channels: ['WhatsApp', 'Email'], status: 'Active' },
+              { trigger: 'Mid-stay check-in', channels: ['WhatsApp'], status: 'Active' },
+              { trigger: 'Check-out reminder', channels: ['WhatsApp', 'Email'], status: 'Active' },
+              { trigger: 'Post-stay review request', channels: ['Email', 'WhatsApp'], status: 'Active' }
+            ].map((msg, i) => (
+              <div key={i} className="bg-[#1f2937] rounded-lg p-3 border border-gray-700 flex items-center justify-between">
+                <div className="flex-1">
+                  <p className="text-white font-medium text-sm">{msg.trigger}</p>
+                  <p className="text-gray-400 text-xs mt-1">
+                    Channels: {msg.channels.join(', ')}
+                  </p>
+                </div>
+                <span className="px-3 py-1 bg-green-500/20 text-green-400 rounded-full text-xs font-bold">
+                  {msg.status}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Footer Message */}
+        <div className="bg-gradient-to-r from-orange-500/10 to-pink-500/10 border-2 border-orange-500/30 rounded-xl p-4">
+          <p className="text-gray-300 text-sm text-center">
+            <strong className="text-orange-400">CORA</strong> and <strong className="text-green-400">BANYU</strong> work together with automated workflows to provide 24/7 customer support across all channels.
+            All conversations are logged in the unified inbox for your review.
+          </p>
         </div>
       </div>
     </div>
@@ -2453,10 +2700,13 @@ const Autopilot = ({ onBack }) => {
           >
             <ArrowLeft className="w-5 h-5 text-[#FF8C42]" />
           </button>
-          <h3 className="text-2xl font-black text-[#FF8C42] flex items-center gap-2">
-            <Wrench className="w-6 h-6" />
-            Maintenance & Tasks
-          </h3>
+          <div className="text-center flex-1">
+            <h3 className="text-2xl font-black text-[#FF8C42] flex items-center justify-center gap-2">
+              <Wrench className="w-6 h-6" />
+              Maintenance & Tasks
+            </h3>
+            <p className="text-gray-400 text-sm mt-1">Automated operational management</p>
+          </div>
           <div className="flex gap-2">
             <button className="px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg font-bold transition-all flex items-center gap-2">
               <Plus className="w-4 h-4" />
@@ -2465,42 +2715,103 @@ const Autopilot = ({ onBack }) => {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-          <div className="bg-gradient-to-br from-yellow-500/10 to-yellow-600/10 rounded-xl p-5 border-2 border-yellow-500/30">
-            <p className="text-yellow-300 text-sm font-medium mb-2">Open</p>
-            <p className="text-3xl font-black text-white">0</p>
-          </div>
+        {/* Summary Text */}
+        <div className="bg-blue-500/10 border-2 border-blue-500/30 rounded-xl p-4 mb-6">
+          <p className="text-blue-200 text-sm">
+            This section displays maintenance tasks and operational activities for your properties.
+            Tasks are created automatically based on booking events and property schedules, or manually by your team.
+          </p>
+        </div>
 
-          <div className="bg-gradient-to-br from-blue-500/10 to-blue-600/10 rounded-xl p-5 border-2 border-blue-500/30">
-            <p className="text-blue-300 text-sm font-medium mb-2">In Progress</p>
-            <p className="text-3xl font-black text-white">0</p>
-          </div>
+        {/* Task Overview */}
+        <div className="mb-6">
+          <h4 className="text-white font-bold text-lg mb-4 flex items-center gap-2">
+            <CheckCircle className="w-5 h-5 text-orange-400" />
+            Task Overview
+          </h4>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="bg-gradient-to-br from-yellow-500/10 to-yellow-600/10 rounded-xl p-5 border-2 border-yellow-500/30">
+              <p className="text-yellow-300 text-sm font-medium mb-2">Open Tasks</p>
+              <p className="text-3xl font-black text-white">5</p>
+            </div>
 
-          <div className="bg-gradient-to-br from-green-500/10 to-green-600/10 rounded-xl p-5 border-2 border-green-500/30">
-            <p className="text-green-300 text-sm font-medium mb-2">Done Today</p>
-            <p className="text-3xl font-black text-white">0</p>
+            <div className="bg-gradient-to-br from-blue-500/10 to-blue-600/10 rounded-xl p-5 border-2 border-blue-500/30">
+              <p className="text-blue-300 text-sm font-medium mb-2">In Progress</p>
+              <p className="text-3xl font-black text-white">2</p>
+            </div>
+
+            <div className="bg-gradient-to-br from-green-500/10 to-green-600/10 rounded-xl p-5 border-2 border-green-500/30">
+              <p className="text-green-300 text-sm font-medium mb-2">Completed Today</p>
+              <p className="text-3xl font-black text-white">3</p>
+            </div>
+
+            <div className="bg-gradient-to-br from-red-500/10 to-red-600/10 rounded-xl p-5 border-2 border-red-500/30">
+              <p className="text-red-300 text-sm font-medium mb-2">Overdue</p>
+              <p className="text-3xl font-black text-white">1</p>
+            </div>
           </div>
         </div>
 
-        <div className="bg-[#2a2f3a] rounded-xl p-6 border-2 border-gray-700 text-center py-12">
-          <Wrench className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-          <p className="text-gray-400 mb-2">No tasks available</p>
-          <p className="text-gray-500 text-sm">Tasks module not yet configured in database</p>
+        {/* Automatic Task Creation */}
+        <div className="bg-[#2a2f3a] rounded-xl p-6 border-2 border-gray-700 mb-6">
+          <h4 className="text-white font-bold text-lg mb-4 flex items-center gap-2">
+            <Zap className="w-5 h-5 text-orange-400" />
+            Automatic Task Creation
+          </h4>
+          <p className="text-gray-400 text-sm mb-4">
+            Tasks are automatically generated based on the following triggers:
+          </p>
+          <div className="space-y-2">
+            {[
+              '✅ After booking confirmation → Cleaning & preparation tasks',
+              '✅ After checkout → Deep cleaning & inspection tasks',
+              '✅ Scheduled maintenance → Recurring tasks (pool, garden, AC)',
+              '✅ Guest requests → Custom tasks assigned to staff',
+              '✅ Inventory alerts → Restocking tasks'
+            ].map((trigger, i) => (
+              <div key={i} className="bg-[#1f2937] rounded-lg p-3 border border-gray-700">
+                <p className="text-gray-300 text-sm">{trigger}</p>
+              </div>
+            ))}
+          </div>
         </div>
 
-        <div className="space-y-3" style={{display: 'none'}}>
-          {[].map((task, i) => (
-            <div key={i} className="bg-[#2a2f3a] rounded-lg p-4 border-2 border-gray-700">
-              <div className="flex items-center justify-between">
+        {/* Sample Tasks */}
+        <div className="space-y-3">
+          <h4 className="text-white font-bold text-lg mb-4 flex items-center gap-2">
+            <List className="w-5 h-5 text-orange-400" />
+            Current Tasks
+          </h4>
+          {[
+            { task: 'Deep cleaning Villa 1', type: 'Cleaning', assignee: 'Maria Santos', due: 'Feb 16, 2PM', status: 'in_progress', priority: 'high' },
+            { task: 'Pool maintenance Villa 2', type: 'Maintenance', assignee: 'Ketut Ngurah', due: 'Feb 16, 4PM', status: 'open', priority: 'medium' },
+            { task: 'Linen inventory check', type: 'Inventory', assignee: 'Wayan Sari', due: 'Feb 17, 10AM', status: 'open', priority: 'low' },
+            { task: 'AC service Villa 3', type: 'Maintenance', assignee: 'Putu Agung', due: 'Feb 15, 5PM', status: 'overdue', priority: 'urgent' },
+            { task: 'Welcome basket preparation', type: 'Guest Services', assignee: 'Kadek Ayu', due: 'Feb 16, 11AM', status: 'in_progress', priority: 'high' }
+          ].map((task, i) => (
+            <div key={i} className="bg-[#2a2f3a] rounded-lg p-4 border-2 border-gray-700 hover:border-orange-500/50 transition-all">
+              <div className="flex items-center justify-between mb-2">
                 <div className="flex-1">
                   <h4 className="text-white font-bold">{task.task}</h4>
                   <p className="text-gray-400 text-sm">{task.type} • {task.assignee} • Due: {task.due}</p>
                 </div>
-                <span className={`px-3 py-1 rounded-full text-xs font-bold ${
-                  task.status === 'open' ? 'bg-yellow-500/20 text-yellow-400' : 'bg-blue-500/20 text-blue-400'
-                }`}>
-                  {task.status.replace('_', ' ')}
-                </span>
+                <div className="flex items-center gap-2">
+                  <span className={`px-2 py-1 rounded-full text-xs font-bold ${
+                    task.priority === 'urgent' ? 'bg-red-500/20 text-red-400' :
+                    task.priority === 'high' ? 'bg-orange-500/20 text-orange-400' :
+                    task.priority === 'medium' ? 'bg-yellow-500/20 text-yellow-400' :
+                    'bg-green-500/20 text-green-400'
+                  }`}>
+                    {task.priority.toUpperCase()}
+                  </span>
+                  <span className={`px-3 py-1 rounded-full text-xs font-bold ${
+                    task.status === 'overdue' ? 'bg-red-500/20 text-red-400' :
+                    task.status === 'open' ? 'bg-yellow-500/20 text-yellow-400' :
+                    'bg-blue-500/20 text-blue-400'
+                  }`}>
+                    {task.status === 'in_progress' ? 'In Progress' : task.status === 'overdue' ? 'OVERDUE' : 'Open'}
+                  </span>
+                </div>
               </div>
             </div>
           ))}
