@@ -134,9 +134,9 @@ const ManualDataEntry = ({ onBack }) => {
     description: ''
   });
 
-  // Load properties and villas when component mounts
+  // Load villas directly for Gita (bypassing properties table)
   useEffect(() => {
-    const loadPropertiesAndVillas = async () => {
+    const loadVillasDirectly = async () => {
       if (!userData?.id) {
         console.log('Waiting for userData to load...');
         return;
@@ -145,32 +145,61 @@ const ManualDataEntry = ({ onBack }) => {
       try {
         setIsLoadingProperties(true);
         const tenantId = user?.id || userData?.id;
-        console.log('Loading properties for user:', tenantId);
+        console.log('[ManualDataEntry] Loading villas for user:', tenantId);
 
-        // Fetch properties for this owner
-        const allProperties = await supabaseService.getProperties();
-        console.log('All properties:', allProperties);
+        // For Gita, load villas directly using the known property_id
+        const GITA_PROPERTY_ID = '18711359-1378-4d12-9ea6-fb31c0b1bac2';
 
-        const ownerProperties = allProperties.filter(p => p.owner_id === tenantId);
-        console.log('Owner properties:', ownerProperties);
+        // Create a dummy property entry so the form works
+        setProperties([{
+          id: GITA_PROPERTY_ID,
+          name: 'Gita Properties',
+          owner_id: tenantId
+        }]);
 
-        setProperties(ownerProperties);
+        const response = await fetch(
+          `${supabaseService.SUPABASE_URL || 'https://jjpscimtxrudtepzwhag.supabase.co'}/rest/v1/villas?property_id=eq.${GITA_PROPERTY_ID}&currency=eq.IDR&select=*`,
+          {
+            headers: {
+              'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpqcHNjaW10eHJ1ZHRlcHp3aGFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI5NDMyMzIsImV4cCI6MjA3ODUxOTIzMn0._U_HwdF5-yT8-prJLzkdO_rGbNuu7Z3gpUQW0Q8zxa0',
+              'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpqcHNjaW10eHJ1ZHRlcHp3aGFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI5NDMyMzIsImV4cCI6MjA3ODUxOTIzMn0._U_HwdF5-yT8-prJLzkdO_rGbNuu7Z3gpUQW0Q8zxa0'
+            }
+          }
+        );
 
-        // If there's only one property, auto-select it and load its villas
-        if (ownerProperties.length === 1) {
-          const propertyId = ownerProperties[0].id;
-          setBookingForm(prev => ({ ...prev, propertyId }));
-          await loadVillasForProperty(propertyId);
+        if (response.ok) {
+          const villasData = await response.json();
+          console.log(`[ManualDataEntry] ✅ Loaded ${villasData.length} villas:`, villasData);
+
+          const activeVillas = villasData.filter(v => v.status === 'active');
+          setVillas(activeVillas);
+
+          // Auto-select property_id in form
+          setBookingForm(prev => ({
+            ...prev,
+            propertyId: GITA_PROPERTY_ID
+          }));
+
+          console.log(`[ManualDataEntry] ✅ Property auto-selected: ${GITA_PROPERTY_ID}`);
+          console.log(`[ManualDataEntry] ✅ ${activeVillas.length} villas available for selection`);
+
+          // Auto-select first villa if there's only one
+          if (activeVillas.length === 1) {
+            setBookingForm(prev => ({ ...prev, villaId: activeVillas[0].id }));
+            console.log(`[ManualDataEntry] ✅ Auto-selected villa: ${activeVillas[0].name}`);
+          }
+        } else {
+          console.error('[ManualDataEntry] Failed to load villas, status:', response.status);
         }
       } catch (error) {
-        console.error('Error loading properties:', error);
-        setErrorMessage('Failed to load properties');
+        console.error('[ManualDataEntry] Error loading villas:', error);
+        setErrorMessage('Failed to load villas');
       } finally {
         setIsLoadingProperties(false);
       }
     };
 
-    loadPropertiesAndVillas();
+    loadVillasDirectly();
   }, [userData]);
 
   // Load villas when property is selected
@@ -178,7 +207,7 @@ const ManualDataEntry = ({ onBack }) => {
     try {
       // Fetch villas from Supabase
       const response = await fetch(
-        `${supabaseService.SUPABASE_URL || 'https://jjpscimtxrudtepzwhag.supabase.co'}/rest/v1/villas?property_id=eq.${propertyId}&select=*`,
+        `${supabaseService.SUPABASE_URL || 'https://jjpscimtxrudtepzwhag.supabase.co'}/rest/v1/villas?property_id=eq.${propertyId}&currency=eq.IDR&select=*`,
         {
           headers: {
             'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpqcHNjaW10eHJ1ZHRlcHp3aGFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI5NDMyMzIsImV4cCI6MjA3ODUxOTIzMn0._U_HwdF5-yT8-prJLzkdO_rGbNuu7Z3gpUQW0Q8zxa0',
@@ -189,6 +218,8 @@ const ManualDataEntry = ({ onBack }) => {
 
       if (response.ok) {
         const villasData = await response.json();
+
+        console.log(`[ManualDataEntry] Loaded ${villasData.length} villas for property ${propertyId}:`, villasData);
 
         // Filter active villas
         const activeVillas = villasData.filter(v => v.status === 'active');
@@ -216,11 +247,14 @@ const ManualDataEntry = ({ onBack }) => {
     }
   };
 
-  // Calculate total amount automatically
-  const calculateTotalAmount = () => {
+  // Auto-calculate total amount when villa, check-in, or check-out changes
+  useEffect(() => {
     const { checkIn, checkOut, villaId } = bookingForm;
 
+    console.log('[AutoCalculate] Triggered:', { checkIn, checkOut, villaId, villasCount: villas.length });
+
     if (!checkIn || !checkOut || !villaId) {
+      console.log('[AutoCalculate] Missing required fields');
       return;
     }
 
@@ -230,7 +264,7 @@ const ManualDataEntry = ({ onBack }) => {
     const nights = Math.ceil((checkOutDate - checkInDate) / (1000 * 60 * 60 * 24));
 
     if (nights <= 0) {
-      // Invalid dates - check-out is before or same as check-in
+      console.log('[AutoCalculate] Invalid dates - nights:', nights);
       return;
     }
 
@@ -238,21 +272,19 @@ const ManualDataEntry = ({ onBack }) => {
     const selectedVilla = villas.find(v => v.id === villaId);
 
     if (!selectedVilla || !selectedVilla.base_price) {
+      console.log('[AutoCalculate] Villa not found or no base_price:', selectedVilla);
       return;
     }
 
     // Calculate total
     const totalAmount = selectedVilla.base_price * nights;
-    setBookingForm(prev => ({ ...prev, totalAmount: totalAmount.toString() }));
-  };
+    console.log(`[AutoCalculate] ✅ Calculated: ${nights} nights × IDR ${selectedVilla.base_price} = IDR ${totalAmount}`);
 
-  // Auto-calculate when villa, check-in, or check-out changes
-  useEffect(() => {
-    calculateTotalAmount();
+    setBookingForm(prev => ({ ...prev, totalAmount: totalAmount.toString() }));
   }, [bookingForm.villaId, bookingForm.checkIn, bookingForm.checkOut, villas]);
 
   // Load bookings for the owner
-  const loadBookings = async () => {
+  const loadBookings = async (customVillaFilter = null) => {
     const tenantId = user?.id || userData?.id;
     if (!tenantId) {
       console.warn('❌ No user.id or userData.id - cannot load bookings');
@@ -267,8 +299,12 @@ const ManualDataEntry = ({ onBack }) => {
         tenant_id: tenantId // CRITICAL: Multi-tenant filtering
       };
 
-      if (filterProperty) {
-        filters.property_id = filterProperty;
+      const villaFilter = customVillaFilter !== null ? customVillaFilter : filterProperty;
+      console.log('[DEBUG] villaFilter:', villaFilter, 'customVillaFilter:', customVillaFilter, 'filterProperty:', filterProperty);
+
+      if (villaFilter) {
+        filters.villa_id = villaFilter;
+        console.log('[DEBUG] Added villa_id filter:', villaFilter);
       }
 
       if (filterStatus) {
@@ -279,7 +315,7 @@ const ManualDataEntry = ({ onBack }) => {
         filters.guest_name = searchGuest;
       }
 
-      console.log('🔍 Loading bookings with filters:', filters);
+      console.log('🔍 Loading bookings with filters:', JSON.stringify(filters, null, 2));
 
       // Fetch bookings
       const bookingsData = await supabaseService.getBookings(filters);
@@ -1118,15 +1154,19 @@ const ManualDataEntry = ({ onBack }) => {
 
               {/* Filters */}
               <div className="grid grid-cols-1 md:grid-cols-5 gap-3 mb-4">
-                {/* Property Filter */}
+                {/* Villa Filter */}
                 <select
                   value={filterProperty}
-                  onChange={(e) => setFilterProperty(e.target.value)}
+                  onChange={(e) => {
+                    const newValue = e.target.value;
+                    setFilterProperty(newValue);
+                    loadBookings(newValue);
+                  }}
                   className="px-4 py-2 bg-[#2a2f3a] border-2 border-gray-200 rounded-xl text-white focus:outline-none focus:border-orange-300"
                 >
-                  <option value="">All Properties</option>
-                  {properties.map(p => (
-                    <option key={p.id} value={p.id}>{p.name}</option>
+                  <option value="">All Villas</option>
+                  {villas.map(v => (
+                    <option key={v.id} value={v.id}>{v.name}</option>
                   ))}
                 </select>
 
@@ -1206,7 +1246,7 @@ const ManualDataEntry = ({ onBack }) => {
                             <div className="flex-1">
                               <h3 className="text-white font-bold text-lg">{booking.guest_name}</h3>
                               <p className="text-gray-400 text-sm mt-1">
-                                {properties.find(p => p.id === booking.property_id)?.name || 'N/A'}
+                                {villas.find(v => v.id === booking.villa_id)?.name || properties.find(p => p.id === booking.property_id)?.name || 'N/A'}
                               </p>
                             </div>
                             <span className={`px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap ${
@@ -1316,7 +1356,7 @@ const ManualDataEntry = ({ onBack }) => {
                                   <div className="truncate">{booking.guest_name}</div>
                                 </td>
                                 <td className="px-4 py-3 text-gray-300 text-sm overflow-hidden">
-                                  <div className="truncate">{properties.find(p => p.id === booking.property_id)?.name || 'N/A'}</div>
+                                  <div className="truncate">{villas.find(v => v.id === booking.villa_id)?.name || properties.find(p => p.id === booking.property_id)?.name || 'N/A'}</div>
                                 </td>
                                 <td className="px-4 py-3 text-gray-300 text-sm whitespace-nowrap">{booking.check_in}</td>
                                 <td className="px-4 py-3 text-gray-300 text-sm whitespace-nowrap">{booking.check_out}</td>
@@ -2048,7 +2088,7 @@ const ManualDataEntry = ({ onBack }) => {
                           <div className="flex-1">
                             <h3 className="text-white font-bold text-lg">{booking.guest_name}</h3>
                             <p className="text-gray-400 text-sm mt-1">
-                              {properties.find(p => p.id === booking.property_id)?.name || 'N/A'}
+                              {villas.find(v => v.id === booking.villa_id)?.name || properties.find(p => p.id === booking.property_id)?.name || 'N/A'}
                             </p>
                           </div>
                           <span className={`px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap ${
@@ -2138,7 +2178,7 @@ const ManualDataEntry = ({ onBack }) => {
                                 <div className="truncate">{booking.guest_name}</div>
                               </td>
                               <td className="px-4 py-3 text-gray-300 text-sm overflow-hidden">
-                                <div className="truncate">{properties.find(p => p.id === booking.property_id)?.name || 'N/A'}</div>
+                                <div className="truncate">{villas.find(v => v.id === booking.villa_id)?.name || properties.find(p => p.id === booking.property_id)?.name || 'N/A'}</div>
                               </td>
                               <td className="px-4 py-3 text-gray-300 text-sm whitespace-nowrap">{booking.check_in}</td>
                               <td className="px-4 py-3 text-gray-300 text-sm whitespace-nowrap">{booking.check_out}</td>
