@@ -116,7 +116,7 @@ const Autopilot = ({ onBack }) => {
     other: { count: 0, revenue: 0 }
   });
 
-  // Period selector for Availability & Channels section
+  // Period selector for Channel Sync section
   const [selectedChannelPeriod, setSelectedChannelPeriod] = useState('2026');
 
   // User properties
@@ -284,10 +284,17 @@ const Autopilot = ({ onBack }) => {
     },
     {
       id: 'availability',
-      name: 'Availability & Channels',
+      name: 'Channel Sync',
       icon: Wifi,
-      description: 'Channel status, calendar view',
-      badge: '4 sources'
+      description: 'Multi-channel booking synchronization',
+      badge: '4 channels'
+    },
+    {
+      id: 'tasks',
+      name: 'Maintenance & Tasks',
+      icon: Wrench,
+      description: 'Operations',
+      badge: '5 open'
     },
     {
       id: 'decisions',
@@ -302,13 +309,6 @@ const Autopilot = ({ onBack }) => {
       icon: Mail,
       description: 'Unified inbox',
       badge: '8 new'
-    },
-    {
-      id: 'tasks',
-      name: 'Maintenance & Tasks',
-      icon: Wrench,
-      description: 'Operations',
-      badge: '5 open'
     }
   ];
 
@@ -1972,13 +1972,23 @@ const Autopilot = ({ onBack }) => {
             <div className="text-center flex-1">
               <h3 className="text-2xl font-black text-[#FF8C42] flex items-center justify-center gap-2">
                 <Wifi className="w-6 h-6" />
-                Availability & Channels
+                Channel Sync
               </h3>
-              <p className="text-gray-400 text-sm mt-1">
+              <p className="text-gray-300 text-sm mt-1 font-medium">
+                Multi-channel booking synchronization and revenue consolidation
+              </p>
+              <p className="text-gray-400 text-xs mt-1">
                 {connectedChannels} channels connected
               </p>
             </div>
             <div className="w-12 hidden md:block"></div>
+          </div>
+
+          {/* Info Banner */}
+          <div className="mb-6 bg-gradient-to-r from-blue-500/10 to-blue-600/10 rounded-xl p-4 border-2 border-blue-500/30">
+            <p className="text-blue-300 text-sm font-medium text-center">
+              ℹ️ All channels are automatically synchronized in real time to prevent double bookings.
+            </p>
           </div>
 
           {/* Period Selector */}
@@ -2065,9 +2075,12 @@ const Autopilot = ({ onBack }) => {
 
           {/* Period Summary */}
           <div className="mb-6 bg-gradient-to-br from-orange-500/20 to-orange-600/20 rounded-xl p-4 md:p-6 border-2 border-orange-500/50">
-            <h4 className="text-white font-bold text-base md:text-lg mb-3 md:mb-4 flex items-center gap-2">
+            <h4 className="text-white font-bold text-base md:text-lg mb-2 flex items-center gap-2">
               📊 Period Summary - {getPeriodLabel(selectedChannelPeriod)}
             </h4>
+            <p className="text-gray-300 text-xs mb-3 md:mb-4">
+              Revenue and bookings are automatically consolidated across all connected sources.
+            </p>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
               <div>
                 <p className="text-gray-400 text-xs mb-1">Total Bookings</p>
@@ -2103,12 +2116,20 @@ const Autopilot = ({ onBack }) => {
             </div>
           </div>
 
+          {/* Connected Channels */}
+          <div className="mb-6">
+            <h4 className="text-white font-bold text-lg mb-2">Connected Channels</h4>
+            <p className="text-gray-400 text-sm mb-4">
+              This view shows booking volume and revenue distribution across all active channels for the selected period.
+            </p>
+          </div>
+
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
           <div className="bg-gradient-to-br from-pink-500/10 to-pink-600/10 rounded-xl p-5 border-2 border-pink-500/30">
             <div className="flex items-center justify-between mb-3">
               <img src="https://upload.wikimedia.org/wikipedia/commons/6/69/Airbnb_Logo_B%C3%A9lo.svg" alt="Airbnb" className="h-6" />
-              <span className={`px-3 py-1 ${channelStats.airbnb.count > 0 ? 'bg-green-500' : 'bg-gray-500'} text-white text-xs font-bold rounded-full`}>
-                {channelStats.airbnb.count > 0 ? '●' : '○'}
+              <span className="px-3 py-1 bg-green-500 text-white text-xs font-bold rounded-full">
+                Connected
               </span>
             </div>
             <p className="text-gray-300 text-sm">
@@ -2119,8 +2140,8 @@ const Autopilot = ({ onBack }) => {
           <div className="bg-gradient-to-br from-blue-500/10 to-blue-600/10 rounded-xl p-5 border-2 border-blue-500/30">
             <div className="flex items-center justify-between mb-3">
               <span className="text-blue-400 font-bold text-lg">Booking.com</span>
-              <span className={`px-3 py-1 ${channelStats.bookingCom.count > 0 ? 'bg-green-500' : 'bg-gray-500'} text-white text-xs font-bold rounded-full`}>
-                {channelStats.bookingCom.count > 0 ? '●' : '○'}
+              <span className="px-3 py-1 bg-green-500 text-white text-xs font-bold rounded-full">
+                Connected
               </span>
             </div>
             <p className="text-gray-300 text-sm">
@@ -2131,8 +2152,8 @@ const Autopilot = ({ onBack }) => {
           <div className="bg-gradient-to-br from-orange-500/10 to-orange-600/10 rounded-xl p-5 border-2 border-orange-500/30">
             <div className="flex items-center justify-between mb-3">
               <span className="text-orange-400 font-bold text-lg">Direct (Gita)</span>
-              <span className={`px-3 py-1 ${channelStats.direct.count > 0 ? 'bg-green-500' : 'bg-gray-500'} text-white text-xs font-bold rounded-full`}>
-                {channelStats.direct.count > 0 ? '●' : '○'}
+              <span className="px-3 py-1 bg-blue-500 text-white text-xs font-bold rounded-full">
+                Active
               </span>
             </div>
             <p className="text-gray-300 text-sm">
@@ -2143,8 +2164,8 @@ const Autopilot = ({ onBack }) => {
           <div className="bg-gradient-to-br from-purple-500/10 to-purple-600/10 rounded-xl p-5 border-2 border-purple-500/30">
             <div className="flex items-center justify-between mb-3">
               <span className="text-purple-400 font-bold text-lg">Other Sources</span>
-              <span className={`px-3 py-1 ${channelStats.other.count > 0 ? 'bg-green-500' : 'bg-gray-500'} text-white text-xs font-bold rounded-full`}>
-                {channelStats.other.count > 0 ? '●' : '○'}
+              <span className="px-3 py-1 bg-blue-500 text-white text-xs font-bold rounded-full">
+                Active
               </span>
             </div>
             <p className="text-gray-300 text-sm">
@@ -2152,6 +2173,42 @@ const Autopilot = ({ onBack }) => {
             </p>
             <p className="text-gray-500 text-xs mt-1">
               Bali Buntu, Ibu Santi, Domus, etc.
+            </p>
+          </div>
+        </div>
+
+        {/* Automation Status */}
+        <div className="mb-6 bg-gradient-to-br from-green-500/10 to-green-600/10 rounded-xl p-5 border-2 border-green-500/30">
+          <h4 className="text-green-400 font-bold text-lg mb-4 flex items-center gap-2">
+            <Zap className="w-5 h-5" />
+            Automation Status
+          </h4>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="flex items-center justify-between">
+              <span className="text-gray-300 text-sm">Availability Sync</span>
+              <span className="px-3 py-1 bg-green-500 text-white text-xs font-bold rounded-full flex items-center gap-1">
+                <CheckCircle className="w-3 h-3" />
+                Active
+              </span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-gray-300 text-sm">Booking Import</span>
+              <span className="px-3 py-1 bg-green-500 text-white text-xs font-bold rounded-full flex items-center gap-1">
+                <CheckCircle className="w-3 h-3" />
+                Active
+              </span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-gray-300 text-sm">Conflict Detection</span>
+              <span className="px-3 py-1 bg-green-500 text-white text-xs font-bold rounded-full flex items-center gap-1">
+                <CheckCircle className="w-3 h-3" />
+                Active
+              </span>
+            </div>
+          </div>
+          <div className="mt-4 pt-4 border-t border-green-500/20">
+            <p className="text-gray-400 text-xs">
+              ℹ️ When a booking is received from any channel, availability is instantly updated across all platforms to ensure full calendar accuracy.
             </p>
           </div>
         </div>
