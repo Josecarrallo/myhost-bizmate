@@ -608,7 +608,7 @@ export const supabaseService = {
 
   async createTask(taskData) {
     const { data, error } = await supabase
-      .from('autopilot_actions')
+      .from('tasks')
       .insert(taskData)
       .select()
       .single();
@@ -619,15 +619,18 @@ export const supabaseService = {
 
   async getTasks(filters = {}) {
     let query = supabase
-      .from('autopilot_actions')
+      .from('tasks')
       .select('*')
-      .order('created_at', { ascending: false });
+      .order('created_at', { ascending: false});
 
     if (filters.tenant_id) {
       query = query.eq('tenant_id', filters.tenant_id);
     }
     if (filters.property_id) {
       query = query.eq('property_id', filters.property_id);
+    }
+    if (filters.villa_id) {
+      query = query.eq('villa_id', filters.villa_id);
     }
     if (filters.status) {
       query = query.eq('status', filters.status);
@@ -640,7 +643,7 @@ export const supabaseService = {
 
   async deleteTask(id) {
     const { error } = await supabase
-      .from('autopilot_actions')
+      .from('tasks')
       .delete()
       .eq('id', id);
 
