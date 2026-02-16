@@ -1079,12 +1079,16 @@ const ManualDataEntry = ({ onBack }) => {
         tenant_id: tenantId
       };
 
-      const propertyFilter = customPropertyFilter !== null ? customPropertyFilter : filterTaskProperty;
-      if (propertyFilter) {
-        filters.property_id = propertyFilter;
+      const villaFilter = customPropertyFilter !== null ? customPropertyFilter : filterTaskProperty;
+      console.log('🔧 Villa filter value:', villaFilter);
+      console.log('🔧 filterTaskProperty state:', filterTaskProperty);
+      console.log('🔧 customPropertyFilter param:', customPropertyFilter);
+
+      if (villaFilter && villaFilter !== '') {
+        filters.villa_id = villaFilter;
       }
 
-      if (filterTaskStatus) {
+      if (filterTaskStatus && filterTaskStatus !== '') {
         filters.status = filterTaskStatus;
       }
 
@@ -1094,7 +1098,7 @@ const ManualDataEntry = ({ onBack }) => {
       setTasks(tasksData);
       console.log(`✅ Loaded ${tasksData.length} tasks`);
     } catch (error) {
-      console.error('Error loading tasks:', error);
+      console.error('❌ Error loading tasks:', error);
       setErrorMessage('Failed to load tasks');
     } finally {
       setIsLoadingTasks(false);
@@ -2420,9 +2424,9 @@ const ManualDataEntry = ({ onBack }) => {
                   }}
                   className="px-4 py-2 bg-[#2a2f3a] border-2 border-gray-200 rounded-xl text-white focus:outline-none focus:border-orange-300"
                 >
-                  <option value="">All Properties</option>
-                  {properties.map(p => (
-                    <option key={p.id} value={p.id}>{p.name}</option>
+                  <option value="">Todas las villas</option>
+                  {villas.map(v => (
+                    <option key={v.id} value={v.id}>{v.name}</option>
                   ))}
                 </select>
 
