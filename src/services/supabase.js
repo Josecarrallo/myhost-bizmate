@@ -76,6 +76,9 @@ export const supabaseService = {
     if (filters.property_id) {
       query = query.eq('property_id', filters.property_id);
     }
+    if (filters.villa_id) {
+      query = query.eq('villa_id', filters.villa_id);
+    }
     if (filters.tenant_id) {
       query = query.eq('tenant_id', filters.tenant_id);
     }

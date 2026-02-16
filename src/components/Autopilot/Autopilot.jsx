@@ -31,7 +31,14 @@ import {
   Download,
   ClipboardList,
   FileText,
-  Printer
+  Printer,
+  Workflow,
+  UserCheck,
+  MapPin,
+  Repeat,
+  CheckSquare,
+  ListChecks,
+  Inbox
 } from 'lucide-react';
 import ManualDataEntry from '../ManualDataEntry/ManualDataEntry';
 import { useAuth } from '../../contexts/AuthContext';
@@ -253,6 +260,13 @@ const Autopilot = ({ onBack }) => {
       icon: ClipboardList,
       description: 'Add Leads, Bookings, Payments, Tasks',
       badge: null
+    },
+    {
+      id: 'automated-flows',
+      name: 'Automated Flows',
+      icon: Workflow,
+      description: 'View all system automation workflows',
+      badge: 'New'
     },
     {
       id: 'business-reports',
@@ -1761,6 +1775,180 @@ const Autopilot = ({ onBack }) => {
       </div>
     </div>
   );
+
+  const renderAutomatedFlowsSection = () => {
+    const automatedFlows = [
+      {
+        id: 'lead-intake',
+        title: 'Lead & Booking Intake',
+        description: 'Receives and normalizes leads from all channels.',
+        icon: Inbox,
+        status: 'active',
+        iconColor: 'text-blue-400'
+      },
+      {
+        id: 'smart-decisions',
+        title: 'Smart Lead Decisions (Lumina AI)',
+        description: 'AI analyzes lead status and decides next action.',
+        icon: Zap,
+        status: 'active',
+        iconColor: 'text-purple-400'
+      },
+      {
+        id: 'guest-journey',
+        title: 'Guest Journey Automation',
+        description: 'Pre-arrival, stay and post-stay automated communication.',
+        icon: MapPin,
+        status: 'active',
+        iconColor: 'text-green-400'
+      },
+      {
+        id: 'follow-up',
+        title: 'Follow-Up Engine',
+        description: 'Automatic sequences for non-booked leads.',
+        icon: Repeat,
+        status: 'active',
+        iconColor: 'text-orange-400'
+      },
+      {
+        id: 'owner-approvals',
+        title: 'Owner Approvals',
+        description: 'Owner approval system for pricing or booking exceptions.',
+        icon: UserCheck,
+        status: 'active',
+        iconColor: 'text-yellow-400'
+      },
+      {
+        id: 'operations-tasks',
+        title: 'Operations & Tasks',
+        description: 'Automatic task creation and alerts for operations.',
+        icon: ListChecks,
+        status: 'in-development',
+        iconColor: 'text-pink-400'
+      },
+      {
+        id: 'channel-sync',
+        title: 'Channel Sync (OTA Integration)',
+        description: 'Sync with Booking, Airbnb, Agoda and other channels.',
+        icon: Wifi,
+        status: 'in-development',
+        iconColor: 'text-cyan-400'
+      }
+    ];
+
+    return (
+      <div className="space-y-6">
+        <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-3xl p-6 shadow-2xl border-2 border-[#d85a2a]/20">
+          <div className="flex flex-col md:flex-row items-center justify-between mb-6 gap-3">
+            <button
+              onClick={() => setActiveSection('menu')}
+              className="self-start md:self-auto p-2 bg-[#1f2937]/95 backdrop-blur-sm rounded-xl hover:bg-orange-500 transition-all border border-[#d85a2a]/20"
+            >
+              <ArrowLeft className="w-5 h-5 text-[#FF8C42]" />
+            </button>
+            <div className="text-center flex-1">
+              <h3 className="text-2xl font-black text-[#FF8C42] flex items-center justify-center gap-2">
+                <Workflow className="w-6 h-6" />
+                Automated Flows
+              </h3>
+              <p className="text-gray-400 text-sm mt-1">
+                System automation workflows managing your operations
+              </p>
+            </div>
+            <div className="w-12 hidden md:block"></div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {automatedFlows.map((flow) => (
+              <div
+                key={flow.id}
+                className={`bg-[#2a2f3a] rounded-2xl p-6 border-2 transition-all group relative overflow-hidden ${
+                  flow.status === 'in-development'
+                    ? 'border-yellow-500/50 hover:border-yellow-400 animate-pulse shadow-lg shadow-yellow-500/20'
+                    : 'border-gray-700 hover:border-[#FF8C42]/40'
+                }`}
+              >
+                {/* Glow effect for in-development */}
+                {flow.status === 'in-development' && (
+                  <div className="absolute inset-0 bg-gradient-to-br from-yellow-500/10 via-transparent to-orange-500/10 pointer-events-none"></div>
+                )}
+
+                {/* Automated Badge */}
+                <div className="absolute top-3 right-3 z-10">
+                  {flow.status === 'active' ? (
+                    <span className="px-2 py-1 bg-[#FF8C42] text-white text-xs font-bold rounded-full">
+                      Active
+                    </span>
+                  ) : flow.status === 'in-development' ? (
+                    <span className="px-3 py-1 bg-gradient-to-r from-yellow-500 to-orange-500 text-white text-xs font-bold rounded-full animate-pulse shadow-lg">
+                      🚀 In Development
+                    </span>
+                  ) : (
+                    <span className="px-2 py-1 bg-gray-600 text-gray-300 text-xs font-bold rounded-full">
+                      Coming Soon
+                    </span>
+                  )}
+                </div>
+
+                {/* Icon */}
+                <div className="mb-4 mt-2 relative z-10">
+                  <flow.icon className={`w-12 h-12 ${flow.iconColor} ${
+                    flow.status === 'in-development'
+                      ? 'animate-bounce group-hover:scale-125'
+                      : 'group-hover:scale-110'
+                  } transition-transform`} />
+                </div>
+
+                {/* Title */}
+                <h4 className={`font-bold text-lg mb-2 leading-tight relative z-10 ${
+                  flow.status === 'in-development' ? 'text-yellow-300' : 'text-white'
+                }`}>
+                  {flow.title}
+                </h4>
+
+                {/* Description */}
+                <p className="text-gray-400 text-sm leading-relaxed relative z-10">
+                  {flow.description}
+                </p>
+
+                {/* Status indicator */}
+                {flow.status === 'active' && (
+                  <div className="mt-4 flex items-center gap-2 relative z-10">
+                    <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                    <span className="text-green-400 text-xs font-medium">Automated</span>
+                  </div>
+                )}
+
+                {flow.status === 'in-development' && (
+                  <div className="mt-4 flex items-center gap-2 relative z-10">
+                    <div className="w-2 h-2 bg-yellow-400 rounded-full animate-ping"></div>
+                    <div className="w-2 h-2 bg-yellow-400 rounded-full animate-pulse absolute"></div>
+                    <span className="text-yellow-400 text-xs font-bold ml-2">Coming Very Soon!</span>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+
+          {/* Info footer */}
+          <div className="mt-6 bg-[#2a2f3a]/50 rounded-xl p-4 border border-gray-700">
+            <div className="flex items-start gap-3">
+              <AlertCircle className="w-5 h-5 text-[#FF8C42] flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="text-gray-300 text-sm font-medium mb-1">
+                  Automated Workflows
+                </p>
+                <p className="text-gray-400 text-xs leading-relaxed">
+                  These flows run automatically in the background, managing your property operations 24/7.
+                  Active flows are currently processing your bookings and guests. Coming soon flows are being developed.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   const renderAvailabilitySection = () => {
     // Calculate total connected channels
@@ -3314,6 +3502,7 @@ const Autopilot = ({ onBack }) => {
       <div className="flex-1 overflow-y-auto p-2 relative z-10">
         <div className="max-w-[96%] mx-auto">
           {activeSection === 'data-entry' && renderDataEntrySection()}
+          {activeSection === 'automated-flows' && renderAutomatedFlowsSection()}
           {activeSection === 'business-reports' && renderBusinessReportsSection()}
           {activeSection === 'all-data' && renderAllDataSection()}
           {activeSection === 'availability' && renderAvailabilitySection()}

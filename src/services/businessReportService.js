@@ -52,22 +52,22 @@ export async function generateBusinessReport(ownerId, ownerName, propertyName, c
 
   console.log(`✓ Found ${bookings.length} bookings`);
 
-  // Get villas
-  const uniquePropertyIds = [...new Set(bookings.map(b => b.property_id).filter(id => id))];
+  // Get villas - Load by villa_id from bookings
+  const uniqueVillaIds = [...new Set(bookings.map(b => b.villa_id).filter(id => id))];
   let allVillas = [];
 
-  for (const propId of uniquePropertyIds) {
-    const { data: villas } = await supabase
+  if (uniqueVillaIds.length > 0) {
+    const { data: villas, error: villasError } = await supabase
       .from('villas')
       .select('*')
-      .eq('property_id', propId);
+      .in('id', uniqueVillaIds);
 
-    if (villas) {
-      allVillas = allVillas.concat(villas);
+    if (villas && !villasError) {
+      allVillas = villas;
     }
   }
 
-  console.log(`✓ Found ${allVillas.length} villas`);
+  console.log(`✓ Found ${allVillas.length} villas for ${uniqueVillaIds.length} villa IDs`);
 
   // Calculate channel distribution
   const channelBreakdown = {};
