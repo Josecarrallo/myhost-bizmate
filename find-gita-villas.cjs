@@ -1,24 +1,27 @@
 const { createClient } = require('@supabase/supabase-js');
 
-const supabaseUrl = 'https://jjpscimtxrudtepzwhag.supabase.co';
-const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpqcHNjaW10eHJ1ZHRlcHp3aGFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI5NDMyMzIsImV4cCI6MjA3ODUxOTIzMn0._U_HwdF5-yT8-prJLzkdO_rGbNuu7Z3gpUQW0Q8zxa0';
-const supabase = createClient(supabaseUrl, supabaseKey);
+const supabase = createClient(
+  'https://jjpscimtxrudtepzwhag.supabase.co',
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpqcHNjaW10eHJ1ZHRlcHp3aGFnIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2Mjk0MzIzMiwiZXhwIjoyMDc4NTE5MjMyfQ.RBD16xjgQB__nj5DtLrK2w55uQ4WFJiaa0mfZT2BeJg'
+);
 
-async function findVillas() {
-  const { data, error } = await supabase
+const GITA_USER_ID = '7b0991f5-1b0f-4209-86c6-ae0c7afe5985';
+
+(async () => {
+  console.log('🏠 Buscando villas de Gita...\n');
+
+  const { data: villas, error } = await supabase
     .from('villas')
-    .select('*')
-    .eq('property_id', '3551cd18-af6b-48c2-85ba-4c5dc0074892');
+    .select('id, name')
+    .eq('owner_id', GITA_USER_ID);
 
   if (error) {
-    console.log('Error:', error);
-  } else {
-    console.log('Encontradas', data?.length || 0, 'villas');
-    data?.forEach((v, i) => {
-      console.log((i + 1) + '. ' + v.name);
-      console.log('   ID: ' + v.id);
-    });
+    console.error('❌ Error:', error);
+    return;
   }
-}
 
-findVillas();
+  console.log(`✅ Encontradas ${villas.length} villas:\n`);
+  villas.forEach(v => {
+    console.log(`- ${v.name} (${v.id})`);
+  });
+})();
