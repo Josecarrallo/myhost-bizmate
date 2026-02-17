@@ -2,7 +2,7 @@ const { renderMediaOnLambda, getRenderProgress } = require("@remotion/lambda/cli
 const { createClient } = require('@supabase/supabase-js');
 
 const supabaseUrl = (process.env.SUPABASE_URL || 'https://jjpscimtxrudtepzwhag.supabase.co').trim();
-const supabaseKey = (process.env.SUPABASE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpqcHNjaW10eHJ1ZHRlcHp3aGFnIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTczOTM5MzQzMiwiZXhwIjoyMDU0OTY5NDMyLCJzY29wZSI6ImFsbCJ9.KHW-rt3AHKjZ_aLyzUbKRxJDQTGCNTx3Xw8MH-uVeJo').trim();
+const supabaseKey = (process.env.SUPABASE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpqcHNjaW10eHJ1ZHRlcHp3aGFnIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2Mjk0MzIzMiwiZXhwIjoyMDc4NTE5MjMyfQ.RBD16xjgQB__nj5DtLrK2w55uQ4WFJiaa0mfZT2BeJg').trim();
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 /**
