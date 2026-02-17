@@ -7,13 +7,13 @@
 
 ---
 
-## RESULTADO: LOGIN EN PRODUCCIÓN FUNCIONAL - VIDEO PENDIENTE RAILWAY
+## RESULTADO: SISTEMA COMPLETAMENTE FUNCIONAL EN PRODUCCIÓN
 
 ### Todo lo que SE LOGRÓ hoy
 
 | Tarea | Status |
 |-------|--------|
-| Video se genera via AWS Lambda (~90s) en local | ✅ |
+| Video se genera via AWS Lambda desde Vercel | ✅ |
 | Video se reproduce en ContentStudio (fix URL `renders/`) | ✅ |
 | Botones "Open Video in New Tab" y "Download" añadidos | ✅ |
 | Fix filtro Payments (paid/pending) en Manual Data Entry | ✅ |
@@ -21,7 +21,7 @@
 | Login en Vercel producción funciona | ✅ |
 | Commit + push a main | ✅ |
 | Deploy a Vercel producción | ✅ |
-| Video desde Vercel → Railway → Lambda | ❌ (Railway sin credenciales AWS) |
+| Video desde Vercel → Railway → Lambda | ✅ |
 
 ---
 
@@ -110,17 +110,9 @@ Si Lambda falla por cuota, el servidor usa render local (`video/local-render.cjs
 
 ## PENDIENTE
 
-1. **[CRÍTICO] Credenciales AWS en Railway** - El servidor Railway no tiene `AWS_ACCESS_KEY_ID` ni `AWS_SECRET_ACCESS_KEY`. El video falla desde Vercel con error `You have tried to call a Remotion Lambda function, but have not set the environment variable AWS_ACCESS_KEY_ID`.
-   - **Las credenciales están en:** `video/.env` (localmente)
-   - **Acción:** Railway Dashboard → myhost-bizmate (servicio de video) → Variables → Añadir:
-     - `AWS_ACCESS_KEY_ID` = (ver `video/.env`)
-     - `AWS_SECRET_ACCESS_KEY` = (ver `video/.env`)
-     - `AWS_REGION` = `us-east-1`
-   - Tras añadirlas, Railway hace redeploy automático
+1. **Cuota AWS Lambda** - Caso #177130113800974 (aumento a 1000 ejecuciones) pendiente de aprobación AWS. Seguimiento: AWS Console → Support Center → caso #177130113800974
 
-2. **Cuota AWS Lambda** - Caso #177130113800974 (aumento a 1000 ejecuciones) pendiente de aprobación AWS
-
-3. **Supabase service_role key expirada** en `lambda-render.cjs` - falla el guardado de metadata en tabla `generated_videos`. El video SÍ se genera y reproduce. Pendiente actualizar desde Supabase Dashboard → Settings → API
+2. **Supabase service_role key expirada** en `lambda-render.cjs` - falla el guardado de metadata en tabla `generated_videos`. El video SÍ se genera y reproduce. Pendiente actualizar desde Supabase Dashboard → Settings → API
 
 ---
 
