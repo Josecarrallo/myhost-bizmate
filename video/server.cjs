@@ -142,6 +142,7 @@ app.listen(PORT, () => {
   console.log(`📊 Health check: http://localhost:${PORT}/api/health`);
   console.log(`🔑 LTX API Token: ${process.env.LTX_API_KEY ? 'SET ✅' : 'NOT SET ❌'}`);
   console.log(`🔑 AWS_ACCESS_KEY_ID: ${process.env.AWS_ACCESS_KEY_ID ? 'SET ✅' : 'NOT SET ❌'}`);
+  console.log(`🔑 REMOTION_AWS_ACCESS_KEY_ID: ${process.env.REMOTION_AWS_ACCESS_KEY_ID ? 'SET ✅' : 'NOT SET ❌'}`);
   console.log(`🔑 AWS_SECRET_ACCESS_KEY: ${process.env.AWS_SECRET_ACCESS_KEY ? 'SET ✅' : 'NOT SET ❌'}`);
   console.log(`🔑 AWS_REGION: ${process.env.AWS_REGION || 'NOT SET (default us-east-1)'}\n`);
 });
