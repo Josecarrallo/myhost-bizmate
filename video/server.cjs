@@ -140,5 +140,8 @@ app.post('/api/generate-video', upload.single('image'), async (req, res) => {
 app.listen(PORT, () => {
   console.log(`\n🚀 Video Generation API Server running on http://localhost:${PORT}`);
   console.log(`📊 Health check: http://localhost:${PORT}/api/health`);
-  console.log(`🔑 LTX API Token: ${process.env.LTX_API_KEY ? 'SET ✅' : 'NOT SET ❌'}\n`);
+  console.log(`🔑 LTX API Token: ${process.env.LTX_API_KEY ? 'SET ✅' : 'NOT SET ❌'}`);
+  console.log(`🔑 AWS_ACCESS_KEY_ID: ${process.env.AWS_ACCESS_KEY_ID ? 'SET ✅' : 'NOT SET ❌'}`);
+  console.log(`🔑 AWS_SECRET_ACCESS_KEY: ${process.env.AWS_SECRET_ACCESS_KEY ? 'SET ✅' : 'NOT SET ❌'}`);
+  console.log(`🔑 AWS_REGION: ${process.env.AWS_REGION || 'NOT SET (default us-east-1)'}\n`);
 });
