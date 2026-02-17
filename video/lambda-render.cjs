@@ -9,6 +9,14 @@ const supabase = createClient(supabaseUrl, supabaseKey);
  * Renderiza video usando AWS Lambda + Remotion
  */
 async function renderVideoOnLambda({ title, subtitle, imageUrl, musicFile, userId }) {
+  // Railway blocks AWS_ACCESS_KEY_ID env var. Map REMOTION_ prefix to standard AWS SDK vars at runtime.
+  if (!process.env.AWS_ACCESS_KEY_ID && process.env.REMOTION_AWS_ACCESS_KEY_ID) {
+    process.env.AWS_ACCESS_KEY_ID = process.env.REMOTION_AWS_ACCESS_KEY_ID;
+  }
+  if (!process.env.AWS_SECRET_ACCESS_KEY && process.env.REMOTION_AWS_SECRET_ACCESS_KEY) {
+    process.env.AWS_SECRET_ACCESS_KEY = process.env.REMOTION_AWS_SECRET_ACCESS_KEY;
+  }
+
   console.log('🚀 Starting AWS Lambda render...');
   console.log(`📝 Title: ${title}`);
   console.log(`📝 Subtitle: ${subtitle}`);
