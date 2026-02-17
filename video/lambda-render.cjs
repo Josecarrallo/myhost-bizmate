@@ -83,7 +83,7 @@ async function renderVideoOnLambda({ title, subtitle, imageUrl, musicFile, userI
     const { data: videoData, error: dbError } = await supabase
       .from('generated_videos')
       .insert([{
-        user_id: userId || null,
+        user_id: (userId && userId.trim() !== '') ? userId : null,
         title,
         subtitle,
         video_url: videoUrl,
@@ -95,7 +95,7 @@ async function renderVideoOnLambda({ title, subtitle, imageUrl, musicFile, userI
         camera_prompt: null,
         music_file: musicFile,
         status: 'completed',
-        render_time_seconds: parseFloat(renderTime),
+        generation_time_seconds: Math.round(parseFloat(renderTime)),
         created_at: new Date().toISOString()
       }])
       .select();

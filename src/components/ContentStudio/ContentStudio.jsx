@@ -523,26 +523,6 @@ const ContentStudio = ({ onBack }) => {
                   </video>
                 </div>
 
-                {/* Direct link fallback */}
-                <div className="mt-4 flex gap-3 justify-center">
-                  <a
-                    href={generatedVideo.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-2 px-6 py-3 bg-[#FF8C42] text-white rounded-xl font-semibold hover:bg-[#d85a2a] transition-all"
-                  >
-                    <Play className="w-4 h-4" />
-                    Open Video in New Tab
-                  </a>
-                  <a
-                    href={generatedVideo.url}
-                    download={`${formData.title || 'video'}.mp4`}
-                    className="flex items-center gap-2 px-6 py-3 bg-white/10 text-white rounded-xl font-semibold hover:bg-white/20 transition-all border border-white/20"
-                  >
-                    <Download className="w-4 h-4" />
-                    Download
-                  </a>
-                </div>
               </div>
 
               {/* Video Info */}

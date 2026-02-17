@@ -2122,8 +2122,9 @@ const ManualDataEntry = ({ onBack }) => {
                 className="px-4 py-2 bg-[#2a2f3a] border-2 border-gray-200 rounded-xl text-white focus:outline-none focus:border-orange-300"
               >
                 <option value="">All Payment Status</option>
-                <option value="paid">Paid</option>
-                <option value="pending">Pending</option>
+                <option value="paid">Done</option>
+                <option value="pending">On Scheduled</option>
+                <option value="expired">Expired</option>
               </select>
 
               {/* Search Guest */}

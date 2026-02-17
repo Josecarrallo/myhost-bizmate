@@ -93,7 +93,7 @@ async function renderVideoLocally({ title, subtitle, imageUrl, musicFile, userId
     const { error: dbError } = await supabase
       .from('generated_videos')
       .insert([{
-        user_id: userId || null,
+        user_id: (userId && userId.trim() !== '') ? userId : null,
         title,
         subtitle,
         video_url: videoUrl,
@@ -104,7 +104,7 @@ async function renderVideoLocally({ title, subtitle, imageUrl, musicFile, userId
         resolution: '1920x1080',
         music_file: musicFile,
         status: 'completed',
-        render_time_seconds: parseFloat(renderTime),
+        generation_time_seconds: Math.round(parseFloat(renderTime)),
         created_at: new Date().toISOString()
       }]);
 
