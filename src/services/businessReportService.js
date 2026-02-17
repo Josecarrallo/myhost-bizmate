@@ -70,6 +70,7 @@ export async function generateBusinessReport(ownerId, ownerName, propertyName, c
   console.log(`✓ Found ${allVillas.length} villas for ${uniqueVillaIds.length} villa IDs`);
 
   // Get properties to use as fallback when villa name is not found
+  const uniquePropertyIds = [...new Set(bookings.map(b => b.property_id).filter(id => id))];
   let allProperties = [];
 
   for (const propId of uniquePropertyIds) {
