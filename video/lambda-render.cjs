@@ -46,13 +46,13 @@ async function renderVideoOnLambda({ title, subtitle, imageUrl, musicFile, userI
         musicFile: musicFile || 'bali-sunrise.mp3'
       },
       codec: "h264",
-      audioCodec: "mp3",  // 3x faster than AAC
+      audioCodec: "mp3",
       imageFormat: "jpeg",
       privacy: "public",
-      framesPerLambda: 300,  // ALL frames in 1 Lambda = only 2 concurrent total (1 renderer + 1 orchestrator)
-      concurrencyPerLambda: 1,  // 1 browser tab per Lambda (stable)
-      timeoutInMilliseconds: 240000,  // 240s timeout - safe for image-based render
-      maxRetries: 2,  // Retry failed chunks
+      framesPerLambda: 50,  // 6 chunks (300/50) = parallel rendering = much faster
+      concurrencyPerLambda: 2,  // 2 browser tabs per Lambda
+      timeoutInMilliseconds: 300000,  // 300s = Lambda function max timeout
+      maxRetries: 1,
     });
 
     console.log(`🔄 Render started, waiting for completion...`);
