@@ -1,11 +1,11 @@
 // Generate complete HTML for business report
-export function generateReportHTML(ownerName, propertyName, currency, data, osirisAnalysis) {
+export function generateReportHTML(ownerName, propertyName, currency, data, osirisAnalysis, startDate, endDate) {
   console.log('✅ generateReportHTML v2.1 - MOBILE RESPONSIVE with Rate label');
   const { metrics, channels, propertyMetrics } = data;
   const properties = propertyMetrics; // Alias
 
-  const START_DATE = '2026-01-01';
-  const END_DATE = '2026-12-31';
+  const START_DATE = startDate || '2026-01-01';
+  const END_DATE = endDate || '2026-12-31';
 
   // Helper function to clean markdown
   const cleanMarkdown = (text) => {

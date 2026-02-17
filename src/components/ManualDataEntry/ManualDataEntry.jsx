@@ -292,7 +292,7 @@ const ManualDataEntry = ({ onBack }) => {
   }, [bookingForm.villaId, bookingForm.checkIn, bookingForm.checkOut, villas]);
 
   // Load bookings for the owner
-  const loadBookings = async (customVillaFilter = null) => {
+  const loadBookings = async (customVillaFilter = null, customStatusFilter = null) => {
     const tenantId = user?.id || userData?.id;
     if (!tenantId) {
       console.warn('❌ No user.id or userData.id - cannot load bookings');
@@ -315,14 +315,15 @@ const ManualDataEntry = ({ onBack }) => {
         console.log('[DEBUG] Added villa_id filter:', villaFilter);
       }
 
-      // Apply status filter based on active tab
-      if (filterStatus) {
+      // Apply status filter - use customStatusFilter if provided (avoids async state issue)
+      const statusFilter = customStatusFilter !== null ? customStatusFilter : filterStatus;
+      if (statusFilter) {
         if (activeTab === 'payment') {
           // In payment tab, filter by payment_status
-          filters.payment_status = filterStatus;
+          filters.payment_status = statusFilter;
         } else {
           // In view-bookings tab, filter by booking status
-          filters.status = filterStatus;
+          filters.status = statusFilter;
         }
       }
 
@@ -2114,8 +2115,9 @@ const ManualDataEntry = ({ onBack }) => {
               <select
                 value={filterStatus}
                 onChange={(e) => {
-                  setFilterStatus(e.target.value);
-                  loadBookings();
+                  const newStatus = e.target.value;
+                  setFilterStatus(newStatus);
+                  loadBookings(null, newStatus);
                 }}
                 className="px-4 py-2 bg-[#2a2f3a] border-2 border-gray-200 rounded-xl text-white focus:outline-none focus:border-orange-300"
               >
@@ -2143,7 +2145,7 @@ const ManualDataEntry = ({ onBack }) => {
                   setFilterStatus('');
                   setSearchGuest('');
                   setSearchInput('');
-                  loadBookings();
+                  loadBookings('', '');
                 }}
                 className="px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-xl font-medium transition-all"
               >

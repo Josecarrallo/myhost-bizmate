@@ -1,0 +1,117 @@
+const { renderMediaOnLambda, getRenderProgress } = require("@remotion/lambda/client");
+const { createClient } = require('@supabase/supabase-js');
+
+const supabaseUrl = (process.env.SUPABASE_URL || 'https://jjpscimtxrudtepzwhag.supabase.co').trim();
+const supabaseKey = (process.env.SUPABASE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpqcHNjaW10eHJ1ZHRlcHp3aGFnIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTczOTM5MzQzMiwiZXhwIjoyMDU0OTY5NDMyLCJzY29wZSI6ImFsbCJ9.KHW-rt3AHKjZ_aLyzUbKRxJDQTGCNTx3Xw8MH-uVeJo').trim();
+const supabase = createClient(supabaseUrl, supabaseKey);
+
+/**
+ * Renderiza video usando AWS Lambda + Remotion
+ */
+async function renderVideoOnLambda({ title, subtitle, imageUrl, musicFile, userId }) {
+  console.log('🚀 Starting AWS Lambda render...');
+  console.log(`📝 Title: ${title}`);
+  console.log(`📝 Subtitle: ${subtitle}`);
+  console.log(`🖼️ Image URL: ${imageUrl}`);
+  console.log(`🎵 Music: ${musicFile}`);
+
+  const startTime = Date.now();
+
+  try {
+    const region = process.env.AWS_REGION || 'us-east-1';
+    const functionName = 'remotion-render-4-0-423-mem3008mb-disk10240mb-300sec';
+    const serveUrl = 'https://remotionlambda-useast1-1w04idkkha.s3.us-east-1.amazonaws.com/sites/myhost-bizmate-video/index.html';
+
+    console.log(`🔧 Lambda Function: ${functionName}`);
+    console.log(`🔧 Serve URL: ${serveUrl}`);
+
+    // Renderizar video en Lambda con máxima paralelización (arquitectura correcta)
+    const { bucketName, renderId } = await renderMediaOnLambda({
+      region,
+      functionName,
+      serveUrl,
+      composition: "LtxPromo",
+      inputProps: {
+        title,
+        subtitle,
+        imageUrl,
+        musicFile: musicFile || 'bali-sunrise.mp3'
+      },
+      codec: "h264",
+      audioCodec: "mp3",  // 3x faster than AAC
+      imageFormat: "jpeg",
+      privacy: "public",
+      framesPerLambda: 300,  // ALL frames in 1 Lambda = only 2 concurrent total (1 renderer + 1 orchestrator)
+      concurrencyPerLambda: 1,  // 1 browser tab per Lambda (stable)
+      timeoutInMilliseconds: 240000,  // 240s timeout - safe for image-based render
+      maxRetries: 2,  // Retry failed chunks
+    });
+
+    console.log(`🔄 Render started, waiting for completion...`);
+    console.log(`📹 Bucket: ${bucketName}`);
+    console.log(`🆔 Render ID: ${renderId}`);
+
+    // Wait for render to complete
+    let progress = await getRenderProgress({ renderId, bucketName, functionName, region });
+    while (!progress.done && !progress.fatalErrorEncountered) {
+      await new Promise(resolve => setTimeout(resolve, 2000)); // Wait 2 seconds
+      progress = await getRenderProgress({ renderId, bucketName, functionName, region });
+      console.log(`⏳ Progress: ${progress.overallProgress}%`);
+    }
+
+    if (progress.fatalErrorEncountered) {
+      throw new Error(`Render failed: ${progress.errors[0]?.message || 'Unknown error'}`);
+    }
+
+    const renderTime = ((Date.now() - startTime) / 1000).toFixed(2);
+    console.log(`✅ Lambda render completed in ${renderTime}s`);
+
+    // Construir URL del video
+    const videoUrl = `https://${bucketName}.s3.${region}.amazonaws.com/renders/${renderId}/out.mp4`;
+    console.log(`🎬 Video URL: ${videoUrl}`);
+
+    // Guardar metadata en Supabase
+    console.log('💾 Saving metadata to Supabase...');
+    const { data: videoData, error: dbError } = await supabase
+      .from('generated_videos')
+      .insert([{
+        user_id: userId || null,
+        title,
+        subtitle,
+        video_url: videoUrl,
+        thumbnail_url: imageUrl,
+        filename: `${renderId}-out.mp4`,
+        file_size_mb: 0,
+        duration_seconds: 10,
+        resolution: '1920x1080',
+        camera_prompt: null,
+        music_file: musicFile,
+        status: 'completed',
+        render_time_seconds: parseFloat(renderTime),
+        created_at: new Date().toISOString()
+      }])
+      .select();
+
+    if (dbError) {
+      console.error('⚠️ Database save error:', dbError);
+    } else {
+      console.log('✅ Metadata saved to Supabase');
+    }
+
+    return {
+      videoUrl,
+      renderId,
+      bucketName,
+      renderTime: parseFloat(renderTime),
+      estimatedCost: 0.05,
+      success: true
+    };
+
+  } catch (error) {
+    const errorTime = ((Date.now() - startTime) / 1000).toFixed(2);
+    console.error(`❌ Lambda render failed after ${errorTime}s:`, error.message);
+    throw error;
+  }
+}
+
+module.exports = { renderVideoOnLambda };

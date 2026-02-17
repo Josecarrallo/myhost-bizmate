@@ -2892,7 +2892,9 @@ const Autopilot = ({ onBack }) => {
             ownerData.property,
             ownerData.currency,
             reportData,
-            reportData.osirisAnalysis
+            reportData.osirisAnalysis,
+            startDate,
+            endDate
           );
 
           // Display in iframe and save to localStorage

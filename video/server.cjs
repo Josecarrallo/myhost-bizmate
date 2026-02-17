@@ -5,6 +5,9 @@ const path = require('path');
 const { exec } = require('child_process');
 const fs = require('fs');
 const { createClient } = require('@supabase/supabase-js');
+const { renderVideoOnLambda } = require('./lambda-render.cjs');
+const { renderVideoLocally } = require('./local-render.cjs');
+require('dotenv').config();
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -83,90 +86,46 @@ app.post('/api/generate-video', upload.single('image'), async (req, res) => {
 
     console.log(`✅ Image uploaded: ${publicUrl}`);
 
-    // Step 2: Generate video with LTX-2
-    console.log('🚀 Step 2: Generating cinematic video with LTX-2...');
+    // Step 2: Generate video - try Lambda first, fallback to local
+    let renderResult;
+    let renderMode = 'lambda';
 
-    await new Promise((resolve, reject) => {
-      exec(
-        `cd "${path.join(__dirname, 'scripts')}" && node image-to-video-cli.mjs "${publicUrl}" "${cameraMovement}"`,
-        (error, stdout, stderr) => {
-          if (error) {
-            console.error('❌ LTX-2 Error:', error);
-            return reject(error);
-          }
-          console.log(stdout);
-          console.log('✅ LTX-2 video generated');
-          resolve();
-        }
-      );
-    });
-
-    // Step 3: Add branding with Remotion
-    console.log('🎨 Step 3: Adding branding with Remotion...');
-
-    const propsFile = path.join(__dirname, 'props.json');
-    fs.writeFileSync(propsFile, JSON.stringify({
-      title,
-      subtitle,
-      musicFile: music || 'bali-sunrise.mp3'
-    }, null, 2));
-
-    console.log(`📝 Props file created: ${JSON.stringify({ title, subtitle, musicFile: music || 'bali-sunrise.mp3' })}`);
-
-    const outputFileName = `video-${Date.now()}.mp4`;
-    const outputPath = path.join(__dirname, 'out', outputFileName);
-
-    await new Promise((resolve, reject) => {
-      exec(
-        `cd "${__dirname}" && npx remotion render LtxPromo "${outputPath}" --props="${propsFile}"`,
-        { maxBuffer: 1024 * 1024 * 10 },
-        (error, stdout, stderr) => {
-          if (error) {
-            console.error('❌ Remotion Error:', error);
-            return reject(error);
-          }
-          console.log('✅ Remotion rendering complete');
-          console.log(stdout);
-          resolve();
-        }
-      );
-    });
-
-    // Get video file size
-    const stats = fs.statSync(outputPath);
-    const fileSizeMB = (stats.size / (1024 * 1024)).toFixed(2);
-
-    // Save to Supabase database
-    const { data: videoData, error: dbError } = await supabase
-      .from('generated_videos')
-      .insert([{
-        user_id: userId,
+    try {
+      console.log('🚀 Step 2: Trying AWS Lambda render...');
+      renderResult = await renderVideoOnLambda({
         title,
         subtitle,
-        video_url: `/videos/${outputFileName}`,
-        thumbnail_url: null,
-        filename: outputFileName,
-        file_size_mb: parseFloat(fileSizeMB),
-        duration_seconds: 10,
-        resolution: '1920x1080',
-        camera_prompt: cameraMovement,
-        music_file: music,
-        status: 'completed',
-        created_at: new Date().toISOString()
-      }])
-      .select();
-
-    if (dbError) {
-      console.error('⚠️ Database save error:', dbError);
+        imageUrl: publicUrl,
+        musicFile: music || 'bali-sunrise.mp3',
+        userId
+      });
+    } catch (lambdaError) {
+      if (lambdaError.message.includes('Rate Exceeded') || lambdaError.message.includes('Concurrency limit')) {
+        console.log('⚠️  Lambda quota exceeded, falling back to LOCAL render...');
+        renderMode = 'local';
+        renderResult = await renderVideoLocally({
+          title,
+          subtitle,
+          imageUrl: publicUrl,
+          musicFile: music || 'bali-sunrise.mp3',
+          userId
+        });
+      } else {
+        throw lambdaError;
+      }
     }
 
-    console.log(`\n🎉 Video generation complete!`);
-    console.log(`📹 Video URL: /videos/${outputFileName}\n`);
+    console.log(`\n🎉 Video generation complete! (mode: ${renderMode})`);
+    console.log(`📹 Video URL: ${renderResult.videoUrl}`);
+    console.log(`⏱️ Render time: ${renderResult.renderTime}s\n`);
 
     res.json({
       success: true,
-      videoUrl: `/videos/${outputFileName}`,
-      message: 'Video generated successfully'
+      videoUrl: renderResult.videoUrl,
+      renderId: renderResult.renderId,
+      renderTime: renderResult.renderTime,
+      estimatedCost: renderResult.estimatedCost,
+      message: `Video generated successfully (${renderMode === 'local' ? 'local render' : 'AWS Lambda'})`
     });
 
   } catch (error) {
