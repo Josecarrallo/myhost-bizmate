@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   ChevronLeft,
   Upload,
@@ -23,6 +23,7 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
 const ContentStudio = ({ onBack }) => {
   const { userData } = useAuth();
+  const videoResultRef = useRef(null);
   const [step, setStep] = useState(1); // 1: Upload, 2: Customize, 3: Generate, 4: Result, 5: History
   const [uploadedImage, setUploadedImage] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
@@ -137,6 +138,15 @@ const ContentStudio = ({ onBack }) => {
     loadVideoHistory();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userData?.id]);
+
+  // Auto-scroll to video when generation completes
+  useEffect(() => {
+    if (step === 4 && videoResultRef.current) {
+      setTimeout(() => {
+        videoResultRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 100);
+    }
+  }, [step]);
 
   // Generate video
   const handleGenerateVideo = async () => {
@@ -501,7 +511,7 @@ const ContentStudio = ({ onBack }) => {
 
           {/* STEP 4: Result */}
           {step === 4 && generatedVideo && (
-            <div className="space-y-6">
+            <div ref={videoResultRef} className="space-y-6">
               <div className="bg-white/5 rounded-2xl p-6 border border-white/10">
                 <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
                   <CheckCircle className="w-6 h-6 text-green-400" />
