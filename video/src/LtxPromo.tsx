@@ -18,6 +18,7 @@ interface LtxPromoProps {
   title?: string;
   subtitle?: string;
   imageUrl?: string;
+  ltxVideoUrl?: string;
   musicFile?: string;
 }
 
@@ -25,6 +26,7 @@ export const LtxPromo: React.FC<LtxPromoProps> = ({
   title = 'NISMARA UMA VILLA',
   subtitle = 'Discover Your Balinese Sanctuary',
   imageUrl,
+  ltxVideoUrl,
   musicFile = 'background-music.mp3'
 }) => {
   const frame = useCurrentFrame();
@@ -88,8 +90,19 @@ export const LtxPromo: React.FC<LtxPromoProps> = ({
 
   return (
     <AbsoluteFill style={{ backgroundColor: '#000' }}>
-      {/* BASE LAYER: user-uploaded image OR fallback ltx-video */}
-      {imageUrl ? (
+      {/* BASE LAYER: LTX-2 cinematic video (URL publica S3) > imagen estatica > fallback local */}
+      {ltxVideoUrl ? (
+        <OffthreadVideo
+          src={ltxVideoUrl}
+          style={{
+            width: '100%',
+            height: '100%',
+            objectFit: 'cover',
+            opacity: overallOpacity,
+          }}
+          muted
+        />
+      ) : imageUrl ? (
         <Img
           src={imageUrl}
           style={{

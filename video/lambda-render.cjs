@@ -8,7 +8,7 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 /**
  * Renderiza video usando AWS Lambda + Remotion
  */
-async function renderVideoOnLambda({ title, subtitle, imageUrl, musicFile, userId }) {
+async function renderVideoOnLambda({ title, subtitle, imageUrl, ltxVideoUrl, musicFile, userId }) {
   // Railway blocks AWS_ACCESS_KEY_ID env var. Map REMOTION_ prefix to standard AWS SDK vars at runtime.
   if (!process.env.AWS_ACCESS_KEY_ID && process.env.REMOTION_AWS_ACCESS_KEY_ID) {
     process.env.AWS_ACCESS_KEY_ID = process.env.REMOTION_AWS_ACCESS_KEY_ID;
@@ -20,7 +20,8 @@ async function renderVideoOnLambda({ title, subtitle, imageUrl, musicFile, userI
   console.log('🚀 Starting AWS Lambda render...');
   console.log(`📝 Title: ${title}`);
   console.log(`📝 Subtitle: ${subtitle}`);
-  console.log(`🖼️ Image URL: ${imageUrl}`);
+  console.log(`🎬 LTX Video URL: ${ltxVideoUrl || 'NOT SET - using static image'}`);
+  console.log(`🖼️ Image URL (fallback): ${imageUrl}`);
   console.log(`🎵 Music: ${musicFile}`);
 
   const startTime = Date.now();
@@ -43,6 +44,7 @@ async function renderVideoOnLambda({ title, subtitle, imageUrl, musicFile, userI
         title,
         subtitle,
         imageUrl,
+        ltxVideoUrl: ltxVideoUrl || null,
         musicFile: musicFile || 'bali-sunrise.mp3'
       },
       codec: "h264",
@@ -92,7 +94,7 @@ async function renderVideoOnLambda({ title, subtitle, imageUrl, musicFile, userI
         file_size_mb: 0,
         duration_seconds: 10,
         resolution: '1920x1080',
-        camera_prompt: null,
+        camera_prompt: ltxVideoUrl ? 'ltx2-cinematic' : null,
         music_file: musicFile,
         status: 'completed',
         generation_time_seconds: Math.round(parseFloat(renderTime)),

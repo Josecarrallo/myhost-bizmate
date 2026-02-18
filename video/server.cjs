@@ -5,6 +5,7 @@ const path = require('path');
 const { exec } = require('child_process');
 const fs = require('fs');
 const { createClient } = require('@supabase/supabase-js');
+const { S3Client, PutObjectCommand } = require('@aws-sdk/client-s3');
 const { renderVideoOnLambda } = require('./lambda-render.cjs');
 const { renderVideoLocally } = require('./local-render.cjs');
 require('dotenv').config();
@@ -63,39 +64,95 @@ app.post('/api/generate-video', upload.single('image'), async (req, res) => {
     console.log(`🎥 Camera: ${cameraMovement}`);
     console.log(`🎵 Music: ${music}`);
 
-    // Step 1: Upload image to Supabase
-    console.log('📤 Step 1: Uploading image to Supabase Storage...');
-    const imageBuffer = fs.readFileSync(imagePath);
-    const fileName = `nismara-pool-${Date.now()}.jpeg`;
-
-    const { data: uploadData, error: uploadError } = await supabase.storage
-      .from('Nismara Uma Villas')
-      .upload(fileName, imageBuffer, {
-        contentType: 'image/jpeg',
-        cacheControl: '3600',
-        upsert: false
-      });
-
-    if (uploadError) {
-      throw new Error(`Upload failed: ${uploadError.message}`);
+    // Map Railway workaround: Railway blocks AWS_ACCESS_KEY_ID, use REMOTION_ prefix
+    if (!process.env.AWS_ACCESS_KEY_ID && process.env.REMOTION_AWS_ACCESS_KEY_ID) {
+      process.env.AWS_ACCESS_KEY_ID = process.env.REMOTION_AWS_ACCESS_KEY_ID;
     }
 
-    const { data: { publicUrl } } = supabase.storage
-      .from('Nismara Uma Villas')
-      .getPublicUrl(fileName);
+    const region = process.env.AWS_REGION || 'us-east-1';
+    const s3Bucket = 'remotionlambda-useast1-1w04idkkha';
+    const s3Client = new S3Client({ region });
+    const ts = Date.now();
 
-    console.log(`✅ Image uploaded: ${publicUrl}`);
+    // Step 1: Upload image to S3 for a reliable public URL (LTX-2 needs to fetch it)
+    console.log('📤 Step 1: Uploading image to S3...');
+    const imageBuffer = fs.readFileSync(imagePath);
+    const s3ImageKey = `images/nismara-pool-${ts}.jpeg`;
 
-    // Step 2: Generate video - try Lambda first, fallback to local
+    await s3Client.send(new PutObjectCommand({
+      Bucket: s3Bucket,
+      Key: s3ImageKey,
+      Body: imageBuffer,
+      ContentType: 'image/jpeg'
+    }));
+
+    const imageUrl = `https://${s3Bucket}.s3.${region}.amazonaws.com/${s3ImageKey}`;
+    console.log(`✅ Image uploaded to S3: ${imageUrl}`);
+
+    // Step 2: Generate cinematic video with LTX-2
+    console.log('🎬 Step 2: Generating cinematic video with LTX-2...');
+    let ltxVideoUrl = null;
+
+    try {
+      const ltxApiKey = process.env.LTX_API_KEY;
+      if (!ltxApiKey) throw new Error('LTX_API_KEY not set');
+
+      const axios = require('axios');
+      const ltxResponse = await axios.post(
+        'https://api.ltx.video/v1/image-to-video',
+        {
+          image_uri: imageUrl,
+          prompt: cameraMovement || 'slow cinematic zoom, luxury villa ambiance, peaceful atmosphere',
+          duration: 6,
+          resolution: '1920x1080',
+          model: 'ltx-2-pro'
+        },
+        {
+          headers: {
+            'Authorization': `Bearer ${ltxApiKey}`,
+            'Content-Type': 'application/json'
+          },
+          timeout: 180000,
+          responseType: 'arraybuffer'
+        }
+      );
+
+      // Save LTX-2 video to disk temporarily
+      const ltxLocalPath = path.join(__dirname, 'public', `ltx-video-${ts}.mp4`);
+      fs.writeFileSync(ltxLocalPath, ltxResponse.data);
+      console.log(`✅ LTX-2 video generated: ${ltxLocalPath}`);
+
+      // Upload LTX-2 video to S3 so Lambda can access it
+      const s3LtxKey = `ltx-videos/ltx-${ts}.mp4`;
+      await s3Client.send(new PutObjectCommand({
+        Bucket: s3Bucket,
+        Key: s3LtxKey,
+        Body: fs.readFileSync(ltxLocalPath),
+        ContentType: 'video/mp4'
+      }));
+
+      ltxVideoUrl = `https://${s3Bucket}.s3.${region}.amazonaws.com/${s3LtxKey}`;
+      console.log(`✅ LTX-2 video uploaded to S3: ${ltxVideoUrl}`);
+
+      // Clean up local temp file
+      fs.unlinkSync(ltxLocalPath);
+
+    } catch (ltxError) {
+      console.warn(`⚠️ LTX-2 failed, will use static image: ${ltxError.message}`);
+      // ltxVideoUrl remains null → Lambda will use imageUrl (static image fallback)
+    }
+
+    // Step 3: Render with Remotion Lambda
     let renderResult;
     let renderMode = 'lambda';
 
     try {
-      console.log('🚀 Step 2: Trying AWS Lambda render...');
+      console.log('🚀 Step 3: Trying AWS Lambda render...');
       renderResult = await renderVideoOnLambda({
         title,
         subtitle,
-        imageUrl: publicUrl,
+        imageUrl,
+        ltxVideoUrl,
         musicFile: music || 'bali-sunrise.mp3',
         userId
       });
@@ -106,7 +163,8 @@ app.post('/api/generate-video', upload.single('image'), async (req, res) => {
         renderResult = await renderVideoLocally({
           title,
           subtitle,
-          imageUrl: publicUrl,
+          imageUrl,
+          ltxVideoUrl,
           musicFile: music || 'bali-sunrise.mp3',
           userId
         });
