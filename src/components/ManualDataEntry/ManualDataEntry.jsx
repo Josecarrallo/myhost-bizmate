@@ -2526,35 +2526,32 @@ const ManualDataEntry = ({ onBack }) => {
                   No tasks found. Create your first task above!
                 </div>
               ) : (
-                <div className="bg-[#2a2f3a] rounded-xl overflow-hidden border-2 border-gray-200">
-                <div className="overflow-x-auto">
-                  <table className="w-full table-fixed">
-                    <thead className="bg-orange-500">
-                      <tr>
-                        <th className="w-[22%] px-4 py-3 text-left text-white font-bold">Title</th>
-                        <th className="w-[13%] px-4 py-3 text-left text-white font-bold">Category</th>
-                        <th className="w-[11%] px-4 py-3 text-left text-white font-bold">Priority</th>
-                        <th className="w-[11%] px-4 py-3 text-left text-white font-bold">Status</th>
-                        <th className="w-[11%] px-4 py-3 text-left text-white font-bold">Created</th>
-                        <th className="w-[17%] px-4 py-3 text-left text-white font-bold">Description</th>
-                        <th className="w-[15%] px-2 py-3 text-center text-white font-bold">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {tasks.map((task, index) => (
-                        <tr
-                          key={task.id}
-                          className={`border-b border-gray-700 ${index % 2 === 0 ? 'bg-[#2a2f3a]' : 'bg-[#1f2937]'} hover:bg-[#374151] transition-colors cursor-pointer`}
-                          onClick={() => handleEditTask(task)}
-                          title="Click to edit"
-                        >
-                          <td className="px-4 py-3 text-white font-medium overflow-hidden">
-                            <div className="truncate">{task.title}</div>
-                          </td>
-                          <td className="px-4 py-3 text-gray-300 capitalize overflow-hidden">
-                            <div className="truncate">{task.task_type || 'general'}</div>
-                          </td>
-                          <td className="px-4 py-3">
+                <>
+                  {/* MOBILE VERSION: Cards (< 768px) */}
+                  <div className="block md:hidden space-y-4">
+                    {tasks.slice(0, mobileTasksPage * MOBILE_PAGE_SIZE).map((task) => (
+                      <div
+                        key={task.id}
+                        className="bg-[#2a2f3a] rounded-xl p-4 border-l-4 border-orange-500 shadow-lg hover:bg-[#374151] transition-colors"
+                        onClick={() => handleEditTask(task)}
+                      >
+                        <div className="flex justify-between items-start mb-3">
+                          <div className="flex-1 min-w-0">
+                            <h3 className="text-white font-bold text-base truncate">{task.title}</h3>
+                            <p className="text-gray-400 text-xs mt-1 capitalize">{task.task_type || 'general'}</p>
+                          </div>
+                          <span className={`ml-2 shrink-0 px-2 py-0.5 rounded-full text-xs font-bold whitespace-nowrap ${
+                            task.status === 'completed' ? 'bg-green-500 text-white' :
+                            task.status === 'in_progress' ? 'bg-blue-500 text-white' :
+                            'bg-yellow-500 text-black'
+                          }`}>
+                            {task.status || 'pending'}
+                          </span>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-2 mb-3">
+                          <div>
+                            <p className="text-gray-500 text-xs">Priority</p>
                             <span className={`px-2 py-0.5 rounded-full text-xs font-bold inline-block whitespace-nowrap ${
                               task.priority === 'urgent' ? 'bg-red-500 text-white' :
                               task.priority === 'high' ? 'bg-orange-500 text-white' :
@@ -2563,47 +2560,129 @@ const ManualDataEntry = ({ onBack }) => {
                             }`}>
                               {task.priority || 'medium'}
                             </span>
-                          </td>
-                          <td className="px-4 py-3">
-                            <span className={`px-2 py-0.5 rounded-full text-xs font-bold inline-block whitespace-nowrap ${
-                              task.status === 'completed' ? 'bg-green-500 text-white' :
-                              task.status === 'in_progress' ? 'bg-blue-500 text-white' :
-                              'bg-yellow-500 text-black'
-                            }`}>
-                              {task.status || 'pending'}
-                            </span>
-                          </td>
-                          <td className="px-4 py-3 text-gray-300 text-sm whitespace-nowrap">
-                            {new Date(task.created_at).toLocaleDateString()}
-                          </td>
-                          <td className="px-4 py-3 text-gray-300 overflow-hidden">
-                            <div className="truncate">{task.description || '-'}</div>
-                          </td>
-                          <td className="px-2 py-3 text-center" onClick={(e) => e.stopPropagation()}>
-                            <div className="flex items-center justify-center gap-1">
-                              <button
-                                onClick={() => handleEditTask(task)}
-                                className="px-2 py-1 bg-orange-500 hover:bg-orange-600 text-white text-xs rounded-lg font-medium transition-all"
-                              >
-                                Edit
-                              </button>
-                              <button
-                                onClick={() => setDeletingTask(task)}
-                                className="p-1 hover:bg-red-500/20 rounded transition-colors"
-                                title="Delete"
-                              >
-                                <svg className="w-4 h-4 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                </svg>
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
+                          </div>
+                          <div>
+                            <p className="text-gray-500 text-xs">Created</p>
+                            <p className="text-white text-sm">{new Date(task.created_at).toLocaleDateString()}</p>
+                          </div>
+                        </div>
+
+                        {task.description && (
+                          <p className="text-gray-400 text-xs mb-3 line-clamp-2">{task.description}</p>
+                        )}
+
+                        <div className="flex gap-2 mt-3 pt-3 border-t border-gray-700" onClick={(e) => e.stopPropagation()}>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); handleEditTask(task); }}
+                            className="flex-1 bg-orange-500 hover:bg-orange-600 text-white px-4 py-2.5 rounded-lg font-semibold transition-colors text-sm"
+                          >
+                            Edit Task
+                          </button>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); setDeletingTask(task); }}
+                            className="bg-red-500/20 hover:bg-red-500 text-red-400 hover:text-white px-3 py-2.5 rounded-lg transition-colors"
+                            title="Delete task"
+                          >
+                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                    {tasks.length > mobileTasksPage * MOBILE_PAGE_SIZE && (
+                      <button
+                        onClick={() => setMobileTasksPage(prev => prev + 1)}
+                        className="w-full bg-orange-500 hover:bg-orange-600 text-white px-4 py-3 rounded-xl font-semibold transition-colors flex items-center justify-center gap-2"
+                      >
+                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                        </svg>
+                        Load More ({tasks.length - (mobileTasksPage * MOBILE_PAGE_SIZE)} remaining)
+                      </button>
+                    )}
+                  </div>
+
+                  {/* DESKTOP VERSION: Table (>= 768px) */}
+                  <div className="hidden md:block bg-[#2a2f3a] rounded-xl overflow-hidden border-2 border-gray-200">
+                    <div className="overflow-x-auto">
+                      <table className="w-full table-fixed">
+                        <thead className="bg-orange-500">
+                          <tr>
+                            <th className="w-[22%] px-4 py-3 text-left text-white font-bold">Title</th>
+                            <th className="w-[13%] px-4 py-3 text-left text-white font-bold">Category</th>
+                            <th className="w-[11%] px-4 py-3 text-left text-white font-bold">Priority</th>
+                            <th className="w-[11%] px-4 py-3 text-left text-white font-bold">Status</th>
+                            <th className="w-[11%] px-4 py-3 text-left text-white font-bold">Created</th>
+                            <th className="w-[17%] px-4 py-3 text-left text-white font-bold">Description</th>
+                            <th className="w-[15%] px-2 py-3 text-center text-white font-bold">Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {tasks.map((task, index) => (
+                            <tr
+                              key={task.id}
+                              className={`border-b border-gray-700 ${index % 2 === 0 ? 'bg-[#2a2f3a]' : 'bg-[#1f2937]'} hover:bg-[#374151] transition-colors cursor-pointer`}
+                              onClick={() => handleEditTask(task)}
+                              title="Click to edit"
+                            >
+                              <td className="px-4 py-3 text-white font-medium overflow-hidden">
+                                <div className="truncate">{task.title}</div>
+                              </td>
+                              <td className="px-4 py-3 text-gray-300 capitalize overflow-hidden">
+                                <div className="truncate">{task.task_type || 'general'}</div>
+                              </td>
+                              <td className="px-4 py-3">
+                                <span className={`px-2 py-0.5 rounded-full text-xs font-bold inline-block whitespace-nowrap ${
+                                  task.priority === 'urgent' ? 'bg-red-500 text-white' :
+                                  task.priority === 'high' ? 'bg-orange-500 text-white' :
+                                  task.priority === 'medium' ? 'bg-yellow-500 text-black' :
+                                  'bg-green-500 text-white'
+                                }`}>
+                                  {task.priority || 'medium'}
+                                </span>
+                              </td>
+                              <td className="px-4 py-3">
+                                <span className={`px-2 py-0.5 rounded-full text-xs font-bold inline-block whitespace-nowrap ${
+                                  task.status === 'completed' ? 'bg-green-500 text-white' :
+                                  task.status === 'in_progress' ? 'bg-blue-500 text-white' :
+                                  'bg-yellow-500 text-black'
+                                }`}>
+                                  {task.status || 'pending'}
+                                </span>
+                              </td>
+                              <td className="px-4 py-3 text-gray-300 text-sm whitespace-nowrap">
+                                {new Date(task.created_at).toLocaleDateString()}
+                              </td>
+                              <td className="px-4 py-3 text-gray-300 overflow-hidden">
+                                <div className="truncate">{task.description || '-'}</div>
+                              </td>
+                              <td className="px-2 py-3 text-center" onClick={(e) => e.stopPropagation()}>
+                                <div className="flex items-center justify-center gap-1">
+                                  <button
+                                    onClick={() => handleEditTask(task)}
+                                    className="px-2 py-1 bg-orange-500 hover:bg-orange-600 text-white text-xs rounded-lg font-medium transition-all"
+                                  >
+                                    Edit
+                                  </button>
+                                  <button
+                                    onClick={() => setDeletingTask(task)}
+                                    className="p-1 hover:bg-red-500/20 rounded transition-colors"
+                                    title="Delete"
+                                  >
+                                    <svg className="w-4 h-4 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                    </svg>
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </>
               )}
 
               {/* Summary */}

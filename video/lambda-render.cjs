@@ -61,12 +61,18 @@ async function renderVideoOnLambda({ title, subtitle, imageUrl, ltxVideoUrl, mus
     console.log(`📹 Bucket: ${bucketName}`);
     console.log(`🆔 Render ID: ${renderId}`);
 
-    // Wait for render to complete
+    // Wait for render to complete (max 8 minutes)
+    const MAX_POLL_MS = 8 * 60 * 1000;
+    const pollStart = Date.now();
     let progress = await getRenderProgress({ renderId, bucketName, functionName, region });
     while (!progress.done && !progress.fatalErrorEncountered) {
+      if (Date.now() - pollStart > MAX_POLL_MS) {
+        throw new Error(`Render timeout: Lambda did not complete within 8 minutes. Render ID: ${renderId}`);
+      }
       await new Promise(resolve => setTimeout(resolve, 2000)); // Wait 2 seconds
       progress = await getRenderProgress({ renderId, bucketName, functionName, region });
-      console.log(`⏳ Progress: ${progress.overallProgress}%`);
+      const pct = (progress.overallProgress * 100).toFixed(1);
+      console.log(`⏳ Progress: ${pct}%`);
     }
 
     if (progress.fatalErrorEncountered) {

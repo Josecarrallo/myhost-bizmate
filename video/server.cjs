@@ -13,9 +13,16 @@ require('dotenv').config();
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-// CORS configuration
+// CORS configuration - allow any localhost port (Vite can use 5173, 5174, etc.)
 const corsOptions = {
-  origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+  origin: (origin, callback) => {
+    const prodUrl = process.env.FRONTEND_URL;
+    if (!origin || /^http:\/\/localhost:\d+$/.test(origin) || origin === prodUrl) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true
 };
 
