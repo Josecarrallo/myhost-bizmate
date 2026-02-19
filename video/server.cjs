@@ -31,9 +31,9 @@ app.use(cors(corsOptions));
 app.use(express.json());
 app.use('/videos', express.static(path.join(__dirname, 'out')));
 
-// Supabase client
+// Supabase client (anon key — for general use)
 const supabaseUrl = (process.env.SUPABASE_URL || 'https://jjpscimtxrudtepzwhag.supabase.co').trim();
-const supabaseKey = (process.env.SUPABASE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpqcHNjaW10eHJ1ZHRlcHp3aGFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI5NDMyMzIsImV4cCI6MjA3ODUxOTIzMn0._U_HwdF5-yT8-prJLzkdO_rGbNuu7Z3gpUQW0Q8zxa0').trim();
+const supabaseKey = (process.env.SUPABASE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpqcHNjaW10eHJ1ZHRlcHp3aGFnIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2Mjk0MzIzMiwiZXhwIjoyMDc4NTE5MjMyfQ.RBD16xjgQB__nj5DtLrK2w55uQ4WFJiaa0mfZT2BeJg').trim();
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 // Multer storage
@@ -246,6 +246,24 @@ app.post('/api/start-video-job', upload.single('image'), async (req, res) => {
     const imageUrl = `https://${s3Bucket}.s3.${region}.amazonaws.com/${s3ImageKey}`;
     console.log(`[start-video-job] Image uploaded: ${imageUrl}`);
 
+    // INSERT into Supabase videos table — status: pending
+    console.log('[start-video-job] Creating job in Supabase videos...');
+    const { error: insertError } = await supabase
+      .from('videos')
+      .insert([{
+        id: jobId,
+        user_id: userId || null,
+        photo_url_s3: imageUrl,
+        status: 'pending',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      }]);
+
+    if (insertError) {
+      console.warn('[start-video-job] Supabase insert warning:', insertError.message);
+      // Non-fatal — continue even if Supabase is unavailable
+    }
+
     // Call Lambda 1 — LTX-2
     const ltxResult = await callLtxLambda({
       jobId,
@@ -253,6 +271,20 @@ app.post('/api/start-video-job', upload.single('image'), async (req, res) => {
       imageUrl,
       prompt: prompt || 'slow cinematic zoom, luxury villa ambiance, peaceful atmosphere'
     });
+
+    // UPDATE Supabase videos — status: ltx_done
+    const { error: updateError } = await supabase
+      .from('videos')
+      .update({
+        ltx_video_url_s3: ltxResult.ltxVideoUrl,
+        status: 'ltx_done',
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', jobId);
+
+    if (updateError) {
+      console.warn('[start-video-job] Supabase update warning:', updateError.message);
+    }
 
     console.log(`[start-video-job] Done. ltxVideoUrl=${ltxResult.ltxVideoUrl}`);
     res.json({
@@ -264,6 +296,13 @@ app.post('/api/start-video-job', upload.single('image'), async (req, res) => {
 
   } catch (error) {
     console.error('[start-video-job] Error:', error.message);
+    // UPDATE Supabase videos — status: failed
+    if (req.body?.jobId || req.body) {
+      const failJobId = req.body?.jobId || req.body?.clientJobId;
+      if (failJobId) {
+        await supabase.from('videos').update({ status: 'failed', updated_at: new Date().toISOString() }).eq('id', failJobId).catch(() => {});
+      }
+    }
     res.status(500).json({ success: false, error: error.message });
   }
 });
@@ -292,6 +331,25 @@ app.post('/api/render-final-video', async (req, res) => {
       musicFile: musicFile || 'bali-sunrise.mp3'
     });
 
+    // UPDATE Supabase videos — status: rendered
+    const { error: updateError } = await supabase
+      .from('videos')
+      .update({
+        final_video_url_s3: renderResult.finalVideoUrl,
+        status: 'rendered',
+        render_id: renderResult.renderId,
+        render_time_seconds: renderResult.renderTime,
+        title: title || 'NISMARA UMA VILLA',
+        subtitle: subtitle || 'Discover Your Balinese Sanctuary',
+        music_file: musicFile || 'bali-sunrise.mp3',
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', jobId);
+
+    if (updateError) {
+      console.warn('[render-final-video] Supabase update warning:', updateError.message);
+    }
+
     console.log(`[render-final-video] Done. finalVideoUrl=${renderResult.finalVideoUrl}`);
     res.json({
       success: true,
@@ -303,6 +361,10 @@ app.post('/api/render-final-video', async (req, res) => {
 
   } catch (error) {
     console.error('[render-final-video] Error:', error.message);
+    // UPDATE Supabase videos — status: failed
+    if (jobId) {
+      await supabase.from('videos').update({ status: 'failed', updated_at: new Date().toISOString() }).eq('id', jobId).catch(() => {});
+    }
     res.status(500).json({ success: false, error: error.message });
   }
 });
