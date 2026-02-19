@@ -203,6 +203,111 @@ app.post('/api/generate-video', upload.single('image'), async (req, res) => {
   }
 });
 
+// ─── NEW ENDPOINTS: two-step video pipeline (feature/aws-only-architecture) ───
+const { callLtxLambda, callRemotionLambda } = require('./aws-lambdas.js');
+
+// POST /api/start-video-job
+// Input: multipart/form-data { image, userId, prompt, jobId? }
+// Output: { jobId, ltxVideoUrl, imageUrl }
+app.post('/api/start-video-job', upload.single('image'), async (req, res) => {
+  try {
+    console.log('\n🎬 [start-video-job] Request received');
+
+    // Map Railway workaround at startup
+    if (!process.env.AWS_ACCESS_KEY_ID && process.env.REMOTION_AWS_ACCESS_KEY_ID) {
+      process.env.AWS_ACCESS_KEY_ID = process.env.REMOTION_AWS_ACCESS_KEY_ID;
+    }
+    if (!process.env.AWS_SECRET_ACCESS_KEY && process.env.REMOTION_AWS_SECRET_ACCESS_KEY) {
+      process.env.AWS_SECRET_ACCESS_KEY = process.env.REMOTION_AWS_SECRET_ACCESS_KEY;
+    }
+
+    const { userId, prompt, jobId: clientJobId } = req.body;
+    const jobId = clientJobId || `job-${Date.now()}`;
+
+    if (!req.file) {
+      return res.status(400).json({ success: false, error: 'image file is required' });
+    }
+
+    // Upload image to S3
+    const region = process.env.AWS_REGION || 'us-east-1';
+    const s3Bucket = 'remotionlambda-useast1-1w04idkkha';
+    const s3Client = new S3Client({ region });
+    const ts = Date.now();
+
+    console.log('[start-video-job] Uploading image to S3...');
+    const imageBuffer = fs.readFileSync(req.file.path);
+    const s3ImageKey = `images/job-${ts}.jpeg`;
+    await s3Client.send(new PutObjectCommand({
+      Bucket: s3Bucket,
+      Key: s3ImageKey,
+      Body: imageBuffer,
+      ContentType: 'image/jpeg'
+    }));
+    const imageUrl = `https://${s3Bucket}.s3.${region}.amazonaws.com/${s3ImageKey}`;
+    console.log(`[start-video-job] Image uploaded: ${imageUrl}`);
+
+    // Call Lambda 1 — LTX-2
+    const ltxResult = await callLtxLambda({
+      jobId,
+      userId: userId || null,
+      imageUrl,
+      prompt: prompt || 'slow cinematic zoom, luxury villa ambiance, peaceful atmosphere'
+    });
+
+    console.log(`[start-video-job] Done. ltxVideoUrl=${ltxResult.ltxVideoUrl}`);
+    res.json({
+      success: true,
+      jobId: ltxResult.jobId,
+      ltxVideoUrl: ltxResult.ltxVideoUrl,
+      imageUrl: ltxResult.imageUrlS3
+    });
+
+  } catch (error) {
+    console.error('[start-video-job] Error:', error.message);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// POST /api/render-final-video
+// Input: JSON { jobId, ltxVideoUrl, imageUrl, title, subtitle, musicFile, userId }
+// Output: { jobId, finalVideoUrl, renderId, renderTime }
+app.post('/api/render-final-video', async (req, res) => {
+  try {
+    console.log('\n🎥 [render-final-video] Request received');
+
+    const { jobId, ltxVideoUrl, imageUrl, title, subtitle, musicFile, userId } = req.body;
+
+    if (!jobId || !ltxVideoUrl) {
+      return res.status(400).json({ success: false, error: 'jobId and ltxVideoUrl are required' });
+    }
+
+    // Call Lambda 2 — Remotion
+    const renderResult = await callRemotionLambda({
+      jobId,
+      userId: userId || null,
+      ltxVideoUrl,
+      imageUrl,
+      title: title || 'NISMARA UMA VILLA',
+      subtitle: subtitle || 'Discover Your Balinese Sanctuary',
+      musicFile: musicFile || 'bali-sunrise.mp3'
+    });
+
+    console.log(`[render-final-video] Done. finalVideoUrl=${renderResult.finalVideoUrl}`);
+    res.json({
+      success: true,
+      jobId: renderResult.jobId,
+      finalVideoUrl: renderResult.finalVideoUrl,
+      renderId: renderResult.renderId,
+      renderTime: renderResult.renderTime
+    });
+
+  } catch (error) {
+    console.error('[render-final-video] Error:', error.message);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+// ─────────────────────────────────────────────────────────────────────────────
+
 app.listen(PORT, () => {
   console.log(`\n🚀 Video Generation API Server running on http://localhost:${PORT}`);
   console.log(`📊 Health check: http://localhost:${PORT}/api/health`);

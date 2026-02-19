@@ -130,4 +130,25 @@ async function renderVideoOnLambda({ title, subtitle, imageUrl, ltxVideoUrl, mus
   }
 }
 
-module.exports = { renderVideoOnLambda };
+/**
+ * Lambda 2 – Remotion Render Handler
+ *
+ * Input event:
+ *   { jobId, userId, ltxVideoUrl, imageUrl, title, subtitle, musicFile }
+ *
+ * Output:
+ *   { jobId, userId, finalVideoUrl, renderId, renderTime }
+ */
+exports.handler = async (event) => {
+  const { jobId, userId, ltxVideoUrl, imageUrl, title, subtitle, musicFile } = event;
+  const result = await renderVideoOnLambda({ title, subtitle, imageUrl, ltxVideoUrl, musicFile, userId });
+  return {
+    jobId,
+    userId,
+    finalVideoUrl: result.videoUrl,
+    renderId: result.renderId,
+    renderTime: result.renderTime
+  };
+};
+
+module.exports = { renderVideoOnLambda, handler: exports.handler };

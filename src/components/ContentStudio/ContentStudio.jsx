@@ -148,68 +148,88 @@ const ContentStudio = ({ onBack }) => {
     }
   }, [step]);
 
-  // Generate video
+  // Generate video — two-step pipeline (feature/aws-only-architecture)
   const handleGenerateVideo = async () => {
     setStep(3);
     setGenerating(true);
     setProgress(0);
 
     try {
-      // Get user auth token
-      const { data: { session } } = await supabase.auth.getSession();
-      const authToken = session?.access_token;
+      const userId = userData?.id || '';
+      const jobId = `job-${Date.now()}`;
 
-      // Create FormData for file upload
-      const formDataToSend = new FormData();
-      formDataToSend.append('image', uploadedImage);
-      formDataToSend.append('title', formData.title);
-      formDataToSend.append('subtitle', formData.subtitle);
-      formDataToSend.append('cameraPrompt', formData.cameraPrompt);
-      formDataToSend.append('music', formData.music);
-      formDataToSend.append('userId', userData?.id || '');
-      formDataToSend.append('authToken', authToken || ''); // Send auth token for RLS
+      // ── Step 1: Upload image + generate LTX-2 base video (~80s) ──────────
+      console.log('🚀 [Step 1] Calling /api/start-video-job...');
+      setProgress(5);
 
-      // Simulate progress while waiting for backend
-      const progressInterval = setInterval(() => {
-        setProgress((prev) => {
-          if (prev >= 90) {
-            clearInterval(progressInterval);
-            return 90;
-          }
-          return prev + 3;
-        });
-      }, 1000);
+      const formDataStep1 = new FormData();
+      formDataStep1.append('image', uploadedImage);
+      formDataStep1.append('userId', userId);
+      formDataStep1.append('prompt', formData.cameraPrompt);
+      formDataStep1.append('jobId', jobId);
 
-      console.log('🚀 Sending video generation request to backend...');
+      // Simulate progress 5→50 during LTX-2 (~80s)
+      const progressInterval1 = setInterval(() => {
+        setProgress((prev) => (prev < 50 ? prev + 1 : prev));
+      }, 1600);
 
-      // Call backend API
-      const response = await fetch(`${API_URL}/api/generate-video`, {
+      const step1Res = await fetch(`${API_URL}/api/start-video-job`, {
         method: 'POST',
-        body: formDataToSend
+        body: formDataStep1
       });
+      clearInterval(progressInterval1);
 
-      clearInterval(progressInterval);
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Video generation failed');
+      if (!step1Res.ok) {
+        const err = await step1Res.json();
+        throw new Error(err.error || 'Step 1 (LTX-2) failed');
       }
 
-      const result = await response.json();
+      const step1 = await step1Res.json();
+      setProgress(55);
+      console.log('✅ [Step 1] ltxVideoUrl:', step1.ltxVideoUrl);
 
+      // ── Step 2: Remotion render with overlays (~55s) ──────────────────────
+      console.log('🎬 [Step 2] Calling /api/render-final-video...');
+
+      // Simulate progress 55→90 during Remotion render (~55s)
+      const progressInterval2 = setInterval(() => {
+        setProgress((prev) => (prev < 90 ? prev + 1 : prev));
+      }, 1200);
+
+      const step2Res = await fetch(`${API_URL}/api/render-final-video`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          jobId: step1.jobId,
+          ltxVideoUrl: step1.ltxVideoUrl,
+          imageUrl: step1.imageUrl,
+          title: formData.title,
+          subtitle: formData.subtitle,
+          musicFile: formData.music,
+          userId
+        })
+      });
+      clearInterval(progressInterval2);
+
+      if (!step2Res.ok) {
+        const err = await step2Res.json();
+        throw new Error(err.error || 'Step 2 (Remotion) failed');
+      }
+
+      const step2 = await step2Res.json();
       setProgress(100);
+      console.log('✅ [Step 2] finalVideoUrl:', step2.finalVideoUrl);
+
       setGenerating(false);
       setGeneratedVideo({
-        url: result.videoUrl.startsWith('http') ? result.videoUrl : `${API_URL}${result.videoUrl}`,
+        url: step2.finalVideoUrl,
         thumbnail: imagePreview,
         title: formData.title,
-        filename: result.filename
+        filename: `${step2.renderId}-out.mp4`
       });
       setStep(4);
 
-      console.log('✅ Video generated successfully:', result);
-
-      // Reload video history to show the new video
+      // Reload video history
       await loadVideoHistory();
 
     } catch (error) {
@@ -217,7 +237,7 @@ const ContentStudio = ({ onBack }) => {
       setGenerating(false);
       setProgress(0);
       alert(`Error generating video: ${error.message}\n\nMake sure the backend server is running on port 3001.`);
-      setStep(2); // Go back to customize step
+      setStep(2);
     }
   };
 
