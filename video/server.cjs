@@ -62,13 +62,14 @@ app.post('/api/generate-video', upload.single('image'), async (req, res) => {
   try {
     console.log('\n🎬 Video Generation Request Received');
 
-    const { title, subtitle, cameraMovement, music, userId } = req.body;
+    const { title, subtitle, cameraMovement, cameraPrompt, music, userId } = req.body;
+    const cameraText = cameraMovement || cameraPrompt;
     const imagePath = req.file.path;
 
     console.log(`📸 Image: ${req.file.filename}`);
     console.log(`🎨 Title: ${title}`);
     console.log(`📝 Subtitle: ${subtitle}`);
-    console.log(`🎥 Camera: ${cameraMovement}`);
+    console.log(`🎥 Camera: ${cameraText}`);
     console.log(`🎵 Music: ${music}`);
 
     // Map Railway workaround: Railway blocks AWS_ACCESS_KEY_ID, use REMOTION_ prefix
@@ -109,7 +110,7 @@ app.post('/api/generate-video', upload.single('image'), async (req, res) => {
         'https://api.ltx.video/v1/image-to-video',
         {
           image_uri: imageUrl,
-          prompt: cameraMovement || 'slow cinematic zoom, luxury villa ambiance, peaceful atmosphere',
+          prompt: cameraText || 'slow cinematic zoom, luxury villa ambiance, peaceful atmosphere',
           duration: 6,
           resolution: '1920x1080',
           model: 'ltx-2-pro'
