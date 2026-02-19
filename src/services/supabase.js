@@ -680,6 +680,18 @@ export const supabaseService = {
     return data;
   },
 
+  async updateTask(id, updates) {
+    const { data, error } = await supabase
+      .from('tasks')
+      .update(updates)
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) throw new Error(error.message || 'Failed to update task');
+    return data;
+  },
+
   async deleteTask(id) {
     const { error } = await supabase
       .from('tasks')

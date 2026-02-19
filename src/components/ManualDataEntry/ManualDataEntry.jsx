@@ -141,6 +141,9 @@ const ManualDataEntry = ({ onBack }) => {
   const [mobileTasksPage, setMobileTasksPage] = useState(1);
   const [deletingTask, setDeletingTask] = useState(null);
   const [isDeletingTask, setIsDeletingTask] = useState(false);
+  const [editingTask, setEditingTask] = useState(null);
+  const [editTaskForm, setEditTaskForm] = useState({});
+  const [isSavingTaskEdit, setIsSavingTaskEdit] = useState(false);
 
   // Load villas directly for Gita (bypassing properties table)
   useEffect(() => {
@@ -1020,18 +1023,15 @@ const ManualDataEntry = ({ onBack }) => {
         throw new Error('No property found. Please create a property first.');
       }
 
-      // Prepare task data for Supabase (autopilot_actions table)
+      // Prepare task data for Supabase (tasks table)
       const taskData = {
-        tenant_id: userData.id,              // REQUIRED
-        property_id: propertyId,             // REQUIRED
-        action_type: taskForm.category,      // REQUIRED (housekeeping, maintenance, inventory)
-        title: taskForm.title,               // REQUIRED
+        tenant_id: userData.id,
+        property_id: propertyId,
+        task_type: taskForm.category,
+        title: taskForm.title,
         description: taskForm.description || null,
-        priority: taskForm.priority || 'medium'
-        // due_date NO EXISTE en la tabla
-        // assigned_to NO EXISTE en la tabla
-        // status: 'pending' (auto-default)
-        // created_at, updated_at (auto-generated)
+        priority: taskForm.priority || 'medium',
+        status: 'pending'
       };
 
       console.log('✅ Creating task:', taskData);
@@ -1125,6 +1125,42 @@ const ManualDataEntry = ({ onBack }) => {
       setTimeout(() => setErrorMessage(''), 5000);
     } finally {
       setIsDeletingTask(false);
+    }
+  };
+
+  const handleEditTask = (task) => {
+    setEditingTask(task);
+    setEditTaskForm({
+      title: task.title || '',
+      task_type: task.task_type || 'housekeeping',
+      priority: task.priority || 'medium',
+      status: task.status || 'pending',
+      description: task.description || ''
+    });
+  };
+
+  const handleUpdateTask = async (e) => {
+    e.preventDefault();
+    if (!editingTask) return;
+    try {
+      setIsSavingTaskEdit(true);
+      await supabaseService.updateTask(editingTask.id, {
+        title: editTaskForm.title,
+        task_type: editTaskForm.task_type,
+        priority: editTaskForm.priority,
+        status: editTaskForm.status,
+        description: editTaskForm.description || null
+      });
+      setSuccessMessage(`Task "${editTaskForm.title}" updated successfully`);
+      setEditingTask(null);
+      loadTasks();
+      setTimeout(() => setSuccessMessage(''), 5000);
+    } catch (error) {
+      console.error('Error updating task:', error);
+      setErrorMessage(`Failed to update task: ${error.message}`);
+      setTimeout(() => setErrorMessage(''), 5000);
+    } finally {
+      setIsSavingTaskEdit(false);
     }
   };
 
@@ -2216,14 +2252,25 @@ const ManualDataEntry = ({ onBack }) => {
                             )}
                           </div>
                         </div>
-                        <button
-                          onClick={() => handleAddPaymentClick(booking)}
-                          disabled={booking.payment_status === 'paid'}
-                          className="w-full bg-orange-500 hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed text-white px-4 py-2.5 rounded-lg font-semibold transition-colors flex items-center justify-center gap-2"
-                        >
-                          <DollarSign className="w-5 h-5" />
-                          {booking.payment_status === 'paid' ? 'Paid' : 'Add Payment'}
-                        </button>
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => handleAddPaymentClick(booking)}
+                            disabled={booking.payment_status === 'paid'}
+                            className="flex-1 bg-orange-500 hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed text-white px-4 py-2.5 rounded-lg font-semibold transition-colors flex items-center justify-center gap-2"
+                          >
+                            <DollarSign className="w-5 h-5" />
+                            {booking.payment_status === 'paid' ? 'Paid' : 'Add Payment'}
+                          </button>
+                          <button
+                            onClick={() => setDeletingBooking(booking)}
+                            className="p-2.5 bg-red-500/20 hover:bg-red-500/40 rounded-lg transition-colors"
+                            title="Delete"
+                          >
+                            <svg className="w-5 h-5 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                          </button>
+                        </div>
                       </div>
                     ))}
                     {/* Load More Button */}
@@ -2298,14 +2345,25 @@ const ManualDataEntry = ({ onBack }) => {
                                 </div>
                               </td>
                               <td className="px-2 py-3 text-center">
-                                <button
-                                  onClick={() => handleAddPaymentClick(booking)}
-                                  disabled={booking.payment_status === 'paid'}
-                                  className="px-3 py-1.5 bg-orange-500 hover:bg-orange-600 text-white text-xs rounded-lg font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1 mx-auto"
-                                >
-                                  <DollarSign className="w-3 h-3" />
-                                  Add Payment
-                                </button>
+                                <div className="flex items-center justify-center gap-1">
+                                  <button
+                                    onClick={() => handleAddPaymentClick(booking)}
+                                    disabled={booking.payment_status === 'paid'}
+                                    className="px-3 py-1.5 bg-orange-500 hover:bg-orange-600 text-white text-xs rounded-lg font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+                                  >
+                                    <DollarSign className="w-3 h-3" />
+                                    Add Payment
+                                  </button>
+                                  <button
+                                    onClick={() => setDeletingBooking(booking)}
+                                    className="p-1.5 hover:bg-red-500/20 rounded-lg transition-colors"
+                                    title="Delete"
+                                  >
+                                    <svg className="w-4 h-4 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                    </svg>
+                                  </button>
+                                </div>
                               </td>
                             </tr>
                           ))
@@ -2469,28 +2527,35 @@ const ManualDataEntry = ({ onBack }) => {
                 </div>
               ) : (
                 <div className="bg-[#2a2f3a] rounded-xl overflow-hidden border-2 border-gray-200">
-                  <table className="w-full">
+                <div className="overflow-x-auto">
+                  <table className="w-full table-fixed">
                     <thead className="bg-orange-500">
                       <tr>
-                        <th className="px-4 py-3 text-left text-white font-bold">Title</th>
-                        <th className="px-4 py-3 text-left text-white font-bold">Category</th>
-                        <th className="px-4 py-3 text-left text-white font-bold">Priority</th>
-                        <th className="px-4 py-3 text-left text-white font-bold">Status</th>
-                        <th className="px-4 py-3 text-left text-white font-bold">Created</th>
-                        <th className="px-4 py-3 text-left text-white font-bold">Description</th>
-                        <th className="px-2 py-3 text-center text-white font-bold"></th>
+                        <th className="w-[22%] px-4 py-3 text-left text-white font-bold">Title</th>
+                        <th className="w-[13%] px-4 py-3 text-left text-white font-bold">Category</th>
+                        <th className="w-[11%] px-4 py-3 text-left text-white font-bold">Priority</th>
+                        <th className="w-[11%] px-4 py-3 text-left text-white font-bold">Status</th>
+                        <th className="w-[11%] px-4 py-3 text-left text-white font-bold">Created</th>
+                        <th className="w-[17%] px-4 py-3 text-left text-white font-bold">Description</th>
+                        <th className="w-[15%] px-2 py-3 text-center text-white font-bold">Actions</th>
                       </tr>
                     </thead>
                     <tbody>
                       {tasks.map((task, index) => (
                         <tr
                           key={task.id}
-                          className={`border-b border-gray-700 ${index % 2 === 0 ? 'bg-[#2a2f3a]' : 'bg-[#1f2937]'} hover:bg-[#374151] transition-colors`}
+                          className={`border-b border-gray-700 ${index % 2 === 0 ? 'bg-[#2a2f3a]' : 'bg-[#1f2937]'} hover:bg-[#374151] transition-colors cursor-pointer`}
+                          onClick={() => handleEditTask(task)}
+                          title="Click to edit"
                         >
-                          <td className="px-4 py-3 text-white font-medium">{task.title}</td>
-                          <td className="px-4 py-3 text-gray-300 capitalize">{task.action_type || 'general'}</td>
+                          <td className="px-4 py-3 text-white font-medium overflow-hidden">
+                            <div className="truncate">{task.title}</div>
+                          </td>
+                          <td className="px-4 py-3 text-gray-300 capitalize overflow-hidden">
+                            <div className="truncate">{task.task_type || 'general'}</div>
+                          </td>
                           <td className="px-4 py-3">
-                            <span className={`px-2 py-1 rounded-full text-xs font-bold ${
+                            <span className={`px-2 py-0.5 rounded-full text-xs font-bold inline-block whitespace-nowrap ${
                               task.priority === 'urgent' ? 'bg-red-500 text-white' :
                               task.priority === 'high' ? 'bg-orange-500 text-white' :
                               task.priority === 'medium' ? 'bg-yellow-500 text-black' :
@@ -2500,7 +2565,7 @@ const ManualDataEntry = ({ onBack }) => {
                             </span>
                           </td>
                           <td className="px-4 py-3">
-                            <span className={`px-2 py-1 rounded-full text-xs font-bold ${
+                            <span className={`px-2 py-0.5 rounded-full text-xs font-bold inline-block whitespace-nowrap ${
                               task.status === 'completed' ? 'bg-green-500 text-white' :
                               task.status === 'in_progress' ? 'bg-blue-500 text-white' :
                               'bg-yellow-500 text-black'
@@ -2508,31 +2573,37 @@ const ManualDataEntry = ({ onBack }) => {
                               {task.status || 'pending'}
                             </span>
                           </td>
-                          <td className="px-4 py-3 text-gray-300">
+                          <td className="px-4 py-3 text-gray-300 text-sm whitespace-nowrap">
                             {new Date(task.created_at).toLocaleDateString()}
                           </td>
-                          <td className="px-4 py-3 text-gray-300">
-                            <div className="max-w-xs truncate">{task.description || '-'}</div>
+                          <td className="px-4 py-3 text-gray-300 overflow-hidden">
+                            <div className="truncate">{task.description || '-'}</div>
                           </td>
-                          <td className="px-2 py-3 text-center">
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setDeletingTask(task);
-                              }}
-                              className="p-1 hover:bg-red-500/20 rounded transition-colors"
-                              title="Delete"
-                            >
-                              <svg className="w-4 h-4 text-red-400 hover:text-red-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                              </svg>
-                            </button>
+                          <td className="px-2 py-3 text-center" onClick={(e) => e.stopPropagation()}>
+                            <div className="flex items-center justify-center gap-1">
+                              <button
+                                onClick={() => handleEditTask(task)}
+                                className="px-2 py-1 bg-orange-500 hover:bg-orange-600 text-white text-xs rounded-lg font-medium transition-all"
+                              >
+                                Edit
+                              </button>
+                              <button
+                                onClick={() => setDeletingTask(task)}
+                                className="p-1 hover:bg-red-500/20 rounded transition-colors"
+                                title="Delete"
+                              >
+                                <svg className="w-4 h-4 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       ))}
                     </tbody>
                   </table>
                 </div>
+              </div>
               )}
 
               {/* Summary */}
@@ -3167,6 +3238,94 @@ const ManualDataEntry = ({ onBack }) => {
                 {isDeletingTask ? 'Deleting...' : 'Delete'}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Task Modal */}
+      {editingTask && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4 overflow-y-auto">
+          <div className="bg-[#1f2937] rounded-2xl p-6 max-w-lg w-full border-2 border-orange-500 my-8">
+            <h3 className="text-2xl font-bold text-orange-400 mb-6">Edit Task</h3>
+            <form onSubmit={handleUpdateTask} className="space-y-4">
+              <div>
+                <label className="block text-[#FF8C42] font-medium mb-2">Title *</label>
+                <input
+                  type="text"
+                  required
+                  value={editTaskForm.title}
+                  onChange={(e) => setEditTaskForm({...editTaskForm, title: e.target.value})}
+                  className="w-full px-4 py-3 bg-[#2a2f3a] border-2 border-gray-200 rounded-xl text-white focus:outline-none focus:border-orange-300"
+                />
+              </div>
+              <div>
+                <label className="block text-[#FF8C42] font-medium mb-2">Category</label>
+                <select
+                  value={editTaskForm.task_type}
+                  onChange={(e) => setEditTaskForm({...editTaskForm, task_type: e.target.value})}
+                  className="w-full px-4 py-3 bg-[#2a2f3a] border-2 border-gray-200 rounded-xl text-white focus:outline-none focus:border-orange-300 [&>option]:bg-[#1f2937]"
+                >
+                  <option value="housekeeping">Housekeeping</option>
+                  <option value="maintenance">Maintenance</option>
+                  <option value="inventory">Inventory</option>
+                  <option value="general">General</option>
+                </select>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-[#FF8C42] font-medium mb-2">Priority</label>
+                  <select
+                    value={editTaskForm.priority}
+                    onChange={(e) => setEditTaskForm({...editTaskForm, priority: e.target.value})}
+                    className="w-full px-4 py-3 bg-[#2a2f3a] border-2 border-gray-200 rounded-xl text-white focus:outline-none focus:border-orange-300 [&>option]:bg-[#1f2937]"
+                  >
+                    <option value="low">Low</option>
+                    <option value="medium">Medium</option>
+                    <option value="high">High</option>
+                    <option value="urgent">Urgent</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-[#FF8C42] font-medium mb-2">Status</label>
+                  <select
+                    value={editTaskForm.status}
+                    onChange={(e) => setEditTaskForm({...editTaskForm, status: e.target.value})}
+                    className="w-full px-4 py-3 bg-[#2a2f3a] border-2 border-gray-200 rounded-xl text-white focus:outline-none focus:border-orange-300 [&>option]:bg-[#1f2937]"
+                  >
+                    <option value="pending">Pending</option>
+                    <option value="in_progress">In Progress</option>
+                    <option value="completed">Completed</option>
+                  </select>
+                </div>
+              </div>
+              <div>
+                <label className="block text-[#FF8C42] font-medium mb-2">Description</label>
+                <textarea
+                  value={editTaskForm.description}
+                  onChange={(e) => setEditTaskForm({...editTaskForm, description: e.target.value})}
+                  rows={3}
+                  className="w-full px-4 py-3 bg-[#2a2f3a] border-2 border-gray-200 rounded-xl text-white focus:outline-none focus:border-orange-300"
+                  placeholder="Optional..."
+                />
+              </div>
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setEditingTask(null)}
+                  disabled={isSavingTaskEdit}
+                  className="flex-1 px-4 py-3 bg-gray-600 hover:bg-gray-700 text-white rounded-xl font-medium transition-all"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSavingTaskEdit}
+                  className={`flex-1 px-4 py-3 bg-orange-500 hover:bg-orange-600 text-white rounded-xl font-medium transition-all ${isSavingTaskEdit ? 'opacity-50 cursor-not-allowed' : ''}`}
+                >
+                  {isSavingTaskEdit ? 'Saving...' : 'Save Changes'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
