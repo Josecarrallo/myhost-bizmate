@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import * as XLSX from 'xlsx';
 import {
   Zap,
   Calendar,
@@ -214,6 +215,8 @@ const Autopilot = ({ onBack }) => {
   // Data Export states
   const [exportStatus, setExportStatus] = useState('idle'); // 'idle' | 'loading' | 'done' | 'error'
   const [exportMessage, setExportMessage] = useState('');
+  const [baliSheetYear, setBaliSheetYear] = useState(String(new Date().getFullYear()));
+  const [baliSheetVilla, setBaliSheetVilla] = useState('all');
 
   const [showDBVisualization, setShowDBVisualization] = useState(false);
   const [dbQueryLog, setDbQueryLog] = useState([]);
@@ -3596,18 +3599,41 @@ const Autopilot = ({ onBack }) => {
   const renderDataExportSection = () => {
     const fetchAllData = async () => {
       const tenantId = TENANT_ID;
-      const [properties, bookings, payments, leads, tasks] = await Promise.all([
-        dataService.getVillas({ tenant_id: tenantId }).catch(() => []),
+      const [allVillas, bookings, leads, tasks] = await Promise.all([
+        dataService.getVillas().catch(() => []),  // villas has no tenant_id column
         dataService.getBookings({ tenant_id: tenantId }).catch(() => []),
-        dataService.getPayments({ tenant_id: tenantId }).catch(() => []),
         dataService.getLeads({ tenant_id: tenantId }).catch(() => []),
         dataService.getTasks({ tenant_id: tenantId }).catch(() => [])
       ]);
+
+      // Identify user's villas via currency:
+      // Bookings link to villa_ids → find those villas' currency → filter ALL villas by that currency
+      // This includes villas with 0 bookings (e.g. Graha Uma with no bookings yet)
+      const bookedVillaIds = new Set(bookings.map(b => b.villa_id).filter(Boolean));
+      const bookedVillas = allVillas.filter(v => bookedVillaIds.has(v.id));
+      const userVillaCurrency = bookedVillas[0]?.currency || null;
+      const properties = userVillaCurrency
+        ? allVillas.filter(v => v.currency === userVillaCurrency)
+        : bookedVillas; // fallback to just booked villas if no currency detected
+
+      // Payment data comes from bookings (total_price, payment_status)
+      const payments = bookings.filter(b => b.total_price || b.payment_status);
+
       return { properties, bookings, payments, leads, tasks };
     };
 
     const formatDate = (d) => d ? new Date(d).toLocaleDateString('en-GB') : '';
-    const formatCurrency = (n) => n ? `$${Number(n).toLocaleString('en-US', { minimumFractionDigits: 2 })}` : '$0.00';
+
+    // Currency formatter — built after fetchAllData so we know the user's villa currency
+    const makeCurrencyFormatter = (propertiesList) => {
+      const villasCurrency = propertiesList[0]?.currency || 'IDR';
+      const isUSD = villasCurrency === 'USD';
+      return (n) => {
+        if (!n) return isUSD ? '$ 0.00' : 'Rp 0';
+        const formatted = Number(n).toLocaleString(isUSD ? 'en-US' : 'id-ID', isUSD ? { minimumFractionDigits: 2 } : {});
+        return isUSD ? `$ ${formatted}` : `Rp ${formatted}`;
+      };
+    };
 
     // ---- HTML SUMMARY ----
     const handleDownloadHTML = async () => {
@@ -3615,10 +3641,11 @@ const Autopilot = ({ onBack }) => {
         setExportStatus('loading');
         setExportMessage('Fetching data...');
         const { properties, bookings, payments, leads, tasks } = await fetchAllData();
+        const formatCurrency = makeCurrencyFormatter(properties);
         setExportMessage('Generating HTML...');
 
         const now = new Date().toLocaleString('en-GB');
-        const totalRevenue = payments.filter(p => p.status === 'paid').reduce((s, p) => s + Number(p.amount || 0), 0);
+        const totalRevenue = payments.reduce((s, p) => s + Number(p.total_price || 0), 0);
 
         const tableStyle = 'border-collapse:collapse;width:100%;margin-bottom:24px;font-size:13px;';
         const thStyle = 'background:#f97316;color:#fff;padding:8px 12px;text-align:left;border:1px solid #e2e8f0;';
@@ -3632,8 +3659,8 @@ const Autopilot = ({ onBack }) => {
           </table>`;
 
         const propRows = properties.map(p => [p.name || '', p.property_type || '', p.location || '', p.bedrooms || '', p.price_per_night ? formatCurrency(p.price_per_night) : '']);
-        const bookRows = bookings.map(b => [b.guest_name || '', formatDate(b.check_in), formatDate(b.check_out), b.villa_name || b.property_name || '', b.total_amount ? formatCurrency(b.total_amount) : '', b.status || '']);
-        const payRows = payments.map(p => [p.guest_name || '', formatDate(p.payment_date), p.amount ? formatCurrency(p.amount) : '', p.payment_method || '', p.status || '']);
+        const bookRows = bookings.map(b => [b.guest_name || '', formatDate(b.check_in), formatDate(b.check_out), b.villa_name || b.property_name || '', b.total_price ? formatCurrency(b.total_price) : '', b.status || '']);
+        const payRows = payments.map(p => [p.guest_name || '', formatDate(p.check_in) + ' → ' + formatDate(p.check_out), p.total_price ? formatCurrency(p.total_price) : '', p.amount_paid ? formatCurrency(p.amount_paid) : '', p.payment_status || p.status || '']);
         const leadRows = leads.map(l => [l.name || '', l.email || '', l.phone || '', l.status || '', l.source || '', formatDate(l.created_at)]);
         const taskRows = tasks.map(t => [t.title || '', t.task_type || '', t.priority || '', t.status || '', t.description || '', formatDate(t.created_at)]);
 
@@ -3673,7 +3700,7 @@ const Autopilot = ({ onBack }) => {
   ${tableHtml(['Guest','Check-in','Check-out','Property','Amount','Status'], bookRows)}
 
   <h2>Payments (${payments.length})</h2>
-  ${tableHtml(['Guest','Date','Amount','Method','Status'], payRows)}
+  ${tableHtml(['Guest','Period','Total Amount','Paid','Payment Status'], payRows)}
 
   <h2>Clients / Leads (${leads.length})</h2>
   ${tableHtml(['Name','Email','Phone','Status','Source','Created'], leadRows)}
@@ -3683,13 +3710,16 @@ const Autopilot = ({ onBack }) => {
 </body>
 </html>`;
 
-        const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+        const blob = new Blob([html], { type: 'application/octet-stream' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
         a.download = `myhost-bizmate-data-${new Date().toISOString().slice(0, 10)}.html`;
+        a.style.display = 'none';
+        document.body.appendChild(a);
         a.click();
-        URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+        setTimeout(() => URL.revokeObjectURL(url), 200);
         setExportStatus('done');
         setExportMessage('HTML downloaded successfully');
         setTimeout(() => setExportStatus('idle'), 4000);
@@ -3705,8 +3735,8 @@ const Autopilot = ({ onBack }) => {
       try {
         setExportStatus('loading');
         setExportMessage('Fetching data...');
-        const XLSX = (await import('xlsx')).default;
         const { properties, bookings, payments, leads, tasks } = await fetchAllData();
+        const formatCurrency = makeCurrencyFormatter(properties); // eslint-disable-line no-unused-vars
         setExportMessage('Generating Excel...');
 
         const wb = XLSX.utils.book_new();
@@ -3727,7 +3757,7 @@ const Autopilot = ({ onBack }) => {
           'Check-out': formatDate(b.check_out),
           Property: b.villa_name || b.property_name || '',
           Nights: b.nights || '',
-          Amount: b.total_amount || 0,
+          Amount: b.total_price || 0,
           Channel: b.channel || '',
           Status: b.status || '',
           Created: formatDate(b.created_at)
@@ -3736,11 +3766,13 @@ const Autopilot = ({ onBack }) => {
 
         const paySheet = XLSX.utils.json_to_sheet(payments.map(p => ({
           'Guest Name': p.guest_name || '',
-          Date: formatDate(p.payment_date),
-          Amount: p.amount || 0,
-          Method: p.payment_method || '',
-          Status: p.status || '',
-          Notes: p.notes || ''
+          'Check-in': formatDate(p.check_in),
+          'Check-out': formatDate(p.check_out),
+          Property: p.villa_name || p.property_name || '',
+          'Total Amount': p.total_price || 0,
+          'Amount Paid': p.amount_paid || 0,
+          'Payment Status': p.payment_status || p.status || '',
+          Channel: p.channel || ''
         })));
         XLSX.utils.book_append_sheet(wb, paySheet, 'Payments');
 
@@ -3803,12 +3835,12 @@ const Autopilot = ({ onBack }) => {
           {
             name: 'bookings',
             headers: ['Guest Name', 'Check-in', 'Check-out', 'Property', 'Nights', 'Amount', 'Channel', 'Status', 'Created'],
-            rows: bookings.map(b => [b.guest_name, formatDate(b.check_in), formatDate(b.check_out), b.villa_name || b.property_name, b.nights, b.total_amount, b.channel, b.status, formatDate(b.created_at)])
+            rows: bookings.map(b => [b.guest_name, formatDate(b.check_in), formatDate(b.check_out), b.villa_name || b.property_name, b.nights, b.total_price, b.channel, b.status, formatDate(b.created_at)])
           },
           {
             name: 'payments',
-            headers: ['Guest Name', 'Date', 'Amount', 'Method', 'Status', 'Notes'],
-            rows: payments.map(p => [p.guest_name, formatDate(p.payment_date), p.amount, p.payment_method, p.status, p.notes])
+            headers: ['Guest Name', 'Check-in', 'Check-out', 'Property', 'Total Amount', 'Amount Paid', 'Payment Status', 'Channel'],
+            rows: payments.map(p => [p.guest_name, formatDate(p.check_in), formatDate(p.check_out), p.villa_name || p.property_name, p.total_price, p.amount_paid, p.payment_status || p.status, p.channel])
           },
           {
             name: 'clients_leads',
@@ -3830,9 +3862,12 @@ const Autopilot = ({ onBack }) => {
           const a = document.createElement('a');
           a.href = url;
           a.download = `myhost-bizmate-${ds.name}-${new Date().toISOString().slice(0, 10)}.csv`;
+          a.style.display = 'none';
+          document.body.appendChild(a);
           a.click();
-          URL.revokeObjectURL(url);
-          await new Promise(r => setTimeout(r, 300)); // small delay between downloads
+          document.body.removeChild(a);
+          setTimeout(() => URL.revokeObjectURL(url), 200);
+          await new Promise(r => setTimeout(r, 400)); // delay between downloads
         }
 
         setExportStatus('done');
@@ -3840,6 +3875,140 @@ const Autopilot = ({ onBack }) => {
         setTimeout(() => setExportStatus('idle'), 4000);
       } catch (err) {
         console.error('CSV export error:', err);
+        setExportStatus('error');
+        setExportMessage('Export failed: ' + err.message);
+      }
+    };
+
+    // ---- BALI BOOKING SHEET ----
+    const handleDownloadBaliSheet = async () => {
+      try {
+        setExportStatus('loading');
+        setExportMessage('Fetching bookings...');
+
+        const tenantId = TENANT_ID;
+        let query = supabase
+          .from('bookings')
+          .select('guest_name, check_in, check_out, guests, nights, total_price, channel, payment_status, notes, villa_id')
+          .eq('tenant_id', tenantId)
+          .order('check_in', { ascending: true });
+
+        if (baliSheetYear !== 'all') {
+          query = query
+            .gte('check_in', `${baliSheetYear}-01-01`)
+            .lte('check_in', `${baliSheetYear}-12-31`);
+        }
+        if (baliSheetVilla !== 'all') {
+          query = query.eq('villa_id', baliSheetVilla);
+        }
+
+        const { data: bookingsRaw, error } = await query;
+        if (error) throw new Error(error.message);
+        const bkgs = bookingsRaw || [];
+
+        setExportMessage('Building Excel sheet...');
+
+        const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+        const getMonth = (dateStr) => MONTHS[new Date(dateStr).getMonth()];
+        const fmtDate = (d) => {
+          if (!d) return '';
+          const dt = new Date(d);
+          return `${dt.getDate()} ${MONTHS[dt.getMonth()].slice(0,3)}`;
+        };
+        const fmtNum = (n) => n ? Number(n).toLocaleString('id-ID') : '-';
+
+        // Group by month
+        const byMonth = {};
+        bkgs.forEach(b => {
+          const mon = getMonth(b.check_in);
+          if (!byMonth[mon]) byMonth[mon] = [];
+          byMonth[mon].push(b);
+        });
+
+        // Build rows
+        const rows = [];
+        // Header row 1
+        rows.push(['NO', 'MONTH', 'GUEST NAME', 'CHECK IN', 'CHECK OUT', 'PAX', 'ROOM NIGHTS', 'PRICE (IDR)', 'BOOKING SOURCE', 'PAYMENT STATUS', 'SPECIAL REQUEST', 'TOTAL REVENUE ON HAND']);
+
+        let counter = 1;
+        let cumulativeRevenue = 0;
+
+        MONTHS.forEach(month => {
+          if (!byMonth[month]) return;
+          const monthBkgs = byMonth[month];
+          const monthRevenue = monthBkgs.reduce((s, b) => s + Number(b.total_price || 0), 0);
+          cumulativeRevenue += monthRevenue;
+
+          monthBkgs.forEach((b, i) => {
+            const nights = b.nights || (b.check_in && b.check_out
+              ? Math.round((new Date(b.check_out) - new Date(b.check_in)) / 86400000)
+              : '-');
+            const payStatus = b.payment_status === 'paid' ? 'Done'
+              : b.payment_status === 'pending' ? 'On Scheduled'
+              : b.payment_status === 'expired' ? 'Expired'
+              : b.payment_status || '-';
+            rows.push([
+              counter++,
+              i === 0 ? month : '',                      // Month only on first row
+              b.guest_name || '-',
+              fmtDate(b.check_in),
+              fmtDate(b.check_out),
+              b.guests || '-',
+              nights,
+              fmtNum(b.total_price),
+              b.channel || '-',
+              payStatus,
+              b.notes || '-',
+              i === 0 ? fmtNum(cumulativeRevenue) : ''  // Revenue only on first row of month
+            ]);
+          });
+        });
+
+        // Build workbook
+        const wb = XLSX.utils.book_new();
+        const ws = XLSX.utils.aoa_to_sheet(rows);
+
+        // Column widths
+        ws['!cols'] = [
+          { wch: 5 },  // NO
+          { wch: 12 }, // MONTH
+          { wch: 22 }, // GUEST NAME
+          { wch: 13 }, // CHECK IN
+          { wch: 13 }, // CHECK OUT
+          { wch: 5 },  // PAX
+          { wch: 12 }, // ROOM NIGHTS
+          { wch: 16 }, // PRICE
+          { wch: 16 }, // BOOKING SOURCE
+          { wch: 16 }, // PAYMENT STATUS
+          { wch: 20 }, // SPECIAL REQUEST
+          { wch: 22 }, // TOTAL REVENUE ON HAND
+        ];
+
+        // Style header row (XLSX basic style via cell metadata)
+        const headerRange = XLSX.utils.decode_range(ws['!ref'] || 'A1:L1');
+        for (let C = headerRange.s.c; C <= headerRange.e.c; C++) {
+          const addr = XLSX.utils.encode_cell({ r: 0, c: C });
+          if (!ws[addr]) continue;
+          ws[addr].s = {
+            font: { bold: true, color: { rgb: 'FFFFFF' } },
+            fill: { fgColor: { rgb: 'F97316' } },
+            alignment: { horizontal: 'center', wrapText: true }
+          };
+        }
+
+        const villaName = baliSheetVilla === 'all' ? 'All Villas'
+          : (userProperties.find(v => v.id === baliSheetVilla)?.name || baliSheetVilla);
+        const sheetName = `Bookings ${baliSheetYear === 'all' ? 'All Years' : baliSheetYear}`;
+        XLSX.utils.book_append_sheet(wb, ws, sheetName.slice(0, 31));
+
+        const fileName = `bali-booking-sheet-${villaName.replace(/\s+/g, '-')}-${baliSheetYear}-${new Date().toISOString().slice(0,10)}.xlsx`;
+        XLSX.writeFile(wb, fileName);
+
+        setExportStatus('done');
+        setExportMessage(`Bali Booking Sheet downloaded — ${bkgs.length} bookings`);
+        setTimeout(() => setExportStatus('idle'), 5000);
+      } catch (err) {
+        console.error('Bali sheet error:', err);
         setExportStatus('error');
         setExportMessage('Export failed: ' + err.message);
       }
@@ -3952,6 +4121,71 @@ const Autopilot = ({ onBack }) => {
           })}
         </div>
 
+        {/* Bali Booking Sheet */}
+        <div className="bg-[#1f2937] rounded-2xl p-6 border-2 border-orange-500/40">
+          <div className="flex items-start gap-3 mb-5">
+            <div className="p-3 bg-orange-500/20 rounded-xl flex-shrink-0">
+              <FileText className="w-7 h-7 text-orange-400" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <h3 className="text-white font-bold text-lg">Bali Booking Sheet</h3>
+                <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-orange-500/20 text-orange-300">Bali Format</span>
+              </div>
+              <p className="text-gray-400 text-sm">Excel in your standard format — grouped by month, with cumulative TOTAL REVENUE ON HAND.</p>
+            </div>
+          </div>
+
+          {/* Columns preview */}
+          <div className="flex flex-wrap gap-1.5 mb-5">
+            {['NO','MONTH','GUEST NAME','CHECK IN','CHECK OUT','PAX','ROOM NIGHTS','PRICE','BOOKING SOURCE','PAYMENT STATUS','SPECIAL REQUEST','TOTAL REVENUE ON HAND'].map(col => (
+              <span key={col} className="text-xs px-2 py-0.5 rounded bg-white/5 text-gray-300 border border-gray-600/40">{col}</span>
+            ))}
+          </div>
+
+          {/* Filters row */}
+          <div className="flex flex-wrap gap-3 mb-5">
+            <div className="flex flex-col gap-1">
+              <label className="text-xs text-gray-400 font-medium">Year</label>
+              <select
+                value={baliSheetYear}
+                onChange={e => setBaliSheetYear(e.target.value)}
+                className="bg-[#2a2f3a] text-white text-sm rounded-xl px-3 py-2 border border-gray-600 focus:border-orange-500 outline-none"
+              >
+                <option value="all">All years</option>
+                <option value="2025">2025</option>
+                <option value="2026">2026</option>
+                <option value="2027">2027</option>
+              </select>
+            </div>
+            <div className="flex flex-col gap-1">
+              <label className="text-xs text-gray-400 font-medium">Villa</label>
+              <select
+                value={baliSheetVilla}
+                onChange={e => setBaliSheetVilla(e.target.value)}
+                className="bg-[#2a2f3a] text-white text-sm rounded-xl px-3 py-2 border border-gray-600 focus:border-orange-500 outline-none"
+              >
+                <option value="all">All villas</option>
+                {userProperties.map(v => (
+                  <option key={v.id} value={v.id}>{v.name}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <button
+            onClick={handleDownloadBaliSheet}
+            disabled={exportStatus === 'loading'}
+            className="w-full sm:w-auto px-6 py-3 bg-orange-500 hover:bg-orange-600 text-white font-semibold rounded-xl flex items-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {exportStatus === 'loading' ? (
+              <><div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" /> Generating...</>
+            ) : (
+              <><Download className="w-4 h-4" /> Download Bali Booking Sheet</>
+            )}
+          </button>
+        </div>
+
         {/* What's included */}
         <div className="bg-[#1f2937] rounded-2xl p-5 border border-gray-700/50">
           <h3 className="text-white font-semibold mb-4 flex items-center gap-2">
@@ -3961,7 +4195,7 @@ const Autopilot = ({ onBack }) => {
             {[
               { label: 'Properties', fields: 'Name, type, location, bedrooms, price/night' },
               { label: 'Bookings', fields: 'Guest, dates, property, amount, channel, status' },
-              { label: 'Payments', fields: 'Guest, date, amount, method, status' },
+              { label: 'Payments', fields: 'Guest, check-in/out, total amount, amount paid, payment status' },
               { label: 'Clients & Leads', fields: 'Name, email, phone, status, source, score' },
               { label: 'Tasks', fields: 'Title, category, priority, status, description' }
             ].map(item => (
