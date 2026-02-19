@@ -211,6 +211,10 @@ const Autopilot = ({ onBack }) => {
     }
   ]);
 
+  // Data Export states
+  const [exportStatus, setExportStatus] = useState('idle'); // 'idle' | 'loading' | 'done' | 'error'
+  const [exportMessage, setExportMessage] = useState('');
+
   const [showDBVisualization, setShowDBVisualization] = useState(false);
   const [dbQueryLog, setDbQueryLog] = useState([]);
   const [monthlyMetrics, setMonthlyMetrics] = useState({
@@ -312,6 +316,13 @@ const Autopilot = ({ onBack }) => {
       icon: Mail,
       description: 'Unified inbox',
       badge: '8 new'
+    },
+    {
+      id: 'data-export',
+      name: 'My Data Export',
+      icon: Download,
+      description: 'Download your business data as HTML, Excel or CSV',
+      badge: null
     }
   ];
 
@@ -3582,6 +3593,389 @@ const Autopilot = ({ onBack }) => {
     </div>
   );
 
+  const renderDataExportSection = () => {
+    const fetchAllData = async () => {
+      const tenantId = TENANT_ID;
+      const [properties, bookings, payments, leads, tasks] = await Promise.all([
+        dataService.getVillas({ tenant_id: tenantId }).catch(() => []),
+        dataService.getBookings({ tenant_id: tenantId }).catch(() => []),
+        dataService.getPayments({ tenant_id: tenantId }).catch(() => []),
+        dataService.getLeads({ tenant_id: tenantId }).catch(() => []),
+        dataService.getTasks({ tenant_id: tenantId }).catch(() => [])
+      ]);
+      return { properties, bookings, payments, leads, tasks };
+    };
+
+    const formatDate = (d) => d ? new Date(d).toLocaleDateString('en-GB') : '';
+    const formatCurrency = (n) => n ? `$${Number(n).toLocaleString('en-US', { minimumFractionDigits: 2 })}` : '$0.00';
+
+    // ---- HTML SUMMARY ----
+    const handleDownloadHTML = async () => {
+      try {
+        setExportStatus('loading');
+        setExportMessage('Fetching data...');
+        const { properties, bookings, payments, leads, tasks } = await fetchAllData();
+        setExportMessage('Generating HTML...');
+
+        const now = new Date().toLocaleString('en-GB');
+        const totalRevenue = payments.filter(p => p.status === 'paid').reduce((s, p) => s + Number(p.amount || 0), 0);
+
+        const tableStyle = 'border-collapse:collapse;width:100%;margin-bottom:24px;font-size:13px;';
+        const thStyle = 'background:#f97316;color:#fff;padding:8px 12px;text-align:left;border:1px solid #e2e8f0;';
+        const tdStyle = 'padding:7px 12px;border:1px solid #e2e8f0;vertical-align:top;';
+        const trEven = 'background:#fff8f5;';
+
+        const tableHtml = (headers, rows) => `
+          <table style="${tableStyle}">
+            <thead><tr>${headers.map(h => `<th style="${thStyle}">${h}</th>`).join('')}</tr></thead>
+            <tbody>${rows.map((r, i) => `<tr style="${i % 2 ? trEven : ''}">${r.map(c => `<td style="${tdStyle}">${c ?? ''}</td>`).join('')}</tr>`).join('')}</tbody>
+          </table>`;
+
+        const propRows = properties.map(p => [p.name || '', p.property_type || '', p.location || '', p.bedrooms || '', p.price_per_night ? formatCurrency(p.price_per_night) : '']);
+        const bookRows = bookings.map(b => [b.guest_name || '', formatDate(b.check_in), formatDate(b.check_out), b.villa_name || b.property_name || '', b.total_amount ? formatCurrency(b.total_amount) : '', b.status || '']);
+        const payRows = payments.map(p => [p.guest_name || '', formatDate(p.payment_date), p.amount ? formatCurrency(p.amount) : '', p.payment_method || '', p.status || '']);
+        const leadRows = leads.map(l => [l.name || '', l.email || '', l.phone || '', l.status || '', l.source || '', formatDate(l.created_at)]);
+        const taskRows = tasks.map(t => [t.title || '', t.task_type || '', t.priority || '', t.status || '', t.description || '', formatDate(t.created_at)]);
+
+        const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <title>MY HOST BizMate – Data Export ${now}</title>
+  <style>
+    body{font-family:Arial,sans-serif;color:#1a202c;padding:32px;max-width:1100px;margin:0 auto;}
+    h1{color:#f97316;font-size:26px;margin-bottom:4px;}
+    h2{color:#c2410c;font-size:18px;margin:28px 0 10px;}
+    .meta{color:#718096;font-size:12px;margin-bottom:32px;}
+    .summary{display:flex;gap:20px;flex-wrap:wrap;margin-bottom:32px;}
+    .card{background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;padding:14px 20px;min-width:140px;}
+    .card-label{font-size:11px;color:#9a3412;text-transform:uppercase;letter-spacing:1px;}
+    .card-value{font-size:22px;font-weight:700;color:#f97316;}
+    @media print{body{padding:10px;}}
+  </style>
+</head>
+<body>
+  <h1>MY HOST BizMate – Business Data Export</h1>
+  <p class="meta">Generated: ${now} &nbsp;|&nbsp; Owner: ${userData?.full_name || 'Owner'}</p>
+  <div class="summary">
+    <div class="card"><div class="card-label">Properties</div><div class="card-value">${properties.length}</div></div>
+    <div class="card"><div class="card-label">Bookings</div><div class="card-value">${bookings.length}</div></div>
+    <div class="card"><div class="card-label">Payments</div><div class="card-value">${payments.length}</div></div>
+    <div class="card"><div class="card-label">Clients / Leads</div><div class="card-value">${leads.length}</div></div>
+    <div class="card"><div class="card-label">Tasks</div><div class="card-value">${tasks.length}</div></div>
+    <div class="card"><div class="card-label">Total Revenue</div><div class="card-value">${formatCurrency(totalRevenue)}</div></div>
+  </div>
+
+  <h2>Properties (${properties.length})</h2>
+  ${tableHtml(['Name','Type','Location','Bedrooms','Price / Night'], propRows)}
+
+  <h2>Bookings (${bookings.length})</h2>
+  ${tableHtml(['Guest','Check-in','Check-out','Property','Amount','Status'], bookRows)}
+
+  <h2>Payments (${payments.length})</h2>
+  ${tableHtml(['Guest','Date','Amount','Method','Status'], payRows)}
+
+  <h2>Clients / Leads (${leads.length})</h2>
+  ${tableHtml(['Name','Email','Phone','Status','Source','Created'], leadRows)}
+
+  <h2>Maintenance & Tasks (${tasks.length})</h2>
+  ${tableHtml(['Title','Category','Priority','Status','Description','Created'], taskRows)}
+</body>
+</html>`;
+
+        const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `myhost-bizmate-data-${new Date().toISOString().slice(0, 10)}.html`;
+        a.click();
+        URL.revokeObjectURL(url);
+        setExportStatus('done');
+        setExportMessage('HTML downloaded successfully');
+        setTimeout(() => setExportStatus('idle'), 4000);
+      } catch (err) {
+        console.error('HTML export error:', err);
+        setExportStatus('error');
+        setExportMessage('Export failed: ' + err.message);
+      }
+    };
+
+    // ---- EXCEL ----
+    const handleDownloadExcel = async () => {
+      try {
+        setExportStatus('loading');
+        setExportMessage('Fetching data...');
+        const XLSX = (await import('xlsx')).default;
+        const { properties, bookings, payments, leads, tasks } = await fetchAllData();
+        setExportMessage('Generating Excel...');
+
+        const wb = XLSX.utils.book_new();
+
+        const propSheet = XLSX.utils.json_to_sheet(properties.map(p => ({
+          Name: p.name || '',
+          Type: p.property_type || '',
+          Location: p.location || '',
+          Bedrooms: p.bedrooms || '',
+          'Price/Night': p.price_per_night || 0,
+          Status: p.status || ''
+        })));
+        XLSX.utils.book_append_sheet(wb, propSheet, 'Properties');
+
+        const bookSheet = XLSX.utils.json_to_sheet(bookings.map(b => ({
+          'Guest Name': b.guest_name || '',
+          'Check-in': formatDate(b.check_in),
+          'Check-out': formatDate(b.check_out),
+          Property: b.villa_name || b.property_name || '',
+          Nights: b.nights || '',
+          Amount: b.total_amount || 0,
+          Channel: b.channel || '',
+          Status: b.status || '',
+          Created: formatDate(b.created_at)
+        })));
+        XLSX.utils.book_append_sheet(wb, bookSheet, 'Bookings');
+
+        const paySheet = XLSX.utils.json_to_sheet(payments.map(p => ({
+          'Guest Name': p.guest_name || '',
+          Date: formatDate(p.payment_date),
+          Amount: p.amount || 0,
+          Method: p.payment_method || '',
+          Status: p.status || '',
+          Notes: p.notes || ''
+        })));
+        XLSX.utils.book_append_sheet(wb, paySheet, 'Payments');
+
+        const leadSheet = XLSX.utils.json_to_sheet(leads.map(l => ({
+          Name: l.name || '',
+          Email: l.email || '',
+          Phone: l.phone || '',
+          Status: l.status || '',
+          Source: l.source || '',
+          'Lead Score': l.lead_score || '',
+          Country: l.country || '',
+          Created: formatDate(l.created_at)
+        })));
+        XLSX.utils.book_append_sheet(wb, leadSheet, 'Clients & Leads');
+
+        const taskSheet = XLSX.utils.json_to_sheet(tasks.map(t => ({
+          Title: t.title || '',
+          Category: t.task_type || '',
+          Priority: t.priority || '',
+          Status: t.status || '',
+          Description: t.description || '',
+          'Assigned To': t.assigned_to || '',
+          Created: formatDate(t.created_at)
+        })));
+        XLSX.utils.book_append_sheet(wb, taskSheet, 'Tasks');
+
+        XLSX.writeFile(wb, `myhost-bizmate-data-${new Date().toISOString().slice(0, 10)}.xlsx`);
+        setExportStatus('done');
+        setExportMessage('Excel file downloaded successfully');
+        setTimeout(() => setExportStatus('idle'), 4000);
+      } catch (err) {
+        console.error('Excel export error:', err);
+        setExportStatus('error');
+        setExportMessage('Export failed: ' + err.message);
+      }
+    };
+
+    // ---- CSV (zip of multiple files via single concatenated) ----
+    const handleDownloadCSV = async () => {
+      try {
+        setExportStatus('loading');
+        setExportMessage('Fetching data...');
+        const { properties, bookings, payments, leads, tasks } = await fetchAllData();
+        setExportMessage('Generating CSV files...');
+
+        const toCSV = (headers, rows) => {
+          const escape = (v) => {
+            const s = String(v ?? '');
+            return s.includes(',') || s.includes('"') || s.includes('\n') ? `"${s.replace(/"/g, '""')}"` : s;
+          };
+          return [headers.join(','), ...rows.map(r => r.map(escape).join(','))].join('\r\n');
+        };
+
+        const datasets = [
+          {
+            name: 'properties',
+            headers: ['Name', 'Type', 'Location', 'Bedrooms', 'Price/Night', 'Status'],
+            rows: properties.map(p => [p.name, p.property_type, p.location, p.bedrooms, p.price_per_night, p.status])
+          },
+          {
+            name: 'bookings',
+            headers: ['Guest Name', 'Check-in', 'Check-out', 'Property', 'Nights', 'Amount', 'Channel', 'Status', 'Created'],
+            rows: bookings.map(b => [b.guest_name, formatDate(b.check_in), formatDate(b.check_out), b.villa_name || b.property_name, b.nights, b.total_amount, b.channel, b.status, formatDate(b.created_at)])
+          },
+          {
+            name: 'payments',
+            headers: ['Guest Name', 'Date', 'Amount', 'Method', 'Status', 'Notes'],
+            rows: payments.map(p => [p.guest_name, formatDate(p.payment_date), p.amount, p.payment_method, p.status, p.notes])
+          },
+          {
+            name: 'clients_leads',
+            headers: ['Name', 'Email', 'Phone', 'Status', 'Source', 'Lead Score', 'Country', 'Created'],
+            rows: leads.map(l => [l.name, l.email, l.phone, l.status, l.source, l.lead_score, l.country, formatDate(l.created_at)])
+          },
+          {
+            name: 'tasks',
+            headers: ['Title', 'Category', 'Priority', 'Status', 'Description', 'Assigned To', 'Created'],
+            rows: tasks.map(t => [t.title, t.task_type, t.priority, t.status, t.description, t.assigned_to, formatDate(t.created_at)])
+          }
+        ];
+
+        // Download each CSV file individually
+        for (const ds of datasets) {
+          const csv = toCSV(ds.headers, ds.rows);
+          const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8' }); // BOM for Excel compatibility
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `myhost-bizmate-${ds.name}-${new Date().toISOString().slice(0, 10)}.csv`;
+          a.click();
+          URL.revokeObjectURL(url);
+          await new Promise(r => setTimeout(r, 300)); // small delay between downloads
+        }
+
+        setExportStatus('done');
+        setExportMessage('5 CSV files downloaded successfully');
+        setTimeout(() => setExportStatus('idle'), 4000);
+      } catch (err) {
+        console.error('CSV export error:', err);
+        setExportStatus('error');
+        setExportMessage('Export failed: ' + err.message);
+      }
+    };
+
+    const exportOptions = [
+      {
+        id: 'html',
+        icon: Printer,
+        title: 'HTML Print Summary',
+        description: 'A beautifully formatted HTML page with all your data. Open in browser and print to PDF, or save as a printable report.',
+        buttonLabel: 'Download HTML',
+        buttonColor: 'bg-orange-500 hover:bg-orange-600',
+        badge: 'Recommended',
+        badgeColor: 'bg-orange-500/20 text-orange-300',
+        onDownload: handleDownloadHTML
+      },
+      {
+        id: 'excel',
+        icon: FileText,
+        title: 'Excel Workbook (.xlsx)',
+        description: 'Multi-sheet Excel file with separate tabs for Properties, Bookings, Payments, Clients & Leads, and Tasks.',
+        buttonLabel: 'Download Excel',
+        buttonColor: 'bg-green-600 hover:bg-green-700',
+        badge: '5 sheets',
+        badgeColor: 'bg-green-500/20 text-green-300',
+        onDownload: handleDownloadExcel
+      },
+      {
+        id: 'csv',
+        icon: List,
+        title: 'CSV Files',
+        description: 'Five separate CSV files (one per data type), compatible with any spreadsheet or database tool.',
+        buttonLabel: 'Download CSV Files',
+        buttonColor: 'bg-blue-600 hover:bg-blue-700',
+        badge: '5 files',
+        badgeColor: 'bg-blue-500/20 text-blue-300',
+        onDownload: handleDownloadCSV
+      }
+    ];
+
+    return (
+      <div className="p-6 space-y-6">
+        {/* Header */}
+        <div className="flex items-center gap-3 mb-2">
+          <button onClick={() => setActiveSection('menu')} className="p-2 rounded-xl hover:bg-white/10 text-gray-400 hover:text-white transition-colors">
+            <ArrowLeft className="w-5 h-5" />
+          </button>
+          <div>
+            <h2 className="text-2xl font-bold text-white">My Data Export</h2>
+            <p className="text-gray-400 text-sm">Download a complete copy of your business data</p>
+          </div>
+        </div>
+
+        {/* Status banner */}
+        {exportStatus !== 'idle' && (
+          <div className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium ${
+            exportStatus === 'loading' ? 'bg-orange-500/20 text-orange-300 border border-orange-500/30' :
+            exportStatus === 'done'    ? 'bg-green-500/20 text-green-300 border border-green-500/30' :
+            'bg-red-500/20 text-red-300 border border-red-500/30'
+          }`}>
+            {exportStatus === 'loading' && <div className="w-4 h-4 border-2 border-orange-400 border-t-transparent rounded-full animate-spin" />}
+            {exportStatus === 'done'    && <CheckCircle className="w-4 h-4" />}
+            {exportStatus === 'error'   && <AlertCircle className="w-4 h-4" />}
+            {exportMessage}
+          </div>
+        )}
+
+        {/* Info box */}
+        <div className="bg-[#1f2937] rounded-2xl p-5 border border-orange-500/20">
+          <div className="flex items-start gap-3">
+            <Download className="w-5 h-5 text-orange-400 mt-0.5 flex-shrink-0" />
+            <div>
+              <p className="text-white font-semibold mb-1">Your data, your way</p>
+              <p className="text-gray-400 text-sm">Export includes: <span className="text-orange-300">Properties · Bookings · Payments · Clients & Leads · Tasks</span>. Data is fetched live from your account at the moment you click download.</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Export cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {exportOptions.map(opt => {
+            const Icon = opt.icon;
+            const isActive = exportStatus === 'loading';
+            return (
+              <div key={opt.id} className="bg-[#1f2937] rounded-2xl p-6 border border-gray-700/50 flex flex-col gap-4 hover:border-orange-500/40 transition-colors">
+                <div className="flex items-start justify-between">
+                  <div className="p-3 bg-white/5 rounded-xl">
+                    <Icon className="w-7 h-7 text-orange-400" />
+                  </div>
+                  <span className={`text-xs font-semibold px-2 py-1 rounded-full ${opt.badgeColor}`}>{opt.badge}</span>
+                </div>
+                <div>
+                  <h3 className="text-white font-bold text-lg mb-2">{opt.title}</h3>
+                  <p className="text-gray-400 text-sm leading-relaxed">{opt.description}</p>
+                </div>
+                <button
+                  onClick={opt.onDownload}
+                  disabled={isActive}
+                  className={`mt-auto w-full py-3 rounded-xl text-white font-semibold flex items-center justify-center gap-2 transition-all ${opt.buttonColor} disabled:opacity-50 disabled:cursor-not-allowed`}
+                >
+                  {isActive ? (
+                    <><div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" /> Processing...</>
+                  ) : (
+                    <><Download className="w-4 h-4" /> {opt.buttonLabel}</>
+                  )}
+                </button>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* What's included */}
+        <div className="bg-[#1f2937] rounded-2xl p-5 border border-gray-700/50">
+          <h3 className="text-white font-semibold mb-4 flex items-center gap-2">
+            <CheckSquare className="w-5 h-5 text-orange-400" /> What's included in each export
+          </h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+            {[
+              { label: 'Properties', fields: 'Name, type, location, bedrooms, price/night' },
+              { label: 'Bookings', fields: 'Guest, dates, property, amount, channel, status' },
+              { label: 'Payments', fields: 'Guest, date, amount, method, status' },
+              { label: 'Clients & Leads', fields: 'Name, email, phone, status, source, score' },
+              { label: 'Tasks', fields: 'Title, category, priority, status, description' }
+            ].map(item => (
+              <div key={item.label} className="bg-white/5 rounded-xl p-3">
+                <p className="text-orange-300 font-semibold text-sm mb-1">{item.label}</p>
+                <p className="text-gray-400 text-xs">{item.fields}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   const renderDecisionsSection = () => (
     <div className="space-y-6">
       {/* OWNER DECISIONS */}
@@ -3823,6 +4217,7 @@ const Autopilot = ({ onBack }) => {
           {activeSection === 'website' && renderWebsiteSection()}
           {activeSection === 'tasks' && renderTasksSection()}
           {activeSection === 'decisions' && renderDecisionsSection()}
+          {activeSection === 'data-export' && renderDataExportSection()}
         </div>
       </div>
     </div>
