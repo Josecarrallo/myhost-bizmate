@@ -102,7 +102,7 @@ app.post('/api/generate-video', upload.single('image'), async (req, res) => {
     let ltxVideoUrl = null;
 
     try {
-      const ltxApiKey = process.env.LTX_API_KEY;
+      const ltxApiKey = process.env.LTX_API_KEY?.replace(/\s+/g, '');
       if (!ltxApiKey) throw new Error('LTX_API_KEY not set');
 
       const axios = require('axios');
