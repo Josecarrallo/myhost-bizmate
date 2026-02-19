@@ -37,6 +37,7 @@ const Properties = ({ onBack }) => {
   const [showAddModal, setShowAddModal] = useState(false);
   const [showDemoMessage, setShowDemoMessage] = useState(false);
   const [editMode, setEditMode] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [editingVillaId, setEditingVillaId] = useState(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [villaToDelete, setVillaToDelete] = useState(null);
@@ -206,12 +207,20 @@ const Properties = ({ onBack }) => {
     try {
       if (editMode) {
         // UPDATE existing villa
+        let photoUrl = null;
+        if (formData.photo) {
+          setUploading(true);
+          photoUrl = await supabaseService.uploadVillaPhoto(formData.photo, editingVillaId);
+          setUploading(false);
+        }
+
         const updates = {
           name: formData.name,
           bedrooms: parseInt(formData.bedrooms),
           bathrooms: Math.max(1, Math.floor(parseInt(formData.bedrooms) / 2)),
           max_guests: parseInt(formData.bedrooms) * 2,
-          base_price: parseFloat(formData.price)
+          base_price: parseFloat(formData.price),
+          ...(photoUrl && { photos: [photoUrl] })
         };
 
         console.log('[Properties] Updating villa:', editingVillaId, updates);
@@ -240,6 +249,13 @@ const Properties = ({ onBack }) => {
         const timestamp = Date.now();
         const uniqueSlug = `${baseSlug}-${timestamp}`;
 
+        let newPhotoUrl = null;
+        if (formData.photo) {
+          setUploading(true);
+          newPhotoUrl = await supabaseService.uploadVillaPhoto(formData.photo, uniqueSlug);
+          setUploading(false);
+        }
+
         const newVilla = {
           name: formData.name,
           slug: uniqueSlug,
@@ -251,7 +267,7 @@ const Properties = ({ onBack }) => {
           currency: 'IDR',
           status: 'active',
           amenities: [],
-          photos: [],
+          photos: newPhotoUrl ? [newPhotoUrl] : [],
           property_id: '18711359-1378-4d12-9ea6-fb31c0b1bac2'
         };
 
@@ -275,6 +291,7 @@ const Properties = ({ onBack }) => {
       }
     } catch (error) {
       console.error('[Properties] Error:', error);
+      setUploading(false);
       alert(`Failed to ${editMode ? 'update' : 'create'} property: ${error.message}`);
       setShowDemoMessage(false);
     }
@@ -852,7 +869,8 @@ const Properties = ({ onBack }) => {
                     type: selectedProperty.type,
                     bedrooms: selectedProperty.beds.toString(),
                     price: selectedProperty.basePrice.toString(),
-                    photo: null
+                    photo: null,
+                    currentPhotoUrl: selectedProperty.photos?.[0] || null
                   });
                   setSelectedProperty(null);
                   setShowAddModal(true);
@@ -996,17 +1014,38 @@ const Properties = ({ onBack }) => {
                   <label className="block text-sm font-bold text-gray-700 mb-2">
                     Property Photo
                   </label>
+                  {formData.currentPhotoUrl && !formData.photo && (
+                    <div className="mb-2">
+                      <img
+                        src={formData.currentPhotoUrl}
+                        alt="Current photo"
+                        className="w-full h-32 object-cover rounded-xl border-2 border-orange-200"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">Current photo — select a new one to replace it</p>
+                    </div>
+                  )}
+                  {formData.photo && (
+                    <div className="mb-2">
+                      <img
+                        src={URL.createObjectURL(formData.photo)}
+                        alt="New photo preview"
+                        className="w-full h-32 object-cover rounded-xl border-2 border-orange-400"
+                      />
+                      <p className="text-xs text-orange-600 mt-1 font-medium">New photo selected — will be uploaded on save</p>
+                    </div>
+                  )}
                   <input
                     type="file"
                     name="photo"
                     accept="image/*"
+                    disabled={uploading}
                     onChange={(e) => {
                       const file = e.target.files[0];
-                      setFormData(prev => ({ ...prev, photo: file }));
+                      if (file) setFormData(prev => ({ ...prev, photo: file }));
                     }}
-                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-orange-500 focus:outline-none font-medium file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-orange-50 file:text-orange-700 hover:file:bg-orange-100"
+                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-orange-500 focus:outline-none font-medium file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-orange-50 file:text-orange-700 hover:file:bg-orange-100 disabled:opacity-50"
                   />
-                  <p className="text-xs text-gray-500 mt-1">Recommended: JPG, PNG (max 5MB)</p>
+                  <p className="text-xs text-gray-500 mt-1">JPG, PNG (max 5MB)</p>
                 </div>
 
                 {/* Demo Message */}
@@ -1031,10 +1070,15 @@ const Properties = ({ onBack }) => {
               <div className="flex flex-col sm:flex-row gap-3 mt-6">
                 <button
                   type="submit"
-                  className="flex-1 px-6 py-3 bg-orange-500 text-white rounded-2xl font-bold hover:bg-orange-600 transition-colors shadow-md"
-                  disabled={showDemoMessage}
+                  className="flex-1 px-6 py-3 bg-orange-500 text-white rounded-2xl font-bold hover:bg-orange-600 transition-colors shadow-md disabled:opacity-60"
+                  disabled={showDemoMessage || uploading}
                 >
-                  {editMode ? (
+                  {uploading ? (
+                    <>
+                      <span className="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2 align-middle" />
+                      Uploading photo...
+                    </>
+                  ) : editMode ? (
                     <>
                       <Edit className="w-5 h-5 inline mr-2" />
                       Update Property

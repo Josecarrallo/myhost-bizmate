@@ -59,77 +59,76 @@ const AISystems = ({ onBack }) => {
   }, [userData]);
 
   // All OSIRIS questions organized by category
+  // IMPORTANT: Always include date ranges and specify "all villas" for accurate results
   const allOsirisQuestions = {
     "Revenue & Financial": [
-      "How's revenue looking this month?",
-      "What's our total revenue for this year?",
-      "Compare revenue: this month vs last month",
-      "What's our ADR and RevPAR this month?",
-      "Show me revenue breakdown for January to June 2026",
-      "How did we do in Q1 2026 vs Q1 2025?",
-      "What was our best revenue month in 2025?",
-      "Compare 2025 vs 2026 revenue so far"
+      "What is the total revenue from all villas from 2026-01-01 to 2026-12-31?",
+      "What is the total revenue from all villas from 2025-01-01 to 2025-12-31?",
+      "Compare revenue from all villas: January 2026 vs January 2025",
+      "What is the ADR and RevPAR for all villas from 2026-01-01 to 2026-03-31?",
+      "Show me revenue breakdown by villa from 2026-01-01 to 2026-06-30",
+      "How did we perform in Q1 2026 (2026-01-01 to 2026-03-31) vs Q1 2025 (2025-01-01 to 2025-03-31)?",
+      "What was our best revenue month in 2025 across all villas?",
+      "Compare total revenue: 2025-01-01 to 2025-12-31 vs 2026-01-01 to today"
     ],
     "Villa Performance": [
-      "Which villa generates the most revenue?",
-      "Rank all villas by occupancy this month",
-      "Which villa has the most bookings this year?",
-      "What's our worst performing villa and why?",
-      "What's our overall occupancy rate this month?",
-      "Which villas are empty next week?",
-      "Compare occupancy: February vs January",
-      "How are my villas performing this year?"
+      "Which villa generates the most revenue from 2026-01-01 to 2026-12-31?",
+      "Rank all villas by occupancy rate from 2026-01-01 to 2026-12-31",
+      "Which villa has the most bookings from 2026-01-01 to 2026-12-31?",
+      "What is the occupancy rate for all villas from 2026-01-01 to 2026-12-31?",
+      "What is the occupancy rate for all villas from 2025-01-01 to 2025-12-31?",
+      "Which villas have no bookings from today to 2026-03-31?",
+      "Compare occupancy for all villas: February 2026 vs January 2026",
+      "Show me performance for all villas from 2026-01-01 to 2026-12-31"
     ],
     "Bookings": [
       "Who arrives today?",
       "Who checks out today?",
       "Show me all check-ins and check-outs for this week",
-      "How many confirmed bookings do we have?",
-      "Are there any bookings pending payment?",
-      "Show me all cancelled bookings this month",
-      "Show me all bookings for March 2026",
-      "Show me all confirmed bookings for February 2026",
-      "Compare number of bookings: 2025 vs 2026"
+      "Show me all confirmed bookings from 2026-02-01 to 2026-02-28",
+      "Show me all confirmed bookings from 2026-03-01 to 2026-03-31",
+      "How many confirmed bookings do we have from 2026-01-01 to 2026-12-31?",
+      "Show me all cancelled bookings from 2026-01-01 to 2026-12-31",
+      "Compare number of bookings: 2025-01-01 to 2025-12-31 vs 2026-01-01 to today",
+      "What is the average stay duration for all bookings in 2026?"
     ],
     "Payments": [
-      "Are there any pending payments?",
-      "Show me all completed payments this month",
-      "Who hasn't paid yet?",
-      "List all refunded payments",
-      "Show me all payments for this month",
-      "What's the total amount collected this year?"
+      "Are there any pending payments right now?",
+      "Who hasn't paid yet? Show all pending payments",
+      "Show me all completed payments from 2026-01-01 to 2026-12-31",
+      "Show me all payments from 2026-02-01 to 2026-02-28",
+      "What is the total amount collected from 2026-01-01 to today?",
+      "List all refunded payments from 2025-01-01 to 2025-12-31"
     ],
     "Leads & Sales": [
-      "How many leads do we have?",
+      "How many leads do we have right now?",
       "Which leads need follow-up today?",
-      "Show me all new leads this week",
-      "Show me all leads in the pipeline",
-      "How many leads converted to bookings this month?",
+      "Show me all new leads from the last 7 days",
+      "Show me all leads currently in the pipeline",
+      "How many leads converted to bookings from 2026-01-01 to today?",
       "List all leads that haven't been contacted yet",
-      "What's our lead conversion rate?"
+      "What is our lead-to-booking conversion rate from 2026-01-01 to today?"
     ],
     "Alerts & Issues": [
-      "Are there any active alerts or issues?",
-      "Any problems I should know about?",
+      "Are there any active alerts or issues right now?",
+      "Any problems I should know about today?",
       "What tasks need my attention today?",
       "Show me all pending issues"
     ],
     "Reports & Analysis": [
-      "Give me today's daily report",
-      "Show me the weekly report",
-      "Generate the monthly report",
-      "Give me a complete business overview for this month",
-      "Summarize today: arrivals, departures, revenue, and any issues",
-      "Full status report: revenue, occupancy, pending payments, and alerts",
-      "Analyze our 2025 performance and propose improvements for 2026",
-      "Compare our high season vs low season performance",
-      "What are our top 3 business priorities right now?"
+      "Give me a full daily report for today: arrivals, departures, revenue, and alerts",
+      "Give me a complete business overview for all villas from 2026-01-01 to 2026-12-31",
+      "Full status report: revenue, occupancy, pending payments, and alerts for 2026",
+      "Analyze our performance in 2025 (2025-01-01 to 2025-12-31) and propose improvements for 2026",
+      "Compare high season (Jun-Sep 2025) vs low season (Jan-Mar 2025) for all villas",
+      "What are our top 3 business priorities right now based on current data?",
+      "Summarize the last 30 days of performance across all villas"
     ],
     "Power Questions": [
-      "Full business health check",
-      "Analyze 2025 vs 2026 and propose an action plan",
-      "What should I focus on today?",
-      "Give me an honest assessment of our business health"
+      "Full business health check for all villas in 2026 so far",
+      "Analyze 2025 vs 2026 performance and propose a concrete action plan",
+      "What should I focus on today to maximize revenue?",
+      "Give me an honest assessment of our business health from 2026-01-01 to today"
     ]
   };
 
@@ -146,12 +145,12 @@ const AISystems = ({ onBack }) => {
       quickQuestions: [
         "Who arrives today?",
         "Who checks out today?",
-        "Show me all confirmed bookings for February 2026",
-        "How's revenue looking this month?",
-        "Are there any pending payments?",
-        "Show me all leads in the pipeline",
-        "How are my villas performing this year?",
-        "Give me a complete business overview for this month"
+        "Show me all confirmed bookings from 2026-02-01 to 2026-02-28",
+        "What is the total revenue from all villas from 2026-01-01 to 2026-12-31?",
+        "Are there any pending payments right now?",
+        "Show me all leads currently in the pipeline",
+        "What is the occupancy rate for all villas from 2026-01-01 to 2026-12-31?",
+        "Give me a complete business overview for all villas from 2026-01-01 to 2026-12-31"
       ]
     },
     lumina: {

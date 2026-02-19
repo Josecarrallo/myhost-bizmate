@@ -586,6 +586,23 @@ export const supabaseService = {
     return data;
   },
 
+  async uploadVillaPhoto(file, villaId) {
+    const ext = file.name.split('.').pop().toLowerCase();
+    const fileName = `${villaId}/${Date.now()}.${ext}`;
+
+    // Ensure bucket exists (creates if not)
+    await supabase.storage.createBucket('villa-photos', { public: true }).catch(() => {});
+
+    const { error: uploadError } = await supabase.storage
+      .from('villa-photos')
+      .upload(fileName, file, { upsert: true });
+
+    if (uploadError) throw new Error(uploadError.message);
+
+    const { data } = supabase.storage.from('villa-photos').getPublicUrl(fileName);
+    return data.publicUrl;
+  },
+
   async updateVilla(id, updates) {
     const { data, error} = await supabase
       .from('villas')

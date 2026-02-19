@@ -5,8 +5,7 @@ import {
   TrendingUp,
   Home,
   Filter,
-  Printer,
-  Video
+  Printer
 } from 'lucide-react';
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ComposedChart } from 'recharts';
 import { dataService } from '../../services/data';
@@ -227,105 +226,6 @@ const OwnerExecutiveSummary = ({ userName = 'Owner', onNavigate }) => {
     printWindow.document.close();
   };
 
-  const handleGenerateVideo = () => {
-    if (!stats) {
-      alert('No data available yet. Please wait for data to load.');
-      return;
-    }
-
-    // DEBUG: Log all available data
-    console.log('📊 Stats object:', stats);
-    console.log('📺 Channel breakdown data:', stats.channel_breakdown_data);
-    console.log('🔑 All keys in stats:', Object.keys(stats));
-    console.log('📋 Full stats structure:', JSON.stringify(stats, null, 2));
-
-    // Collect EXACT data from current Overview display
-    // Map from Supabase column names (snake_case) to video props (camelCase)
-    const videoData = {
-      // Revenue & Performance Analysis
-      totalRevenue: stats.total_revenue || 0,
-      totalBookings: stats.total_bookings || 0,
-      avgBookingValue: stats.total_bookings > 0 ? Math.round((stats.total_revenue || 0) / stats.total_bookings) : 0,
-      revenueGrowth: 12.5, // Placeholder - would need historical data
-
-      // Performance Overview
-      occupancyRate: parseFloat(stats.occupancy_rate) || 0,
-      avgNightlyRate: stats.avg_nightly_rate || 0,
-      avgStayDuration: stats.avg_stay_duration || 0,
-      totalNights: stats.total_nights || 0,
-
-      // Timeline (monthly data from stats.timeline_data)
-      monthlyRevenue: (stats.timeline_data || []).map(m => m.revenue || 0),
-      monthlyOccupancy: (stats.timeline_data || []).map(m => parseFloat(m.occupancy) || 0),
-
-      // Properties Performance (from properties_data - CORRECT FIELD NAME)
-      topProperties: (stats.properties_data || []).slice(0, 3).map(prop => ({
-        name: prop.property_name || 'Unknown',
-        bookings: prop.bookings || 0,
-        revenue: prop.revenue || 0,
-        occupancy: parseFloat(prop.occupancy || prop.occupancy_rate) || 0,
-      })),
-
-      // Booking Sources (from sources_data - CORRECT FIELD NAME)
-      airbnbBookings: stats.sources_data?.find(ch => ch.source?.toLowerCase() === 'airbnb')?.bookings || 0,
-      airbnbRevenue: stats.sources_data?.find(ch => ch.source?.toLowerCase() === 'airbnb')?.revenue || 0,
-      bookingComBookings: stats.sources_data?.find(ch => ch.source?.toLowerCase() === 'booking.com')?.bookings || 0,
-      bookingComRevenue: stats.sources_data?.find(ch => ch.source?.toLowerCase() === 'booking.com')?.revenue || 0,
-      directBookings: stats.sources_data?.filter(ch => ['gita', 'direct', 'instagram'].includes(ch.source?.toLowerCase())).reduce((sum, ch) => sum + (ch.bookings || 0), 0) || 0,
-      directRevenue: stats.sources_data?.filter(ch => ['gita', 'direct', 'instagram'].includes(ch.source?.toLowerCase())).reduce((sum, ch) => sum + (ch.revenue || 0), 0) || 0,
-
-      // Payment Status (from payment_status_data)
-      pendingPayments: stats.payment_status_data?.pending?.bookings || 0,
-      completedPayments: stats.payment_status_data?.paid?.bookings || 0,
-      failedPayments: stats.payment_status_data?.failed?.bookings || 0,
-      pendingAmount: stats.payment_status_data?.pending?.revenue || 0,
-      completedAmount: stats.payment_status_data?.paid?.revenue || 0,
-
-      // Meta
-      dateRange: `${dateRange.start} to ${dateRange.end}`,
-      currency: currency,
-      generatedDate: new Date().toLocaleDateString('en-US', {
-        month: 'long',
-        day: 'numeric',
-        year: 'numeric'
-      }),
-    };
-
-    // Export to JSON file
-    const dataStr = JSON.stringify(videoData, null, 2);
-    const dataBlob = new Blob([dataStr], { type: 'application/json' });
-    const url = URL.createObjectURL(dataBlob);
-    const link = document.createElement('a');
-    const timestamp = new Date().toISOString().split('T')[0];
-    const filename = `overview-video-data-${timestamp}.json`;
-    link.href = url;
-    link.download = filename;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-
-    // Show instructions
-    setTimeout(() => {
-      alert(`✅ Data exported successfully!
-
-File: ${filename}
-
-📹 TO GENERATE VIDEO:
-
-1. Open terminal/command prompt
-2. Navigate to video folder:
-   cd C:\\myhost-bizmate\\video
-
-3. Run this command:
-   npx remotion render CompleteOverview out/overview-video-${timestamp}.mp4 --props=../${filename}
-
-4. Video will be ready in: video/out/
-
-⏱️ Rendering takes ~1-2 minutes
-📹 Output: 60-second HD video with your exact data!`);
-    }, 500);
-  };
 
   if (loading) {
     return (
@@ -426,13 +326,6 @@ File: ${filename}
             >
               <Printer className="w-4 h-4" />
               Print Summary
-            </button>
-            <button
-              onClick={handleGenerateVideo}
-              className="px-6 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-bold text-sm transition-all shadow-lg flex items-center gap-2"
-            >
-              <Video className="w-4 h-4" />
-              Generate Video
             </button>
           </div>
         </div>
