@@ -20,15 +20,19 @@ import {
   Edit,
   Eye,
   CheckCircle,
-  Clock,
-  Trash2
+  Clock
 } from 'lucide-react';
 import { StatCard } from '../common';
 import { dataService } from '../../services/data';
 import { supabaseService } from '../../services/supabase';
+import { supabase } from '../../lib/supabase';
+import { useAuth } from '../../contexts/AuthContext';
 import n8nService from '../../services/n8n';
 
 const Properties = ({ onBack }) => {
+  const { user } = useAuth();
+  const tenantId = user?.id;
+
   const [viewMode, setViewMode] = useState('grid'); // 'grid' or 'table'
   const [selectedProperty, setSelectedProperty] = useState(null);
   const [selectedTab, setSelectedTab] = useState('general');
@@ -36,18 +40,28 @@ const Properties = ({ onBack }) => {
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
   const [showDemoMessage, setShowDemoMessage] = useState(false);
-  const [editMode, setEditMode] = useState(false);
-  const [uploading, setUploading] = useState(false);
-  const [editingVillaId, setEditingVillaId] = useState(null);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [villaToDelete, setVillaToDelete] = useState(null);
   const [formData, setFormData] = useState({
     name: '',
     location: '',
     type: 'villa',
     bedrooms: '',
-    price: '',
-    photo: null
+    price: ''
+  });
+
+  // Stats calculation state
+  const [stats, setStats] = useState({
+    totalRevenue: 0,
+    avgOccupancy: 0,
+    loading: true
+  });
+  const [dateRangePreset, setDateRangePreset] = useState('2026'); // '2025', '2026', '2025-2026', 'custom'
+  const [dateRange, setDateRange] = useState({
+    start: '2026-01-01',
+    end: '2026-12-31'
+  });
+  const [customDateRange, setCustomDateRange] = useState({
+    start: '',
+    end: ''
   });
 
   // Mock Properties Data (expanded)
@@ -144,7 +158,96 @@ const Properties = ({ onBack }) => {
   // Cargar properties reales de Supabase
   useEffect(() => {
     loadProperties();
+    calculateStats();
   }, []);
+
+  // Update dateRange when preset changes
+  useEffect(() => {
+    if (dateRangePreset === '2025') {
+      setDateRange({ start: '2025-01-01', end: '2025-12-31' });
+    } else if (dateRangePreset === '2026') {
+      setDateRange({ start: '2026-01-01', end: '2026-12-31' });
+    } else if (dateRangePreset === '2025-2026') {
+      setDateRange({ start: '2025-01-01', end: '2026-12-31' });
+    }
+  }, [dateRangePreset]);
+
+  // Recalcular stats cuando cambie el rango de fechas
+  useEffect(() => {
+    if (properties.length > 0) {
+      calculateStats();
+    }
+  }, [dateRange, properties]);
+
+  const calculateStats = async () => {
+    try {
+      setStats(prev => ({ ...prev, loading: true }));
+
+      // Obtener bookings en el rango de fechas (solo del usuario actual)
+      const { data: bookings, error } = await supabase
+        .from('bookings')
+        .select('*')
+        .eq('tenant_id', tenantId)
+        .gte('check_in', dateRange.start)
+        .lte('check_in', dateRange.end)
+        .in('status', ['confirmed', 'checked_in', 'checked_out']);
+
+      if (error) throw error;
+
+      // Calcular total revenue (sumar total_price de todos los bookings confirmados)
+      const totalRevenue = bookings.reduce((sum, b) => sum + (parseFloat(b.total_price) || 0), 0);
+
+      // Calcular occupancy promedio
+      // Fórmula de Gita: días ocupados / (meses con bookings × 31 × villas con bookings)
+      const monthsWithBookings = new Set();
+      const villasWithBookings = new Set();
+      let occupiedDays = 0;
+
+      bookings.forEach(booking => {
+        const checkIn = new Date(booking.check_in);
+        const checkOut = new Date(booking.check_out);
+        const nights = Math.ceil((checkOut - checkIn) / (1000 * 60 * 60 * 24));
+        occupiedDays += nights;
+
+        // Identificar mes único (YYYY-M)
+        const monthYear = `${checkIn.getFullYear()}-${checkIn.getMonth()}`;
+        monthsWithBookings.add(monthYear);
+
+        // Identificar villa única
+        if (booking.villa_id) {
+          villasWithBookings.add(booking.villa_id);
+        }
+      });
+
+      // Días disponibles = meses × 31 días × villas
+      const numberOfMonths = monthsWithBookings.size;
+      const numberOfVillas = villasWithBookings.size || 1;
+      const totalAvailableDays = numberOfMonths * 31 * numberOfVillas;
+
+      const avgOccupancy = totalAvailableDays > 0 ? (occupiedDays / totalAvailableDays) * 100 : 0;
+
+      // DEBUG: Log cálculo de occupancy
+      console.log('📊 OCCUPANCY CALCULATION DEBUG:');
+      console.log('  Date Range:', dateRange.start, 'to', dateRange.end);
+      console.log('  Total Bookings:', bookings.length);
+      console.log('  Occupied Days:', occupiedDays);
+      console.log('  Months with Bookings:', numberOfMonths, Array.from(monthsWithBookings));
+      console.log('  Villas with Bookings:', numberOfVillas, Array.from(villasWithBookings));
+      console.log('  Total Available Days:', totalAvailableDays, '=', numberOfMonths, '× 31 ×', numberOfVillas);
+      console.log('  Occupancy:', avgOccupancy.toFixed(2) + '%');
+      console.log('  Formula:', occupiedDays, '/', totalAvailableDays, '* 100');
+
+      setStats({
+        totalRevenue,
+        avgOccupancy: Math.round(avgOccupancy),
+        loading: false
+      });
+
+    } catch (error) {
+      console.error('[Properties] Error calculating stats:', error);
+      setStats({ totalRevenue: 0, avgOccupancy: 0, loading: false });
+    }
+  };
 
   const loadProperties = async () => {
     try {
@@ -205,94 +308,53 @@ const Properties = ({ onBack }) => {
     e.preventDefault();
 
     try {
-      if (editMode) {
-        // UPDATE existing villa
-        let photoUrl = null;
-        if (formData.photo) {
-          setUploading(true);
-          photoUrl = await supabaseService.uploadVillaPhoto(formData.photo, editingVillaId);
-          setUploading(false);
-        }
+      setShowDemoMessage(true);
 
-        const updates = {
-          name: formData.name,
-          bedrooms: parseInt(formData.bedrooms),
-          bathrooms: Math.max(1, Math.floor(parseInt(formData.bedrooms) / 2)),
-          max_guests: parseInt(formData.bedrooms) * 2,
-          base_price: parseFloat(formData.price),
-          ...(photoUrl && { photos: [photoUrl] })
-        };
+      // Create property in Supabase
+      const newProperty = {
+        name: formData.name,
+        description: `Beautiful ${formData.type} in ${formData.location}`,
+        address: formData.location.split(',')[0]?.trim() || formData.location,
+        city: formData.location.split(',')[1]?.trim() || 'Bali',
+        country: 'Indonesia',
+        bedrooms: parseInt(formData.bedrooms),
+        bathrooms: Math.max(1, Math.floor(parseInt(formData.bedrooms) / 2)),
+        max_guests: parseInt(formData.bedrooms) * 2,
+        base_price: parseFloat(formData.price),
+        currency: 'USD',
+        status: 'active',
+        amenities: [],
+        house_rules: [],
+        photos: []
+      };
 
-        console.log('[Properties] Updating villa:', editingVillaId, updates);
-        await supabaseService.updateVilla(editingVillaId, updates);
-        console.log('[Properties] Villa updated successfully');
+      console.log('[Properties] Creating property:', newProperty);
+      const createdProperty = await supabaseService.createProperty(newProperty);
+      console.log('[Properties] Property created:', createdProperty);
 
-        // Reload properties
-        await loadProperties();
+      // Trigger n8n workflow for new property
+      console.log('[Properties] Triggering n8n workflow...');
+      const workflowResult = await n8nService.onPropertyCreated(createdProperty);
+      console.log('[Properties] n8n workflow result:', workflowResult);
 
-        // Close modal and reset
-        setShowAddModal(false);
-        setEditMode(false);
-        setEditingVillaId(null);
-        setFormData({
-          name: '',
-          location: '',
-          type: 'villa',
-          bedrooms: '',
-          price: '',
-          photo: null
-        });
+      // Reload properties to show the new one
+      await loadProperties();
 
-      } else {
-        // CREATE new villa
-        const baseSlug = formData.name.toLowerCase().replace(/\s+/g, '-');
-        const timestamp = Date.now();
-        const uniqueSlug = `${baseSlug}-${timestamp}`;
-
-        let newPhotoUrl = null;
-        if (formData.photo) {
-          setUploading(true);
-          newPhotoUrl = await supabaseService.uploadVillaPhoto(formData.photo, uniqueSlug);
-          setUploading(false);
-        }
-
-        const newVilla = {
-          name: formData.name,
-          slug: uniqueSlug,
-          description: `Beautiful ${formData.type} in ${formData.location}`,
-          bedrooms: parseInt(formData.bedrooms),
-          bathrooms: Math.max(1, Math.floor(parseInt(formData.bedrooms) / 2)),
-          max_guests: parseInt(formData.bedrooms) * 2,
-          base_price: parseFloat(formData.price),
-          currency: 'IDR',
-          status: 'active',
-          amenities: [],
-          photos: newPhotoUrl ? [newPhotoUrl] : [],
-          property_id: '18711359-1378-4d12-9ea6-fb31c0b1bac2'
-        };
-
-        console.log('[Properties] Creating villa:', newVilla);
-        const createdVilla = await supabaseService.createProperty(newVilla);
-        console.log('[Properties] Villa created:', createdVilla);
-
-        // Reload properties to show the new one
-        await loadProperties();
-
-        // Close modal and reset
+      // Close modal after 2 seconds
+      setTimeout(() => {
+        setShowDemoMessage(false);
         setShowAddModal(false);
         setFormData({
           name: '',
           location: '',
           type: 'villa',
           bedrooms: '',
-          price: '',
-          photo: null
+          price: ''
         });
-      }
+      }, 2000);
     } catch (error) {
-      console.error('[Properties] Error:', error);
-      setUploading(false);
-      alert(`Failed to ${editMode ? 'update' : 'create'} property: ${error.message}`);
+      console.error('[Properties] Error creating property:', error);
+      alert('Failed to create property. Check console for details.');
       setShowDemoMessage(false);
     }
   };
@@ -353,30 +415,108 @@ const Properties = ({ onBack }) => {
             <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-black text-white drop-shadow-2xl">Properties</h2>
           </div>
           <button
-            onClick={() => {
-              setFormData({
-                name: '',
-                location: '',
-                type: 'villa',
-                bedrooms: '',
-                price: ''
-              });
-              setEditMode(false);
-              setEditingVillaId(null);
-              setShowAddModal(true);
-            }}
+            onClick={() => setShowAddModal(true)}
             className="w-full sm:w-auto px-4 sm:px-6 py-2 sm:py-3 bg-[#1f2937]/95 backdrop-blur-sm text-[#FF8C42] rounded-2xl font-bold hover:bg-[#1f2937] transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 border-2 border-[#d85a2a]/20"
           >
             <Plus className="w-4 h-4 sm:w-5 sm:h-5 inline mr-2" /> Add Property
           </button>
         </div>
 
+        {/* 📅 Date Range Selector */}
+        <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-2xl p-4 shadow-lg border-2 border-[#d85a2a]/20 mb-4">
+          <div className="flex flex-col gap-3">
+            <h3 className="text-lg font-bold text-[#FF8C42]">📅 Date Range</h3>
+
+            <div className="flex flex-wrap gap-2">
+              <button
+                onClick={() => setDateRangePreset('2025')}
+                className={`px-4 py-2 rounded-xl font-bold transition-all ${
+                  dateRangePreset === '2025'
+                    ? 'bg-orange-500 text-white'
+                    : 'bg-white text-[#FF8C42] border-2 border-gray-200 hover:border-orange-300'
+                }`}
+              >
+                2025
+              </button>
+              <button
+                onClick={() => setDateRangePreset('2026')}
+                className={`px-4 py-2 rounded-xl font-bold transition-all ${
+                  dateRangePreset === '2026'
+                    ? 'bg-orange-500 text-white'
+                    : 'bg-white text-[#FF8C42] border-2 border-gray-200 hover:border-orange-300'
+                }`}
+              >
+                2026
+              </button>
+              <button
+                onClick={() => setDateRangePreset('2025-2026')}
+                className={`px-4 py-2 rounded-xl font-bold transition-all ${
+                  dateRangePreset === '2025-2026'
+                    ? 'bg-orange-500 text-white'
+                    : 'bg-white text-[#FF8C42] border-2 border-gray-200 hover:border-orange-300'
+                }`}
+              >
+                2025-2026
+              </button>
+            </div>
+
+            {dateRangePreset === 'custom' && (
+              <div className="flex flex-col sm:flex-row gap-2">
+                <div className="flex-1">
+                  <label className="block text-xs text-gray-400 mb-1">Start Date</label>
+                  <input
+                    type="date"
+                    value={customDateRange.start}
+                    onChange={(e) => {
+                      setCustomDateRange(prev => ({ ...prev, start: e.target.value }));
+                      setDateRange(prev => ({ ...prev, start: e.target.value }));
+                    }}
+                    className="w-full px-3 py-2 bg-[#2a2f3a] text-white border-2 border-[#d85a2a]/30 rounded-xl text-sm focus:border-orange-500 focus:outline-none"
+                  />
+                </div>
+                <div className="flex-1">
+                  <label className="block text-xs text-gray-400 mb-1">End Date</label>
+                  <input
+                    type="date"
+                    value={customDateRange.end}
+                    onChange={(e) => {
+                      setCustomDateRange(prev => ({ ...prev, end: e.target.value }));
+                      setDateRange(prev => ({ ...prev, end: e.target.value }));
+                    }}
+                    className="w-full px-3 py-2 bg-[#2a2f3a] text-white border-2 border-[#d85a2a]/30 rounded-xl text-sm focus:border-orange-500 focus:outline-none"
+                  />
+                </div>
+                <button
+                  onClick={() => {
+                    if (customDateRange.start && customDateRange.end) {
+                      setDateRange(customDateRange);
+                    }
+                  }}
+                  className="self-end px-4 py-2 bg-orange-500 text-white rounded-xl font-bold hover:bg-orange-600 transition-all"
+                >
+                  📅 Apply Custom
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+
         {/* Stats */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3 mb-4 sm:mb-6">
           <StatCard icon={Home} label="Total Properties" value={properties.length.toString()} gradient="from-orange-500 to-orange-600" />
           <StatCard icon={Star} label="Avg Rating" value="4.8" gradient="from-orange-500 to-orange-600" />
-          <StatCard icon={DollarSign} label="Total Revenue" value="$71.7K" trend="+18%" gradient="from-orange-500 to-orange-600" />
-          <StatCard icon={TrendingUp} label="Avg Occupancy" value="85%" trend="+5%" gradient="from-orange-500 to-orange-600" />
+          <StatCard
+            icon={DollarSign}
+            label="Total Revenue"
+            value={stats.loading ? '...' : `Rp ${(stats.totalRevenue / 1000000).toFixed(1)}M`}
+            gradient="from-orange-500 to-orange-600"
+          />
+          <StatCard
+            icon={TrendingUp}
+            label="Avg Occupancy"
+            value={stats.loading ? '...' : `${stats.avgOccupancy}%`}
+            gradient="from-orange-500 to-orange-600"
+          />
         </div>
 
         {/* View Toggle */}
@@ -476,7 +616,7 @@ const Properties = ({ onBack }) => {
                   <div className="flex items-center justify-between pt-4 border-t-2 border-gray-200">
                     <div>
                       <p className="text-xs text-gray-500 mb-1">Base Price</p>
-                      <p className="text-xl font-black text-[#FF8C42]">{formatPrice(property.basePrice, property.currency)}<span className="text-xs font-medium">/night</span></p>
+                      <p className="text-2xl font-black text-[#FF8C42]">{formatPrice(property.basePrice, property.currency)}<span className="text-sm font-medium">/night</span></p>
                     </div>
                     <div className="text-right">
                       <div className="flex items-center gap-1 text-[#FF8C42] font-bold mb-1">
@@ -859,34 +999,9 @@ const Properties = ({ onBack }) => {
 
             {/* Modal Footer */}
             <div className="p-4 sm:p-6 border-t-2 border-gray-200 flex flex-col sm:flex-row gap-3">
-              <button
-                onClick={() => {
-                  setEditMode(true);
-                  setEditingVillaId(selectedProperty.id);
-                  setFormData({
-                    name: selectedProperty.name,
-                    location: selectedProperty.location,
-                    type: selectedProperty.type,
-                    bedrooms: selectedProperty.beds.toString(),
-                    price: selectedProperty.basePrice.toString(),
-                    photo: null,
-                    currentPhotoUrl: selectedProperty.photos?.[0] || null
-                  });
-                  setSelectedProperty(null);
-                  setShowAddModal(true);
-                }}
-                className="flex-1 px-4 sm:px-6 py-3 bg-orange-500 text-white rounded-2xl text-sm sm:text-base font-bold hover:bg-orange-600 transition-colors shadow-md">
+              <button className="flex-1 px-4 sm:px-6 py-3 bg-orange-500 text-white rounded-2xl text-sm sm:text-base font-bold hover:bg-orange-600 transition-colors shadow-md">
                 <Edit className="w-4 h-4 sm:w-5 sm:h-5 inline mr-2" />
                 Edit Property
-              </button>
-              <button
-                onClick={() => {
-                  setVillaToDelete(selectedProperty);
-                  setShowDeleteConfirm(true);
-                }}
-                className="px-4 sm:px-6 py-3 bg-red-500 text-white rounded-2xl text-sm sm:text-base font-bold hover:bg-red-600 transition-colors shadow-md">
-                <Trash2 className="w-4 h-4 sm:w-5 sm:h-5 inline mr-2" />
-                Delete
               </button>
               <button
                 onClick={() => setSelectedProperty(null)}
@@ -901,18 +1016,14 @@ const Properties = ({ onBack }) => {
 
       {/* Add Property Modal */}
       {showAddModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50 overflow-y-auto" onClick={() => setShowAddModal(false)}>
-          <div className="bg-[#1f2937] rounded-3xl shadow-2xl max-w-2xl w-full my-8 max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50" onClick={() => setShowAddModal(false)}>
+          <div className="bg-[#1f2937] rounded-3xl shadow-2xl max-w-2xl w-full" onClick={(e) => e.stopPropagation()}>
             {/* Modal Header */}
             <div className="bg-gradient-to-r from-orange-500 to-orange-600 p-6 rounded-t-3xl">
               <div className="flex items-center justify-between">
-                <h3 className="text-2xl font-black text-white">{editMode ? 'Edit Property' : 'Add New Property'}</h3>
+                <h3 className="text-2xl font-black text-white">Add New Property</h3>
                 <button
-                  onClick={() => {
-                    setShowAddModal(false);
-                    setEditMode(false);
-                    setEditingVillaId(null);
-                  }}
+                  onClick={() => setShowAddModal(false)}
                   className="p-2 bg-[#d85a2a]/10 hover:bg-white/30 rounded-xl transition-colors"
                 >
                   <X className="w-6 h-6 text-white" />
@@ -1009,45 +1120,6 @@ const Properties = ({ onBack }) => {
                   />
                 </div>
 
-                {/* Property Photo */}
-                <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-2">
-                    Property Photo
-                  </label>
-                  {formData.currentPhotoUrl && !formData.photo && (
-                    <div className="mb-2">
-                      <img
-                        src={formData.currentPhotoUrl}
-                        alt="Current photo"
-                        className="w-full h-32 object-cover rounded-xl border-2 border-orange-200"
-                      />
-                      <p className="text-xs text-gray-500 mt-1">Current photo — select a new one to replace it</p>
-                    </div>
-                  )}
-                  {formData.photo && (
-                    <div className="mb-2">
-                      <img
-                        src={URL.createObjectURL(formData.photo)}
-                        alt="New photo preview"
-                        className="w-full h-32 object-cover rounded-xl border-2 border-orange-400"
-                      />
-                      <p className="text-xs text-orange-600 mt-1 font-medium">New photo selected — will be uploaded on save</p>
-                    </div>
-                  )}
-                  <input
-                    type="file"
-                    name="photo"
-                    accept="image/*"
-                    disabled={uploading}
-                    onChange={(e) => {
-                      const file = e.target.files[0];
-                      if (file) setFormData(prev => ({ ...prev, photo: file }));
-                    }}
-                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-orange-500 focus:outline-none font-medium file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-orange-50 file:text-orange-700 hover:file:bg-orange-100 disabled:opacity-50"
-                  />
-                  <p className="text-xs text-gray-500 mt-1">JPG, PNG (max 5MB)</p>
-                </div>
-
                 {/* Demo Message */}
                 {showDemoMessage && (
                   <div className="bg-blue-50 border-2 border-blue-300 rounded-xl p-4 animate-fade-in">
@@ -1070,25 +1142,11 @@ const Properties = ({ onBack }) => {
               <div className="flex flex-col sm:flex-row gap-3 mt-6">
                 <button
                   type="submit"
-                  className="flex-1 px-6 py-3 bg-orange-500 text-white rounded-2xl font-bold hover:bg-orange-600 transition-colors shadow-md disabled:opacity-60"
-                  disabled={showDemoMessage || uploading}
+                  className="flex-1 px-6 py-3 bg-orange-500 text-white rounded-2xl font-bold hover:bg-orange-600 transition-colors shadow-md"
+                  disabled={showDemoMessage}
                 >
-                  {uploading ? (
-                    <>
-                      <span className="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2 align-middle" />
-                      Uploading photo...
-                    </>
-                  ) : editMode ? (
-                    <>
-                      <Edit className="w-5 h-5 inline mr-2" />
-                      Update Property
-                    </>
-                  ) : (
-                    <>
-                      <Plus className="w-5 h-5 inline mr-2" />
-                      {showDemoMessage ? 'Property Added!' : 'Add Property'}
-                    </>
-                  )}
+                  <Plus className="w-5 h-5 inline mr-2" />
+                  {showDemoMessage ? 'Property Added!' : 'Add Property'}
                 </button>
                 <button
                   type="button"
@@ -1100,51 +1158,6 @@ const Properties = ({ onBack }) => {
                 </button>
               </div>
             </form>
-          </div>
-        </div>
-      )}
-
-      {/* Delete Confirmation Modal */}
-      {showDeleteConfirm && villaToDelete && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full p-6">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
-                <Trash2 className="w-6 h-6 text-red-600" />
-              </div>
-              <div>
-                <h3 className="text-xl font-black text-gray-900">Delete Property</h3>
-                <p className="text-sm text-gray-600">This action cannot be undone</p>
-              </div>
-            </div>
-            <p className="text-gray-700 mb-6">
-              Are you sure you want to delete <span className="font-bold">"{villaToDelete.name}"</span>?
-            </p>
-            <div className="flex gap-3">
-              <button
-                onClick={async () => {
-                  try {
-                    await supabaseService.deleteVilla(villaToDelete.id);
-                    await loadProperties();
-                    setSelectedProperty(null);
-                    setShowDeleteConfirm(false);
-                    setVillaToDelete(null);
-                  } catch (error) {
-                    alert(`Failed to delete: ${error.message}`);
-                  }
-                }}
-                className="flex-1 px-6 py-3 bg-red-500 text-white rounded-2xl font-bold hover:bg-red-600 transition-colors">
-                Delete
-              </button>
-              <button
-                onClick={() => {
-                  setShowDeleteConfirm(false);
-                  setVillaToDelete(null);
-                }}
-                className="flex-1 px-6 py-3 bg-gray-200 text-gray-800 rounded-2xl font-bold hover:bg-gray-300 transition-colors">
-                Cancel
-              </button>
-            </div>
           </div>
         </div>
       )}

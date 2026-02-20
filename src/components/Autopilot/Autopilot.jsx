@@ -218,10 +218,6 @@ const Autopilot = ({ onBack }) => {
   const [baliSheetYear, setBaliSheetYear] = useState(String(new Date().getFullYear()));
   const [baliSheetVilla, setBaliSheetVilla] = useState('all');
 
-  // Maintenance & Tasks section - real Supabase data
-  const [autopilotTasks, setAutopilotTasks] = useState([]);
-  const [isLoadingAutopilotTasks, setIsLoadingAutopilotTasks] = useState(false);
-
   const [showDBVisualization, setShowDBVisualization] = useState(false);
   const [dbQueryLog, setDbQueryLog] = useState([]);
   const [monthlyMetrics, setMonthlyMetrics] = useState({
@@ -413,7 +409,7 @@ const Autopilot = ({ onBack }) => {
         if (villas && villas.length > 0) {
           // Filter only Gita's villas (Nismara and Graha Uma)
           const gitaVillas = villas.filter(villa =>
-            villa.name.includes('Nismara') || villa.name.includes('Graha Uma')
+            villa.name.toUpperCase().includes('NISMARA') || villa.name.toUpperCase().includes('GRAHA UMA')
           );
           console.log('🔍 [AUTOPILOT] Filtered Gita villas:', gitaVillas.length, 'of', villas.length);
 
@@ -591,17 +587,6 @@ const Autopilot = ({ onBack }) => {
     console.log('Reloading channel stats for period:', selectedChannelPeriod);
     loadChannelStats(selectedChannelPeriod);
   }, [selectedChannelPeriod]);
-
-  // Load tasks when entering Maintenance & Tasks section
-  useEffect(() => {
-    if (activeSection === 'tasks') {
-      setIsLoadingAutopilotTasks(true);
-      dataService.getTasks({ tenant_id: TENANT_ID })
-        .then(data => setAutopilotTasks(data || []))
-        .catch(() => setAutopilotTasks([]))
-        .finally(() => setIsLoadingAutopilotTasks(false));
-    }
-  }, [activeSection, TENANT_ID]);
 
   // Helper functions
   const formatCurrency = (amount) => {
@@ -2758,30 +2743,27 @@ const Autopilot = ({ onBack }) => {
             <CheckCircle className="w-5 h-5 text-orange-400" />
             Task Overview
           </h4>
-          {isLoadingAutopilotTasks ? (
-            <div className="flex justify-center py-8">
-              <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-orange-500"></div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="bg-gradient-to-br from-yellow-500/10 to-yellow-600/10 rounded-xl p-5 border-2 border-yellow-500/30">
+              <p className="text-yellow-300 text-sm font-medium mb-2">Open Tasks</p>
+              <p className="text-3xl font-black text-white">5</p>
             </div>
-          ) : (
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div className="bg-gradient-to-br from-yellow-500/10 to-yellow-600/10 rounded-xl p-5 border-2 border-yellow-500/30">
-                <p className="text-yellow-300 text-sm font-medium mb-2">Open Tasks</p>
-                <p className="text-3xl font-black text-white">{autopilotTasks.filter(t => !t.status || t.status === 'pending').length}</p>
-              </div>
-              <div className="bg-gradient-to-br from-blue-500/10 to-blue-600/10 rounded-xl p-5 border-2 border-blue-500/30">
-                <p className="text-blue-300 text-sm font-medium mb-2">In Progress</p>
-                <p className="text-3xl font-black text-white">{autopilotTasks.filter(t => t.status === 'in_progress').length}</p>
-              </div>
-              <div className="bg-gradient-to-br from-green-500/10 to-green-600/10 rounded-xl p-5 border-2 border-green-500/30">
-                <p className="text-green-300 text-sm font-medium mb-2">Completed</p>
-                <p className="text-3xl font-black text-white">{autopilotTasks.filter(t => t.status === 'completed').length}</p>
-              </div>
-              <div className="bg-gradient-to-br from-orange-500/10 to-orange-600/10 rounded-xl p-5 border-2 border-orange-500/30">
-                <p className="text-orange-300 text-sm font-medium mb-2">Total Tasks</p>
-                <p className="text-3xl font-black text-white">{autopilotTasks.length}</p>
-              </div>
+
+            <div className="bg-gradient-to-br from-blue-500/10 to-blue-600/10 rounded-xl p-5 border-2 border-blue-500/30">
+              <p className="text-blue-300 text-sm font-medium mb-2">In Progress</p>
+              <p className="text-3xl font-black text-white">2</p>
             </div>
-          )}
+
+            <div className="bg-gradient-to-br from-green-500/10 to-green-600/10 rounded-xl p-5 border-2 border-green-500/30">
+              <p className="text-green-300 text-sm font-medium mb-2">Completed Today</p>
+              <p className="text-3xl font-black text-white">3</p>
+            </div>
+
+            <div className="bg-gradient-to-br from-red-500/10 to-red-600/10 rounded-xl p-5 border-2 border-red-500/30">
+              <p className="text-red-300 text-sm font-medium mb-2">Overdue</p>
+              <p className="text-3xl font-black text-white">1</p>
+            </div>
+          </div>
         </div>
 
         {/* Automatic Task Creation */}
@@ -2808,64 +2790,45 @@ const Autopilot = ({ onBack }) => {
           </div>
         </div>
 
-        {/* Current Tasks from Supabase */}
+        {/* Sample Tasks */}
         <div className="space-y-3">
           <h4 className="text-white font-bold text-lg mb-4 flex items-center gap-2">
             <List className="w-5 h-5 text-orange-400" />
             Current Tasks
-            {!isLoadingAutopilotTasks && (
-              <span className="text-sm text-gray-400 font-normal">({autopilotTasks.length} total)</span>
-            )}
           </h4>
-          {isLoadingAutopilotTasks ? (
-            <div className="flex justify-center py-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500"></div>
-            </div>
-          ) : autopilotTasks.length === 0 ? (
-            <div className="bg-[#2a2f3a] rounded-xl p-8 text-center text-gray-400 border-2 border-gray-700">
-              No tasks found. Create tasks in Manual Data Entry.
-            </div>
-          ) : (
-            autopilotTasks.slice(0, 20).map((task) => (
-              <div key={task.id} className="bg-[#2a2f3a] rounded-lg p-4 border-2 border-gray-700 hover:border-orange-500/50 transition-all">
-                <div className="flex items-start justify-between gap-2">
-                  <div className="flex-1 min-w-0">
-                    <h4 className="text-white font-bold truncate">{task.title}</h4>
-                    <p className="text-gray-400 text-sm capitalize mt-0.5">
-                      {task.task_type || 'general'}
-                      {task.assigned_to ? ` • ${task.assigned_to}` : ''}
-                      {task.created_at ? ` • ${new Date(task.created_at).toLocaleDateString()}` : ''}
-                    </p>
-                    {task.description && (
-                      <p className="text-gray-500 text-xs mt-1 truncate">{task.description}</p>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-2 shrink-0">
-                    <span className={`px-2 py-1 rounded-full text-xs font-bold ${
-                      task.priority === 'urgent' ? 'bg-red-500/20 text-red-400' :
-                      task.priority === 'high' ? 'bg-orange-500/20 text-orange-400' :
-                      task.priority === 'medium' ? 'bg-yellow-500/20 text-yellow-400' :
-                      'bg-green-500/20 text-green-400'
-                    }`}>
-                      {(task.priority || 'medium').toUpperCase()}
-                    </span>
-                    <span className={`px-3 py-1 rounded-full text-xs font-bold ${
-                      task.status === 'completed' ? 'bg-green-500/20 text-green-400' :
-                      task.status === 'in_progress' ? 'bg-blue-500/20 text-blue-400' :
-                      'bg-yellow-500/20 text-yellow-400'
-                    }`}>
-                      {task.status === 'in_progress' ? 'In Progress' : task.status === 'completed' ? 'Done' : 'Pending'}
-                    </span>
-                  </div>
+          {[
+            { task: 'Deep cleaning Villa 1', type: 'Cleaning', assignee: 'Maria Santos', due: 'Feb 16, 2PM', status: 'in_progress', priority: 'high' },
+            { task: 'Pool maintenance Villa 2', type: 'Maintenance', assignee: 'Ketut Ngurah', due: 'Feb 16, 4PM', status: 'open', priority: 'medium' },
+            { task: 'Linen inventory check', type: 'Inventory', assignee: 'Wayan Sari', due: 'Feb 17, 10AM', status: 'open', priority: 'low' },
+            { task: 'AC service Villa 3', type: 'Maintenance', assignee: 'Putu Agung', due: 'Feb 15, 5PM', status: 'overdue', priority: 'urgent' },
+            { task: 'Welcome basket preparation', type: 'Guest Services', assignee: 'Kadek Ayu', due: 'Feb 16, 11AM', status: 'in_progress', priority: 'high' }
+          ].map((task, i) => (
+            <div key={i} className="bg-[#2a2f3a] rounded-lg p-4 border-2 border-gray-700 hover:border-orange-500/50 transition-all">
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex-1">
+                  <h4 className="text-white font-bold">{task.task}</h4>
+                  <p className="text-gray-400 text-sm">{task.type} • {task.assignee} • Due: {task.due}</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className={`px-2 py-1 rounded-full text-xs font-bold ${
+                    task.priority === 'urgent' ? 'bg-red-500/20 text-red-400' :
+                    task.priority === 'high' ? 'bg-orange-500/20 text-orange-400' :
+                    task.priority === 'medium' ? 'bg-yellow-500/20 text-yellow-400' :
+                    'bg-green-500/20 text-green-400'
+                  }`}>
+                    {task.priority.toUpperCase()}
+                  </span>
+                  <span className={`px-3 py-1 rounded-full text-xs font-bold ${
+                    task.status === 'overdue' ? 'bg-red-500/20 text-red-400' :
+                    task.status === 'open' ? 'bg-yellow-500/20 text-yellow-400' :
+                    'bg-blue-500/20 text-blue-400'
+                  }`}>
+                    {task.status === 'in_progress' ? 'In Progress' : task.status === 'overdue' ? 'OVERDUE' : 'Open'}
+                  </span>
                 </div>
               </div>
-            ))
-          )}
-          {!isLoadingAutopilotTasks && autopilotTasks.length > 20 && (
-            <p className="text-center text-gray-500 text-sm">
-              Showing 20 of {autopilotTasks.length} tasks. See all in Manual Data Entry.
-            </p>
-          )}
+            </div>
+          ))}
         </div>
       </div>
     </div>
@@ -3947,6 +3910,10 @@ const Autopilot = ({ onBack }) => {
 
         const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
         const getMonth = (dateStr) => MONTHS[new Date(dateStr).getMonth()];
+        const getYear = (dateStr) => {
+          if (!dateStr) return '';
+          return new Date(dateStr).getFullYear();
+        };
         const fmtDate = (d) => {
           if (!d) return '';
           const dt = new Date(d);
@@ -3954,25 +3921,34 @@ const Autopilot = ({ onBack }) => {
         };
         const fmtNum = (n) => n ? Number(n).toLocaleString('id-ID') : '-';
 
-        // Group by month
-        const byMonth = {};
+        // Group by year and month
+        const byYearMonth = {};
         bkgs.forEach(b => {
+          const year = getYear(b.check_in);
           const mon = getMonth(b.check_in);
-          if (!byMonth[mon]) byMonth[mon] = [];
-          byMonth[mon].push(b);
+          const key = `${year}-${mon}`;
+          if (!byYearMonth[key]) byYearMonth[key] = { year, month: mon, bookings: [] };
+          byYearMonth[key].bookings.push(b);
+        });
+
+        // Sort by year then month
+        const sortedKeys = Object.keys(byYearMonth).sort((a, b) => {
+          const [yearA, monthA] = a.split('-');
+          const [yearB, monthB] = b.split('-');
+          if (yearA !== yearB) return parseInt(yearA) - parseInt(yearB);
+          return MONTHS.indexOf(monthA) - MONTHS.indexOf(monthB);
         });
 
         // Build rows
         const rows = [];
         // Header row 1
-        rows.push(['NO', 'MONTH', 'GUEST NAME', 'CHECK IN', 'CHECK OUT', 'PAX', 'ROOM NIGHTS', 'PRICE (IDR)', 'BOOKING SOURCE', 'PAYMENT STATUS', 'SPECIAL REQUEST', 'TOTAL REVENUE ON HAND']);
+        rows.push(['NO', 'YEAR', 'MONTH', 'GUEST NAME', 'CHECK IN', 'CHECK OUT', 'PAX', 'ROOM NIGHTS', 'PRICE (IDR)', 'BOOKING SOURCE', 'PAYMENT STATUS', 'SPECIAL REQUEST', 'TOTAL REVENUE ON HAND']);
 
         let counter = 1;
         let cumulativeRevenue = 0;
 
-        MONTHS.forEach(month => {
-          if (!byMonth[month]) return;
-          const monthBkgs = byMonth[month];
+        sortedKeys.forEach(key => {
+          const { year, month, bookings: monthBkgs } = byYearMonth[key];
           const monthRevenue = monthBkgs.reduce((s, b) => s + Number(b.total_price || 0), 0);
           cumulativeRevenue += monthRevenue;
 
@@ -3986,7 +3962,8 @@ const Autopilot = ({ onBack }) => {
               : b.payment_status || '-';
             rows.push([
               counter++,
-              i === 0 ? month : '',                      // Month only on first row
+              i === 0 ? year : '',                       // Year only on first row of month
+              i === 0 ? month : '',                      // Month only on first row of month
               b.guest_name || '-',
               fmtDate(b.check_in),
               fmtDate(b.check_out),
@@ -4008,6 +3985,7 @@ const Autopilot = ({ onBack }) => {
         // Column widths
         ws['!cols'] = [
           { wch: 5 },  // NO
+          { wch: 8 },  // YEAR
           { wch: 12 }, // MONTH
           { wch: 22 }, // GUEST NAME
           { wch: 13 }, // CHECK IN
@@ -4022,7 +4000,7 @@ const Autopilot = ({ onBack }) => {
         ];
 
         // Style header row (XLSX basic style via cell metadata)
-        const headerRange = XLSX.utils.decode_range(ws['!ref'] || 'A1:L1');
+        const headerRange = XLSX.utils.decode_range(ws['!ref'] || 'A1:M1');
         for (let C = headerRange.s.c; C <= headerRange.e.c; C++) {
           const addr = XLSX.utils.encode_cell({ r: 0, c: C });
           if (!ws[addr]) continue;
