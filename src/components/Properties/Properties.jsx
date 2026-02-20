@@ -20,7 +20,10 @@ import {
   Edit,
   Eye,
   CheckCircle,
-  Clock
+  Clock,
+  Camera,
+  Upload,
+  Save
 } from 'lucide-react';
 import { StatCard } from '../common';
 import { dataService } from '../../services/data';
@@ -40,12 +43,24 @@ const Properties = ({ onBack }) => {
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
   const [showDemoMessage, setShowDemoMessage] = useState(false);
+  const [editMode, setEditMode] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     location: '',
     type: 'villa',
     bedrooms: '',
-    price: ''
+    price: '',
+    photo: null
+  });
+  const [editFormData, setEditFormData] = useState({
+    name: '',
+    location: '',
+    bedrooms: '',
+    baths: '',
+    maxGuests: '',
+    basePrice: '',
+    photo: null
   });
 
   // Stats calculation state
@@ -365,6 +380,80 @@ const Properties = ({ onBack }) => {
       ...prev,
       [name]: value
     }));
+  };
+
+  const handleEditClick = () => {
+    setEditMode(true);
+    if (selectedProperty) {
+      setEditFormData({
+        name: selectedProperty.name || '',
+        location: selectedProperty.location || '',
+        bedrooms: selectedProperty.beds || '',
+        baths: selectedProperty.baths || '',
+        maxGuests: selectedProperty.maxGuests || '',
+        basePrice: selectedProperty.basePrice || '',
+        photo: null
+      });
+    }
+    // Switch to photos tab automatically
+    setSelectedTab('photos');
+  };
+
+  const handlePhotoChange = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploading(true);
+    try {
+      // Upload to Supabase Storage
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${selectedProperty.id}-${Date.now()}.${fileExt}`;
+      const filePath = `${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('villa-photos')
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      // Get public URL
+      const { data } = supabase.storage
+        .from('villa-photos')
+        .getPublicUrl(filePath);
+
+      // Update property with new photo
+      const updatedPhotos = [data.publicUrl, ...(selectedProperty.photos || [])];
+
+      // Update in Supabase
+      await supabaseService.updateVilla(selectedProperty.id, {
+        photos: updatedPhotos
+      });
+
+      // Update local state
+      const updatedProperty = {
+        ...selectedProperty,
+        photos: updatedPhotos
+      };
+      setSelectedProperty(updatedProperty);
+
+      // Update properties list
+      setProperties(prev => prev.map(p =>
+        p.id === selectedProperty.id ? updatedProperty : p
+      ));
+
+      alert('Photo uploaded successfully!');
+    } catch (error) {
+      console.error('Error uploading photo:', error);
+      alert('Error uploading photo: ' + error.message);
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleSaveEdit = async () => {
+    setEditMode(false);
+    // Aquí iría la lógica para guardar en Supabase
+    alert('Changes saved! (Demo mode)');
   };
 
   const getStatusBadge = (status) => {
@@ -932,10 +1021,26 @@ const Properties = ({ onBack }) => {
                       </div>
                     ))}
                   </div>
-                  <button className="w-full py-4 bg-[#2a2f3a] border-2 border-[#d85a2a]/30-300 rounded-2xl font-bold text-[#FF8C42] hover:border-orange-300 transition-all flex items-center justify-center gap-2">
-                    <Plus className="w-5 h-5" />
-                    Add More Photos
-                  </button>
+                  <label className="w-full py-4 bg-[#2a2f3a] border-2 border-[#d85a2a]/30-300 rounded-2xl font-bold text-[#FF8C42] hover:border-orange-300 transition-all flex items-center justify-center gap-2 cursor-pointer">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handlePhotoChange}
+                      className="hidden"
+                      disabled={uploading}
+                    />
+                    {uploading ? (
+                      <>
+                        <Upload className="w-5 h-5 animate-bounce" />
+                        Uploading...
+                      </>
+                    ) : (
+                      <>
+                        <Camera className="w-5 h-5" />
+                        Upload New Photo
+                      </>
+                    )}
+                  </label>
                 </div>
               )}
 
@@ -999,7 +1104,10 @@ const Properties = ({ onBack }) => {
 
             {/* Modal Footer */}
             <div className="p-4 sm:p-6 border-t-2 border-gray-200 flex flex-col sm:flex-row gap-3">
-              <button className="flex-1 px-4 sm:px-6 py-3 bg-orange-500 text-white rounded-2xl text-sm sm:text-base font-bold hover:bg-orange-600 transition-colors shadow-md">
+              <button
+                onClick={handleEditClick}
+                className="flex-1 px-4 sm:px-6 py-3 bg-orange-500 text-white rounded-2xl text-sm sm:text-base font-bold hover:bg-orange-600 transition-colors shadow-md"
+              >
                 <Edit className="w-4 h-4 sm:w-5 sm:h-5 inline mr-2" />
                 Edit Property
               </button>
