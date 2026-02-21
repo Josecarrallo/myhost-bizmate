@@ -253,7 +253,6 @@ const Autopilot = ({ onBack }) => {
 
   // DYNAMIC TENANT ID - Use logged in user's ID
   const TENANT_ID = userData?.id || 'c24393db-d318-4d75-8bbf-0fa240b9c1db'; // Fallback to Jose for backwards compatibility
-  const PROPERTY_ID = '18711359-1378-4d12-9ea6-fb31c0b1bac2'; // TODO: Make this dynamic too
 
   // AUTOPILOT MENU - 10 Sections
   const menuSections = [
@@ -841,8 +840,9 @@ const Autopilot = ({ onBack }) => {
   // Fetch functions
   const fetchMonthlyMetrics = async () => {
     try {
+      // Fetch bookings filtered ONLY by tenant_id (no hardcoded property_id)
       const response = await fetch(
-        `${SUPABASE_URL}/rest/v1/bookings?tenant_id=eq.${TENANT_ID}&property_id=eq.${PROPERTY_ID}&select=check_in,total_amount,status`,
+        `${SUPABASE_URL}/rest/v1/bookings?tenant_id=eq.${TENANT_ID}&select=check_in,total_amount,status`,
         {
           headers: { 'apikey': SUPABASE_KEY }
         }

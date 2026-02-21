@@ -145,9 +145,9 @@ const ManualDataEntry = ({ onBack }) => {
   const [editTaskForm, setEditTaskForm] = useState({});
   const [isSavingTaskEdit, setIsSavingTaskEdit] = useState(false);
 
-  // Load villas directly for Gita (bypassing properties table)
+  // Load villas with multi-tenant filtering
   useEffect(() => {
-    const loadVillasDirectly = async () => {
+    const loadVillasForUser = async () => {
       if (!userData?.id) {
         console.log('Waiting for userData to load...');
         return;
@@ -156,52 +156,73 @@ const ManualDataEntry = ({ onBack }) => {
       try {
         setIsLoadingProperties(true);
         const tenantId = user?.id || userData?.id;
-        console.log('[ManualDataEntry] Loading villas for user:', tenantId);
+        console.log('[ManualDataEntry] Loading villas for tenant:', tenantId);
 
-        // For Gita, load villas directly using the known property_id
-        const GITA_PROPERTY_ID = '18711359-1378-4d12-9ea6-fb31c0b1bac2';
+        // 1. Get user's property_ids from bookings table
+        const { data: bookings, error: bookingsError } = await supabase
+          .from('bookings')
+          .select('property_id')
+          .eq('tenant_id', tenantId);
 
-        // Create a dummy property entry so the form works
-        setProperties([{
-          id: GITA_PROPERTY_ID,
-          name: 'Gita Properties',
+        if (bookingsError) {
+          console.error('[ManualDataEntry] Error loading bookings:', bookingsError);
+          setErrorMessage('Failed to load properties');
+          setIsLoadingProperties(false);
+          return;
+        }
+
+        if (!bookings || bookings.length === 0) {
+          console.log('[ManualDataEntry] No bookings found for tenant');
+          setIsLoadingProperties(false);
+          return;
+        }
+
+        // Get unique property_ids
+        const propertyIds = [...new Set(bookings.map(b => b.property_id))];
+        console.log(`[ManualDataEntry] User has ${propertyIds.length} property_id(s):`, propertyIds);
+
+        // Create dummy property entries for the form
+        const propertiesData = propertyIds.map((id, index) => ({
+          id: id,
+          name: `Property ${index + 1}`,
           owner_id: tenantId
-        }]);
+        }));
+        setProperties(propertiesData);
 
-        const response = await fetch(
-          `${supabaseService.SUPABASE_URL || 'https://jjpscimtxrudtepzwhag.supabase.co'}/rest/v1/villas?property_id=eq.${GITA_PROPERTY_ID}&currency=eq.IDR&select=*`,
-          {
-            headers: {
-              'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpqcHNjaW10eHJ1ZHRlcHp3aGFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI5NDMyMzIsImV4cCI6MjA3ODUxOTIzMn0._U_HwdF5-yT8-prJLzkdO_rGbNuu7Z3gpUQW0Q8zxa0',
-              'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpqcHNjaW10eHJ1ZHRlcHp3aGFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI5NDMyMzIsImV4cCI6MjA3ODUxOTIzMn0._U_HwdF5-yT8-prJLzkdO_rGbNuu7Z3gpUQW0Q8zxa0'
-            }
-          }
-        );
+        // 2. Get villas for ALL user's property_ids
+        const { data: villasData, error: villasError } = await supabase
+          .from('villas')
+          .select('*')
+          .in('property_id', propertyIds)
+          .eq('status', 'active');
 
-        if (response.ok) {
-          const villasData = await response.json();
-          console.log(`[ManualDataEntry] ✅ Loaded ${villasData.length} villas:`, villasData);
+        if (villasError) {
+          console.error('[ManualDataEntry] Error loading villas:', villasError);
+          setErrorMessage('Failed to load villas');
+          setIsLoadingProperties(false);
+          return;
+        }
 
-          const activeVillas = villasData.filter(v => v.status === 'active');
-          setVillas(activeVillas);
+        console.log(`[ManualDataEntry] ✅ Loaded ${villasData?.length || 0} villas:`, villasData);
 
-          // Auto-select property_id in form
+        setVillas(villasData || []);
+
+        // Auto-select first property_id in form
+        if (propertyIds.length > 0) {
           setBookingForm(prev => ({
             ...prev,
-            propertyId: GITA_PROPERTY_ID
+            propertyId: propertyIds[0]
           }));
-
-          console.log(`[ManualDataEntry] ✅ Property auto-selected: ${GITA_PROPERTY_ID}`);
-          console.log(`[ManualDataEntry] ✅ ${activeVillas.length} villas available for selection`);
-
-          // Auto-select first villa if there's only one
-          if (activeVillas.length === 1) {
-            setBookingForm(prev => ({ ...prev, villaId: activeVillas[0].id }));
-            console.log(`[ManualDataEntry] ✅ Auto-selected villa: ${activeVillas[0].name}`);
-          }
-        } else {
-          console.error('[ManualDataEntry] Failed to load villas, status:', response.status);
+          console.log(`[ManualDataEntry] ✅ Property auto-selected: ${propertyIds[0]}`);
         }
+
+        // Auto-select first villa if there's only one
+        if (villasData && villasData.length === 1) {
+          setBookingForm(prev => ({ ...prev, villaId: villasData[0].id }));
+          console.log(`[ManualDataEntry] ✅ Auto-selected villa: ${villasData[0].name}`);
+        }
+
+        console.log(`[ManualDataEntry] ✅ ${villasData?.length || 0} villas available for selection`);
       } catch (error) {
         console.error('[ManualDataEntry] Error loading villas:', error);
         setErrorMessage('Failed to load villas');
@@ -210,38 +231,31 @@ const ManualDataEntry = ({ onBack }) => {
       }
     };
 
-    loadVillasDirectly();
-  }, [userData]);
+    loadVillasForUser();
+  }, [userData, user]);
 
   // Load villas when property is selected
   const loadVillasForProperty = async (propertyId) => {
     try {
-      // Fetch villas from Supabase
-      const response = await fetch(
-        `${supabaseService.SUPABASE_URL || 'https://jjpscimtxrudtepzwhag.supabase.co'}/rest/v1/villas?property_id=eq.${propertyId}&currency=eq.IDR&select=*`,
-        {
-          headers: {
-            'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpqcHNjaW10eHJ1ZHRlcHp3aGFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI5NDMyMzIsImV4cCI6MjA3ODUxOTIzMn0._U_HwdF5-yT8-prJLzkdO_rGbNuu7Z3gpUQW0Q8zxa0',
-            'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpqcHNjaW10eHJ1ZHRlcHp3aGFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI5NDMyMzIsImV4cCI6MjA3ODUxOTIzMn0._U_HwdF5-yT8-prJLzkdO_rGbNuu7Z3gpUQW0Q8zxa0'
-          }
-        }
-      );
+      // Fetch villas from Supabase WITHOUT hardcoded currency filter
+      const { data: villasData, error } = await supabase
+        .from('villas')
+        .select('*')
+        .eq('property_id', propertyId)
+        .eq('status', 'active');
 
-      if (response.ok) {
-        const villasData = await response.json();
+      if (error) {
+        console.error('[ManualDataEntry] Error loading villas:', error);
+        return;
+      }
 
-        console.log(`[ManualDataEntry] Loaded ${villasData.length} villas for property ${propertyId}:`, villasData);
+      console.log(`[ManualDataEntry] Loaded ${villasData?.length || 0} villas for property ${propertyId}:`, villasData);
 
-        // Filter active villas
-        const activeVillas = villasData.filter(v => v.status === 'active');
-        setVillas(activeVillas);
+      setVillas(villasData || []);
 
-        // Auto-select first villa if there's only one
-        if (activeVillas.length === 1) {
-          setBookingForm(prev => ({ ...prev, villaId: activeVillas[0].id }));
-        }
-      } else {
-        console.error('Failed to load villas, status:', response.status);
+      // Auto-select first villa if there's only one
+      if (villasData && villasData.length === 1) {
+        setBookingForm(prev => ({ ...prev, villaId: villasData[0].id }));
       }
     } catch (error) {
       console.error('Error loading villas:', error);
@@ -403,11 +417,22 @@ const ManualDataEntry = ({ onBack }) => {
         };
       });
 
-      // Sort by check-in date
+      // Sort by date (check_in from lead table if exists, otherwise created_at) - most recent first
       leadsWithBookingData.sort((a, b) => {
-        if (!a.booking_check_in) return 1;
-        if (!b.booking_check_in) return -1;
-        return new Date(a.booking_check_in) - new Date(b.booking_check_in);
+        // Use check_in from lead table (not booking_check_in which comes from bookings)
+        const dateStrA = (a.check_in || a.created_at);
+        const dateStrB = (b.check_in || b.created_at);
+
+        if (!dateStrA && !dateStrB) return 0;
+        if (!dateStrA) return 1;
+        if (!dateStrB) return -1;
+
+        // Convert to Date objects for proper comparison
+        const dateA = new Date(dateStrA);
+        const dateB = new Date(dateStrB);
+
+        // Most recent first (descending order) - INVERTED: dateA - dateB
+        return dateA.getTime() - dateB.getTime();
       });
 
       setLeads(leadsWithBookingData);
@@ -465,6 +490,33 @@ const ManualDataEntry = ({ onBack }) => {
       setErrorMessage('Failed to delete booking');
     } finally {
       setIsDeleting(false);
+    }
+  };
+
+  // Calculate price based on dates and villa
+  const recalculateEditPrice = async (checkIn, checkOut, villaId) => {
+    if (!checkIn || !checkOut || !villaId) return null;
+
+    try {
+      const checkInDate = new Date(checkIn);
+      const checkOutDate = new Date(checkOut);
+      const nights = Math.ceil((checkOutDate - checkInDate) / (1000 * 60 * 60 * 24));
+
+      if (nights <= 0) return null;
+
+      // Get villa price from villas array
+      const villa = villas.find(v => v.id === villaId);
+      if (!villa || !villa.base_price) {
+        console.error('[recalculateEditPrice] Villa not found or no base_price:', villaId);
+        return null;
+      }
+
+      const totalPrice = villa.base_price * nights;
+      console.log(`[recalculateEditPrice] ${nights} nights × ${villa.base_price} = ${totalPrice}`);
+      return totalPrice;
+    } catch (error) {
+      console.error('[recalculateEditPrice] Error:', error);
+      return null;
     }
   };
 
@@ -604,7 +656,7 @@ const ManualDataEntry = ({ onBack }) => {
       const leadData = {
         tenant_id: userData.id,
         name: leadForm.name,
-        phone: leadForm.phone,
+        phone: leadForm.phone || null,
         email: leadForm.email || null,
         country: leadForm.country || null,
         source: leadForm.source || 'manual',
@@ -617,6 +669,7 @@ const ManualDataEntry = ({ onBack }) => {
           timestamp: new Date().toISOString(),
           type: 'note'
         }] : []
+        // created_at will be auto-generated by Supabase with default now()
       };
 
       console.log('📋 Creating lead/customer:', leadData);
@@ -1587,7 +1640,6 @@ const ManualDataEntry = ({ onBack }) => {
                   <Phone className="absolute left-3 top-3 w-5 h-5 text-gray-400" />
                   <input
                     type="tel"
-                    required
                     value={leadForm.phone}
                     onChange={(e) => setLeadForm({...leadForm, phone: e.target.value})}
                     className="w-full pl-12 pr-4 py-3 bg-[#2a2f3a] border-2 border-gray-200 rounded-xl text-[#FF8C42] placeholder-gray-400 focus:outline-none focus:border-orange-300"
@@ -1743,7 +1795,7 @@ const ManualDataEntry = ({ onBack }) => {
                           <div>
                             <p className="text-gray-500 text-xs">Check-in</p>
                             <p className="text-white text-sm font-medium">
-                              {lead.booking_check_in ? new Date(lead.booking_check_in).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '-'}
+                              {lead.check_in ? new Date(lead.check_in).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : (lead.created_at ? new Date(lead.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '-')}
                             </p>
                           </div>
                           <div>
@@ -1836,8 +1888,8 @@ const ManualDataEntry = ({ onBack }) => {
                               <td className="px-2 py-2 text-gray-300 capitalize overflow-hidden">
                                 <div className="truncate">{lead.source || 'manual'}</div>
                               </td>
-                              <td className="px-2 py-2 text-gray-300">
-                                {lead.booking_check_in ? new Date(lead.booking_check_in).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '-'}
+                              <td className="px-2 py-2 text-gray-300 whitespace-nowrap">
+                                {lead.check_in ? new Date(lead.check_in).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit' }).replace(/ /g, '-') : (lead.created_at ? new Date(lead.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit' }).replace(/ /g, '-') : '-')}
                               </td>
                               <td className="px-2 py-2 text-right">
                                 <span className={`font-bold ${
@@ -2757,7 +2809,18 @@ const ManualDataEntry = ({ onBack }) => {
                     type="date"
                     required
                     value={editForm.checkIn}
-                    onChange={(e) => setEditForm({...editForm, checkIn: e.target.value})}
+                    onChange={async (e) => {
+                      const newCheckIn = e.target.value;
+                      setEditForm({...editForm, checkIn: newCheckIn});
+
+                      // Recalculate price if we have check-out and villa_id
+                      if (editForm.checkOut && editingBooking?.villa_id) {
+                        const newPrice = await recalculateEditPrice(newCheckIn, editForm.checkOut, editingBooking.villa_id);
+                        if (newPrice) {
+                          setEditForm(prev => ({...prev, checkIn: newCheckIn, totalAmount: newPrice.toString()}));
+                        }
+                      }
+                    }}
                     className="w-full px-4 py-3 bg-[#2a2f3a] border-2 border-gray-200 rounded-xl text-[#FF8C42] focus:outline-none focus:border-orange-300"
                   />
                 </div>
@@ -2769,7 +2832,18 @@ const ManualDataEntry = ({ onBack }) => {
                     type="date"
                     required
                     value={editForm.checkOut}
-                    onChange={(e) => setEditForm({...editForm, checkOut: e.target.value})}
+                    onChange={async (e) => {
+                      const newCheckOut = e.target.value;
+                      setEditForm({...editForm, checkOut: newCheckOut});
+
+                      // Recalculate price if we have check-in and villa_id
+                      if (editForm.checkIn && editingBooking?.villa_id) {
+                        const newPrice = await recalculateEditPrice(editForm.checkIn, newCheckOut, editingBooking.villa_id);
+                        if (newPrice) {
+                          setEditForm(prev => ({...prev, checkOut: newCheckOut, totalAmount: newPrice.toString()}));
+                        }
+                      }
+                    }}
                     className="w-full px-4 py-3 bg-[#2a2f3a] border-2 border-gray-200 rounded-xl text-[#FF8C42] focus:outline-none focus:border-orange-300"
                   />
                 </div>
@@ -3093,10 +3167,10 @@ const ManualDataEntry = ({ onBack }) => {
       {/* Edit Lead Modal */}
       {editingLead && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4 overflow-y-auto">
-          <div className="bg-[#1f2937] rounded-2xl p-6 max-w-2xl w-full border-2 border-orange-500 my-8">
+          <div className="bg-[#1f2937] rounded-2xl p-6 max-w-2xl w-full border-2 border-orange-500 my-8 max-h-[90vh] flex flex-col">
             <h3 className="text-2xl font-bold text-orange-400 mb-6">Edit {editLeadForm.type === 'customer' ? 'Customer' : 'Lead'}</h3>
 
-            <form onSubmit={handleUpdateLead} className="space-y-4">
+            <form onSubmit={handleUpdateLead} className="space-y-4 overflow-y-auto pr-2 flex-1">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* Type Selector */}
                 <div className="md:col-span-2">
