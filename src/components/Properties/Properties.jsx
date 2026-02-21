@@ -23,7 +23,8 @@ import {
   Clock,
   Camera,
   Upload,
-  Save
+  Save,
+  Trash2
 } from 'lucide-react';
 import { StatCard } from '../common';
 import { dataService } from '../../services/data';
@@ -42,9 +43,11 @@ const Properties = ({ onBack }) => {
   const [properties, setProperties] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
   const [showDemoMessage, setShowDemoMessage] = useState(false);
-  const [editMode, setEditMode] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState({ show: false, villaId: null, villaName: '' });
+  const [successMessage, setSuccessMessage] = useState({ show: false, message: '' });
   const [formData, setFormData] = useState({
     name: '',
     location: '',
@@ -267,7 +270,7 @@ const Properties = ({ onBack }) => {
   const loadProperties = async () => {
     try {
       setLoading(true);
-      const realVillas = await dataService.getVillas();
+      const realVillas = await dataService.getVillas(tenantId);
       console.log('[Properties] Loaded villas from Supabase:', realVillas);
 
       // Si hay villas reales, usarlas. Si no, usar mock
@@ -323,33 +326,74 @@ const Properties = ({ onBack }) => {
     e.preventDefault();
 
     try {
+      // Upload photo first if exists
+      let photoUrl = null;
+      if (formData.photo) {
+        setUploading(true);
+        try {
+          const fileExt = formData.photo.name.split('.').pop();
+          const fileName = `new-${Date.now()}.${fileExt}`;
+          const filePath = `${fileName}`;
+
+          const { error: uploadError } = await supabase.storage
+            .from('villa-photos')
+            .upload(filePath, formData.photo);
+
+          if (uploadError) throw uploadError;
+
+          const { data } = supabase.storage
+            .from('villa-photos')
+            .getPublicUrl(filePath);
+
+          photoUrl = data.publicUrl;
+        } catch (uploadError) {
+          console.error('Error uploading photo:', uploadError);
+          alert('Error uploading photo: ' + uploadError.message);
+          setUploading(false);
+          return;
+        }
+        setUploading(false);
+      }
+
+      // Get property_id from user's existing villas
+      const userVillas = await dataService.getVillas(tenantId);
+      let propertyId;
+
+      if (userVillas && userVillas.length > 0) {
+        // User has existing villas, use the same property_id
+        propertyId = userVillas[0].property_id;
+        console.log('[Properties] Using existing property_id:', propertyId);
+      } else {
+        // First villa for this user, use user_id as property_id
+        propertyId = tenantId;
+        console.log('[Properties] Creating first villa, using user_id as property_id:', propertyId);
+      }
+
       setShowDemoMessage(true);
 
-      // Create property in Supabase
-      const newProperty = {
+      // Create villa in Supabase villas table
+      const newVilla = {
+        property_id: propertyId,
         name: formData.name,
+        slug: formData.name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, ''),
         description: `Beautiful ${formData.type} in ${formData.location}`,
-        address: formData.location.split(',')[0]?.trim() || formData.location,
-        city: formData.location.split(',')[1]?.trim() || 'Bali',
-        country: 'Indonesia',
         bedrooms: parseInt(formData.bedrooms),
         bathrooms: Math.max(1, Math.floor(parseInt(formData.bedrooms) / 2)),
         max_guests: parseInt(formData.bedrooms) * 2,
         base_price: parseFloat(formData.price),
-        currency: 'USD',
+        currency: 'IDR',
         status: 'active',
         amenities: [],
-        house_rules: [],
-        photos: []
+        photos: photoUrl ? [photoUrl] : []
       };
 
-      console.log('[Properties] Creating property:', newProperty);
-      const createdProperty = await supabaseService.createProperty(newProperty);
-      console.log('[Properties] Property created:', createdProperty);
+      console.log('[Properties] Creating villa:', newVilla);
+      const createdVilla = await supabaseService.createProperty(newVilla);
+      console.log('[Properties] Villa created:', createdVilla);
 
       // Trigger n8n workflow for new property
       console.log('[Properties] Triggering n8n workflow...');
-      const workflowResult = await n8nService.onPropertyCreated(createdProperty);
+      const workflowResult = await n8nService.onPropertyCreated(createdVilla);
       console.log('[Properties] n8n workflow result:', workflowResult);
 
       // Reload properties to show the new one
@@ -364,7 +408,8 @@ const Properties = ({ onBack }) => {
           location: '',
           type: 'villa',
           bedrooms: '',
-          price: ''
+          price: '',
+          photo: null
         });
       }, 2000);
     } catch (error) {
@@ -383,9 +428,9 @@ const Properties = ({ onBack }) => {
   };
 
   const handleEditClick = () => {
-    setEditMode(true);
     if (selectedProperty) {
       setEditFormData({
+        villaId: selectedProperty.id,
         name: selectedProperty.name || '',
         location: selectedProperty.location || '',
         bedrooms: selectedProperty.beds || '',
@@ -395,8 +440,8 @@ const Properties = ({ onBack }) => {
         photo: null
       });
     }
-    // Switch to photos tab automatically
-    setSelectedTab('photos');
+    setSelectedProperty(null); // Close detail modal
+    setShowEditModal(true); // Open edit modal
   };
 
   const handlePhotoChange = async (e) => {
@@ -440,8 +485,6 @@ const Properties = ({ onBack }) => {
       setProperties(prev => prev.map(p =>
         p.id === selectedProperty.id ? updatedProperty : p
       ));
-
-      alert('Photo uploaded successfully!');
     } catch (error) {
       console.error('Error uploading photo:', error);
       alert('Error uploading photo: ' + error.message);
@@ -450,10 +493,68 @@ const Properties = ({ onBack }) => {
     }
   };
 
+  const handleEditFormChange = (e) => {
+    const { name, value } = e.target;
+    setEditFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
   const handleSaveEdit = async () => {
-    setEditMode(false);
-    // Aquí iría la lógica para guardar en Supabase
-    alert('Changes saved! (Demo mode)');
+    try {
+      // Update in Supabase (solo campos básicos por ahora)
+      const villaId = editFormData.villaId || selectedProperty?.id;
+      if (villaId) {
+        await supabaseService.updateVilla(villaId, {
+          name: editFormData.name,
+          bedrooms: parseInt(editFormData.bedrooms),
+          bathrooms: parseInt(editFormData.baths),
+          max_guests: parseInt(editFormData.maxGuests),
+          base_price: parseFloat(editFormData.basePrice)
+        });
+      }
+
+      // Reload properties
+      await loadProperties();
+
+      setShowEditModal(false);
+      setEditFormData({
+        name: '',
+        location: '',
+        bedrooms: '',
+        baths: '',
+        maxGuests: '',
+        basePrice: '',
+        photo: null
+      });
+    } catch (error) {
+      console.error('Error saving property:', error);
+      alert('Error saving property: ' + error.message);
+    }
+  };
+
+  const handleDeleteVilla = (villaId, villaName) => {
+    setDeleteConfirm({ show: true, villaId, villaName });
+  };
+
+  const confirmDelete = async () => {
+    try {
+      await supabaseService.deleteVilla(deleteConfirm.villaId);
+      await loadProperties();
+      setDeleteConfirm({ show: false, villaId: null, villaName: '' });
+      setSuccessMessage({ show: true, message: 'Villa deleted successfully!' });
+      setTimeout(() => setSuccessMessage({ show: false, message: '' }), 3000);
+    } catch (error) {
+      console.error('Error deleting villa:', error);
+      setDeleteConfirm({ show: false, villaId: null, villaName: '' });
+      setSuccessMessage({ show: true, message: 'Error deleting villa: ' + error.message });
+      setTimeout(() => setSuccessMessage({ show: false, message: '' }), 3000);
+    }
+  };
+
+  const cancelDelete = () => {
+    setDeleteConfirm({ show: false, villaId: null, villaName: '' });
   };
 
   const getStatusBadge = (status) => {
@@ -705,7 +806,7 @@ const Properties = ({ onBack }) => {
                   <div className="flex items-center justify-between pt-4 border-t-2 border-gray-200">
                     <div>
                       <p className="text-xs text-gray-500 mb-1">Base Price</p>
-                      <p className="text-2xl font-black text-[#FF8C42]">{formatPrice(property.basePrice, property.currency)}<span className="text-sm font-medium">/night</span></p>
+                      <p className="text-lg font-black text-[#FF8C42] whitespace-nowrap">{formatPrice(property.basePrice, property.currency)}<span className="text-xs font-medium">/night</span></p>
                     </div>
                     <div className="text-right">
                       <div className="flex items-center gap-1 text-[#FF8C42] font-bold mb-1">
@@ -779,63 +880,59 @@ const Properties = ({ onBack }) => {
 
             {/* DESKTOP VERSION: Table (>= 768px) */}
             <div className="hidden md:block overflow-x-auto">
-              <table className="w-full">
+              <table className="w-full table-fixed">
                 <thead className="bg-gradient-to-r from-[#1f2937] to-[#374151]">
                   <tr>
-                    <th className="px-6 py-4 text-left text-xs font-black text-[#FF8C42] uppercase">Property</th>
-                    <th className="px-6 py-4 text-left text-xs font-black text-[#FF8C42] uppercase">Location</th>
-                    <th className="px-6 py-4 text-left text-xs font-black text-[#FF8C42] uppercase">Type</th>
-                    <th className="px-6 py-4 text-left text-xs font-black text-[#FF8C42] uppercase">Capacity</th>
-                    <th className="px-6 py-4 text-left text-xs font-black text-[#FF8C42] uppercase">Price</th>
-                    <th className="px-6 py-4 text-left text-xs font-black text-[#FF8C42] uppercase">Rating</th>
-                    <th className="px-6 py-4 text-left text-xs font-black text-[#FF8C42] uppercase">Status</th>
-                    <th className="px-6 py-4 text-left text-xs font-black text-[#FF8C42] uppercase">Actions</th>
+                    <th className="px-3 py-3 text-left text-xs font-black text-[#FF8C42] uppercase w-[20%]">Property</th>
+                    <th className="px-3 py-3 text-left text-xs font-black text-[#FF8C42] uppercase w-[18%]">Location</th>
+                    <th className="px-3 py-3 text-left text-xs font-black text-[#FF8C42] uppercase w-[15%]">Capacity</th>
+                    <th className="px-3 py-3 text-left text-xs font-black text-[#FF8C42] uppercase w-[17%]">Price</th>
+                    <th className="px-3 py-3 text-left text-xs font-black text-[#FF8C42] uppercase w-[12%]">Status</th>
+                    <th className="px-3 py-3 text-left text-xs font-black text-[#FF8C42] uppercase w-[18%]">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y-2 divide-gray-200">
                   {properties.map(property => (
                     <tr key={property.id} className="hover:bg-[#d85a2a]/5 transition-colors">
-                      <td className="px-6 py-4">
-                        <div className="font-bold text-[#FF8C42]">{property.name}</div>
+                      <td className="px-3 py-3">
+                        <div className="font-bold text-[#FF8C42] truncate">{property.name}</div>
+                        <div className="text-xs text-gray-500">{property.type}</div>
                       </td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-1 text-[#FF8C42] font-medium">
-                          <MapPin className="w-4 h-4" />
-                          {property.location}
+                      <td className="px-3 py-3">
+                        <div className="flex items-center gap-1 text-[#FF8C42] font-medium text-sm">
+                          <MapPin className="w-3 h-3 flex-shrink-0" />
+                          <span className="truncate">Ubud, Bali</span>
                         </div>
                       </td>
-                      <td className="px-6 py-4">
-                        <span className="text-[#FF8C42] font-medium">{property.type}</span>
-                      </td>
-                      <td className="px-6 py-4">
+                      <td className="px-3 py-3">
                         <div className="text-sm text-[#FF8C42] font-medium">
-                          <div>{property.beds} beds · {property.baths} baths</div>
-                          <div className="text-xs text-gray-500">Max {property.maxGuests} guests</div>
+                          <div>{property.beds}BR · {property.baths}BA</div>
+                          <div className="text-xs text-gray-500">{property.maxGuests} guests</div>
                         </div>
                       </td>
-                      <td className="px-6 py-4">
-                        <div className="font-black text-[#FF8C42]">{formatPrice(property.basePrice, property.currency)}/night</div>
+                      <td className="px-3 py-3">
+                        <div className="font-bold text-[#FF8C42] text-sm whitespace-nowrap">{formatPrice(property.basePrice, property.currency)}</div>
+                        <div className="text-xs text-gray-500">/night</div>
                       </td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-1 text-[#FF8C42] font-bold">
-                          <Star className="w-4 h-4 fill-orange-500" />
-                          {property.rating}
-                        </div>
-                        <div className="text-xs text-gray-500">{property.reviews} reviews</div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <span className={`inline-flex px-3 py-1 rounded-full text-xs font-bold border-2 ${getStatusBadge(property.status)}`}>
+                      <td className="px-3 py-3">
+                        <span className={`inline-flex px-2 py-1 rounded-full text-xs font-bold border-2 ${getStatusBadge(property.status)}`}>
                           {property.status.toUpperCase()}
                         </span>
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-3 py-3">
                         <div className="flex gap-2">
                           <button
                             onClick={() => setSelectedProperty(property)}
-                            className="px-3 py-2 bg-orange-500 text-white rounded-xl text-xs font-bold hover:bg-orange-600 transition-colors shadow-md"
+                            className="flex-1 px-2 py-2 bg-orange-500 text-white rounded-xl text-xs font-bold hover:bg-orange-600 transition-colors shadow-md"
                           >
                             <Eye className="w-4 h-4 inline mr-1" />
                             View
+                          </button>
+                          <button
+                            onClick={() => handleDeleteVilla(property.id, property.name)}
+                            className="px-2 py-2 bg-red-500 text-white rounded-xl text-xs font-bold hover:bg-red-600 transition-colors shadow-md"
+                          >
+                            <Trash2 className="w-4 h-4" />
                           </button>
                         </div>
                       </td>
@@ -1124,8 +1221,8 @@ const Properties = ({ onBack }) => {
 
       {/* Add Property Modal */}
       {showAddModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50" onClick={() => setShowAddModal(false)}>
-          <div className="bg-[#1f2937] rounded-3xl shadow-2xl max-w-2xl w-full" onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50 overflow-y-auto" onClick={() => setShowAddModal(false)}>
+          <div className="bg-[#1f2937] rounded-3xl shadow-2xl max-w-2xl w-full my-8" onClick={(e) => e.stopPropagation()}>
             {/* Modal Header */}
             <div className="bg-gradient-to-r from-orange-500 to-orange-600 p-6 rounded-t-3xl">
               <div className="flex items-center justify-between">
@@ -1140,7 +1237,7 @@ const Properties = ({ onBack }) => {
             </div>
 
             {/* Form */}
-            <form onSubmit={handleAddProperty} className="p-6">
+            <form onSubmit={handleAddProperty} className="p-6 max-h-[70vh] overflow-y-auto">
               <div className="space-y-4">
                 {/* Property Name */}
                 <div>
@@ -1214,7 +1311,7 @@ const Properties = ({ onBack }) => {
                 {/* Base Price */}
                 <div>
                   <label className="block text-sm font-bold text-gray-700 mb-2">
-                    Base Price per Night (USD) *
+                    Base Price per Night (IDR) *
                   </label>
                   <input
                     type="number"
@@ -1223,22 +1320,62 @@ const Properties = ({ onBack }) => {
                     onChange={handleInputChange}
                     required
                     min="1"
-                    placeholder="e.g., 280"
+                    placeholder="e.g., 1200000"
                     className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-orange-500 focus:outline-none font-medium"
                   />
                 </div>
 
-                {/* Demo Message */}
+                {/* Villa Photo */}
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-2">
+                    Villa Photo (Optional)
+                  </label>
+                  <label className="w-full py-4 bg-gray-50 border-2 border-gray-300 rounded-2xl font-bold text-gray-700 hover:border-orange-500 transition-all flex items-center justify-center gap-2 cursor-pointer">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          setFormData(prev => ({
+                            ...prev,
+                            photo: file
+                          }));
+                        }
+                      }}
+                      className="hidden"
+                      disabled={uploading}
+                    />
+                    {uploading ? (
+                      <>
+                        <Upload className="w-5 h-5 animate-bounce" />
+                        Uploading...
+                      </>
+                    ) : formData.photo ? (
+                      <>
+                        <CheckCircle className="w-5 h-5 text-green-500" />
+                        {formData.photo.name}
+                      </>
+                    ) : (
+                      <>
+                        <Camera className="w-5 h-5" />
+                        Choose Photo
+                      </>
+                    )}
+                  </label>
+                </div>
+
+                {/* Success Message */}
                 {showDemoMessage && (
-                  <div className="bg-blue-50 border-2 border-blue-300 rounded-xl p-4 animate-fade-in">
+                  <div className="bg-green-50 border-2 border-green-300 rounded-xl p-4 animate-fade-in">
                     <div className="flex items-start gap-3">
-                      <div className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <div className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
                         <CheckCircle className="w-4 h-4 text-white" />
                       </div>
                       <div>
-                        <p className="font-bold text-blue-800 mb-1">Demo Mode</p>
-                        <p className="text-sm text-blue-700">
-                          This would create a new property in the production version. Form data has been validated successfully.
+                        <p className="font-bold text-green-800 mb-1">Property Created!</p>
+                        <p className="text-sm text-green-700">
+                          Your property has been successfully added and is now active.
                         </p>
                       </div>
                     </div>
@@ -1266,6 +1403,247 @@ const Properties = ({ onBack }) => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Property Modal */}
+      {showEditModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50 overflow-y-auto" onClick={() => setShowEditModal(false)}>
+          <div className="bg-[#1f2937] rounded-3xl shadow-2xl max-w-4xl w-full my-8" onClick={(e) => e.stopPropagation()}>
+            {/* Modal Header */}
+            <div className="bg-gradient-to-r from-orange-500 to-orange-600 p-6 rounded-t-3xl">
+              <div className="flex items-center justify-between">
+                <h3 className="text-2xl font-black text-white">Edit Property</h3>
+                <button
+                  onClick={() => setShowEditModal(false)}
+                  className="p-2 bg-[#d85a2a]/10 hover:bg-white/30 rounded-xl transition-colors"
+                >
+                  <X className="w-6 h-6 text-white" />
+                </button>
+              </div>
+            </div>
+
+            {/* Form */}
+            <div className="p-6 max-h-[70vh] overflow-y-auto">
+              <div className="space-y-6">
+                {/* Property Name */}
+                <div>
+                  <label className="block text-sm font-bold text-[#FF8C42] mb-2">
+                    Property Name
+                  </label>
+                  <input
+                    type="text"
+                    name="name"
+                    value={editFormData.name}
+                    onChange={handleEditFormChange}
+                    className="w-full px-4 py-3 bg-[#2a2f3a] text-white border-2 border-[#d85a2a]/30 rounded-xl focus:border-orange-500 focus:outline-none font-medium"
+                  />
+                </div>
+
+                {/* Location */}
+                <div>
+                  <label className="block text-sm font-bold text-[#FF8C42] mb-2">
+                    Location
+                  </label>
+                  <input
+                    type="text"
+                    name="location"
+                    value={editFormData.location}
+                    onChange={handleEditFormChange}
+                    className="w-full px-4 py-3 bg-[#2a2f3a] text-white border-2 border-[#d85a2a]/30 rounded-xl focus:border-orange-500 focus:outline-none font-medium"
+                  />
+                </div>
+
+                {/* Property Details Grid */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-sm font-bold text-[#FF8C42] mb-2">
+                      Bedrooms
+                    </label>
+                    <input
+                      type="number"
+                      name="bedrooms"
+                      value={editFormData.bedrooms}
+                      onChange={handleEditFormChange}
+                      min="1"
+                      className="w-full px-4 py-3 bg-[#2a2f3a] text-white border-2 border-[#d85a2a]/30 rounded-xl focus:border-orange-500 focus:outline-none font-medium"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-bold text-[#FF8C42] mb-2">
+                      Bathrooms
+                    </label>
+                    <input
+                      type="number"
+                      name="baths"
+                      value={editFormData.baths}
+                      onChange={handleEditFormChange}
+                      min="1"
+                      className="w-full px-4 py-3 bg-[#2a2f3a] text-white border-2 border-[#d85a2a]/30 rounded-xl focus:border-orange-500 focus:outline-none font-medium"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-bold text-[#FF8C42] mb-2">
+                      Max Guests
+                    </label>
+                    <input
+                      type="number"
+                      name="maxGuests"
+                      value={editFormData.maxGuests}
+                      onChange={handleEditFormChange}
+                      min="1"
+                      className="w-full px-4 py-3 bg-[#2a2f3a] text-white border-2 border-[#d85a2a]/30 rounded-xl focus:border-orange-500 focus:outline-none font-medium"
+                    />
+                  </div>
+                </div>
+
+                {/* Base Price */}
+                <div>
+                  <label className="block text-sm font-bold text-[#FF8C42] mb-2">
+                    Base Price per Night (IDR)
+                  </label>
+                  <input
+                    type="number"
+                    name="basePrice"
+                    value={editFormData.basePrice}
+                    onChange={handleEditFormChange}
+                    min="1"
+                    className="w-full px-4 py-3 bg-[#2a2f3a] text-white border-2 border-[#d85a2a]/30 rounded-xl focus:border-orange-500 focus:outline-none font-medium"
+                  />
+                </div>
+
+                {/* Photo Upload */}
+                <div>
+                  <label className="block text-sm font-bold text-[#FF8C42] mb-2">
+                    Villa Photo
+                  </label>
+                  <label className="w-full py-4 bg-[#2a2f3a] border-2 border-[#d85a2a]/30 rounded-2xl font-bold text-[#FF8C42] hover:border-orange-300 transition-all flex items-center justify-center gap-2 cursor-pointer">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (!file) return;
+
+                        setUploading(true);
+                        try {
+                          const fileExt = file.name.split('.').pop();
+                          const fileName = `${editFormData.villaId}-${Date.now()}.${fileExt}`;
+                          const filePath = `${fileName}`;
+
+                          const { error: uploadError } = await supabase.storage
+                            .from('villa-photos')
+                            .upload(filePath, file);
+
+                          if (uploadError) throw uploadError;
+
+                          const { data } = supabase.storage
+                            .from('villa-photos')
+                            .getPublicUrl(filePath);
+
+                          // Update form data with new photo URL
+                          setEditFormData(prev => ({
+                            ...prev,
+                            photo: data.publicUrl
+                          }));
+                        } catch (error) {
+                          console.error('Error uploading photo:', error);
+                          alert('Error uploading photo: ' + error.message);
+                        } finally {
+                          setUploading(false);
+                        }
+                      }}
+                      className="hidden"
+                      disabled={uploading}
+                    />
+                    {uploading ? (
+                      <>
+                        <Upload className="w-5 h-5 animate-bounce" />
+                        Uploading...
+                      </>
+                    ) : (
+                      <>
+                        <Camera className="w-5 h-5" />
+                        {editFormData.photo ? 'Change Photo' : 'Upload Photo'}
+                      </>
+                    )}
+                  </label>
+                  {editFormData.photo && (
+                    <div className="mt-3">
+                      <img src={editFormData.photo} alt="Preview" className="w-full h-48 object-cover rounded-xl" />
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="p-6 border-t-2 border-gray-200 flex flex-col sm:flex-row gap-3">
+              <button
+                onClick={handleSaveEdit}
+                className="flex-1 px-6 py-3 bg-orange-500 text-white rounded-2xl font-bold hover:bg-orange-600 transition-colors shadow-md"
+                disabled={uploading}
+              >
+                <Save className="w-5 h-5 inline mr-2" />
+                Save Changes
+              </button>
+              <button
+                onClick={() => setShowEditModal(false)}
+                className="px-6 py-3 bg-[#2a2f3a] border-2 border-[#d85a2a]/30 text-[#FF8C42] rounded-2xl font-bold hover:border-orange-300 transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {deleteConfirm.show && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50" onClick={cancelDelete}>
+          <div className="bg-[#1f2937] rounded-3xl shadow-2xl max-w-md w-full" onClick={(e) => e.stopPropagation()}>
+            <div className="p-6">
+              <div className="flex items-center justify-center w-16 h-16 mx-auto mb-4 bg-red-500/20 rounded-full">
+                <Trash2 className="w-8 h-8 text-red-500" />
+              </div>
+              <h3 className="text-2xl font-black text-white text-center mb-2">Delete Villa</h3>
+              <p className="text-gray-300 text-center mb-6">
+                Are you sure you want to delete <span className="font-bold text-orange-400">"{deleteConfirm.villaName}"</span>? This action cannot be undone.
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={cancelDelete}
+                  className="flex-1 px-6 py-3 bg-[#2a2f3a] border-2 border-gray-600 text-gray-300 rounded-2xl font-bold hover:border-gray-400 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={confirmDelete}
+                  className="flex-1 px-6 py-3 bg-red-500 text-white rounded-2xl font-bold hover:bg-red-600 transition-colors shadow-lg"
+                >
+                  Delete
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Success Message Modal */}
+      {successMessage.show && (
+        <div className="fixed inset-0 flex items-center justify-center p-4 z-50 pointer-events-none">
+          <div className="bg-[#1f2937] border-2 border-orange-500 rounded-3xl shadow-2xl max-w-md w-full pointer-events-auto animate-bounce">
+            <div className="p-6">
+              <div className="flex items-center justify-center w-16 h-16 mx-auto mb-4 bg-orange-500/20 rounded-full">
+                <CheckCircle className="w-8 h-8 text-orange-500" />
+              </div>
+              <p className="text-white text-center text-lg font-bold">
+                {successMessage.message}
+              </p>
+            </div>
           </div>
         </div>
       )}

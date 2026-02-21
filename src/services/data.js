@@ -867,20 +867,46 @@ export const dataService = {
     }
   },
 
-  // Obtener las 3 villas de Gita (filtradas por currency = IDR)
-  async getVillas() {
-    const { data, error } = await supabase
-      .from('villas')
-      .select('*')
-      .eq('property_id', '18711359-1378-4d12-9ea6-fb31c0b1bac2')
-      .eq('currency', 'IDR')
-      .eq('status', 'active');
+  // Obtener villas del usuario actual
+  async getVillas(tenantId) {
+    try {
+      if (!tenantId) {
+        console.error('getVillas: tenantId is required');
+        return [];
+      }
 
-    if (error) {
-      console.error('Error fetching villas:', error);
+      // 1. Get ALL user's property_ids from their bookings (may have multiple properties)
+      const { data: bookings } = await supabase
+        .from('bookings')
+        .select('property_id')
+        .eq('tenant_id', tenantId);
+
+      if (!bookings || bookings.length === 0) {
+        console.log('[getVillas] No bookings found for tenant, no villas to show');
+        return [];
+      }
+
+      // Get unique property_ids for this user
+      const propertyIds = [...new Set(bookings.map(b => b.property_id))];
+      console.log(`[getVillas] User has ${propertyIds.length} property_id(s):`, propertyIds);
+
+      // 2. Get villas for ALL user's property_ids
+      const { data, error } = await supabase
+        .from('villas')
+        .select('*')
+        .in('property_id', propertyIds)
+        .eq('status', 'active');
+
+      if (error) {
+        console.error('Error fetching villas:', error);
+        return [];
+      }
+
+      console.log(`[getVillas] Found ${data?.length || 0} villas for tenant ${tenantId} (property_ids: ${propertyIds.join(', ')})`);
+      return data || [];
+    } catch (error) {
+      console.error('Error in getVillas:', error);
       return [];
     }
-
-    return data || [];
   }
 };
