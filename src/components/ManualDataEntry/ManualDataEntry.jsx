@@ -1989,10 +1989,9 @@ const ManualDataEntry = ({ onBack }) => {
 
               {/* Guest Phone */}
               <div>
-                <label className="block text-[#FF8C42] font-medium mb-2">Guest Phone *</label>
+                <label className="block text-[#FF8C42] font-medium mb-2">Guest Phone</label>
                 <input
                   type="tel"
-                  required
                   value={bookingForm.guestPhone}
                   onChange={(e) => setBookingForm({...bookingForm, guestPhone: e.target.value})}
                   className="w-full px-4 py-3 bg-[#2a2f3a] border-2 border-gray-200 rounded-xl text-[#FF8C42] placeholder-gray-400 focus:outline-none focus:border-orange-300"
@@ -2002,10 +2001,9 @@ const ManualDataEntry = ({ onBack }) => {
 
               {/* Guest Email */}
               <div>
-                <label className="block text-[#FF8C42] font-medium mb-2">Guest Email *</label>
+                <label className="block text-[#FF8C42] font-medium mb-2">Guest Email</label>
                 <input
                   type="email"
-                  required
                   value={bookingForm.guestEmail}
                   onChange={(e) => setBookingForm({...bookingForm, guestEmail: e.target.value})}
                   className="w-full px-4 py-3 bg-[#2a2f3a] border-2 border-gray-200 rounded-xl text-[#FF8C42] placeholder-gray-400 focus:outline-none focus:border-orange-300"
@@ -2778,10 +2776,9 @@ const ManualDataEntry = ({ onBack }) => {
 
                 {/* Guest Phone */}
                 <div>
-                  <label className="block text-[#FF8C42] font-medium mb-2">Teléfono *</label>
+                  <label className="block text-[#FF8C42] font-medium mb-2">Teléfono</label>
                   <input
                     type="tel"
-                    required
                     value={editForm.guestPhone}
                     onChange={(e) => setEditForm({...editForm, guestPhone: e.target.value})}
                     className="w-full px-4 py-3 bg-[#2a2f3a] border-2 border-gray-200 rounded-xl text-[#FF8C42] placeholder-gray-400 focus:outline-none focus:border-orange-300"
@@ -2791,10 +2788,9 @@ const ManualDataEntry = ({ onBack }) => {
 
                 {/* Guest Email */}
                 <div>
-                  <label className="block text-[#FF8C42] font-medium mb-2">Email *</label>
+                  <label className="block text-[#FF8C42] font-medium mb-2">Email</label>
                   <input
                     type="email"
-                    required
                     value={editForm.guestEmail}
                     onChange={(e) => setEditForm({...editForm, guestEmail: e.target.value})}
                     className="w-full px-4 py-3 bg-[#2a2f3a] border-2 border-gray-200 rounded-xl text-[#FF8C42] placeholder-gray-400 focus:outline-none focus:border-orange-300"
@@ -3215,10 +3211,9 @@ const ManualDataEntry = ({ onBack }) => {
 
                 {/* Phone */}
                 <div>
-                  <label className="block text-[#FF8C42] font-medium mb-2">Phone *</label>
+                  <label className="block text-[#FF8C42] font-medium mb-2">Phone</label>
                   <input
                     type="tel"
-                    required
                     value={editLeadForm.phone}
                     onChange={(e) => setEditLeadForm({...editLeadForm, phone: e.target.value})}
                     className="w-full px-4 py-3 bg-[#2a2f3a] border-2 border-gray-200 rounded-xl text-[#FF8C42] focus:outline-none focus:border-orange-300"
