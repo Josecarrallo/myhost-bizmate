@@ -50,6 +50,7 @@ import SpecializedReports from './SpecializedReports';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
 import { generateReportHTML } from '../../services/generateReportHTML';
+import { generateEnhancedReportHTML } from '../../services/enhancedReportHTML';
 import { supabaseService as dataService } from '../../services/supabase';
 
 const Autopilot = ({ onBack }) => {
@@ -68,7 +69,14 @@ const Autopilot = ({ onBack }) => {
   const [reportHTML, setReportHTML] = useState('<html><body style="margin:0;padding:40px;font-family:sans-serif;text-align:center;color:#666;"><h2 style="color:#f97316;">Business Report</h2><p>Select owner and period, then click <strong>Generate Report</strong>.</p></body></html>'); // Business Reports HTML content
   const [selectedPeriod, setSelectedPeriod] = useState('this_month'); // Period selector for reports
   const [selectedAllInfoPeriod, setSelectedAllInfoPeriod] = useState('all_time'); // Period selector for All Information
-  const [businessReportMode, setBusinessReportMode] = useState(null); // null = selection screen, 'global' = existing report, 'specialized' = new reports
+  const [businessReportMode, setBusinessReportMode] = useState(null); // null = selection screen, 'global' = existing report, 'enhanced' = enhanced report, 'specialized' = specialized reports
+
+  // Enhanced Report specific states
+  const [enhancedSelectedVilla, setEnhancedSelectedVilla] = useState('all');
+  const [enhancedStartDate, setEnhancedStartDate] = useState('2025-01-01');
+  const [enhancedEndDate, setEnhancedEndDate] = useState('2026-12-31');
+  const [isGeneratingEnhancedReport, setIsGeneratingEnhancedReport] = useState(false);
+  const [enhancedReportHTML, setEnhancedReportHTML] = useState('<html><body style="margin:0;padding:40px;font-family:sans-serif;text-align:center;color:#666;"><h2 style="color:#FF8C42;">Enhanced Global Report</h2><p>Select property and dates, then click <strong>Generate Report</strong>.</p></body></html>');
 
   // Load saved report from localStorage when entering Business Reports
   useEffect(() => {
@@ -2867,28 +2875,40 @@ const Autopilot = ({ onBack }) => {
               <p className="text-gray-300 text-lg">Choose the type of report you want to generate:</p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {/* Global Report Option */}
               <button
                 onClick={() => setBusinessReportMode('global')}
-                className="bg-gradient-to-br from-white to-gray-100 hover:from-gray-50 hover:to-gray-200 text-gray-900 p-8 rounded-2xl shadow-2xl transition-all transform hover:scale-105 border-2 border-[#FF8C42]/50"
+                className="bg-gradient-to-br from-white to-gray-100 hover:from-gray-50 hover:to-gray-200 text-gray-900 p-6 rounded-2xl shadow-2xl transition-all transform hover:scale-105 border-2 border-[#FF8C42]/50"
               >
-                <FileText className="w-16 h-16 mx-auto mb-4 text-[#FF8C42]" />
-                <h4 className="text-2xl font-bold mb-3 text-[#FF8C42]">Global Report</h4>
-                <p className="text-gray-700">
-                  Complete business analysis with OSIRIS AI insights, revenue, occupancy, and channel performance
+                <FileText className="w-12 h-12 mx-auto mb-3 text-[#FF8C42]" />
+                <h4 className="text-xl font-bold mb-2 text-[#FF8C42]">Global Report</h4>
+                <p className="text-gray-700 text-sm">
+                  Current version with OSIRIS AI insights and performance metrics
+                </p>
+              </button>
+
+              {/* Enhanced Global Report Option - NEW */}
+              <button
+                onClick={() => setBusinessReportMode('enhanced')}
+                className="bg-gradient-to-br from-[#f5a524] to-[#FF8C42] hover:from-[#ffc107] hover:to-[#f5a524] text-white p-6 rounded-2xl shadow-2xl transition-all transform hover:scale-105 border-2 border-[#FF8C42]/50"
+              >
+                <TrendingUp className="w-12 h-12 mx-auto mb-3" />
+                <h4 className="text-xl font-bold mb-2">Enhanced Global Report</h4>
+                <p className="text-white/90 text-sm">
+                  Complete version with ADR, RevPAR, monthly trends, and financial statements
                 </p>
               </button>
 
               {/* Specialized Reports Option */}
               <button
                 onClick={() => setBusinessReportMode('specialized')}
-                className="bg-gradient-to-br from-[#FF8C42] to-[#d85a2a] hover:from-[#f5a524] hover:to-[#FF8C42] text-white p-8 rounded-2xl shadow-2xl transition-all transform hover:scale-105 border-2 border-[#FF8C42]/30"
+                className="bg-gradient-to-br from-[#FF8C42] to-[#d85a2a] hover:from-[#f5a524] hover:to-[#FF8C42] text-white p-6 rounded-2xl shadow-2xl transition-all transform hover:scale-105 border-2 border-[#FF8C42]/30"
               >
-                <BarChart3 className="w-16 h-16 mx-auto mb-4" />
-                <h4 className="text-2xl font-bold mb-3">Specialized Reports</h4>
-                <p className="text-white/90">
-                  Monthly occupancy, revenue by channel, ADR & RevPAR, cancellations, and owner statements
+                <BarChart3 className="w-12 h-12 mx-auto mb-3" />
+                <h4 className="text-xl font-bold mb-2">Specialized Reports</h4>
+                <p className="text-white/90 text-sm">
+                  Individual reports: occupancy, channels, ADR/RevPAR, cancellations, statements
                 </p>
               </button>
             </div>
@@ -2916,6 +2936,207 @@ const Autopilot = ({ onBack }) => {
             </div>
           </div>
           <SpecializedReports />
+        </div>
+      );
+    }
+
+    // If 'enhanced' mode selected, show Enhanced Global Report
+    if (businessReportMode === 'enhanced') {
+      // Get logged-in user data
+      const ownerId = userData?.id || '1f32d384-4018-46a9-a6f9-058217e6924a'; // Gita's ID as default
+      const ownerName = 'Gita Pradnyana';
+      const businessName = 'Nismara Uma Villa';
+      const currency = 'IDR';
+
+      // Villa selector options (matching Specialized Reports)
+      const villas = [
+        { value: 'all', label: 'All Properties' },
+        { value: 'nismara', label: 'Nismara 2BR Villa' },
+        { value: 'uma', label: 'Uma 1BR Villa' },
+        { value: 'santai', label: 'Santai 3BR Villa' }
+      ];
+
+      // Villa ID mapping (matching Specialized Reports)
+      const villaIdMap = {
+        'all': null,
+        'nismara': 'b1000001-0001-4001-8001-000000000001',
+        'uma': 'b2000002-0002-4002-8002-000000000002',
+        'santai': 'b3000003-0003-4003-8003-000000000003'
+      };
+
+      // Get current property name for display
+      const currentProperty = villas.find(v => v.value === enhancedSelectedVilla)?.label || 'All Properties';
+
+      const handleEnhancedPrint = () => {
+        const iframe = document.getElementById('enhanced-report-frame');
+        if (iframe) {
+          iframe.contentWindow.print();
+        }
+      };
+
+      const handleEnhancedGenerate = async () => {
+        setIsGeneratingEnhancedReport(true);
+        console.log('🔄 Generating Enhanced Report with latest version...');
+
+        try {
+          // Import enhanced services
+          const { generateBusinessReport } = await import('../../services/enhancedReportService');
+
+          // Get villa ID based on selection
+          const villaId = villaIdMap[enhancedSelectedVilla];
+
+          // Determine property name for display
+          const propertyName = enhancedSelectedVilla === 'all'
+            ? businessName
+            : villas.find(v => v.value === enhancedSelectedVilla)?.label;
+
+          // Use custom date range
+          console.log(`📊 Generating Enhanced Report for ${propertyName} (${enhancedStartDate} to ${enhancedEndDate})...`);
+
+          // Generate report data (calls Supabase + OSIRIS) with optional villa filter
+          const reportData = await generateBusinessReport(
+            ownerId,
+            ownerName,
+            propertyName,
+            currency,
+            enhancedStartDate,
+            enhancedEndDate,
+            villaId  // Pass villaId (null for 'all', specific ID otherwise)
+          );
+
+          if (reportData) {
+            console.log('✅ Data generated, creating Enhanced HTML...');
+
+            // Generate complete Enhanced HTML with 4 pages
+            const reportHTML = generateEnhancedReportHTML(
+              ownerName,
+              propertyName,
+              currency,
+              reportData,
+              reportData.osirisAnalysis,
+              enhancedStartDate,
+              enhancedEndDate
+            );
+
+            // Display in iframe and save to localStorage
+            setEnhancedReportHTML(reportHTML);
+            localStorage.setItem(`enhanced-report-${enhancedSelectedVilla}-${enhancedStartDate}-${enhancedEndDate}`, reportHTML);
+            console.log(`✅ Enhanced Report generated and saved for ${enhancedSelectedVilla} (${enhancedStartDate} to ${enhancedEndDate})`);
+          } else {
+            alert('❌ Error generating report. No data found.');
+          }
+        } catch (error) {
+          console.error('Error generating Enhanced Report:', error);
+          alert('❌ Error: ' + error.message);
+        } finally {
+          setIsGeneratingEnhancedReport(false);
+        }
+      };
+
+      return (
+        <div className="space-y-6">
+          {/* Header with Owner Selector and Action Buttons */}
+          <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-3xl p-6 shadow-2xl border-2 border-[#d85a2a]/20">
+            {/* Header Row with Back Button and Title */}
+            <div className="flex items-center mb-6 gap-4">
+              <button
+                onClick={() => setBusinessReportMode(null)}
+                className="p-2 bg-[#1f2937]/95 backdrop-blur-sm rounded-xl hover:bg-orange-500 transition-all border border-[#d85a2a]/20"
+              >
+                <ArrowLeft className="w-5 h-5 text-[#FF8C42]" />
+              </button>
+              <h3 className="text-xl md:text-2xl font-black text-[#FF8C42] flex items-center gap-2 flex-1">
+                <TrendingUp className="w-5 h-5 md:w-6 md:h-6" />
+                <span className="hidden md:inline">Enhanced Global Report - {currentProperty}</span>
+                <span className="md:hidden">Enhanced Report</span>
+              </h3>
+
+              {/* Action Buttons - Top Right Corner, Stacked Vertically */}
+              <div className="flex flex-col gap-2 ml-auto">
+                <button
+                  onClick={handleEnhancedGenerate}
+                  disabled={isGeneratingEnhancedReport}
+                  className={`flex items-center justify-center gap-2 px-4 py-2 text-white rounded-lg font-semibold transition-all shadow-lg text-sm ${
+                    isGeneratingEnhancedReport
+                      ? 'bg-purple-400 cursor-not-allowed'
+                      : 'bg-purple-500 hover:bg-purple-600'
+                  }`}
+                >
+                  {isGeneratingEnhancedReport ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      <span>Generating...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Zap className="w-4 h-4" />
+                      <span>Generate</span>
+                    </>
+                  )}
+                </button>
+                <button
+                  onClick={handleEnhancedPrint}
+                  className="flex items-center justify-center gap-2 px-4 py-2 bg-orange-500 text-white rounded-lg font-semibold hover:bg-orange-600 transition-all shadow-lg text-sm"
+                >
+                  <Printer className="w-4 h-4" />
+                  <span>Print</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Selectors Row - Property and Date Range */}
+            <div className="flex flex-col gap-4">
+              {/* Select Property */}
+              <div className="flex flex-col gap-2">
+                <label className="text-gray-300 text-xs font-semibold uppercase">Property:</label>
+                <select
+                  value={enhancedSelectedVilla}
+                  onChange={(e) => setEnhancedSelectedVilla(e.target.value)}
+                  className="bg-[#374151] text-white px-4 py-2 rounded-lg border-2 border-orange-500/30 focus:border-orange-500 focus:outline-none hover:border-orange-500/50 transition-all cursor-pointer w-full"
+                >
+                  {villas.map(villa => (
+                    <option key={villa.value} value={villa.value}>
+                      {villa.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Date Range */}
+              <div className="flex flex-col gap-2">
+                <label className="text-gray-300 text-xs font-semibold uppercase">Date Range:</label>
+                <div className="grid grid-cols-2 gap-3">
+                  <input
+                    type="date"
+                    value={enhancedStartDate}
+                    onChange={(e) => setEnhancedStartDate(e.target.value)}
+                    className="px-4 py-2 bg-[#374151] text-white rounded-lg border-2 border-purple-500/30 focus:border-purple-500 focus:outline-none hover:border-purple-500/50 transition-all"
+                  />
+                  <input
+                    type="date"
+                    value={enhancedEndDate}
+                    onChange={(e) => setEnhancedEndDate(e.target.value)}
+                    className="px-4 py-2 bg-[#374151] text-white rounded-lg border-2 border-purple-500/30 focus:border-purple-500 focus:outline-none hover:border-purple-500/50 transition-all"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Report Display - Taller for 4 pages */}
+          <div className="bg-white rounded-3xl shadow-2xl border-2 border-gray-200" style={{ height: '1400px', overflowY: 'auto', overflowX: 'hidden' }}>
+            <iframe
+              srcDoc={enhancedReportHTML}
+              id="enhanced-report-frame"
+              style={{
+                width: '100%',
+                height: '4500px',
+                border: 'none',
+                display: 'block'
+              }}
+              title="Enhanced Global Report"
+            />
+          </div>
         </div>
       );
     }
