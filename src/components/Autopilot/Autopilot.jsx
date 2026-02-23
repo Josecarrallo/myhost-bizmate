@@ -46,6 +46,7 @@ import {
 } from 'lucide-react';
 import ManualDataEntry from '../ManualDataEntry/ManualDataEntry';
 import MasterCalendar from '../MasterCalendar/MasterCalendar';
+import SpecializedReports from './SpecializedReports';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
 import { generateReportHTML } from '../../services/generateReportHTML';
@@ -67,6 +68,7 @@ const Autopilot = ({ onBack }) => {
   const [reportHTML, setReportHTML] = useState('<html><body style="margin:0;padding:40px;font-family:sans-serif;text-align:center;color:#666;"><h2 style="color:#f97316;">Business Report</h2><p>Select owner and period, then click <strong>Generate Report</strong>.</p></body></html>'); // Business Reports HTML content
   const [selectedPeriod, setSelectedPeriod] = useState('this_month'); // Period selector for reports
   const [selectedAllInfoPeriod, setSelectedAllInfoPeriod] = useState('all_time'); // Period selector for All Information
+  const [businessReportMode, setBusinessReportMode] = useState(null); // null = selection screen, 'global' = existing report, 'specialized' = new reports
 
   // Load saved report from localStorage when entering Business Reports
   useEffect(() => {
@@ -2843,6 +2845,82 @@ const Autopilot = ({ onBack }) => {
   );
 
   const renderBusinessReportsSection = () => {
+    // If no mode selected, show selection screen
+    if (businessReportMode === null) {
+      return (
+        <div className="space-y-6">
+          <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-3xl p-6 shadow-2xl border-2 border-[#d85a2a]/20">
+            <div className="flex items-center mb-6 gap-4">
+              <button
+                onClick={() => setActiveSection('menu')}
+                className="p-2 bg-[#1f2937]/95 backdrop-blur-sm rounded-xl hover:bg-orange-500 transition-all border border-[#d85a2a]/20"
+              >
+                <ArrowLeft className="w-5 h-5 text-[#FF8C42]" />
+              </button>
+              <h3 className="text-xl md:text-2xl font-black text-[#FF8C42] flex items-center gap-2 flex-1">
+                <FileText className="w-5 h-5 md:w-6 md:h-6" />
+                <span>Business Reports</span>
+              </h3>
+            </div>
+
+            <div className="text-center mb-8">
+              <p className="text-gray-300 text-lg">Choose the type of report you want to generate:</p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Global Report Option */}
+              <button
+                onClick={() => setBusinessReportMode('global')}
+                className="bg-gradient-to-br from-white to-gray-100 hover:from-gray-50 hover:to-gray-200 text-gray-900 p-8 rounded-2xl shadow-2xl transition-all transform hover:scale-105 border-2 border-[#FF8C42]/50"
+              >
+                <FileText className="w-16 h-16 mx-auto mb-4 text-[#FF8C42]" />
+                <h4 className="text-2xl font-bold mb-3 text-[#FF8C42]">Global Report</h4>
+                <p className="text-gray-700">
+                  Complete business analysis with OSIRIS AI insights, revenue, occupancy, and channel performance
+                </p>
+              </button>
+
+              {/* Specialized Reports Option */}
+              <button
+                onClick={() => setBusinessReportMode('specialized')}
+                className="bg-gradient-to-br from-[#FF8C42] to-[#d85a2a] hover:from-[#f5a524] hover:to-[#FF8C42] text-white p-8 rounded-2xl shadow-2xl transition-all transform hover:scale-105 border-2 border-[#FF8C42]/30"
+              >
+                <BarChart3 className="w-16 h-16 mx-auto mb-4" />
+                <h4 className="text-2xl font-bold mb-3">Specialized Reports</h4>
+                <p className="text-white/90">
+                  Monthly occupancy, revenue by channel, ADR & RevPAR, cancellations, and owner statements
+                </p>
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // If 'specialized' mode selected, show new component
+    if (businessReportMode === 'specialized') {
+      return (
+        <div className="space-y-6">
+          <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-3xl p-6 shadow-2xl border-2 border-[#d85a2a]/20">
+            <div className="flex items-center mb-6 gap-4">
+              <button
+                onClick={() => setBusinessReportMode(null)}
+                className="p-2 bg-[#1f2937]/95 backdrop-blur-sm rounded-xl hover:bg-orange-500 transition-all border border-[#d85a2a]/20"
+              >
+                <ArrowLeft className="w-5 h-5 text-[#FF8C42]" />
+              </button>
+              <h3 className="text-xl md:text-2xl font-black text-[#FF8C42] flex items-center gap-2 flex-1">
+                <BarChart3 className="w-5 h-5 md:w-6 md:h-6" />
+                <span>Specialized Reports</span>
+              </h3>
+            </div>
+          </div>
+          <SpecializedReports />
+        </div>
+      );
+    }
+
+    // If 'global' mode selected, show existing Global Report code (DO NOT MODIFY)
     const owners = [
       {
         id: 'gita',
@@ -2941,15 +3019,15 @@ const Autopilot = ({ onBack }) => {
           {/* Header Row with Back Button and Title */}
           <div className="flex items-center mb-6 gap-4">
             <button
-              onClick={() => setActiveSection('menu')}
+              onClick={() => setBusinessReportMode(null)}
               className="p-2 bg-[#1f2937]/95 backdrop-blur-sm rounded-xl hover:bg-orange-500 transition-all border border-[#d85a2a]/20"
             >
               <ArrowLeft className="w-5 h-5 text-[#FF8C42]" />
             </button>
             <h3 className="text-xl md:text-2xl font-black text-[#FF8C42] flex items-center gap-2 flex-1">
               <FileText className="w-5 h-5 md:w-6 md:h-6" />
-              <span className="hidden md:inline">Business Reports - {currentOwner.property}</span>
-              <span className="md:hidden">Reports</span>
+              <span className="hidden md:inline">Global Business Report - {currentOwner.property}</span>
+              <span className="md:hidden">Global Report</span>
             </h3>
 
             {/* Action Buttons - Top Right Corner, Stacked Vertically */}
