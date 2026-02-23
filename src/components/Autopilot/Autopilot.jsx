@@ -45,6 +45,7 @@ import {
   List
 } from 'lucide-react';
 import ManualDataEntry from '../ManualDataEntry/ManualDataEntry';
+import MasterCalendar from '../MasterCalendar/MasterCalendar';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
 import { generateReportHTML } from '../../services/generateReportHTML';
@@ -254,7 +255,7 @@ const Autopilot = ({ onBack }) => {
   // DYNAMIC TENANT ID - Use logged in user's ID
   const TENANT_ID = userData?.id || 'c24393db-d318-4d75-8bbf-0fa240b9c1db'; // Fallback to Jose for backwards compatibility
 
-  // AUTOPILOT MENU - 10 Sections
+  // AUTOPILOT MENU - 11 Sections
   const menuSections = [
     {
       id: 'all-data',
@@ -271,10 +272,10 @@ const Autopilot = ({ onBack }) => {
       badge: null
     },
     {
-      id: 'automated-flows',
-      name: 'Automated Flows',
-      icon: Workflow,
-      description: 'View all system automation workflows',
+      id: 'master-calendar',
+      name: 'Master Calendar',
+      icon: Calendar,
+      description: 'Unified calendar view - Bookings, Tasks & Operations',
       badge: 'New'
     },
     {
@@ -318,6 +319,13 @@ const Autopilot = ({ onBack }) => {
       icon: Mail,
       description: 'Unified inbox',
       badge: '8 new'
+    },
+    {
+      id: 'automated-flows',
+      name: 'Automated Flows',
+      icon: Workflow,
+      description: 'View all system automation workflows',
+      badge: null
     },
     {
       id: 'data-export',
@@ -4462,6 +4470,7 @@ const Autopilot = ({ onBack }) => {
           {activeSection === 'business-reports' && renderBusinessReportsSection()}
           {activeSection === 'all-data' && renderAllDataSection()}
           {activeSection === 'availability' && renderAvailabilitySection()}
+          {activeSection === 'master-calendar' && <MasterCalendar onBack={() => setActiveSection('menu')} />}
           {activeSection === 'communication' && renderCommunicationSection()}
           {activeSection === 'website' && renderWebsiteSection()}
           {activeSection === 'tasks' && renderTasksSection()}
