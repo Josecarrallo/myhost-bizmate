@@ -81,7 +81,8 @@ const MasterCalendar = ({ onBack }) => {
       // Build bookings query with filters
       let bookingsQuery = supabase
         .from('bookings')
-        .select('*');
+        .select('*')
+        .eq('tenant_id', user.id);
 
       // Date range filter: Get all bookings that overlap with the view period
       // Use formatDateLocal to avoid timezone issues
@@ -95,10 +96,10 @@ const MasterCalendar = ({ onBack }) => {
       const startRange = appliedStartDate || formatDateLocal(firstDay);
       const endRange = appliedEndDate || formatDateLocal(lastDay);
 
-      // Get bookings where check_in is before end date AND check_out is after start date
+      // Get bookings where check_in is within the date range
       bookingsQuery = bookingsQuery
-        .lte('check_in', endRange)
-        .gte('check_out', startRange);
+        .gte('check_in', startRange)
+        .lte('check_in', endRange);
 
       // Apply property filter
       if (selectedProperty !== 'all') {
@@ -362,7 +363,6 @@ const MasterCalendar = ({ onBack }) => {
         <div className="text-center">
           <div className="w-16 h-16 border-4 border-[#d85a2a]/30 border-t-[#d85a2a] rounded-full animate-spin mx-auto mb-4"></div>
           <div className="text-white text-xl font-bold">Loading calendar...</div>
-          <div className="text-white/60 text-sm mt-2">Check browser console (F12) for details</div>
         </div>
       </div>
     );
@@ -413,98 +413,103 @@ const MasterCalendar = ({ onBack }) => {
           </div>
         </div>
 
-        {/* Filters */}
-        <div className="flex items-center gap-3 flex-wrap">
-          <select
-            value={selectedProperty}
-            onChange={(e) => setSelectedProperty(e.target.value)}
-            className="px-4 py-2 bg-gradient-to-r from-[#d85a2a] to-[#f5a524] border-2 border-[#d85a2a] rounded-lg text-white text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#f5a524] hover:shadow-lg transition-all"
-          >
-            <option value="all" className="bg-[#1f2937] text-white">All Properties</option>
-            {properties.map(p => (
-              <option key={p.id} value={p.id} className="bg-[#1f2937] text-white">{p.name}</option>
-            ))}
-          </select>
+        {/* Filters - Two rows */}
+        <div className="space-y-3">
+          {/* Row 1: Property, Status, Channel */}
+          <div className="flex items-center gap-3">
+            <select
+              value={selectedProperty}
+              onChange={(e) => setSelectedProperty(e.target.value)}
+              className="px-4 py-2 bg-gradient-to-r from-[#d85a2a] to-[#f5a524] border-2 border-[#d85a2a] rounded-lg text-white text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#f5a524] hover:shadow-lg transition-all"
+            >
+              <option value="all" className="bg-[#1f2937] text-white">All Properties</option>
+              {properties.map(p => (
+                <option key={p.id} value={p.id} className="bg-[#1f2937] text-white">{p.name}</option>
+              ))}
+            </select>
 
-          <select
-            value={selectedStatus}
-            onChange={(e) => setSelectedStatus(e.target.value)}
-            className="px-4 py-2 bg-gradient-to-r from-[#d85a2a] to-[#f5a524] border-2 border-[#d85a2a] rounded-lg text-white text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#f5a524] hover:shadow-lg transition-all"
-          >
-            <option value="all" className="bg-[#1f2937] text-white">All Status</option>
-            <option value="confirmed" className="bg-[#1f2937] text-white">Confirmed</option>
-            <option value="inquiry" className="bg-[#1f2937] text-white">Inquiry</option>
-            <option value="checked_in" className="bg-[#1f2937] text-white">Checked In</option>
-            <option value="cancelled" className="bg-[#1f2937] text-white">Cancelled</option>
-          </select>
+            <select
+              value={selectedStatus}
+              onChange={(e) => setSelectedStatus(e.target.value)}
+              className="px-4 py-2 bg-gradient-to-r from-[#d85a2a] to-[#f5a524] border-2 border-[#d85a2a] rounded-lg text-white text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#f5a524] hover:shadow-lg transition-all"
+            >
+              <option value="all" className="bg-[#1f2937] text-white">All Status</option>
+              <option value="confirmed" className="bg-[#1f2937] text-white">Confirmed</option>
+              <option value="inquiry" className="bg-[#1f2937] text-white">Inquiry</option>
+              <option value="checked_in" className="bg-[#1f2937] text-white">Checked In</option>
+              <option value="cancelled" className="bg-[#1f2937] text-white">Cancelled</option>
+            </select>
 
-          <select
-            value={selectedChannel}
-            onChange={(e) => setSelectedChannel(e.target.value)}
-            className="px-4 py-2 bg-gradient-to-r from-[#d85a2a] to-[#f5a524] border-2 border-[#d85a2a] rounded-lg text-white text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#f5a524] hover:shadow-lg transition-all"
-          >
-            <option value="all" className="bg-[#1f2937] text-white">All Channels</option>
-            <option value="airbnb" className="bg-[#1f2937] text-white">Airbnb</option>
-            <option value="booking.com" className="bg-[#1f2937] text-white">Booking.com</option>
-            <option value="gita" className="bg-[#1f2937] text-white">Direct (Gita)</option>
-            <option value="agoda" className="bg-[#1f2937] text-white">Agoda</option>
-          </select>
-
-          {/* Date Range Filters */}
-          <div className="flex items-center gap-2 px-3 py-2 bg-white/10 border border-[#d85a2a]/30 rounded-lg">
-            <span className="text-white text-xs font-medium">From:</span>
-            <input
-              type="date"
-              value={startDateFilter}
-              onChange={(e) => setStartDateFilter(e.target.value)}
-              className="bg-transparent text-white text-sm border-none focus:outline-none"
-            />
+            <select
+              value={selectedChannel}
+              onChange={(e) => setSelectedChannel(e.target.value)}
+              className="px-4 py-2 bg-gradient-to-r from-[#d85a2a] to-[#f5a524] border-2 border-[#d85a2a] rounded-lg text-white text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#f5a524] hover:shadow-lg transition-all"
+            >
+              <option value="all" className="bg-[#1f2937] text-white">All Channels</option>
+              <option value="airbnb" className="bg-[#1f2937] text-white">Airbnb</option>
+              <option value="booking.com" className="bg-[#1f2937] text-white">Booking.com</option>
+              <option value="gita" className="bg-[#1f2937] text-white">Direct (Gita)</option>
+              <option value="agoda" className="bg-[#1f2937] text-white">Agoda</option>
+            </select>
           </div>
 
-          <div className="flex items-center gap-2 px-3 py-2 bg-white/10 border border-[#d85a2a]/30 rounded-lg">
-            <span className="text-white text-xs font-medium">To:</span>
-            <input
-              type="date"
-              value={endDateFilter}
-              onChange={(e) => setEndDateFilter(e.target.value)}
-              className="bg-transparent text-white text-sm border-none focus:outline-none"
-            />
+          {/* Row 2: Date Range Filters */}
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 px-3 py-2 bg-white/10 border border-[#d85a2a]/30 rounded-lg">
+              <span className="text-white text-xs font-medium">From:</span>
+              <input
+                type="date"
+                value={startDateFilter}
+                onChange={(e) => setStartDateFilter(e.target.value)}
+                className="bg-transparent text-white text-sm border-none focus:outline-none"
+              />
+            </div>
+
+            <div className="flex items-center gap-2 px-3 py-2 bg-white/10 border border-[#d85a2a]/30 rounded-lg">
+              <span className="text-white text-xs font-medium">To:</span>
+              <input
+                type="date"
+                value={endDateFilter}
+                onChange={(e) => setEndDateFilter(e.target.value)}
+                className="bg-transparent text-white text-sm border-none focus:outline-none"
+              />
+            </div>
+
+            {/* Apply button - only show when both dates are filled */}
+            {startDateFilter && endDateFilter && (
+              <button
+                onClick={() => {
+                  setAppliedStartDate(startDateFilter);
+                  setAppliedEndDate(endDateFilter);
+
+                  // Change calendar to show the month of the start date
+                  const [year, month, day] = startDateFilter.split('-').map(Number);
+                  setCurrentDate(new Date(year, month - 1, 1));
+                }}
+                className="px-4 py-2 bg-gradient-to-r from-[#d85a2a] to-[#f5a524] hover:shadow-lg text-white text-sm font-semibold rounded-lg transition-all"
+              >
+                Apply
+              </button>
+            )}
+
+            {/* Clear button - show when any date is filled */}
+            {(startDateFilter || endDateFilter || appliedStartDate || appliedEndDate) && (
+              <button
+                onClick={() => {
+                  setStartDateFilter('');
+                  setEndDateFilter('');
+                  setAppliedStartDate('');
+                  setAppliedEndDate('');
+
+                  // Reset calendar to current month
+                  setCurrentDate(new Date());
+                }}
+                className="px-3 py-2 bg-white/10 hover:bg-white/20 text-white text-sm rounded-lg transition-colors"
+              >
+                Clear
+              </button>
+            )}
           </div>
-
-          {/* Apply button - only show when both dates are filled */}
-          {startDateFilter && endDateFilter && (
-            <button
-              onClick={() => {
-                setAppliedStartDate(startDateFilter);
-                setAppliedEndDate(endDateFilter);
-
-                // Change calendar to show the month of the start date
-                const [year, month, day] = startDateFilter.split('-').map(Number);
-                setCurrentDate(new Date(year, month - 1, 1));
-              }}
-              className="px-4 py-2 bg-gradient-to-r from-[#d85a2a] to-[#f5a524] hover:shadow-lg text-white text-sm font-semibold rounded-lg transition-all"
-            >
-              Apply
-            </button>
-          )}
-
-          {/* Clear button - show when any date is filled */}
-          {(startDateFilter || endDateFilter || appliedStartDate || appliedEndDate) && (
-            <button
-              onClick={() => {
-                setStartDateFilter('');
-                setEndDateFilter('');
-                setAppliedStartDate('');
-                setAppliedEndDate('');
-
-                // Reset calendar to current month
-                setCurrentDate(new Date());
-              }}
-              className="px-3 py-2 bg-white/10 hover:bg-white/20 text-white text-sm rounded-lg transition-colors"
-            >
-              Clear
-            </button>
-          )}
         </div>
       </div>
 

@@ -57,12 +57,13 @@ const TimelineView = ({
       const startRange = appliedStartDate || formatDateLocal(firstDay);
       const endRange = appliedEndDate || formatDateLocal(lastDay);
 
-      // Build bookings query
+      // Build bookings query - only get bookings where check-in is within the date range
       let bookingsQuery = supabase
         .from('bookings')
         .select('*')
-        .lte('check_in', endRange)
-        .gte('check_out', startRange);
+        .eq('tenant_id', user.id)
+        .gte('check_in', startRange)
+        .lte('check_in', endRange);
 
       if (selectedProperty !== 'all') {
         bookingsQuery = bookingsQuery.eq('property_id', selectedProperty);
@@ -88,6 +89,12 @@ const TimelineView = ({
 
       if (bookingsError) throw bookingsError;
       console.log('✅ [TIMELINE] Bookings loaded:', bookingsData?.length || 0);
+      console.log('🔍 [TIMELINE] Bookings data:', bookingsData?.map(b => ({
+        guest: b.guest_name,
+        checkIn: b.check_in,
+        checkOut: b.check_out,
+        property: b.property_id
+      })));
       setBookings(bookingsData || []);
 
     } catch (error) {
@@ -189,9 +196,11 @@ const TimelineView = ({
     // For booking 4 July - 9 July, we want days 4,5,6,7,8,9 = 6 days
     const daysToShow = (endDay - startDay) + 1;
 
+    // Use pixel-based positioning with 40px per day
+    const dayWidth = 40;
     return {
-      left: `${((startDay - 1) / daysInMonth) * 100}%`,
-      width: `${(daysToShow / daysInMonth) * 100}%`,
+      left: `${(startDay - 1) * dayWidth}px`,
+      width: `${daysToShow * dayWidth}px`,
       minWidth: '40px'
     };
   };
@@ -207,8 +216,9 @@ const TimelineView = ({
       const checkIn = parseDate(b.check_in);
       const checkOut = parseDate(b.check_out);
 
-      // Include booking if it overlaps with this month
-      return checkIn <= monthEnd && checkOut >= monthStart;
+      // Only include booking if check-in is within this month
+      // This prevents showing bookings that start in the next month
+      return checkIn >= monthStart && checkIn <= monthEnd;
     });
   };
 
@@ -254,17 +264,9 @@ const TimelineView = ({
             <ChevronLeft className="w-5 h-5 text-white" />
           </button>
 
-          <div className="flex items-center gap-4">
-            <h2 className="text-xl font-bold text-white">
-              {currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
-            </h2>
-            <button
-              onClick={goToToday}
-              className="px-3 py-1 bg-white/10 hover:bg-white/20 text-white text-sm rounded-lg transition-colors"
-            >
-              Today
-            </button>
-          </div>
+          <h2 className="text-xl font-bold text-white">
+            {currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+          </h2>
 
           <button onClick={goToNextMonth} className="p-2 hover:bg-white/10 rounded-lg">
             <ChevronRight className="w-5 h-5 text-white" />
@@ -280,35 +282,30 @@ const TimelineView = ({
             const monthName = monthDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
 
             return (
-              <div key={monthIdx} className="bg-white/5 rounded-lg border border-white/10 overflow-hidden">
+              <div key={monthIdx} className="bg-white/5 rounded-lg border border-white/10 overflow-x-auto">
                 {/* Month header */}
                 <div className="bg-[#1f2937] border-b border-white/10 px-6 py-3 text-center">
                   <h3 className="text-white font-bold text-lg">{monthName}</h3>
                 </div>
 
-                <div className="min-w-max">
+                <div>
                   {/* Days Header */}
-                  <div className="sticky top-0 z-10 bg-[#1f2937] flex">
-                    {/* Villa column header */}
-                    <div className="w-48 flex-shrink-0 border-r border-gray-600 p-3">
-                      <div className="text-white font-semibold text-sm">Property / Villa</div>
-                    </div>
-
+                  <div className="sticky top-0 z-10 bg-[#1f2937] flex min-w-max">
                     {/* Day columns */}
-                    <div className="flex-1 flex">
+                    <div className="flex">
                       {days.map((day, idx) => {
                         const showToday = isToday(day) && !appliedStartDate && !appliedEndDate;
                         return (
                           <div
                             key={idx}
-                            className={`flex-1 min-w-[40px] border-r border-gray-600 p-2 text-center ${
+                            className={`w-[40px] flex-shrink-0 border-r border-gray-600 px-1 py-1 text-center ${
                               showToday ? 'bg-[#d85a2a]/20' : ''
                             }`}
                           >
-                            <div className="text-white text-xs font-semibold">
+                            <div className="text-white text-[8px] font-semibold">
                               {day.toLocaleDateString('en-US', { weekday: 'short' })}
                             </div>
-                            <div className={`text-white text-sm ${showToday ? 'font-bold' : ''}`}>
+                            <div className={`text-white text-[10px] ${showToday ? 'font-bold' : ''}`}>
                               {day.getDate()}
                             </div>
                           </div>
@@ -327,29 +324,15 @@ const TimelineView = ({
                       const villaBookings = getVillaBookings(villa, monthDate);
 
               return (
-                <div key={villa.id} className="flex border-b border-gray-700 hover:bg-gray-800/30 transition-colors">
-                  {/* Villa name */}
-                  <div className="w-48 flex-shrink-0 border-r border-gray-600 p-3 flex items-center overflow-hidden">
-                    <div className="w-full overflow-hidden">
-                      <div className="text-white font-semibold text-xs truncate max-w-full uppercase">
-                        {villa.name}
-                      </div>
-                      {villa.properties && villa.properties.name !== villa.name && (
-                        <div className="text-gray-400 text-[10px] truncate max-w-full">
-                          {villa.properties.name}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
+                <div key={villa.id} className="flex border-b border-gray-700 hover:bg-gray-800/30 transition-colors min-w-max">
                   {/* Timeline */}
-                  <div className="flex-1 relative h-20 p-2">
+                  <div className="relative h-20 p-2 min-w-max flex-1">
                     {/* Day grid lines */}
                     <div className="absolute inset-0 flex">
                       {days.map((day, idx) => (
                         <div
                           key={idx}
-                          className={`flex-1 min-w-[40px] border-r border-gray-700/50 ${
+                          className={`w-[40px] flex-shrink-0 border-r border-gray-700/50 ${
                             isToday(day) ? 'bg-[#d85a2a]/10' : ''
                           }`}
                         />
@@ -393,7 +376,7 @@ const TimelineView = ({
 
       {/* Booking Detail Modal */}
       {selectedBooking && (
-        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4 pl-[280px]">
           <div className="bg-[#1f2937] rounded-lg max-w-2xl w-full max-h-[90vh] overflow-auto">
             <div className="sticky top-0 bg-gradient-to-r from-[#d85a2a] to-[#f5a524] p-4 flex items-center justify-between">
               <h3 className="text-xl font-bold text-white">Booking Details</h3>
