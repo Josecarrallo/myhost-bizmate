@@ -61,6 +61,28 @@ const AISystems = ({ onBack }) => {
   // All OSIRIS questions organized by category
   // IMPORTANT: Always include date ranges and specify "all villas" for accurate results
   const allOsirisQuestions = {
+    "A. Daily Operations Monitoring": [
+      "Are all villas ready for today's arrivals?",
+      "Which villas have back-to-back bookings today or tomorrow?",
+      "Are there any risks of overbooking or double allocation?",
+      "Which villas require cleaning or maintenance?",
+      "Are there any unresolved guest complaints?",
+      "Which arriving guests have special requests or notes?",
+      "Are today's check-ins fully prepared (room, amenities, staff readiness)?"
+    ],
+    "B. Occupancy & Inventory Control": [
+      "Are any villas idle within the next 7 days?",
+      "Which dates in the next 30 days show low demand and require promotion?",
+      "Which villas are currently underpriced based on recent occupancy?",
+      "Compare occupancy for all villas: this month vs last month"
+    ],
+    "C. Revenue & Risk Monitoring": [
+      "What are the top 3 priority actions today to protect revenue, increase occupancy, and reduce operational risk?",
+      "How much revenue is currently exposed due to pending payments?",
+      "Which bookings are at risk of cancellation?",
+      "What operational tasks are overdue and require immediate attention?",
+      "What is the current booking pace compared to the same period last year?"
+    ],
     "Revenue & Financial": [
       "What is the total revenue from all villas from 2026-01-01 to 2026-12-31?",
       "What is the total revenue from all villas from 2025-01-01 to 2025-12-31?",
@@ -143,14 +165,16 @@ const AISystems = ({ onBack }) => {
       gradient: 'from-[#d85a2a] via-[#e67e50] to-[#f5a524]',
       glowColor: 'shadow-[#d85a2a]/50',
       quickQuestions: [
-        "Who arrives today?",
-        "Who checks out today?",
-        "Show me all confirmed bookings from 2026-02-01 to 2026-02-28",
-        "What is the total revenue from all villas from 2026-01-01 to 2026-12-31?",
-        "Are there any pending payments right now?",
-        "Show me all leads currently in the pipeline",
-        "What is the occupancy rate for all villas from 2026-01-01 to 2026-12-31?",
-        "Give me a complete business overview for all villas from 2026-01-01 to 2026-12-31"
+        // A. Daily Operations Monitoring (Critical - First Priority)
+        "Are all villas ready for today's arrivals?",
+        "Which villas have back-to-back bookings today or tomorrow?",
+        "Are there any risks of overbooking or double allocation?",
+        "Which villas require cleaning or maintenance?",
+        "Are there any unresolved guest complaints?",
+        "Which arriving guests have special requests or notes?",
+        // B. Occupancy & Inventory Control
+        "Are any villas idle within the next 7 days?",
+        "Which dates in the next 30 days show low demand and require promotion?"
       ]
     },
     lumina: {

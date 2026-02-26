@@ -165,6 +165,27 @@ const AIAssistant = ({ onBack }) => {
   };
 
   const quickQuestions = [
+    // A. Daily Operations Monitoring (Critical - First Priority)
+    { full: "Are all villas ready for today's arrivals?", short: "Villas ready?" },
+    { full: "Which villas have back-to-back bookings today or tomorrow?", short: "Back-to-back?" },
+    { full: "Are there any risks of overbooking or double allocation?", short: "Overbooking risks?" },
+    { full: "Which villas require cleaning or maintenance?", short: "Cleaning needed?" },
+    { full: "Are there any unresolved guest complaints?", short: "Complaints?" },
+    { full: "Which arriving guests have special requests or notes?", short: "Special requests?" },
+
+    // B. Occupancy & Inventory Control
+    { full: "Are any villas idle within the next 7 days?", short: "Idle villas?" },
+    { full: "Which dates in the next 30 days show low demand and require promotion?", short: "Low demand dates?" },
+    { full: "Which villas are currently underpriced based on recent occupancy?", short: "Underpriced?" },
+
+    // C. Revenue & Risk Monitoring
+    { full: "What are the top 3 priority actions today to protect revenue, increase occupancy, and reduce operational risk?", short: "Top 3 priorities?" },
+    { full: "How much revenue is currently exposed due to pending payments?", short: "Revenue at risk?" },
+    { full: "Which bookings are at risk of cancellation?", short: "Cancellation risk?" },
+    { full: "What operational tasks are overdue and require immediate attention?", short: "Overdue tasks?" },
+    { full: "What is the current booking pace compared to the same period last year?", short: "Booking pace?" },
+
+    // General Quick Questions (Secondary)
     { full: "What's my occupancy rate?", short: "Occupancy?" },
     { full: "How much revenue this month?", short: "Revenue?" },
     { full: "Any check-ins today?", short: "Check-ins?" },
@@ -344,7 +365,7 @@ const AIAssistant = ({ onBack }) => {
           <div className="mb-1 lg:mb-4 shrink-0">
             <p className="text-[10px] lg:text-sm text-white/70 mb-0.5 lg:mb-2">Quick questions:</p>
             <div className="grid grid-cols-2 lg:flex lg:flex-wrap gap-1.5 lg:gap-2">
-              {quickQuestions.slice(0, window.innerWidth < 1024 ? 2 : 4).map((question, index) => (
+              {quickQuestions.slice(0, window.innerWidth < 1024 ? 2 : 6).map((question, index) => (
                 <button
                   key={index}
                   onClick={() => handleQuickQuestion(question.full)}
