@@ -131,8 +131,10 @@ const Autopilot = ({ onBack }) => {
     other: { count: 0, revenue: 0 }
   });
 
-  // Period selector for Channel Sync section
-  const [selectedChannelPeriod, setSelectedChannelPeriod] = useState('2026');
+  // Channel Sync filters
+  const [channelSyncStartDate, setChannelSyncStartDate] = useState('2026-01-01');
+  const [channelSyncEndDate, setChannelSyncEndDate] = useState('2026-12-31');
+  const [selectedChannel, setSelectedChannel] = useState('all');
 
   // Detailed bookings for Channel Sync report
   const [channelBookings, setChannelBookings] = useState([]);
@@ -519,28 +521,18 @@ const Autopilot = ({ onBack }) => {
     }
   };
 
-  // Load channel statistics with better classification
-  const loadChannelStats = async (period = '2026') => {
+  // Load channel statistics with date range and channel filter
+  const loadChannelStats = async (startDate, endDate, channel = 'all') => {
     if (!TENANT_ID) return;
 
     try {
-      // Get date range for filtering
-      let dateFilter = null;
-      if (period !== 'all_time') {
-        dateFilter = getDateRange(period);
-      }
-
-      // Load bookings with optional date filter
+      // Load bookings with date filter
       let bookingsQuery = supabase
         .from('bookings')
         .select('*')
-        .eq('tenant_id', TENANT_ID);
-
-      if (dateFilter) {
-        bookingsQuery = bookingsQuery
-          .gte('check_in', dateFilter.startDate)
-          .lte('check_in', dateFilter.endDate);
-      }
+        .eq('tenant_id', TENANT_ID)
+        .gte('check_in', startDate)
+        .lte('check_in', endDate);
 
       const { data: bookings, error: bookingsError } = await bookingsQuery;
 
@@ -550,10 +542,28 @@ const Autopilot = ({ onBack }) => {
       }
 
       // Filter out system bookings
-      const filteredBookings = (bookings || []).filter(booking => {
+      let filteredBookings = (bookings || []).filter(booking => {
         const source = (booking.source || '').toLowerCase().trim();
         return source !== 'autopilot' && source !== 'ical_sync';
       });
+
+      // Apply channel filter if not "all"
+      if (channel !== 'all') {
+        filteredBookings = filteredBookings.filter(booking => {
+          const source = (booking.source || '').toLowerCase().trim();
+
+          if (channel === 'airbnb') {
+            return source === 'airbnb' || source === 'air bnb';
+          } else if (channel === 'booking.com') {
+            return source === 'booking.com';
+          } else if (channel === 'direct') {
+            return source === 'gita';
+          } else if (channel === 'other') {
+            return source !== 'airbnb' && source !== 'air bnb' && source !== 'booking.com' && source !== 'gita';
+          }
+          return true;
+        });
+      }
 
       // Calculate channel statistics with better source classification
       const channelData = {
@@ -595,7 +605,7 @@ const Autopilot = ({ onBack }) => {
   // Load data on mount
   useEffect(() => {
     loadRealCounts(selectedAllInfoPeriod);
-    loadChannelStats(selectedChannelPeriod);
+    loadChannelStats(channelSyncStartDate, channelSyncEndDate, selectedChannel);
     fetchTodayMetrics();
     fetchAlerts();
     fetchActions();
@@ -609,12 +619,6 @@ const Autopilot = ({ onBack }) => {
       loadRealCounts(selectedAllInfoPeriod);
     }
   }, [selectedAllInfoPeriod, activeSection]);
-
-  // Reload channel stats when Availability period changes OR when entering availability section
-  useEffect(() => {
-    console.log('Reloading channel stats for period:', selectedChannelPeriod);
-    loadChannelStats(selectedChannelPeriod);
-  }, [selectedChannelPeriod]);
 
   // Helper functions
   const formatCurrency = (amount) => {
@@ -2030,92 +2034,73 @@ const Autopilot = ({ onBack }) => {
             <div className="w-12 hidden md:block"></div>
           </div>
 
-          {/* Period Selector */}
-          <div className="mb-6">
-            <label className="block text-gray-300 text-sm font-medium mb-3 text-center md:text-left">
-              📅 Select Period
-            </label>
-            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-2">
-              <button
-                onClick={() => setSelectedChannelPeriod('2026')}
-                className={`px-4 py-2 rounded-lg font-medium transition-all ${
-                  selectedChannelPeriod === '2026'
-                    ? 'bg-orange-500 text-white'
-                    : 'bg-[#2a2f3a] text-gray-300 hover:bg-[#374151]'
-                }`}
-              >
-                2026
-              </button>
-              <button
-                onClick={() => setSelectedChannelPeriod('2025')}
-                className={`px-4 py-2 rounded-lg font-medium transition-all ${
-                  selectedChannelPeriod === '2025'
-                    ? 'bg-orange-500 text-white'
-                    : 'bg-[#2a2f3a] text-gray-300 hover:bg-[#374151]'
-                }`}
-              >
-                2025
-              </button>
-              <button
-                onClick={() => setSelectedChannelPeriod('q1_2026')}
-                className={`px-4 py-2 rounded-lg font-medium transition-all ${
-                  selectedChannelPeriod === 'q1_2026'
-                    ? 'bg-orange-500 text-white'
-                    : 'bg-[#2a2f3a] text-gray-300 hover:bg-[#374151]'
-                }`}
-              >
-                Q1 2026
-              </button>
-              <button
-                onClick={() => setSelectedChannelPeriod('q2_2026')}
-                className={`px-4 py-2 rounded-lg font-medium transition-all ${
-                  selectedChannelPeriod === 'q2_2026'
-                    ? 'bg-orange-500 text-white'
-                    : 'bg-[#2a2f3a] text-gray-300 hover:bg-[#374151]'
-                }`}
-              >
-                Q2 2026
-              </button>
-              <button
-                onClick={() => setSelectedChannelPeriod('q3_2026')}
-                className={`px-4 py-2 rounded-lg font-medium transition-all ${
-                  selectedChannelPeriod === 'q3_2026'
-                    ? 'bg-orange-500 text-white'
-                    : 'bg-[#2a2f3a] text-gray-300 hover:bg-[#374151]'
-                }`}
-              >
-                Q3 2026
-              </button>
-              <button
-                onClick={() => setSelectedChannelPeriod('q4_2026')}
-                className={`px-4 py-2 rounded-lg font-medium transition-all ${
-                  selectedChannelPeriod === 'q4_2026'
-                    ? 'bg-orange-500 text-white'
-                    : 'bg-[#2a2f3a] text-gray-300 hover:bg-[#374151]'
-                }`}
-              >
-                Q4 2026
-              </button>
-              <button
-                onClick={() => setSelectedChannelPeriod('all_time')}
-                className={`px-4 py-2 rounded-lg font-medium transition-all ${
-                  selectedChannelPeriod === 'all_time'
-                    ? 'bg-orange-500 text-white'
-                    : 'bg-[#2a2f3a] text-gray-300 hover:bg-[#374151]'
-                }`}
-              >
-                All Time
-              </button>
+          {/* Period and Channel Selector */}
+          <div className="mb-6 bg-[#2a2f3a] rounded-xl p-4 border-2 border-gray-700">
+            <h4 className="text-white font-bold text-base mb-4">📅 Select Period and Channel</h4>
+
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              {/* Start Date */}
+              <div>
+                <label className="block text-gray-400 text-sm mb-2">Start Date</label>
+                <input
+                  type="date"
+                  value={channelSyncStartDate}
+                  onChange={(e) => setChannelSyncStartDate(e.target.value)}
+                  className="w-full px-3 py-2 bg-[#1f2937] text-white rounded-lg border border-gray-600 focus:border-orange-500 focus:outline-none"
+                />
+              </div>
+
+              {/* End Date */}
+              <div>
+                <label className="block text-gray-400 text-sm mb-2">End Date</label>
+                <input
+                  type="date"
+                  value={channelSyncEndDate}
+                  onChange={(e) => setChannelSyncEndDate(e.target.value)}
+                  className="w-full px-3 py-2 bg-[#1f2937] text-white rounded-lg border border-gray-600 focus:border-orange-500 focus:outline-none"
+                />
+              </div>
+
+              {/* Channel Filter */}
+              <div>
+                <label className="block text-gray-400 text-sm mb-2">Channel</label>
+                <select
+                  value={selectedChannel}
+                  onChange={(e) => setSelectedChannel(e.target.value)}
+                  className="w-full px-3 py-2 bg-[#1f2937] text-white rounded-lg border border-gray-600 focus:border-orange-500 focus:outline-none cursor-pointer"
+                >
+                  <option value="all">All Channels</option>
+                  <option value="airbnb">Airbnb</option>
+                  <option value="booking.com">Booking.com</option>
+                  <option value="direct">Direct (Gita)</option>
+                  <option value="other">Other Sources</option>
+                </select>
+              </div>
+
+              {/* Apply Button */}
+              <div className="flex items-end">
+                <button
+                  onClick={() => loadChannelStats(channelSyncStartDate, channelSyncEndDate, selectedChannel)}
+                  className="w-full px-6 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg font-bold transition-all flex items-center justify-center gap-2"
+                >
+                  <Zap className="w-4 h-4" />
+                  Apply Filter
+                </button>
+              </div>
             </div>
-            <p className="text-gray-400 text-sm mt-2 text-center md:text-left">
-              Viewing: {getPeriodLabel(selectedChannelPeriod)}
-            </p>
           </div>
 
           {/* Period Summary */}
           <div className="mb-6 bg-gradient-to-br from-orange-500/20 to-orange-600/20 rounded-xl p-4 md:p-6 border-2 border-orange-500/50">
             <h4 className="text-white font-bold text-base md:text-lg mb-2 flex items-center gap-2">
-              📊 Period Summary - {getPeriodLabel(selectedChannelPeriod)}
+              📊 Period Summary - {channelSyncStartDate} to {channelSyncEndDate}
+              {selectedChannel !== 'all' && (
+                <span className="text-sm text-orange-300">
+                  ({selectedChannel === 'airbnb' ? 'Airbnb' :
+                    selectedChannel === 'booking.com' ? 'Booking.com' :
+                    selectedChannel === 'direct' ? 'Direct' : 'Other'})
+                </span>
+              )}
             </h4>
             <p className="text-gray-300 text-xs mb-3 md:mb-4">
               Revenue and bookings are automatically consolidated across all connected sources.
@@ -2216,7 +2201,16 @@ const Autopilot = ({ onBack }) => {
         {/* Detailed Bookings Report by Channel */}
         {channelBookings.length > 0 && (
           <div className="mt-6">
-            <h4 className="text-white font-bold text-lg mb-4">📊 Detailed Report - {getPeriodLabel(selectedChannelPeriod)}</h4>
+            <h4 className="text-white font-bold text-lg mb-4">
+              📊 Detailed Report - {channelSyncStartDate} to {channelSyncEndDate}
+              {selectedChannel !== 'all' && (
+                <span className="text-sm text-orange-400 ml-2">
+                  ({selectedChannel === 'airbnb' ? 'Airbnb' :
+                    selectedChannel === 'booking.com' ? 'Booking.com' :
+                    selectedChannel === 'direct' ? 'Direct' : 'Other'})
+                </span>
+              )}
+            </h4>
 
             <div className="bg-[#2a2f3a] rounded-xl overflow-hidden border-2 border-gray-200">
               <div className="overflow-x-auto">
