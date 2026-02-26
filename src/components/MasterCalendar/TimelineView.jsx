@@ -356,7 +356,21 @@ const TimelineView = ({
                               {booking.guest_name}
                             </div>
                             <div className={`text-[10px] uppercase truncate opacity-90 ${(booking.source || '').toLowerCase().trim() === 'gita' ? 'text-gray-700' : 'text-white'}`}>
-                              {booking.source || 'N/A'}
+                              {(() => {
+                                const source = (booking.source || '').toLowerCase();
+                                const channel = (booking.channel || '').toLowerCase();
+
+                                // Si es Channel Sync, mostrar el canal real
+                                if (source === 'ical_sync') {
+                                  if (channel === 'airbnb') return 'Airbnb';
+                                  if (channel === 'booking') return 'Booking.com';
+                                  if (channel === 'agoda') return 'Agoda';
+                                  if (channel === 'traveloka') return 'Traveloka';
+                                  return channel || 'Channel Sync';
+                                }
+
+                                return booking.source || 'N/A';
+                              })()}
                             </div>
                           </div>
                         </div>
@@ -437,7 +451,21 @@ const TimelineView = ({
                   <div className="flex justify-between">
                     <span className="text-gray-400">Channel:</span>
                     <span className={`px-3 py-1 rounded-full text-xs font-semibold uppercase ${getChannelColor(selectedBooking.source)}`}>
-                      {selectedBooking.source || 'N/A'}
+                      {(() => {
+                        const source = (selectedBooking.source || '').toLowerCase();
+                        const channel = (selectedBooking.channel || '').toLowerCase();
+
+                        // Si es Channel Sync, mostrar el canal real
+                        if (source === 'ical_sync') {
+                          if (channel === 'airbnb') return 'Airbnb';
+                          if (channel === 'booking') return 'Booking.com';
+                          if (channel === 'agoda') return 'Agoda';
+                          if (channel === 'traveloka') return 'Traveloka';
+                          return channel || 'Channel Sync';
+                        }
+
+                        return selectedBooking.source || 'N/A';
+                      })()}
                     </span>
                   </div>
                   <div className="flex justify-between">

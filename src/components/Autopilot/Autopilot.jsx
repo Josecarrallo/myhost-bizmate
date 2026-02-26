@@ -541,25 +541,36 @@ const Autopilot = ({ onBack }) => {
         return;
       }
 
-      // Filter out system bookings
+      // Filter out ONLY autopilot system bookings (ical_sync are REAL OTA bookings)
       let filteredBookings = (bookings || []).filter(booking => {
         const source = (booking.source || '').toLowerCase().trim();
-        return source !== 'autopilot' && source !== 'ical_sync';
+        return source !== 'autopilot';
       });
 
       // Apply channel filter if not "all"
       if (channel !== 'all') {
         filteredBookings = filteredBookings.filter(booking => {
           const source = (booking.source || '').toLowerCase().trim();
+          const bookingChannel = (booking.channel || '').toLowerCase().trim();
 
           if (channel === 'airbnb') {
-            return source === 'airbnb' || source === 'air bnb';
+            // Include direct airbnb bookings OR ical_sync bookings from airbnb
+            return source === 'airbnb' || source === 'air bnb' ||
+                   (source === 'ical_sync' && bookingChannel === 'airbnb');
           } else if (channel === 'booking.com') {
-            return source === 'booking.com';
+            // Include direct booking.com bookings OR ical_sync bookings from booking.com
+            return source === 'booking.com' ||
+                   (source === 'ical_sync' && bookingChannel === 'booking');
           } else if (channel === 'direct') {
             return source === 'gita';
           } else if (channel === 'other') {
-            return source !== 'airbnb' && source !== 'air bnb' && source !== 'booking.com' && source !== 'gita';
+            // Everything that's not airbnb, booking.com, or direct
+            const isAirbnb = source === 'airbnb' || source === 'air bnb' ||
+                            (source === 'ical_sync' && bookingChannel === 'airbnb');
+            const isBooking = source === 'booking.com' ||
+                             (source === 'ical_sync' && bookingChannel === 'booking');
+            const isDirect = source === 'gita';
+            return !isAirbnb && !isBooking && !isDirect;
           }
           return true;
         });
@@ -575,10 +586,23 @@ const Autopilot = ({ onBack }) => {
 
       filteredBookings.forEach(booking => {
         const source = (booking.source || '').toLowerCase().trim();
+        const bookingChannel = (booking.channel || '').toLowerCase().trim();
         const price = booking.total_price || 0;
 
-        // Better channel classification - recognize variations
-        if (source === 'airbnb' || source === 'air bnb') {
+        // Channel classification - recognize direct bookings AND ical_sync bookings
+        if (source === 'ical_sync') {
+          // Channel Sync bookings - classify by booking.channel field
+          if (bookingChannel === 'airbnb') {
+            channelData.airbnb.count++;
+            channelData.airbnb.revenue += price;
+          } else if (bookingChannel === 'booking') {
+            channelData.bookingCom.count++;
+            channelData.bookingCom.revenue += price;
+          } else {
+            channelData.other.count++;
+            channelData.other.revenue += price;
+          }
+        } else if (source === 'airbnb' || source === 'air bnb') {
           channelData.airbnb.count++;
           channelData.airbnb.revenue += price;
         } else if (source === 'booking.com') {
@@ -2230,13 +2254,24 @@ const Autopilot = ({ onBack }) => {
                       // Group bookings by channel
                       const groupedByChannel = channelBookings.reduce((groups, booking) => {
                         const source = (booking.source || 'other').toLowerCase().trim();
-                        let channel = source;
+                        const bookingChannel = (booking.channel || '').toLowerCase().trim();
+                        let channel;
 
-                        // Normalize channel names
-                        if (source === 'airbnb' || source === 'air bnb') channel = 'airbnb';
-                        else if (source === 'booking.com') channel = 'booking.com';
-                        else if (source === 'gita') channel = 'direct';
-                        else channel = 'other';
+                        // Classify by channel - handle ical_sync bookings
+                        if (source === 'ical_sync') {
+                          // Channel Sync bookings - use booking.channel field
+                          if (bookingChannel === 'airbnb') channel = 'airbnb';
+                          else if (bookingChannel === 'booking') channel = 'booking.com';
+                          else channel = 'other';
+                        } else if (source === 'airbnb' || source === 'air bnb') {
+                          channel = 'airbnb';
+                        } else if (source === 'booking.com') {
+                          channel = 'booking.com';
+                        } else if (source === 'gita') {
+                          channel = 'direct';
+                        } else {
+                          channel = 'other';
+                        }
 
                         if (!groups[channel]) groups[channel] = [];
                         groups[channel].push(booking);
@@ -2290,10 +2325,37 @@ const Autopilot = ({ onBack }) => {
                               className={`border-b border-gray-700 ${rowIndex % 2 === 0 ? 'bg-[#2a2f3a]' : 'bg-[#1f2937]'} hover:bg-[#374151] transition-colors`}
                             >
                               <td className="px-4 py-3 text-gray-300 text-sm">
-                                {booking.guest_name || 'N/A'}
+                                {(() => {
+                                  const source = (booking.source || '').toLowerCase();
+                                  const bookingChannel = (booking.channel || '').toLowerCase();
+
+                                  // Si es Channel Sync, mostrar claramente el nombre del channel
+                                  if (source === 'ical_sync') {
+                                    if (bookingChannel === 'airbnb') return '🔵 Airbnb';
+                                    if (bookingChannel === 'booking') return '🔷 Booking.com';
+                                    if (bookingChannel === 'agoda') return '🟠 Agoda';
+                                    if (bookingChannel === 'traveloka') return '🟢 Traveloka';
+                                    return '🔄 ' + (bookingChannel || 'Channel Sync');
+                                  }
+                                  // Si no, mostrar nombre del huésped
+                                  return booking.guest_name || 'N/A';
+                                })()}
                               </td>
                               <td className="px-4 py-3 text-gray-400 text-xs">
-                                {booking.source || 'N/A'}
+                                {(() => {
+                                  const source = (booking.source || '').toLowerCase();
+                                  const bookingChannel = (booking.channel || '').toLowerCase();
+
+                                  // Show friendly channel name
+                                  if (source === 'ical_sync') {
+                                    if (bookingChannel === 'airbnb') return 'Airbnb';
+                                    if (bookingChannel === 'booking') return 'Booking.com';
+                                    if (bookingChannel === 'agoda') return 'Agoda';
+                                    if (bookingChannel === 'traveloka') return 'Traveloka';
+                                    return bookingChannel || 'Channel Sync';
+                                  }
+                                  return booking.source || 'N/A';
+                                })()}
                               </td>
                               <td className="px-4 py-3 text-gray-300 text-sm whitespace-nowrap">
                                 {checkIn ? checkIn.toLocaleDateString('en-GB') : 'N/A'}
@@ -2305,7 +2367,17 @@ const Autopilot = ({ onBack }) => {
                                 {nights}
                               </td>
                               <td className="px-4 py-3 text-white text-sm text-right whitespace-nowrap">
-                                {formatCurrency(booking.total_price || 0)}
+                                {(() => {
+                                  const source = (booking.source || '').toLowerCase();
+                                  const price = booking.total_price || 0;
+
+                                  // Si es iCal sync y precio es 0, no mostrar $0
+                                  if (source === 'ical_sync' && price === 0) {
+                                    return <span className="text-gray-500 italic text-xs">N/A</span>;
+                                  }
+
+                                  return formatCurrency(price);
+                                })()}
                               </td>
                             </tr>
                           );

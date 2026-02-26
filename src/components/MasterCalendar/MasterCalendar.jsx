@@ -609,7 +609,23 @@ const MasterCalendar = ({ onBack }) => {
                               className={`text-xs px-2 py-1 rounded border ${getChannelColor(booking.source)}`}
                             >
                               <div className="font-bold truncate">{booking.guest_name}</div>
-                              <div className="text-[10px] opacity-90 font-semibold uppercase">{booking.source || 'N/A'}</div>
+                              <div className="text-[10px] opacity-90 font-semibold uppercase">
+                                {(() => {
+                                  const source = (booking.source || '').toLowerCase();
+                                  const channel = (booking.channel || '').toLowerCase();
+
+                                  // Si es Channel Sync, mostrar el canal real
+                                  if (source === 'ical_sync') {
+                                    if (channel === 'airbnb') return 'Airbnb';
+                                    if (channel === 'booking') return 'Booking.com';
+                                    if (channel === 'agoda') return 'Agoda';
+                                    if (channel === 'traveloka') return 'Traveloka';
+                                    return channel || 'Channel Sync';
+                                  }
+
+                                  return booking.source || 'N/A';
+                                })()}
+                              </div>
                               <div className="text-[10px] opacity-80 mt-0.5">
                                 {booking.isCheckIn && '✈️ IN: '}
                                 {booking.isCheckOut && '🚪 OUT: '}
@@ -663,7 +679,7 @@ const MasterCalendar = ({ onBack }) => {
 
       {/* Day Detail Modal */}
       {selectedDay && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 pl-[280px]">
           <div className="bg-[#1f2937] rounded-2xl w-full max-w-3xl max-h-[90vh] overflow-hidden border border-white/20 shadow-2xl">
             {/* Modal Header */}
             <div className="bg-[#d85a2a] px-6 py-4 flex items-center justify-between">
@@ -730,7 +746,21 @@ const MasterCalendar = ({ onBack }) => {
                                 <div>
                                   <span className="text-white/60">Channel:</span>
                                   <span className={`ml-2 px-2 py-0.5 rounded text-xs ${getChannelColor(booking.source)}`}>
-                                    {booking.source || 'N/A'}
+                                    {(() => {
+                                      const source = (booking.source || '').toLowerCase();
+                                      const channel = (booking.channel || '').toLowerCase();
+
+                                      // Si es Channel Sync, mostrar el canal real
+                                      if (source === 'ical_sync') {
+                                        if (channel === 'airbnb') return 'Airbnb';
+                                        if (channel === 'booking') return 'Booking.com';
+                                        if (channel === 'agoda') return 'Agoda';
+                                        if (channel === 'traveloka') return 'Traveloka';
+                                        return channel || 'Channel Sync';
+                                      }
+
+                                      return booking.source || 'N/A';
+                                    })()}
                                   </span>
                                 </div>
                                 <div>
