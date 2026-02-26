@@ -134,6 +134,9 @@ const Autopilot = ({ onBack }) => {
   // Period selector for Channel Sync section
   const [selectedChannelPeriod, setSelectedChannelPeriod] = useState('2026');
 
+  // Detailed bookings for Channel Sync report
+  const [channelBookings, setChannelBookings] = useState([]);
+
   // User properties
   const [userProperties, setUserProperties] = useState([]);
 
@@ -546,6 +549,12 @@ const Autopilot = ({ onBack }) => {
         return;
       }
 
+      // Filter out system bookings
+      const filteredBookings = (bookings || []).filter(booking => {
+        const source = (booking.source || '').toLowerCase().trim();
+        return source !== 'autopilot' && source !== 'ical_sync';
+      });
+
       // Calculate channel statistics with better source classification
       const channelData = {
         airbnb: { count: 0, revenue: 0 },
@@ -554,7 +563,7 @@ const Autopilot = ({ onBack }) => {
         other: { count: 0, revenue: 0 }
       };
 
-      (bookings || []).forEach(booking => {
+      filteredBookings.forEach(booking => {
         const source = (booking.source || '').toLowerCase().trim();
         const price = booking.total_price || 0;
 
@@ -575,7 +584,9 @@ const Autopilot = ({ onBack }) => {
         }
       });
 
+      // Save stats and filtered bookings
       setChannelStats(channelData);
+      setChannelBookings(filteredBookings);
     } catch (error) {
       console.error('Error loading channel stats:', error);
     }
@@ -2019,13 +2030,6 @@ const Autopilot = ({ onBack }) => {
             <div className="w-12 hidden md:block"></div>
           </div>
 
-          {/* Info Banner */}
-          <div className="mb-6 bg-gradient-to-r from-blue-500/10 to-blue-600/10 rounded-xl p-4 border-2 border-blue-500/30">
-            <p className="text-blue-300 text-sm font-medium text-center">
-              ℹ️ All channels are automatically synchronized in real time to prevent double bookings.
-            </p>
-          </div>
-
           {/* Period Selector */}
           <div className="mb-6">
             <label className="block text-gray-300 text-sm font-medium mb-3 text-center md:text-left">
@@ -2152,184 +2156,198 @@ const Autopilot = ({ onBack }) => {
           </div>
 
           {/* Connected Channels */}
-          <div className="mb-6">
-            <h4 className="text-white font-bold text-lg mb-2">Connected Channels</h4>
-            <p className="text-gray-400 text-sm mb-4">
-              This view shows booking volume and revenue distribution across all active channels for the selected period.
-            </p>
+          <div className="mb-4">
+            <h4 className="text-white font-bold text-lg">Connected Channels</h4>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
           <div className="bg-gradient-to-br from-pink-500/10 to-pink-600/10 rounded-xl p-5 border-2 border-pink-500/30">
-            <div className="flex items-center justify-between mb-3">
+            <div className="mb-3">
               <img src="https://upload.wikimedia.org/wikipedia/commons/6/69/Airbnb_Logo_B%C3%A9lo.svg" alt="Airbnb" className="h-6" />
-              <span className="px-3 py-1 bg-green-500 text-white text-xs font-bold rounded-full">
-                Connected
-              </span>
             </div>
-            <p className="text-gray-300 text-sm">
-              {channelStats.airbnb.count} bookings • {formatCurrency(channelStats.airbnb.revenue)}
+            <p className="text-gray-300 text-sm mb-1">
+              {channelStats.airbnb.count} bookings
+            </p>
+            <p className="text-white text-lg font-bold">
+              {formatCurrency(channelStats.airbnb.revenue)}
             </p>
           </div>
 
           <div className="bg-gradient-to-br from-blue-500/10 to-blue-600/10 rounded-xl p-5 border-2 border-blue-500/30">
-            <div className="flex items-center justify-between mb-3">
+            <div className="mb-3">
               <span className="text-blue-400 font-bold text-lg">Booking.com</span>
-              <span className="px-3 py-1 bg-green-500 text-white text-xs font-bold rounded-full">
-                Connected
-              </span>
             </div>
-            <p className="text-gray-300 text-sm">
-              {channelStats.bookingCom.count} bookings • {formatCurrency(channelStats.bookingCom.revenue)}
+            <p className="text-gray-300 text-sm mb-1">
+              {channelStats.bookingCom.count} bookings
+            </p>
+            <p className="text-white text-lg font-bold">
+              {formatCurrency(channelStats.bookingCom.revenue)}
             </p>
           </div>
 
           <div className="bg-gradient-to-br from-orange-500/10 to-orange-600/10 rounded-xl p-5 border-2 border-orange-500/30">
-            <div className="flex items-center justify-between mb-3">
+            <div className="mb-3">
               <span className="text-orange-400 font-bold text-lg">Direct (Gita)</span>
-              <span className="px-3 py-1 bg-blue-500 text-white text-xs font-bold rounded-full">
-                Active
-              </span>
             </div>
-            <p className="text-gray-300 text-sm">
-              {channelStats.direct.count} bookings • {formatCurrency(channelStats.direct.revenue)}
+            <p className="text-gray-300 text-sm mb-1">
+              {channelStats.direct.count} bookings
+            </p>
+            <p className="text-white text-lg font-bold">
+              {formatCurrency(channelStats.direct.revenue)}
             </p>
           </div>
 
           <div className="bg-gradient-to-br from-purple-500/10 to-purple-600/10 rounded-xl p-5 border-2 border-purple-500/30">
-            <div className="flex items-center justify-between mb-3">
+            <div className="mb-3">
               <span className="text-purple-400 font-bold text-lg">Other Sources</span>
-              <span className="px-3 py-1 bg-blue-500 text-white text-xs font-bold rounded-full">
-                Active
-              </span>
             </div>
-            <p className="text-gray-300 text-sm">
-              {channelStats.other.count} bookings • {formatCurrency(channelStats.other.revenue)}
+            <p className="text-gray-300 text-sm mb-1">
+              {channelStats.other.count} bookings
             </p>
-            <p className="text-gray-500 text-xs mt-1">
+            <p className="text-white text-lg font-bold">
+              {formatCurrency(channelStats.other.revenue)}
+            </p>
+            <p className="text-gray-500 text-xs mt-2">
               Bali Buntu, Ibu Santi, Domus, etc.
             </p>
           </div>
         </div>
 
-        {/* Automation Status */}
-        <div className="mb-6 bg-gradient-to-br from-green-500/10 to-green-600/10 rounded-xl p-5 border-2 border-green-500/30">
-          <h4 className="text-green-400 font-bold text-lg mb-4 flex items-center gap-2">
-            <Zap className="w-5 h-5" />
-            Automation Status
-          </h4>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="flex items-center justify-between">
-              <span className="text-gray-300 text-sm">Availability Sync</span>
-              <span className="px-3 py-1 bg-green-500 text-white text-xs font-bold rounded-full flex items-center gap-1">
-                <CheckCircle className="w-3 h-3" />
-                Active
-              </span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-gray-300 text-sm">Booking Import</span>
-              <span className="px-3 py-1 bg-green-500 text-white text-xs font-bold rounded-full flex items-center gap-1">
-                <CheckCircle className="w-3 h-3" />
-                Active
-              </span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-gray-300 text-sm">Conflict Detection</span>
-              <span className="px-3 py-1 bg-green-500 text-white text-xs font-bold rounded-full flex items-center gap-1">
-                <CheckCircle className="w-3 h-3" />
-                Active
-              </span>
+        {/* Detailed Bookings Report by Channel */}
+        {channelBookings.length > 0 && (
+          <div className="mt-6">
+            <h4 className="text-white font-bold text-lg mb-4">📊 Detailed Report - {getPeriodLabel(selectedChannelPeriod)}</h4>
+
+            <div className="bg-[#2a2f3a] rounded-xl overflow-hidden border-2 border-gray-200">
+              <div className="overflow-x-auto">
+                <table className="w-full table-fixed">
+                  <thead className="bg-orange-500">
+                    <tr>
+                      <th className="w-[20%] px-4 py-3 text-left text-white font-bold">Guest</th>
+                      <th className="w-[15%] px-4 py-3 text-left text-white font-bold">Channel</th>
+                      <th className="w-[13%] px-4 py-3 text-left text-white font-bold">Check-in</th>
+                      <th className="w-[13%] px-4 py-3 text-left text-white font-bold">Check-out</th>
+                      <th className="w-[10%] px-4 py-3 text-center text-white font-bold">Nights</th>
+                      <th className="w-[14%] px-4 py-3 text-right text-white font-bold">Price</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(() => {
+                      // Group bookings by channel
+                      const groupedByChannel = channelBookings.reduce((groups, booking) => {
+                        const source = (booking.source || 'other').toLowerCase().trim();
+                        let channel = source;
+
+                        // Normalize channel names
+                        if (source === 'airbnb' || source === 'air bnb') channel = 'airbnb';
+                        else if (source === 'booking.com') channel = 'booking.com';
+                        else if (source === 'gita') channel = 'direct';
+                        else channel = 'other';
+
+                        if (!groups[channel]) groups[channel] = [];
+                        groups[channel].push(booking);
+                        return groups;
+                      }, {});
+
+                      // Order channels: airbnb, booking.com, direct, other
+                      const channelOrder = ['airbnb', 'booking.com', 'direct', 'other'];
+                      const channelIcons = {
+                        'airbnb': '🏠',
+                        'booking.com': '💼',
+                        'direct': '🏡',
+                        'other': '📱'
+                      };
+                      const channelNames = {
+                        'airbnb': 'AIRBNB',
+                        'booking.com': 'BOOKING.COM',
+                        'direct': 'DIRECT (GITA)',
+                        'other': 'OTHER SOURCES'
+                      };
+
+                      let rows = [];
+                      let rowIndex = 0;
+
+                      channelOrder.forEach(channel => {
+                        const bookings = groupedByChannel[channel] || [];
+                        if (bookings.length === 0) return;
+
+                        // Channel header row
+                        rows.push(
+                          <tr key={`header-${channel}`} className="bg-gray-800">
+                            <td colSpan="6" className="px-4 py-2 text-left">
+                              <span className="text-orange-400 font-bold text-sm">
+                                {channelIcons[channel]} {channelNames[channel]}
+                              </span>
+                            </td>
+                          </tr>
+                        );
+
+                        // Booking rows
+                        bookings.forEach(booking => {
+                          const checkIn = booking.check_in ? new Date(booking.check_in) : null;
+                          const checkOut = booking.check_out ? new Date(booking.check_out) : null;
+                          const nights = checkIn && checkOut
+                            ? Math.ceil((checkOut - checkIn) / (1000 * 60 * 60 * 24))
+                            : 0;
+
+                          rows.push(
+                            <tr
+                              key={`booking-${booking.id}`}
+                              className={`border-b border-gray-700 ${rowIndex % 2 === 0 ? 'bg-[#2a2f3a]' : 'bg-[#1f2937]'} hover:bg-[#374151] transition-colors`}
+                            >
+                              <td className="px-4 py-3 text-gray-300 text-sm">
+                                {booking.guest_name || 'N/A'}
+                              </td>
+                              <td className="px-4 py-3 text-gray-400 text-xs">
+                                {booking.source || 'N/A'}
+                              </td>
+                              <td className="px-4 py-3 text-gray-300 text-sm whitespace-nowrap">
+                                {checkIn ? checkIn.toLocaleDateString('en-GB') : 'N/A'}
+                              </td>
+                              <td className="px-4 py-3 text-gray-300 text-sm whitespace-nowrap">
+                                {checkOut ? checkOut.toLocaleDateString('en-GB') : 'N/A'}
+                              </td>
+                              <td className="px-4 py-3 text-white text-sm text-center">
+                                {nights}
+                              </td>
+                              <td className="px-4 py-3 text-white text-sm text-right whitespace-nowrap">
+                                {formatCurrency(booking.total_price || 0)}
+                              </td>
+                            </tr>
+                          );
+                          rowIndex++;
+                        });
+
+                        // Subtotal row
+                        const subtotalRevenue = bookings.reduce((sum, b) => sum + (b.total_price || 0), 0);
+                        rows.push(
+                          <tr key={`subtotal-${channel}`} className="bg-gray-900 border-t-2 border-orange-500/50">
+                            <td colSpan="6" className="px-4 py-2 text-center text-orange-400 font-bold text-sm">
+                              SUBTOTAL {channelNames[channel]}: {bookings.length} bookings • {formatCurrency(subtotalRevenue)}
+                            </td>
+                          </tr>
+                        );
+                      });
+
+                      // Grand total row
+                      const totalBookings = channelBookings.length;
+                      const totalRevenue = channelBookings.reduce((sum, b) => sum + (b.total_price || 0), 0);
+                      rows.push(
+                        <tr key="grand-total" className="bg-orange-500">
+                          <td colSpan="6" className="px-4 py-3 text-center text-white font-black text-base">
+                            TOTAL GENERAL: {totalBookings} bookings • {formatCurrency(totalRevenue)}
+                          </td>
+                        </tr>
+                      );
+
+                      return rows;
+                    })()}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
-          <div className="mt-4 pt-4 border-t border-green-500/20">
-            <p className="text-gray-400 text-xs">
-              ℹ️ When a booking is received from any channel, availability is instantly updated across all platforms to ensure full calendar accuracy.
-            </p>
-          </div>
-        </div>
-
-        <div className="bg-[#2a2f3a] rounded-xl p-6 border-2 border-gray-700">
-          <h4 className="text-white font-bold text-lg mb-4 flex items-center gap-2">
-            <Calendar className="w-5 h-5" />
-            Multi-Channel Availability Calendar
-          </h4>
-          <p className="text-gray-400 text-sm mb-6">
-            Real-time synchronized calendar showing bookings from all connected channels
-          </p>
-
-          {/* Mini Calendar Preview - February 2026 */}
-          <div className="bg-[#1f2937] rounded-lg p-4 border border-gray-700">
-            <div className="flex items-center justify-between mb-4">
-              <h5 className="text-orange-400 font-bold">February 2026</h5>
-              <div className="flex gap-2">
-                <span className="text-xs px-2 py-1 bg-pink-500/20 text-pink-400 rounded">Airbnb</span>
-                <span className="text-xs px-2 py-1 bg-blue-500/20 text-blue-400 rounded">Booking.com</span>
-                <span className="text-xs px-2 py-1 bg-orange-500/20 text-orange-400 rounded">Direct</span>
-              </div>
-            </div>
-
-            {/* Calendar Grid */}
-            <div className="grid grid-cols-7 gap-1 text-center text-xs">
-              {/* Header */}
-              {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
-                <div key={day} className="text-gray-500 font-bold py-2">{day}</div>
-              ))}
-
-              {/* Days */}
-              {Array.from({length: 29}, (_, i) => {
-                const day = i + 1;
-                const isBooked = [3,4,5,10,11,12,18,19,20,25,26,27].includes(day);
-                const isCheckIn = [3,10,18,25].includes(day);
-                const channel = day <= 5 ? 'airbnb' : day <= 12 ? 'booking' : day <= 20 ? 'direct' : 'airbnb';
-
-                return (
-                  <div
-                    key={day}
-                    className={`aspect-square flex items-center justify-center rounded ${
-                      isBooked
-                        ? channel === 'airbnb' ? 'bg-pink-500/30 text-pink-200 font-bold' :
-                          channel === 'booking' ? 'bg-blue-500/30 text-blue-200 font-bold' :
-                          'bg-orange-500/30 text-orange-200 font-bold'
-                        : 'bg-gray-700/30 text-gray-400 hover:bg-gray-700/50 cursor-pointer'
-                    } ${isCheckIn ? 'border-2 border-green-400' : ''}`}
-                  >
-                    {day}
-                  </div>
-                );
-              })}
-            </div>
-
-            {/* Legend */}
-            <div className="mt-4 pt-4 border-t border-gray-700 flex flex-wrap gap-3 text-xs">
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 rounded bg-gray-700/30"></div>
-                <span className="text-gray-400">Available</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 rounded bg-pink-500/30"></div>
-                <span className="text-gray-400">Airbnb Booking</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 rounded bg-blue-500/30"></div>
-                <span className="text-gray-400">Booking.com</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 rounded bg-orange-500/30"></div>
-                <span className="text-gray-400">Direct Booking</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 rounded border-2 border-green-400"></div>
-                <span className="text-gray-400">Check-in Day</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="mt-4 text-center">
-            <button className="px-6 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg font-medium transition-all">
-              Open Full Calendar
-            </button>
-          </div>
-        </div>
+        )}
       </div>
     </div>
   );
