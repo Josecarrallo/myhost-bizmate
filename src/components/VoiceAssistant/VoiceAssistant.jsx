@@ -71,7 +71,7 @@ const VoiceAssistant = () => {
 
       // Construir payload con datos acumulados
       const accumulatedData = {
-        assistantId: 'ae9ea22a-fc9a-49ba-b5b8-900ed69b7615',
+        assistantId: '816a7c95-bd58-489c-b6ba-d0796fb2a722',
         startedAt: callDataRef.current.startTime,
         endedAt: callDataRef.current.endTime,
         durationMs: durationMs,
@@ -211,11 +211,12 @@ const VoiceAssistant = () => {
 
     try {
       // Usar Assistant MCP configurado en VAPI Dashboard
-      // ID: Izumi Hotel Receptionist (MCP) - ae9ea22a-fc9a-49ba-b5b8-900ed69b7615
+      // ID: Izumi Hotel Receptionist (MCP) - 816a7c95-bd58-489c-b6ba-d0796fb2a722
+      // Multilingüe (ES/EN/ID) con Claude Sonnet 4
       // Con MCP Server: https://n8n-production-bb2d.up.railway.app/mcp/izumi-hotel
       // Server URL: https://n8n-production-bb2d.up.railway.app/webhook/kora-post-call-v2
       // NOTA: VAPI Web SDK requiere string directo, no objeto
-      await vapiRef.current.start('ae9ea22a-fc9a-49ba-b5b8-900ed69b7615');
+      await vapiRef.current.start('816a7c95-bd58-489c-b6ba-d0796fb2a722');
     } catch (error) {
       console.error('Error al iniciar llamada:', error);
       setIsLoading(false);
@@ -293,6 +294,23 @@ const VoiceAssistant = () => {
             <p className="text-sm text-red-700">
               {typeof error === 'string' ? error : 'Error connecting to VAPI'}
             </p>
+          </div>
+        )}
+
+        {/* Mensaje "Connecting to KORA..." durante isLoading */}
+        {isLoading && !isCallActive && (
+          <div className="flex items-center gap-2 md:gap-3 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl md:rounded-2xl p-3 md:p-4 shadow-2xl border-2 border-orange-400 animate-pulse">
+            <div className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-white/20 flex items-center justify-center">
+              <Loader2 className="w-4 h-4 md:w-5 md:h-5 text-white animate-spin" />
+            </div>
+            <div className="text-left flex-1">
+              <p className="text-xs md:text-sm font-bold text-white">
+                🎤 Connecting to KORA...
+              </p>
+              <p className="text-[10px] md:text-xs text-white/80">
+                Preparing your voice assistant
+              </p>
+            </div>
           </div>
         )}
 
