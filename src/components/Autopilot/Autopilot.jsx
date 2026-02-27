@@ -26,6 +26,7 @@ import {
   ClipboardCheck,
   ExternalLink,
   ChevronRight,
+  ChevronDown,
   Plus,
   Search,
   Filter,
@@ -70,6 +71,10 @@ const Autopilot = ({ onBack }) => {
   const [selectedPeriod, setSelectedPeriod] = useState('this_month'); // Period selector for reports
   const [selectedAllInfoPeriod, setSelectedAllInfoPeriod] = useState('all_time'); // Period selector for All Information
   const [businessReportMode, setBusinessReportMode] = useState(null); // null = selection screen, 'global' = existing report, 'enhanced' = enhanced report, 'specialized' = specialized reports
+
+  // Maintenance & Tasks tabs state
+  const [tasksActiveTab, setTasksActiveTab] = useState('tasks'); // 'tasks' or 'issues'
+  const [showAutoTaskInfo, setShowAutoTaskInfo] = useState(false); // Show/hide Automatic Task Creation section
 
   // Enhanced Report specific states
   const [enhancedSelectedVilla, setEnhancedSelectedVilla] = useState('all');
@@ -2826,18 +2831,40 @@ const Autopilot = ({ onBack }) => {
           <div className="flex gap-2">
             <button className="px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg font-bold transition-all flex items-center gap-2">
               <Plus className="w-4 h-4" />
-              New Task
+              {tasksActiveTab === 'tasks' ? 'New Task' : 'New Issue'}
             </button>
           </div>
         </div>
 
-        {/* Summary Text */}
-        <div className="bg-blue-500/10 border-2 border-blue-500/30 rounded-xl p-4 mb-6">
-          <p className="text-blue-200 text-sm">
-            This section displays maintenance tasks and operational activities for your properties.
-            Tasks are created automatically based on booking events and property schedules, or manually by your team.
-          </p>
+        {/* Tabs Navigation */}
+        <div className="flex gap-2 mb-6 border-b-2 border-gray-700">
+          <button
+            onClick={() => setTasksActiveTab('tasks')}
+            className={`flex items-center gap-2 px-6 py-3 font-bold transition-all ${
+              tasksActiveTab === 'tasks'
+                ? 'text-[#FF8C42] border-b-4 border-orange-500'
+                : 'text-gray-400 hover:text-gray-200'
+            }`}
+          >
+            <CheckCircle className="w-5 h-5" />
+            Tasks
+          </button>
+          <button
+            onClick={() => setTasksActiveTab('issues')}
+            className={`flex items-center gap-2 px-6 py-3 font-bold transition-all ${
+              tasksActiveTab === 'issues'
+                ? 'text-[#FF8C42] border-b-4 border-orange-500'
+                : 'text-gray-400 hover:text-gray-200'
+            }`}
+          >
+            <AlertCircle className="w-5 h-5" />
+            Guest Issues
+          </button>
         </div>
+
+        {/* Tasks Tab Content */}
+        {tasksActiveTab === 'tasks' && (
+          <>
 
         {/* Task Overview */}
         <div className="mb-6">
@@ -2868,28 +2895,39 @@ const Autopilot = ({ onBack }) => {
           </div>
         </div>
 
-        {/* Automatic Task Creation */}
+        {/* Automatic Task Creation - Collapsible */}
         <div className="bg-[#2a2f3a] rounded-xl p-6 border-2 border-gray-700 mb-6">
-          <h4 className="text-white font-bold text-lg mb-4 flex items-center gap-2">
-            <Zap className="w-5 h-5 text-orange-400" />
-            Automatic Task Creation
-          </h4>
-          <p className="text-gray-400 text-sm mb-4">
-            Tasks are automatically generated based on the following triggers:
-          </p>
-          <div className="space-y-2">
-            {[
-              '✅ After booking confirmation → Cleaning & preparation tasks',
-              '✅ After checkout → Deep cleaning & inspection tasks',
-              '✅ Scheduled maintenance → Recurring tasks (pool, garden, AC)',
-              '✅ Guest requests → Custom tasks assigned to staff',
-              '✅ Inventory alerts → Restocking tasks'
-            ].map((trigger, i) => (
-              <div key={i} className="bg-[#1f2937] rounded-lg p-3 border border-gray-700">
-                <p className="text-gray-300 text-sm">{trigger}</p>
+          <button
+            onClick={() => setShowAutoTaskInfo(!showAutoTaskInfo)}
+            className="w-full flex items-center justify-between text-white font-bold text-lg hover:text-orange-400 transition-colors"
+          >
+            <div className="flex items-center gap-2">
+              <Zap className="w-5 h-5 text-orange-400" />
+              Automatic Task Creation
+            </div>
+            <ChevronDown className={`w-5 h-5 transition-transform ${showAutoTaskInfo ? 'rotate-180' : ''}`} />
+          </button>
+
+          {showAutoTaskInfo && (
+            <>
+              <p className="text-gray-400 text-sm mb-4 mt-4">
+                Tasks are automatically generated based on the following triggers:
+              </p>
+              <div className="space-y-2">
+                {[
+                  '✅ After booking confirmation → Cleaning & preparation tasks',
+                  '✅ After checkout → Deep cleaning & inspection tasks',
+                  '✅ Scheduled maintenance → Recurring tasks (pool, garden, AC)',
+                  '✅ Guest requests → Custom tasks assigned to staff',
+                  '✅ Inventory alerts → Restocking tasks'
+                ].map((trigger, i) => (
+                  <div key={i} className="bg-[#1f2937] rounded-lg p-3 border border-gray-700">
+                    <p className="text-gray-300 text-sm">{trigger}</p>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
+            </>
+          )}
         </div>
 
         {/* Sample Tasks */}
@@ -2931,7 +2969,24 @@ const Autopilot = ({ onBack }) => {
               </div>
             </div>
           ))}
-        </div>
+            </div>
+          </>
+        )}
+
+        {/* Guest Issues Tab Content */}
+        {tasksActiveTab === 'issues' && (
+          <div className="space-y-4">
+            <div className="bg-blue-500/10 border-2 border-blue-500/30 rounded-xl p-4">
+              <p className="text-blue-200 text-sm">
+                Track and manage issues reported by guests during their stay. Issues are organized by priority and status.
+              </p>
+            </div>
+
+            <div className="text-center py-12">
+              <p className="text-gray-400 text-lg">Guest Issues tab - Coming soon</p>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
