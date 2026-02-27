@@ -295,16 +295,15 @@ const AISystems = ({ onBack }) => {
     try {
       // OSIRIS: Call real n8n endpoint
       if (selectedAgent === 'osiris') {
-        // ✅ CORRECTED: Using /webhook/ai/chat-v2 (not /webhook/ai/chat)
-        // ✅ CORRECTED: Using authenticated user's ID (not hardcoded Jose's ID)
-        const response = await fetch('https://n8n-production-bb2d.up.railway.app/webhook/ai/chat-v2', {
+        // ✅ OSIRIS V3.2: Using /webhook/ai/chat-v3 (17 tools, 73% question coverage)
+        // ✅ Using authenticated user's ID (tenant_id)
+        const response = await fetch('https://n8n-production-bb2d.up.railway.app/webhook/ai/chat-v3', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({
             tenant_id: userData?.id || 'c24393db-d318-4d75-8bbf-0fa240b9c1db',
-            user_id: userData?.id || 'c24393db-d318-4d75-8bbf-0fa240b9c1db',
             message: currentQuestion
           })
         });
