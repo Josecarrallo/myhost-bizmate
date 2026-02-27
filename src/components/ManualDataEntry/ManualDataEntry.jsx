@@ -78,7 +78,8 @@ const ManualDataEntry = ({ onBack }) => {
     checkOut: '',
     guests: '2',
     totalAmount: '',
-    status: 'hold'
+    status: 'hold',
+    notes: ''
   });
 
   // Edit lead form state
@@ -114,7 +115,8 @@ const ManualDataEntry = ({ onBack }) => {
     checkOut: '',
     guests: '2',
     totalAmount: '',
-    status: 'hold'
+    status: 'hold',
+    notes: ''
   });
 
   const [paymentForm, setPaymentForm] = useState({
@@ -556,7 +558,8 @@ const ManualDataEntry = ({ onBack }) => {
       checkOut: booking.check_out || '',
       guests: booking.guests?.toString() || '2',
       totalAmount: booking.total_price?.toString() || '',
-      status: booking.status || 'hold'
+      status: booking.status || 'hold',
+      notes: booking.notes || ''
     });
   };
 
@@ -776,6 +779,7 @@ const ManualDataEntry = ({ onBack }) => {
         payment_status: bookingForm.status === 'confirmed' ? 'paid' : 'pending',
         channel: 'direct', // Manual entries are considered direct bookings
         source: 'autopilot',
+        notes: bookingForm.notes || null,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       };
@@ -803,7 +807,8 @@ const ManualDataEntry = ({ onBack }) => {
         checkOut: '',
         guests: '2',
         totalAmount: '',
-        status: 'hold'
+        status: 'hold',
+        notes: ''
       });
 
       // Auto-switch to View/Edit Bookings tab to see the new booking
@@ -855,6 +860,7 @@ const ManualDataEntry = ({ onBack }) => {
         total_price: parseFloat(editForm.totalAmount),
         status: editForm.status === 'hold' ? 'pending_payment' : 'confirmed',
         payment_status: editForm.status === 'confirmed' ? 'paid' : (editForm.status === 'partial' ? 'partial' : 'pending'),
+        notes: editForm.notes || null,
         updated_at: new Date().toISOString()
       };
 
@@ -2174,6 +2180,19 @@ const ManualDataEntry = ({ onBack }) => {
                   <option value="partial">Partial - Deposit Received</option>
                 </select>
               </div>
+
+              {/* Booking Notes */}
+              <div className="md:col-span-2">
+                <label className="block text-[#FF8C42] font-medium mb-2">Booking Notes</label>
+                <textarea
+                  rows="3"
+                  value={bookingForm.notes}
+                  onChange={(e) => setBookingForm({...bookingForm, notes: e.target.value})}
+                  className="w-full px-4 py-3 bg-[#2a2f3a] border-2 border-gray-200 rounded-xl text-[#FF8C42] placeholder-gray-400 focus:outline-none focus:border-orange-300 resize-none"
+                  placeholder="Add any special requests, dietary restrictions, or important notes about this booking..."
+                />
+                <p className="text-xs text-gray-400 mt-1">Optional: Add internal notes visible only to staff</p>
+              </div>
             </div>
 
             {/* Submit Button */}
@@ -2184,7 +2203,7 @@ const ManualDataEntry = ({ onBack }) => {
                   leadId: '', guestName: '', guestPhone: '', guestEmail: '',
                   propertyId: properties.length === 1 ? properties[0].id : '',
                   villaId: '',
-                  checkIn: '', checkOut: '', guests: '2', totalAmount: '', status: 'hold'
+                  checkIn: '', checkOut: '', guests: '2', totalAmount: '', status: 'hold', notes: ''
                 })}
                 className="px-6 py-3 bg-[#2a2f3a] hover:bg-[#374151] text-[#FF8C42] rounded-xl font-medium transition-all border-2 border-gray-200"
               >
@@ -2926,6 +2945,19 @@ const ManualDataEntry = ({ onBack }) => {
                     <option value="confirmed">Confirmed - Fully Paid</option>
                     <option value="partial">Partial - Deposit Received</option>
                   </select>
+                </div>
+
+                {/* Booking Notes */}
+                <div className="md:col-span-2">
+                  <label className="block text-[#FF8C42] font-medium mb-2">Booking Notes</label>
+                  <textarea
+                    rows="3"
+                    value={editForm.notes}
+                    onChange={(e) => setEditForm({...editForm, notes: e.target.value})}
+                    className="w-full px-4 py-3 bg-[#2a2f3a] border-2 border-gray-200 rounded-xl text-[#FF8C42] placeholder-gray-400 focus:outline-none focus:border-orange-300 resize-none"
+                    placeholder="Add any special requests, dietary restrictions, or important notes about this booking..."
+                  />
+                  <p className="text-xs text-gray-400 mt-1">Optional: Add internal notes visible only to staff</p>
                 </div>
               </div>
 
