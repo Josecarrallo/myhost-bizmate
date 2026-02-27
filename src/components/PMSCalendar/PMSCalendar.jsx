@@ -52,18 +52,35 @@ const PMSCalendar = ({ onBack }) => {
 
       // Map bookings to calendar format
       if (bookingsData && bookingsData.length > 0) {
-        const mappedBookings = bookingsData.map(booking => ({
-          id: booking.id,
-          guestName: booking.guest_name,
-          email: booking.guest_email || 'N/A',
-          phone: booking.guest_phone || 'N/A',
-          propertyId: booking.property_id,
-          checkIn: booking.check_in,
-          checkOut: booking.check_out,
-          guests: booking.guests || 0,
-          revenue: parseFloat(booking.total_price) || 0,
-          status: booking.status ? booking.status.toLowerCase() : 'pending'
-        }));
+        const mappedBookings = bookingsData.map(booking => {
+          const source = (booking.source || '').toLowerCase().trim();
+          const channel = (booking.channel || '').toLowerCase().trim();
+          const guestName = (booking.guest_name || '').trim();
+
+          // Transform guest name for iCal bookings
+          let displayGuestName = guestName || 'Guest';
+          if (source === 'ical_sync' && guestName.toLowerCase() === 'reserved') {
+            if (channel === 'airbnb') displayGuestName = 'Airbnb direct';
+            else if (channel === 'booking') displayGuestName = 'Booking.com direct';
+            else if (channel) displayGuestName = channel.charAt(0).toUpperCase() + channel.slice(1) + ' direct';
+
+            console.log(`🔄 [Calendar Transform] ${guestName} (${source}/${channel}) → ${displayGuestName}`);
+          }
+
+          return {
+            id: booking.id,
+            guestName: displayGuestName,
+            email: booking.guest_email || 'N/A',
+            phone: booking.guest_phone || 'N/A',
+            propertyId: booking.property_id,
+            checkIn: booking.check_in,
+            checkOut: booking.check_out,
+            guests: booking.guests || 0,
+            revenue: parseFloat(booking.total_price) || 0,
+            status: booking.status ? booking.status.toLowerCase() : 'pending',
+            source: booking.source // Keep source to check if it's iCal sync
+          };
+        });
         setCalendarBookings(mappedBookings);
       }
     } catch (error) {
@@ -325,11 +342,13 @@ const PMSCalendar = ({ onBack }) => {
                                   width: `${getBookingDuration(booking) * 60}px`,
                                   minWidth: '60px'
                                 }}
-                                title={`${booking.guestName} - ${booking.guests} guests - $${booking.revenue}`}
+                                title={`${booking.guestName} - ${booking.guests} guests${booking.source !== 'ical_sync' ? ` - $${booking.revenue}` : ''}`}
                               >
                                 <div className="truncate text-left w-full">
                                   <div className="font-black">{booking.guestName}</div>
-                                  <div className="text-[10px] opacity-90">{booking.guests} guests • ${booking.revenue}</div>
+                                  <div className="text-[10px] opacity-90">
+                                    {booking.guests} guests{booking.source !== 'ical_sync' && ` • $${booking.revenue}`}
+                                  </div>
                                 </div>
                               </button>
                             ) : (
@@ -389,8 +408,14 @@ const PMSCalendar = ({ onBack }) => {
                         </div>
                         <div className="text-right ml-6">
                           <div className="flex items-center gap-1 text-3xl font-black text-[#FF8C42]">
-                            <DollarSign className="w-6 h-6" />
-                            {booking.revenue}
+                            {booking.source !== 'ical_sync' ? (
+                              <>
+                                <DollarSign className="w-6 h-6" />
+                                {booking.revenue}
+                              </>
+                            ) : (
+                              <span className="text-gray-500 italic text-base">N/A</span>
+                            )}
                           </div>
                           <div className="text-xs text-gray-500 mt-1 font-bold">Total Revenue</div>
                         </div>
@@ -525,8 +550,14 @@ const PMSCalendar = ({ onBack }) => {
               <div className="bg-gradient-to-br from-orange-50 to-orange-100 border-2 border-orange-200 rounded-2xl p-6">
                 <p className="text-xs font-bold text-[#FF8C42] mb-2">Total Revenue</p>
                 <p className="text-5xl font-black text-[#FF8C42] flex items-center gap-2">
-                  <DollarSign className="w-8 h-8" />
-                  {selectedBooking.revenue}
+                  {selectedBooking.source !== 'ical_sync' ? (
+                    <>
+                      <DollarSign className="w-8 h-8" />
+                      {selectedBooking.revenue}
+                    </>
+                  ) : (
+                    <span className="text-gray-500 italic text-2xl">N/A</span>
+                  )}
                 </p>
               </div>
             </div>

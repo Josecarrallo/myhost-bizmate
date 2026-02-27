@@ -359,7 +359,32 @@ const ManualDataEntry = ({ onBack }) => {
         tenant: b.tenant_id
       })));
 
-      setBookings(bookingsData);
+      // Transform iCal bookings to show "Airbnb direct" instead of "Reserved"
+      const transformedBookings = bookingsData.map(booking => {
+        const source = (booking.source || '').toLowerCase().trim();
+        const channel = (booking.channel || '').toLowerCase().trim();
+        const guestName = (booking.guest_name || '').trim();
+
+        // If it's an iCal sync booking with "Reserved" as guest name
+        if (source === 'ical_sync' && guestName.toLowerCase() === 'reserved') {
+          let displayName = 'Channel direct';
+
+          if (channel === 'airbnb') displayName = 'Airbnb direct';
+          else if (channel === 'booking') displayName = 'Booking.com direct';
+          else if (channel) displayName = channel.charAt(0).toUpperCase() + channel.slice(1) + ' direct';
+
+          console.log(`🔄 [Transform] ${guestName} (${source}/${channel}) → ${displayName}`);
+
+          return {
+            ...booking,
+            guest_name: displayName
+          };
+        }
+
+        return booking;
+      });
+
+      setBookings(transformedBookings);
 
     } catch (error) {
       console.error('❌ Error loading bookings:', error);
@@ -1444,7 +1469,11 @@ const ManualDataEntry = ({ onBack }) => {
                             <div>
                               <p className="text-gray-500 text-xs">Total Price</p>
                               <p className="text-green-400 text-sm font-bold">
-                                IDR {booking.total_price?.toLocaleString()}
+                                {booking.source === 'ical_sync' ? (
+                                  <span className="text-gray-500 italic text-xs">N/A</span>
+                                ) : (
+                                  `IDR ${booking.total_price?.toLocaleString()}`
+                                )}
                               </p>
                             </div>
                           </div>
@@ -1541,7 +1570,11 @@ const ManualDataEntry = ({ onBack }) => {
                                   </span>
                                 </td>
                                 <td className="px-4 py-3 text-white text-sm text-right whitespace-nowrap">
-                                  IDR {booking.total_price?.toLocaleString()}
+                                  {booking.source === 'ical_sync' ? (
+                                    <span className="text-gray-500 italic text-xs">N/A</span>
+                                  ) : (
+                                    `IDR ${booking.total_price?.toLocaleString()}`
+                                  )}
                                 </td>
                                 <td className="px-2 py-3 text-center" onClick={(e) => e.stopPropagation()}>
                                   <button
@@ -2293,9 +2326,13 @@ const ManualDataEntry = ({ onBack }) => {
                           <div className="col-span-2">
                             <p className="text-gray-500 text-xs">Total Price</p>
                             <p className="text-green-400 text-lg font-bold">
-                              IDR {booking.total_price?.toLocaleString()}
+                              {booking.source === 'ical_sync' ? (
+                                <span className="text-gray-500 italic text-sm">N/A</span>
+                              ) : (
+                                `IDR ${booking.total_price?.toLocaleString()}`
+                              )}
                             </p>
-                            {booking.payment_status !== 'paid' && (
+                            {booking.payment_status !== 'paid' && booking.source !== 'ical_sync' && (
                               <p className="text-gray-400 text-xs mt-1">
                                 Due: IDR {booking.total_price?.toLocaleString()}
                               </p>
@@ -2376,7 +2413,11 @@ const ManualDataEntry = ({ onBack }) => {
                               <td className="px-4 py-3 text-gray-300 text-sm whitespace-nowrap">{booking.check_in}</td>
                               <td className="px-4 py-3 text-gray-300 text-sm whitespace-nowrap">{booking.check_out}</td>
                               <td className="px-4 py-3 text-white text-sm text-right whitespace-nowrap">
-                                {booking.total_price?.toLocaleString()}
+                                {booking.source === 'ical_sync' ? (
+                                  <span className="text-gray-500 italic text-xs">N/A</span>
+                                ) : (
+                                  booking.total_price?.toLocaleString()
+                                )}
                               </td>
                               <td className="px-2 py-3">
                                 <div className="flex flex-col gap-0.5">
@@ -2387,7 +2428,7 @@ const ManualDataEntry = ({ onBack }) => {
                                   }`}>
                                     {booking.payment_status || 'pending'}
                                   </span>
-                                  {booking.payment_status !== 'paid' && (
+                                  {booking.payment_status !== 'paid' && booking.source !== 'ical_sync' && (
                                     <span className="text-[10px] text-gray-400">
                                       Due: {booking.total_price?.toLocaleString()}
                                     </span>

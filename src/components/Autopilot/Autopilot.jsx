@@ -2331,11 +2331,11 @@ const Autopilot = ({ onBack }) => {
 
                                   // Si es Channel Sync, mostrar claramente el nombre del channel
                                   if (source === 'ical_sync') {
-                                    if (bookingChannel === 'airbnb') return '🔵 Airbnb';
-                                    if (bookingChannel === 'booking') return '🔷 Booking.com';
-                                    if (bookingChannel === 'agoda') return '🟠 Agoda';
-                                    if (bookingChannel === 'traveloka') return '🟢 Traveloka';
-                                    return '🔄 ' + (bookingChannel || 'Channel Sync');
+                                    if (bookingChannel === 'airbnb') return 'Airbnb direct';
+                                    if (bookingChannel === 'booking') return 'Booking.com direct';
+                                    if (bookingChannel === 'agoda') return 'Agoda direct';
+                                    if (bookingChannel === 'traveloka') return 'Traveloka direct';
+                                    return (bookingChannel ? bookingChannel.charAt(0).toUpperCase() + bookingChannel.slice(1) + ' direct' : 'Channel direct');
                                   }
                                   // Si no, mostrar nombre del huésped
                                   return booking.guest_name || 'N/A';

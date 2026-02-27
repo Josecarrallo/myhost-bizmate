@@ -157,7 +157,33 @@ const MasterCalendar = ({ onBack }) => {
           dates: `${b.check_in} to ${b.check_out}`
         })));
       }
-      setBookings(bookingsData || []);
+
+      // Transform iCal bookings to show "Airbnb direct" instead of "Reserved"
+      const transformedBookings = (bookingsData || []).map(booking => {
+        const source = (booking.source || '').toLowerCase().trim();
+        const channel = (booking.channel || '').toLowerCase().trim();
+        const guestName = (booking.guest_name || '').trim();
+
+        // If it's an iCal sync booking with "Reserved" as guest name
+        if (source === 'ical_sync' && guestName.toLowerCase() === 'reserved') {
+          let displayName = 'Channel direct';
+
+          if (channel === 'airbnb') displayName = 'Airbnb direct';
+          else if (channel === 'booking') displayName = 'Booking.com direct';
+          else if (channel) displayName = channel.charAt(0).toUpperCase() + channel.slice(1) + ' direct';
+
+          console.log(`🔄 [Calendar Transform] ${guestName} (${source}/${channel}) → ${displayName}`);
+
+          return {
+            ...booking,
+            guest_name: displayName
+          };
+        }
+
+        return booking;
+      });
+
+      setBookings(transformedBookings);
 
       // Get housekeeping tasks (with property filter if applicable)
       let tasksQuery = supabase
@@ -769,7 +795,11 @@ const MasterCalendar = ({ onBack }) => {
                                 </div>
                                 <div>
                                   <span className="text-white/60">Total:</span>
-                                  <span className="text-white ml-2">${booking.total_price}</span>
+                                  {booking.source === 'ical_sync' ? (
+                                    <span className="text-white/50 italic text-sm ml-2">N/A</span>
+                                  ) : (
+                                    <span className="text-white ml-2">${booking.total_price}</span>
+                                  )}
                                 </div>
                                 <div>
                                   <span className="text-white/60">Nights:</span>
