@@ -85,7 +85,16 @@ const Autopilot = ({ onBack }) => {
   const [tasks, setTasks] = useState([]);
   const [taskStats, setTaskStats] = useState({ open: 0, inProgress: 0, overdue: 0, completedToday: 0 });
   const [loadingTasks, setLoadingTasks] = useState(false);
-  const [taskStatusFilter, setTaskStatusFilter] = useState('all'); // Filter: all, open, assigned, in_progress, completed
+
+  // Advanced filters
+  const [taskVillaFilter, setTaskVillaFilter] = useState('all'); // Villa filter
+  const [taskDateFilter, setTaskDateFilter] = useState('all'); // today, week, month, custom, all
+  const [taskCustomStartDate, setTaskCustomStartDate] = useState('');
+  const [taskCustomEndDate, setTaskCustomEndDate] = useState('');
+  const [taskTypeFilter, setTaskTypeFilter] = useState('all'); // cleaning, repair, maintenance, etc.
+  const [taskStatusFilter, setTaskStatusFilter] = useState('all'); // all, open, assigned, in_progress, completed
+  const [taskPriorityFilter, setTaskPriorityFilter] = useState('all'); // all, low, medium, high, urgent
+  const [taskCategoryFilter, setTaskCategoryFilter] = useState('all'); // housekeeping, engineering, outdoor, etc.
 
   // Task modals
   const [showTaskModal, setShowTaskModal] = useState(false);
@@ -102,16 +111,28 @@ const Autopilot = ({ onBack }) => {
   const [isGeneratingEnhancedReport, setIsGeneratingEnhancedReport] = useState(false);
   const [enhancedReportHTML, setEnhancedReportHTML] = useState('<html><body style="margin:0;padding:40px;font-family:sans-serif;text-align:center;color:#666;"><h2 style="color:#FF8C42;">Enhanced Global Report</h2><p>Select property and dates, then click <strong>Generate Report</strong>.</p></body></html>');
 
-  // Load tasks data when entering Tasks section
+  // Load tasks data when entering Tasks section or filters change
   useEffect(() => {
     console.log('🔄 Tasks useEffect - section:', activeSection, 'tab:', tasksActiveTab, 'tenant_id:', userData?.id);
     if (activeSection === 'tasks' && userData?.id && tasksActiveTab === 'tasks') {
       console.log('✅ Conditions met - calling loadTasksData');
       loadTasksData();
     }
-  }, [activeSection, taskStatusFilter, userData, tasksActiveTab]);
+  }, [
+    activeSection,
+    taskVillaFilter,
+    taskDateFilter,
+    taskCustomStartDate,
+    taskCustomEndDate,
+    taskTypeFilter,
+    taskStatusFilter,
+    taskPriorityFilter,
+    taskCategoryFilter,
+    userData,
+    tasksActiveTab
+  ]);
 
-  // Load tasks from Supabase
+  // Load tasks from Supabase with all filters
   const loadTasksData = async () => {
     console.log('🔄 loadTasksData called, userData:', userData);
 
@@ -122,18 +143,81 @@ const Autopilot = ({ onBack }) => {
 
     setLoadingTasks(true);
     try {
-      // Load tasks with filter
+      // Build filters object
       const filters = {};
+
+      // Villa filter
+      if (taskVillaFilter !== 'all') {
+        filters.villa_id = taskVillaFilter;
+      }
+
+      // Task type filter
+      if (taskTypeFilter !== 'all') {
+        filters.task_type = taskTypeFilter;
+      }
+
+      // Status filter
       if (taskStatusFilter !== 'all') {
         filters.status = taskStatusFilter;
       }
 
-      console.log('📡 Calling tasksService.getTasks with tenant_id:', userData.id, filters);
-      const tasksData = await tasksService.getTasks(userData.id, filters);
-      console.log('✅ Tasks loaded:', tasksData);
+      // Priority filter
+      if (taskPriorityFilter !== 'all') {
+        filters.priority = taskPriorityFilter;
+      }
+
+      // Category filter
+      if (taskCategoryFilter !== 'all') {
+        filters.category = taskCategoryFilter;
+      }
+
+      console.log('📡 Calling tasksService.getTasks with filters:', filters);
+      let tasksData = await tasksService.getTasks(userData.id, filters);
+
+      // Apply date filter (client-side for now)
+      if (taskDateFilter !== 'all' && tasksData.length > 0) {
+        const now = new Date();
+        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+        tasksData = tasksData.filter(task => {
+          if (!task.due_date) return taskDateFilter === 'all';
+
+          const dueDate = new Date(task.due_date);
+
+          switch (taskDateFilter) {
+            case 'today':
+              const taskDay = new Date(dueDate.getFullYear(), dueDate.getMonth(), dueDate.getDate());
+              return taskDay.getTime() === today.getTime();
+
+            case 'week':
+              const weekFromNow = new Date(today);
+              weekFromNow.setDate(weekFromNow.getDate() + 7);
+              return dueDate >= today && dueDate <= weekFromNow;
+
+            case 'month':
+              const monthFromNow = new Date(today);
+              monthFromNow.setMonth(monthFromNow.getMonth() + 1);
+              return dueDate >= today && dueDate <= monthFromNow;
+
+            case 'custom':
+              if (taskCustomStartDate && taskCustomEndDate) {
+                const start = new Date(taskCustomStartDate);
+                const end = new Date(taskCustomEndDate);
+                end.setHours(23, 59, 59, 999); // Include full end date
+                return dueDate >= start && dueDate <= end;
+              }
+              return true;
+
+            default:
+              return true;
+          }
+        });
+      }
+
+      console.log('✅ Tasks loaded and filtered:', tasksData.length);
       setTasks(tasksData);
 
-      // Load stats
+      // Load stats (always unfiltered for dashboard overview)
       const stats = await tasksService.getTaskStats(userData.id);
       setTaskStats(stats);
 
@@ -3309,29 +3393,141 @@ const Autopilot = ({ onBack }) => {
 
         {/* Real Tasks from Supabase */}
         <div className="space-y-3">
-          <div className="flex items-center justify-between mb-4">
-            <h4 className="text-white font-bold text-lg flex items-center gap-2">
-              <List className="w-5 h-5 text-orange-400" />
-              Current Tasks ({loadingTasks ? '...' : tasks.length})
-            </h4>
+          {/* Title */}
+          <h4 className="text-white font-bold text-lg flex items-center gap-2 mb-3">
+            <List className="w-5 h-5 text-orange-400" />
+            Current Tasks ({loadingTasks ? '...' : tasks.length})
+          </h4>
 
-            {/* Status Filter */}
-            <div className="flex gap-2">
-              {['all', 'open', 'assigned', 'in_progress', 'completed'].map(status => (
-                <button
-                  key={status}
-                  onClick={() => setTaskStatusFilter(status)}
-                  className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
-                    taskStatusFilter === status
-                      ? 'bg-orange-500 text-white'
-                      : 'bg-[#2a2f3a] text-gray-400 hover:text-white'
-                  }`}
+          {/* Advanced Filters - Single Row */}
+          <div className="space-y-3">
+              {/* All Filters in One Row */}
+              <div className="grid gap-1.5" style={{ gridTemplateColumns: '0.9fr 0.85fr 0.95fr 0.8fr 0.75fr 0.75fr' }}>
+                {/* Villa Filter */}
+                <select
+                  value={taskVillaFilter}
+                  onChange={(e) => setTaskVillaFilter(e.target.value)}
+                  className="px-2 py-2 bg-[#2a2f3a] text-white rounded-lg text-xs border border-gray-700 focus:border-orange-500 outline-none"
                 >
-                  {status === 'all' ? 'All' : status.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}
-                </button>
-              ))}
+                  <option value="all">Villas</option>
+                  {userProperties.map(villa => (
+                    <option key={villa.id} value={villa.id}>{villa.name}</option>
+                  ))}
+                </select>
+
+                {/* Date Filter */}
+                <select
+                  value={taskDateFilter}
+                  onChange={(e) => setTaskDateFilter(e.target.value)}
+                  className="px-1.5 py-2 bg-[#2a2f3a] text-white rounded-lg text-xs border border-gray-700 focus:border-orange-500 outline-none"
+                >
+                  <option value="all">Dates</option>
+                  <option value="today">Today</option>
+                  <option value="week">Week</option>
+                  <option value="month">Month</option>
+                  <option value="custom">Custom</option>
+                </select>
+
+                {/* Category Filter */}
+                <select
+                  value={taskCategoryFilter}
+                  onChange={(e) => setTaskCategoryFilter(e.target.value)}
+                  className="px-1.5 py-2 bg-[#2a2f3a] text-white rounded-lg text-xs border border-gray-700 focus:border-orange-500 outline-none"
+                >
+                  <option value="all">Categories</option>
+                  <option value="housekeeping">Housekeeping</option>
+                  <option value="engineering">Engineering</option>
+                  <option value="outdoor">Outdoor</option>
+                  <option value="guest_request">Guest Request</option>
+                  <option value="operations">Operations</option>
+                </select>
+
+                {/* Type Filter */}
+                <select
+                  value={taskTypeFilter}
+                  onChange={(e) => setTaskTypeFilter(e.target.value)}
+                  className="px-1.5 py-2 bg-[#2a2f3a] text-white rounded-lg text-xs border border-gray-700 focus:border-orange-500 outline-none"
+                >
+                  <option value="all">Types</option>
+                  <option value="cleaning">Cleaning</option>
+                  <option value="deep_cleaning">Deep Clean</option>
+                  <option value="maintenance">Maintenance</option>
+                  <option value="repair">Repair</option>
+                  <option value="inspection">Inspection</option>
+                  <option value="restocking">Restocking</option>
+                  <option value="guest_request">Guest Req</option>
+                  <option value="other">Other</option>
+                </select>
+
+                {/* Status Filter */}
+                <select
+                  value={taskStatusFilter}
+                  onChange={(e) => setTaskStatusFilter(e.target.value)}
+                  className="px-1.5 py-2 bg-[#2a2f3a] text-white rounded-lg text-xs border border-gray-700 focus:border-orange-500 outline-none"
+                >
+                  <option value="all">Status</option>
+                  <option value="open">Open</option>
+                  <option value="assigned">Assigned</option>
+                  <option value="in_progress">In Progress</option>
+                  <option value="completed">Completed</option>
+                  <option value="cancelled">Cancelled</option>
+                </select>
+
+                {/* Priority Filter */}
+                <select
+                  value={taskPriorityFilter}
+                  onChange={(e) => setTaskPriorityFilter(e.target.value)}
+                  className="px-1.5 py-2 bg-[#2a2f3a] text-white rounded-lg text-xs border border-gray-700 focus:border-orange-500 outline-none"
+                >
+                  <option value="all">Priority</option>
+                  <option value="low">Low</option>
+                  <option value="medium">Medium</option>
+                  <option value="high">High</option>
+                  <option value="urgent">Urgent</option>
+                </select>
+              </div>
+
+              {/* Custom Date Range (if selected) */}
+              {taskDateFilter === 'custom' && (
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs text-gray-400 mb-1 block">From</label>
+                    <input
+                      type="date"
+                      value={taskCustomStartDate}
+                      onChange={(e) => setTaskCustomStartDate(e.target.value)}
+                      className="w-full px-3 py-2 bg-[#2a2f3a] text-white rounded-lg text-sm border border-gray-700 focus:border-orange-500 outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-gray-400 mb-1 block">To</label>
+                    <input
+                      type="date"
+                      value={taskCustomEndDate}
+                      onChange={(e) => setTaskCustomEndDate(e.target.value)}
+                      className="w-full px-3 py-2 bg-[#2a2f3a] text-white rounded-lg text-sm border border-gray-700 focus:border-orange-500 outline-none"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Clear Filters Button */}
+              <button
+                onClick={() => {
+                  setTaskVillaFilter('all');
+                  setTaskDateFilter('all');
+                  setTaskCustomStartDate('');
+                  setTaskCustomEndDate('');
+                  setTaskTypeFilter('all');
+                  setTaskStatusFilter('all');
+                  setTaskPriorityFilter('all');
+                  setTaskCategoryFilter('all');
+                }}
+                className="w-full px-3 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg text-sm font-bold transition-all"
+              >
+                Clear Filters
+              </button>
             </div>
-          </div>
 
           {loadingTasks ? (
             <div className="text-center py-8">
@@ -3422,8 +3618,8 @@ const Autopilot = ({ onBack }) => {
               );
             })
           )}
-            </div>
-          </>
+        </div>
+        </>
         )}
 
         {/* Guest Issues Tab Content */}
