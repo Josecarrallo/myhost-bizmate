@@ -6,6 +6,7 @@ import {
   TrendingUp,
   AlertCircle,
   CheckCircle,
+  CheckCircle2,
   Clock,
   Users,
   DollarSign,
@@ -43,7 +44,10 @@ import {
   Inbox,
   Sparkles,
   Phone,
-  List
+  List,
+  Trash2,
+  X,
+  Save
 } from 'lucide-react';
 import ManualDataEntry from '../ManualDataEntry/ManualDataEntry';
 import MasterCalendar from '../MasterCalendar/MasterCalendar';
@@ -53,6 +57,7 @@ import { supabase } from '../../lib/supabase';
 import { generateReportHTML } from '../../services/generateReportHTML';
 import { generateEnhancedReportHTML } from '../../services/enhancedReportHTML';
 import { supabaseService as dataService } from '../../services/supabase';
+import { tasksService } from '../../services/tasksService';
 
 const Autopilot = ({ onBack }) => {
   const { userData } = useAuth();
@@ -76,12 +81,70 @@ const Autopilot = ({ onBack }) => {
   const [tasksActiveTab, setTasksActiveTab] = useState('tasks'); // 'tasks' or 'issues'
   const [showAutoTaskInfo, setShowAutoTaskInfo] = useState(false); // Show/hide Automatic Task Creation section
 
+  // Tasks data from Supabase (REAL DATA)
+  const [tasks, setTasks] = useState([]);
+  const [taskStats, setTaskStats] = useState({ open: 0, inProgress: 0, overdue: 0, completedToday: 0 });
+  const [loadingTasks, setLoadingTasks] = useState(false);
+  const [taskStatusFilter, setTaskStatusFilter] = useState('all'); // Filter: all, open, assigned, in_progress, completed
+
+  // Task modals
+  const [showTaskModal, setShowTaskModal] = useState(false);
+  const [selectedTask, setSelectedTask] = useState(null); // null = create new, object = edit existing
+
+  // Notifications and confirmations
+  const [notification, setNotification] = useState(null); // { type: 'success'|'error', message: string }
+  const [confirmDialog, setConfirmDialog] = useState(null); // { message: string, onConfirm: function }
+
   // Enhanced Report specific states
   const [enhancedSelectedVilla, setEnhancedSelectedVilla] = useState('all');
   const [enhancedStartDate, setEnhancedStartDate] = useState('2025-01-01');
   const [enhancedEndDate, setEnhancedEndDate] = useState('2026-12-31');
   const [isGeneratingEnhancedReport, setIsGeneratingEnhancedReport] = useState(false);
   const [enhancedReportHTML, setEnhancedReportHTML] = useState('<html><body style="margin:0;padding:40px;font-family:sans-serif;text-align:center;color:#666;"><h2 style="color:#FF8C42;">Enhanced Global Report</h2><p>Select property and dates, then click <strong>Generate Report</strong>.</p></body></html>');
+
+  // Load tasks data when entering Tasks section
+  useEffect(() => {
+    console.log('🔄 Tasks useEffect - section:', activeSection, 'tab:', tasksActiveTab, 'tenant_id:', userData?.id);
+    if (activeSection === 'tasks' && userData?.id && tasksActiveTab === 'tasks') {
+      console.log('✅ Conditions met - calling loadTasksData');
+      loadTasksData();
+    }
+  }, [activeSection, taskStatusFilter, userData, tasksActiveTab]);
+
+  // Load tasks from Supabase
+  const loadTasksData = async () => {
+    console.log('🔄 loadTasksData called, userData:', userData);
+
+    if (!userData?.id) {
+      console.error('❌ No user id found in userData');
+      return;
+    }
+
+    setLoadingTasks(true);
+    try {
+      // Load tasks with filter
+      const filters = {};
+      if (taskStatusFilter !== 'all') {
+        filters.status = taskStatusFilter;
+      }
+
+      console.log('📡 Calling tasksService.getTasks with tenant_id:', userData.id, filters);
+      const tasksData = await tasksService.getTasks(userData.id, filters);
+      console.log('✅ Tasks loaded:', tasksData);
+      setTasks(tasksData);
+
+      // Load stats
+      const stats = await tasksService.getTaskStats(userData.id);
+      setTaskStats(stats);
+
+      console.log('✅ Tasks count:', tasksData.length);
+      console.log('✅ Stats:', stats);
+    } catch (error) {
+      console.error('❌ Error loading tasks:', error);
+    } finally {
+      setLoadingTasks(false);
+    }
+  };
 
   // Load saved report from localStorage when entering Business Reports
   useEffect(() => {
@@ -2811,6 +2874,314 @@ const Autopilot = ({ onBack }) => {
     </div>
   );
 
+  // Notification Toast Component
+  const NotificationToast = ({ notification, onClose }) => {
+    useEffect(() => {
+      if (notification) {
+        const timer = setTimeout(onClose, 3000); // Auto-close after 3 seconds
+        return () => clearTimeout(timer);
+      }
+    }, [notification, onClose]);
+
+    if (!notification) return null;
+
+    const bgColor = notification.type === 'success' ? 'bg-green-500' : 'bg-red-500';
+    const Icon = notification.type === 'success' ? CheckCircle2 : AlertCircle;
+
+    return (
+      <div className="fixed top-4 right-4 z-[9999] animate-slide-in">
+        <div className={`${bgColor} text-white px-6 py-4 rounded-lg shadow-2xl flex items-center gap-3 min-w-[300px]`}>
+          <Icon className="w-6 h-6 flex-shrink-0" />
+          <p className="flex-1 font-medium">{notification.message}</p>
+          <button onClick={onClose} className="p-1 hover:bg-white/20 rounded transition-colors">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+      </div>
+    );
+  };
+
+  // Confirmation Dialog Component
+  const ConfirmDialog = ({ dialog, onClose }) => {
+    if (!dialog) return null;
+
+    return (
+      <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+        <div className="bg-[#1f2937] rounded-2xl w-full max-w-md border-2 border-orange-500/30 shadow-2xl">
+          <div className="p-6">
+            <div className="flex items-start gap-4">
+              <div className="p-3 bg-orange-500/20 rounded-full">
+                <AlertCircle className="w-6 h-6 text-orange-400" />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-xl font-bold text-white mb-2">Confirmar Acción</h3>
+                <p className="text-gray-300">{dialog.message}</p>
+              </div>
+            </div>
+          </div>
+          <div className="flex gap-3 p-6 pt-0">
+            <button
+              onClick={onClose}
+              className="flex-1 px-4 py-3 bg-gray-700 hover:bg-gray-600 text-white rounded-lg font-bold transition-all"
+            >
+              Cancelar
+            </button>
+            <button
+              onClick={() => {
+                dialog.onConfirm();
+                onClose();
+              }}
+              className="flex-1 px-4 py-3 bg-red-500 hover:bg-red-600 text-white rounded-lg font-bold transition-all"
+            >
+              Eliminar
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // Task Modal Component (Create/Edit)
+  const TaskModal = ({ task, onClose, onSave }) => {
+    const [formData, setFormData] = useState({
+      title: task?.title || '',
+      description: task?.description || '',
+      task_type: task?.task_type || 'cleaning',
+      category: task?.category || 'housekeeping',
+      priority: task?.priority || 'medium',
+      status: task?.status || 'open',
+      assignee: task?.assignee || '',
+      due_date: task?.due_date ? task.due_date.split('T')[0] + 'T' + task.due_date.split('T')[1].substring(0,5) : '',
+      villaId: task?.villa_id || null,
+      notes: task?.notes || ''
+    });
+
+    const [villas, setVillas] = useState([]);
+
+    useEffect(() => {
+      // Load villas for dropdown - Filter only user's villas
+      const loadVillas = async () => {
+        try {
+          const allVillas = await dataService.getVillas();
+          // Filter only Gita's villas (Nismara and Graha Uma)
+          const userVillas = allVillas.filter(villa =>
+            villa.name.toUpperCase().includes('NISMARA') || villa.name.toUpperCase().includes('GRAHA UMA')
+          );
+          setVillas(userVillas);
+        } catch (error) {
+          console.error('Error loading villas:', error);
+        }
+      };
+      loadVillas();
+    }, []);
+
+    const handleSubmit = (e) => {
+      e.preventDefault();
+      // Convert snake_case to camelCase for the service
+      const taskDataForService = {
+        title: formData.title,
+        description: formData.description,
+        taskType: formData.task_type,  // Convert to camelCase
+        category: formData.category,
+        priority: formData.priority,
+        status: formData.status,
+        assignee: formData.assignee,
+        dueDate: formData.due_date,    // Convert to camelCase
+        villaId: formData.villaId,
+        notes: formData.notes
+      };
+      onSave(taskDataForService);
+    };
+
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+        <div className="bg-[#1f2937] rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto border-2 border-orange-500/30">
+          {/* Header */}
+          <div className="flex items-center justify-between p-6 border-b border-gray-700">
+            <h3 className="text-2xl font-bold text-[#FF8C42]">
+              {task ? 'Edit Task' : 'Create New Task'}
+            </h3>
+            <button
+              onClick={onClose}
+              className="p-2 hover:bg-gray-700 rounded-lg transition-colors"
+            >
+              <X className="w-6 h-6 text-gray-400" />
+            </button>
+          </div>
+
+          {/* Form */}
+          <form onSubmit={handleSubmit} className="p-6 space-y-4">
+            {/* Title */}
+            <div>
+              <label className="block text-white font-bold mb-2">Title *</label>
+              <input
+                type="text"
+                required
+                value={formData.title}
+                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                className="w-full px-4 py-2 bg-[#2a2f3a] text-white rounded-lg border-2 border-gray-700 focus:border-orange-500 outline-none"
+                placeholder="e.g., Deep cleaning Villa 1"
+              />
+            </div>
+
+            {/* Description */}
+            <div>
+              <label className="block text-white font-bold mb-2">Description</label>
+              <textarea
+                value={formData.description}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                rows={3}
+                className="w-full px-4 py-2 bg-[#2a2f3a] text-white rounded-lg border-2 border-gray-700 focus:border-orange-500 outline-none"
+                placeholder="Task details..."
+              />
+            </div>
+
+            {/* Row 1: Task Type, Category */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-white font-bold mb-2">Task Type *</label>
+                <select
+                  required
+                  value={formData.task_type}
+                  onChange={(e) => setFormData({ ...formData, task_type: e.target.value })}
+                  className="w-full px-4 py-2 bg-[#2a2f3a] text-white rounded-lg border-2 border-gray-700 focus:border-orange-500 outline-none"
+                >
+                  <option value="cleaning">Cleaning</option>
+                  <option value="deep_cleaning">Deep Cleaning</option>
+                  <option value="maintenance">Maintenance</option>
+                  <option value="repair">Repair</option>
+                  <option value="inspection">Inspection</option>
+                  <option value="restocking">Restocking</option>
+                  <option value="guest_request">Guest Request</option>
+                  <option value="other">Other</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-white font-bold mb-2">Category *</label>
+                <select
+                  required
+                  value={formData.category}
+                  onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                  className="w-full px-4 py-2 bg-[#2a2f3a] text-white rounded-lg border-2 border-gray-700 focus:border-orange-500 outline-none"
+                >
+                  <option value="housekeeping">Housekeeping</option>
+                  <option value="engineering">Engineering</option>
+                  <option value="outdoor">Outdoor</option>
+                  <option value="guest_request">Guest Request</option>
+                  <option value="operations">Operations</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Row 2: Priority, Status */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-white font-bold mb-2">Priority *</label>
+                <select
+                  required
+                  value={formData.priority}
+                  onChange={(e) => setFormData({ ...formData, priority: e.target.value })}
+                  className="w-full px-4 py-2 bg-[#2a2f3a] text-white rounded-lg border-2 border-gray-700 focus:border-orange-500 outline-none"
+                >
+                  <option value="low">Low</option>
+                  <option value="medium">Medium</option>
+                  <option value="high">High</option>
+                  <option value="urgent">Urgent</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-white font-bold mb-2">Status *</label>
+                <select
+                  required
+                  value={formData.status}
+                  onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                  className="w-full px-4 py-2 bg-[#2a2f3a] text-white rounded-lg border-2 border-gray-700 focus:border-orange-500 outline-none"
+                >
+                  <option value="open">Open</option>
+                  <option value="assigned">Assigned</option>
+                  <option value="in_progress">In Progress</option>
+                  <option value="completed">Completed</option>
+                  <option value="cancelled">Cancelled</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Row 3: Villa, Assignee */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-white font-bold mb-2">Villa</label>
+                <select
+                  value={formData.villaId || ''}
+                  onChange={(e) => setFormData({ ...formData, villaId: e.target.value || null })}
+                  className="w-full px-4 py-2 bg-[#2a2f3a] text-white rounded-lg border-2 border-gray-700 focus:border-orange-500 outline-none"
+                >
+                  <option value="">No villa (general task)</option>
+                  {villas.map(villa => (
+                    <option key={villa.id} value={villa.id}>{villa.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-white font-bold mb-2">Assignee</label>
+                <input
+                  type="text"
+                  value={formData.assignee}
+                  onChange={(e) => setFormData({ ...formData, assignee: e.target.value })}
+                  className="w-full px-4 py-2 bg-[#2a2f3a] text-white rounded-lg border-2 border-gray-700 focus:border-orange-500 outline-none"
+                  placeholder="Staff name"
+                />
+              </div>
+            </div>
+
+            {/* Due Date */}
+            <div>
+              <label className="block text-white font-bold mb-2">Due Date</label>
+              <input
+                type="datetime-local"
+                value={formData.due_date}
+                onChange={(e) => setFormData({ ...formData, due_date: e.target.value })}
+                className="w-full px-4 py-2 bg-[#2a2f3a] text-white rounded-lg border-2 border-gray-700 focus:border-orange-500 outline-none"
+              />
+            </div>
+
+            {/* Notes */}
+            <div>
+              <label className="block text-white font-bold mb-2">Notes</label>
+              <textarea
+                value={formData.notes}
+                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                rows={2}
+                className="w-full px-4 py-2 bg-[#2a2f3a] text-white rounded-lg border-2 border-gray-700 focus:border-orange-500 outline-none"
+                placeholder="Additional notes..."
+              />
+            </div>
+
+            {/* Buttons */}
+            <div className="flex gap-3 pt-4">
+              <button
+                type="submit"
+                className="flex-1 px-6 py-3 bg-orange-500 hover:bg-orange-600 text-white rounded-lg font-bold transition-all flex items-center justify-center gap-2"
+              >
+                <Save className="w-5 h-5" />
+                {task ? 'Update Task' : 'Create Task'}
+              </button>
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-6 py-3 bg-gray-700 hover:bg-gray-600 text-white rounded-lg font-bold transition-all"
+              >
+                Cancel
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    );
+  };
+
   const renderTasksSection = () => (
     <div className="space-y-6">
       <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-3xl p-6 shadow-2xl border-2 border-[#d85a2a]/20">
@@ -2829,7 +3200,13 @@ const Autopilot = ({ onBack }) => {
             <p className="text-gray-400 text-sm mt-1">Automated operational management</p>
           </div>
           <div className="flex gap-2">
-            <button className="px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg font-bold transition-all flex items-center gap-2">
+            <button
+              onClick={() => {
+                setSelectedTask(null); // null = create mode
+                setShowTaskModal(true);
+              }}
+              className="px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg font-bold transition-all flex items-center gap-2"
+            >
               <Plus className="w-4 h-4" />
               {tasksActiveTab === 'tasks' ? 'New Task' : 'New Issue'}
             </button>
@@ -2875,22 +3252,22 @@ const Autopilot = ({ onBack }) => {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div className="bg-gradient-to-br from-yellow-500/10 to-yellow-600/10 rounded-xl p-5 border-2 border-yellow-500/30">
               <p className="text-yellow-300 text-sm font-medium mb-2">Open Tasks</p>
-              <p className="text-3xl font-black text-white">5</p>
+              <p className="text-3xl font-black text-white">{loadingTasks ? '...' : taskStats.open}</p>
             </div>
 
             <div className="bg-gradient-to-br from-blue-500/10 to-blue-600/10 rounded-xl p-5 border-2 border-blue-500/30">
               <p className="text-blue-300 text-sm font-medium mb-2">In Progress</p>
-              <p className="text-3xl font-black text-white">2</p>
+              <p className="text-3xl font-black text-white">{loadingTasks ? '...' : taskStats.inProgress}</p>
             </div>
 
             <div className="bg-gradient-to-br from-green-500/10 to-green-600/10 rounded-xl p-5 border-2 border-green-500/30">
               <p className="text-green-300 text-sm font-medium mb-2">Completed Today</p>
-              <p className="text-3xl font-black text-white">3</p>
+              <p className="text-3xl font-black text-white">{loadingTasks ? '...' : taskStats.completedToday}</p>
             </div>
 
             <div className="bg-gradient-to-br from-red-500/10 to-red-600/10 rounded-xl p-5 border-2 border-red-500/30">
               <p className="text-red-300 text-sm font-medium mb-2">Overdue</p>
-              <p className="text-3xl font-black text-white">1</p>
+              <p className="text-3xl font-black text-white">{loadingTasks ? '...' : taskStats.overdue}</p>
             </div>
           </div>
         </div>
@@ -2930,45 +3307,121 @@ const Autopilot = ({ onBack }) => {
           )}
         </div>
 
-        {/* Sample Tasks */}
+        {/* Real Tasks from Supabase */}
         <div className="space-y-3">
-          <h4 className="text-white font-bold text-lg mb-4 flex items-center gap-2">
-            <List className="w-5 h-5 text-orange-400" />
-            Current Tasks
-          </h4>
-          {[
-            { task: 'Deep cleaning Villa 1', type: 'Cleaning', assignee: 'Maria Santos', due: 'Feb 16, 2PM', status: 'in_progress', priority: 'high' },
-            { task: 'Pool maintenance Villa 2', type: 'Maintenance', assignee: 'Ketut Ngurah', due: 'Feb 16, 4PM', status: 'open', priority: 'medium' },
-            { task: 'Linen inventory check', type: 'Inventory', assignee: 'Wayan Sari', due: 'Feb 17, 10AM', status: 'open', priority: 'low' },
-            { task: 'AC service Villa 3', type: 'Maintenance', assignee: 'Putu Agung', due: 'Feb 15, 5PM', status: 'overdue', priority: 'urgent' },
-            { task: 'Welcome basket preparation', type: 'Guest Services', assignee: 'Kadek Ayu', due: 'Feb 16, 11AM', status: 'in_progress', priority: 'high' }
-          ].map((task, i) => (
-            <div key={i} className="bg-[#2a2f3a] rounded-lg p-4 border-2 border-gray-700 hover:border-orange-500/50 transition-all">
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex-1">
-                  <h4 className="text-white font-bold">{task.task}</h4>
-                  <p className="text-gray-400 text-sm">{task.type} • {task.assignee} • Due: {task.due}</p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className={`px-2 py-1 rounded-full text-xs font-bold ${
-                    task.priority === 'urgent' ? 'bg-red-500/20 text-red-400' :
-                    task.priority === 'high' ? 'bg-orange-500/20 text-orange-400' :
-                    task.priority === 'medium' ? 'bg-yellow-500/20 text-yellow-400' :
-                    'bg-green-500/20 text-green-400'
-                  }`}>
-                    {task.priority.toUpperCase()}
-                  </span>
-                  <span className={`px-3 py-1 rounded-full text-xs font-bold ${
-                    task.status === 'overdue' ? 'bg-red-500/20 text-red-400' :
-                    task.status === 'open' ? 'bg-yellow-500/20 text-yellow-400' :
-                    'bg-blue-500/20 text-blue-400'
-                  }`}>
-                    {task.status === 'in_progress' ? 'In Progress' : task.status === 'overdue' ? 'OVERDUE' : 'Open'}
-                  </span>
-                </div>
-              </div>
+          <div className="flex items-center justify-between mb-4">
+            <h4 className="text-white font-bold text-lg flex items-center gap-2">
+              <List className="w-5 h-5 text-orange-400" />
+              Current Tasks ({loadingTasks ? '...' : tasks.length})
+            </h4>
+
+            {/* Status Filter */}
+            <div className="flex gap-2">
+              {['all', 'open', 'assigned', 'in_progress', 'completed'].map(status => (
+                <button
+                  key={status}
+                  onClick={() => setTaskStatusFilter(status)}
+                  className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
+                    taskStatusFilter === status
+                      ? 'bg-orange-500 text-white'
+                      : 'bg-[#2a2f3a] text-gray-400 hover:text-white'
+                  }`}
+                >
+                  {status === 'all' ? 'All' : status.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}
+                </button>
+              ))}
             </div>
-          ))}
+          </div>
+
+          {loadingTasks ? (
+            <div className="text-center py-8">
+              <p className="text-gray-400">Loading tasks...</p>
+            </div>
+          ) : tasks.length === 0 ? (
+            <div className="text-center py-8">
+              <p className="text-gray-400">No tasks found</p>
+            </div>
+          ) : (
+            tasks.map((task) => {
+              // Format due date
+              const dueDate = task.due_date ? new Date(task.due_date) : null;
+              const dueDateStr = dueDate ? dueDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : 'No due date';
+
+              // Check if overdue
+              const isOverdue = dueDate && dueDate < new Date() && !['completed', 'cancelled'].includes(task.status);
+
+              return (
+                <div key={task.id} className="bg-[#2a2f3a] rounded-lg p-4 border-2 border-gray-700 hover:border-orange-500/50 transition-all">
+                  <div className="flex items-center justify-between mb-2">
+                    <div
+                      className="flex-1 cursor-pointer"
+                      onClick={() => {
+                        setSelectedTask(task); // Set task to edit
+                        setShowTaskModal(true);
+                      }}
+                    >
+                      <h4 className="text-white font-bold hover:text-orange-400 transition-colors">{task.title}</h4>
+                      <p className="text-gray-400 text-sm">
+                        {task.category || task.task_type}
+                        {task.assignee && ` • ${task.assignee}`}
+                        {task.villa?.name && ` • ${task.villa.name}`}
+                        {` • Due: ${dueDateStr}`}
+                      </p>
+                      {task.source && (
+                        <p className="text-gray-500 text-xs mt-1">
+                          Source: {task.source === 'auto_booking' ? '🤖 Auto-created' : task.source === 'manual' ? '👤 Manual' : task.source}
+                        </p>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className={`px-2 py-1 rounded-full text-xs font-bold ${
+                        task.priority === 'urgent' ? 'bg-red-500/20 text-red-400' :
+                        task.priority === 'high' ? 'bg-orange-500/20 text-orange-400' :
+                        task.priority === 'medium' ? 'bg-yellow-500/20 text-yellow-400' :
+                        'bg-green-500/20 text-green-400'
+                      }`}>
+                        {task.priority?.toUpperCase() || 'MEDIUM'}
+                      </span>
+                      <span className={`px-3 py-1 rounded-full text-xs font-bold ${
+                        isOverdue ? 'bg-red-500/20 text-red-400' :
+                        task.status === 'completed' ? 'bg-green-500/20 text-green-400' :
+                        task.status === 'in_progress' ? 'bg-blue-500/20 text-blue-400' :
+                        task.status === 'assigned' ? 'bg-purple-500/20 text-purple-400' :
+                        'bg-yellow-500/20 text-yellow-400'
+                      }`}>
+                        {isOverdue ? 'OVERDUE' :
+                         task.status === 'in_progress' ? 'In Progress' :
+                         task.status === 'assigned' ? 'Assigned' :
+                         task.status === 'completed' ? 'Completed' :
+                         'Open'}
+                      </span>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setConfirmDialog({
+                            message: `¿Eliminar tarea "${task.title}"?`,
+                            onConfirm: async () => {
+                              try {
+                                await tasksService.deleteTask(task.id);
+                                setNotification({ type: 'success', message: `Tarea "${task.title}" eliminada correctamente` });
+                                await loadTasksData();
+                              } catch (error) {
+                                setNotification({ type: 'error', message: 'Error al eliminar tarea' });
+                              }
+                            }
+                          });
+                        }}
+                        className="p-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-lg transition-all"
+                        title="Delete task"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })
+          )}
             </div>
           </>
         )}
@@ -2987,6 +3440,7 @@ const Autopilot = ({ onBack }) => {
             </div>
           </div>
         )}
+
       </div>
     </div>
   );
@@ -4916,6 +5370,57 @@ const Autopilot = ({ onBack }) => {
           {activeSection === 'data-export' && renderDataExportSection()}
         </div>
       </div>
+
+      {/* Task Modal (Create/Edit) - MOVED OUTSIDE renderTasksSection to prevent re-renders */}
+      {showTaskModal && (
+        <TaskModal
+          task={selectedTask}
+          onClose={() => {
+            setShowTaskModal(false);
+            setSelectedTask(null);
+          }}
+          onSave={async (taskData) => {
+            try {
+              if (!userData?.id) {
+                setNotification({ type: 'error', message: 'Error: User ID no encontrado. Por favor, vuelva a iniciar sesión.' });
+                return;
+              }
+
+              if (selectedTask) {
+                // Edit existing task
+                await tasksService.updateTask(selectedTask.id, taskData);
+                setNotification({ type: 'success', message: 'Tarea actualizada correctamente' });
+              } else {
+                // Create new task - IMPORTANTE: pasar tenant_id del usuario logueado
+                await tasksService.createTask({
+                  ...taskData,
+                  tenantId: userData.id,
+                  propertyId: null // tasks can be property-agnostic
+                }, userData);
+                setNotification({ type: 'success', message: 'Tarea creada correctamente' });
+              }
+              setShowTaskModal(false);
+              setSelectedTask(null);
+              await loadTasksData(); // Reload tasks
+            } catch (error) {
+              console.error('Full error:', error);
+              setNotification({ type: 'error', message: 'Error al guardar: ' + error.message });
+            }
+          }}
+        />
+      )}
+
+      {/* Notification Toast */}
+      <NotificationToast
+        notification={notification}
+        onClose={() => setNotification(null)}
+      />
+
+      {/* Confirmation Dialog */}
+      <ConfirmDialog
+        dialog={confirmDialog}
+        onClose={() => setConfirmDialog(null)}
+      />
     </div>
   );
 };
