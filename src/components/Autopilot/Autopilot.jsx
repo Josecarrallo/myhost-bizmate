@@ -274,6 +274,7 @@ const Autopilot = ({ onBack }) => {
   // Load guest issues from Supabase with filters
   const loadGuestIssuesData = async () => {
     console.log('🔄 loadGuestIssuesData called, userData:', userData);
+    console.log('🔍 Filtering by tenant_id:', userData?.id);
 
     if (!userData?.id) {
       console.error('❌ No user id found in userData');
@@ -282,10 +283,10 @@ const Autopilot = ({ onBack }) => {
 
     setLoadingIssues(true);
     try {
-      // Build query
+      // Build query WITHOUT joins (foreign keys don't exist yet)
       let query = supabase
         .from('maintenance_issues')
-        .select('*, villas(name), bookings(guest_name)')
+        .select('*')
         .eq('tenant_id', userData.id)
         .order('created_at', { ascending: false });
 
@@ -302,6 +303,13 @@ const Autopilot = ({ onBack }) => {
         query = query.eq('priority', issuePriorityFilter);
       }
 
+      console.log('🔍 Query filters:', {
+        tenant_id: userData.id,
+        villa_filter: issueVillaFilter,
+        status_filter: issueStatusFilter,
+        priority_filter: issuePriorityFilter
+      });
+
       const { data, error } = await query;
 
       if (error) {
@@ -309,7 +317,37 @@ const Autopilot = ({ onBack }) => {
         setGuestIssues([]);
       } else {
         console.log('✅ Guest issues loaded:', data.length);
-        setGuestIssues(data || []);
+
+        // Manually add villa and booking names
+        const issuesWithDetails = await Promise.all(data.map(async (issue) => {
+          let villaName = null;
+          let guestName = null;
+
+          // Get villa name
+          if (issue.villa_id) {
+            const villa = villas.find(v => v.id === issue.villa_id);
+            villaName = villa?.name || null;
+          }
+
+          // Get booking guest name
+          if (issue.booking_id) {
+            const { data: booking } = await supabase
+              .from('bookings')
+              .select('guest_name')
+              .eq('id', issue.booking_id)
+              .single();
+            guestName = booking?.guest_name || null;
+          }
+
+          return {
+            ...issue,
+            villa: villaName ? { name: villaName } : null,
+            booking: guestName ? { guest_name: guestName } : null
+          };
+        }));
+
+        console.log('📋 Issues with details:', issuesWithDetails);
+        setGuestIssues(issuesWithDetails || []);
       }
     } catch (error) {
       console.error('❌ Error loading guest issues:', error);
@@ -4150,16 +4188,16 @@ const Autopilot = ({ onBack }) => {
                       <div className="flex flex-wrap items-center gap-3 text-sm mb-2">
                         <div className="flex items-center gap-1 text-gray-400">
                           <Home className="w-4 h-4" />
-                          <span>{issue.villas?.name || 'No villa'}</span>
+                          <span>{issue.villa?.name || 'No villa'}</span>
                         </div>
                         <div className="flex items-center gap-1 text-gray-400">
                           <AlertCircle className="w-4 h-4" />
                           <span>{issueTypeLabels[issue.issue_type]}</span>
                         </div>
-                        {issue.bookings?.guest_name && (
+                        {issue.booking?.guest_name && (
                           <div className="flex items-center gap-1 text-gray-400">
                             <Users className="w-4 h-4" />
-                            <span>{issue.bookings.guest_name}</span>
+                            <span>{issue.booking.guest_name}</span>
                           </div>
                         )}
                       </div>
@@ -4190,6 +4228,36 @@ const Autopilot = ({ onBack }) => {
                           <span>{issue.assigned_to}</span>
                         </div>
                       )}
+
+                      {/* Delete Button */}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setConfirmDialog({
+                            show: true,
+                            title: 'Delete Guest Issue',
+                            message: `Are you sure you want to delete "${issue.title}"? This action cannot be undone.`,
+                            onConfirm: async () => {
+                              try {
+                                await supabase
+                                  .from('maintenance_issues')
+                                  .delete()
+                                  .eq('id', issue.id);
+
+                                setNotification({ type: 'success', message: 'Guest issue deleted successfully' });
+                                await loadGuestIssuesData();
+                              } catch (error) {
+                                console.error('Error deleting issue:', error);
+                                setNotification({ type: 'error', message: 'Error deleting issue: ' + error.message });
+                              }
+                            }
+                          });
+                        }}
+                        className="p-2 hover:bg-red-500/20 rounded-lg transition-all group"
+                        title="Delete issue"
+                      >
+                        <Trash2 className="w-4 h-4 text-gray-500 group-hover:text-red-400" />
+                      </button>
                     </div>
                   </div>
                 </div>
