@@ -397,23 +397,23 @@ const MasterCalendar = ({ onBack }) => {
   return (
     <div className="flex-1 h-screen bg-[#2a2f3a] flex flex-col overflow-hidden">
       {/* Header */}
-      <div className="bg-[#1f2937] border-b border-[#d85a2a]/20 px-6 py-4">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-4">
+      <div className="bg-[#1f2937] border-b border-[#d85a2a]/20 px-3 md:px-6 py-3 md:py-4">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 md:gap-0 mb-4">
+          <div className="flex items-center gap-3 md:gap-4">
             <button onClick={onBack} className="p-2 hover:bg-white/10 rounded-lg">
-              <ArrowLeft className="w-5 h-5 text-white" />
+              <ArrowLeft className="w-4 h-4 md:w-5 md:h-5 text-white" />
             </button>
             <div>
-              <h1 className="text-2xl font-bold text-white flex items-center gap-2">
-                <Calendar className="w-6 h-6 text-[#d85a2a]" />
+              <h1 className="text-xl md:text-2xl font-bold text-white flex items-center gap-2">
+                <Calendar className="w-5 h-5 md:w-6 md:h-6 text-[#d85a2a]" />
                 Master Calendar
               </h1>
-              <p className="text-sm text-white/60">Bookings, Tasks & Operations</p>
+              <p className="text-xs md:text-sm text-white/60">Bookings, Tasks & Operations</p>
             </div>
           </div>
 
-          {/* View Switcher */}
-          <div className="flex items-center gap-2 bg-[#2a2f3a] rounded-lg p-1">
+          {/* View Switcher - Hidden in mobile */}
+          <div className="hidden md:flex items-center gap-2 bg-[#2a2f3a] rounded-lg p-1">
             <button
               onClick={() => setViewMode('month')}
               className={`px-4 py-2 rounded-lg flex items-center gap-2 transition-all ${
@@ -439,14 +439,14 @@ const MasterCalendar = ({ onBack }) => {
           </div>
         </div>
 
-        {/* Filters - Two rows */}
-        <div className="space-y-3">
-          {/* Row 1: Property, Status, Channel */}
-          <div className="flex items-center gap-3">
+        {/* Filters - Responsive */}
+        <div className="space-y-2">
+          {/* Row 1: Property, Status, Channel - 2 cols mobile, 3 cols desktop */}
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
             <select
               value={selectedProperty}
               onChange={(e) => setSelectedProperty(e.target.value)}
-              className="px-4 py-2 bg-gradient-to-r from-[#d85a2a] to-[#f5a524] border-2 border-[#d85a2a] rounded-lg text-white text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#f5a524] hover:shadow-lg transition-all"
+              className="px-2 md:px-4 py-2 bg-gradient-to-r from-[#d85a2a] to-[#f5a524] border-2 border-[#d85a2a] rounded-lg text-white text-xs md:text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#f5a524] hover:shadow-lg transition-all"
             >
               <option value="all" className="bg-[#1f2937] text-white">All Properties</option>
               {properties.map(p => (
@@ -457,7 +457,7 @@ const MasterCalendar = ({ onBack }) => {
             <select
               value={selectedStatus}
               onChange={(e) => setSelectedStatus(e.target.value)}
-              className="px-4 py-2 bg-gradient-to-r from-[#d85a2a] to-[#f5a524] border-2 border-[#d85a2a] rounded-lg text-white text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#f5a524] hover:shadow-lg transition-all"
+              className="px-2 md:px-4 py-2 bg-gradient-to-r from-[#d85a2a] to-[#f5a524] border-2 border-[#d85a2a] rounded-lg text-white text-xs md:text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#f5a524] hover:shadow-lg transition-all"
             >
               <option value="all" className="bg-[#1f2937] text-white">All Status</option>
               <option value="confirmed" className="bg-[#1f2937] text-white">Confirmed</option>
@@ -469,7 +469,7 @@ const MasterCalendar = ({ onBack }) => {
             <select
               value={selectedChannel}
               onChange={(e) => setSelectedChannel(e.target.value)}
-              className="px-4 py-2 bg-gradient-to-r from-[#d85a2a] to-[#f5a524] border-2 border-[#d85a2a] rounded-lg text-white text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#f5a524] hover:shadow-lg transition-all"
+              className="px-2 md:px-4 py-2 bg-gradient-to-r from-[#d85a2a] to-[#f5a524] border-2 border-[#d85a2a] rounded-lg text-white text-xs md:text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#f5a524] hover:shadow-lg transition-all col-span-2 md:col-span-1"
             >
               <option value="all" className="bg-[#1f2937] text-white">All Channels</option>
               <option value="airbnb" className="bg-[#1f2937] text-white">Airbnb</option>
@@ -479,25 +479,25 @@ const MasterCalendar = ({ onBack }) => {
             </select>
           </div>
 
-          {/* Row 2: Date Range Filters */}
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2 px-3 py-2 bg-white/10 border border-[#d85a2a]/30 rounded-lg">
-              <span className="text-white text-xs font-medium">From:</span>
+          {/* Row 2: Date Range Filters - responsive */}
+          <div className="flex flex-col md:flex-row items-stretch md:items-center gap-2 md:gap-3">
+            <div className="flex items-center gap-2 px-2 md:px-3 py-1.5 md:py-2 bg-white/10 border border-[#d85a2a]/30 rounded-lg flex-1 md:flex-initial">
+              <span className="text-white text-xs font-medium whitespace-nowrap">From:</span>
               <input
                 type="date"
                 value={startDateFilter}
                 onChange={(e) => setStartDateFilter(e.target.value)}
-                className="bg-transparent text-white text-sm border-none focus:outline-none"
+                className="bg-transparent text-white text-xs md:text-sm border-none focus:outline-none w-full"
               />
             </div>
 
-            <div className="flex items-center gap-2 px-3 py-2 bg-white/10 border border-[#d85a2a]/30 rounded-lg">
-              <span className="text-white text-xs font-medium">To:</span>
+            <div className="flex items-center gap-2 px-2 md:px-3 py-1.5 md:py-2 bg-white/10 border border-[#d85a2a]/30 rounded-lg flex-1 md:flex-initial">
+              <span className="text-white text-xs font-medium whitespace-nowrap">To:</span>
               <input
                 type="date"
                 value={endDateFilter}
                 onChange={(e) => setEndDateFilter(e.target.value)}
-                className="bg-transparent text-white text-sm border-none focus:outline-none"
+                className="bg-transparent text-white text-xs md:text-sm border-none focus:outline-none w-full"
               />
             </div>
 
@@ -512,7 +512,7 @@ const MasterCalendar = ({ onBack }) => {
                   const [year, month, day] = startDateFilter.split('-').map(Number);
                   setCurrentDate(new Date(year, month - 1, 1));
                 }}
-                className="px-4 py-2 bg-gradient-to-r from-[#d85a2a] to-[#f5a524] hover:shadow-lg text-white text-sm font-semibold rounded-lg transition-all"
+                className="px-3 md:px-4 py-1.5 md:py-2 bg-gradient-to-r from-[#d85a2a] to-[#f5a524] hover:shadow-lg text-white text-xs md:text-sm font-semibold rounded-lg transition-all"
               >
                 Apply
               </button>
@@ -530,7 +530,7 @@ const MasterCalendar = ({ onBack }) => {
                   // Reset calendar to current month
                   setCurrentDate(new Date());
                 }}
-                className="px-3 py-2 bg-white/10 hover:bg-white/20 text-white text-sm rounded-lg transition-colors"
+                className="px-2 md:px-3 py-1.5 md:py-2 bg-white/10 hover:bg-white/20 text-white text-xs md:text-sm rounded-lg transition-colors"
               >
                 Clear
               </button>
@@ -567,8 +567,8 @@ const MasterCalendar = ({ onBack }) => {
             </div>
           )}
 
-          {/* Calendar Grid */}
-      <div className="flex-1 overflow-auto p-4">
+          {/* Calendar Grid - Desktop Only */}
+      <div className="hidden md:block flex-1 overflow-auto p-4">
         <div className="space-y-6">
           {getMonthsToDisplay().map((monthDate, monthIdx) => {
             const calendarDays = getCalendarDaysForMonth(monthDate);
@@ -703,10 +703,84 @@ const MasterCalendar = ({ onBack }) => {
         </div>
       </div>
 
+      {/* Mobile List View */}
+      <div className="md:hidden flex-1 overflow-auto p-3">
+        <div className="space-y-3">
+          {getMonthsToDisplay().map((monthDate, monthIdx) => {
+            const calendarDays = getCalendarDaysForMonth(monthDate);
+            const monthName = monthDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+
+            // Get all items for this month
+            const monthItems = [];
+            calendarDays.forEach(date => {
+              const items = getItemsForDay(date);
+              if (items.bookings.length > 0 || items.tasks.length > 0 || items.issues.length > 0) {
+                monthItems.push({ date, items });
+              }
+            });
+
+            if (monthItems.length === 0) return null;
+
+            return (
+              <div key={monthIdx} className="bg-white/5 rounded-lg border border-white/10 overflow-hidden">
+                {/* Month header */}
+                <div className="bg-[#1f2937] border-b border-white/10 px-4 py-2">
+                  <h3 className="text-white font-bold text-base">{monthName}</h3>
+                </div>
+
+                {/* List of days with items */}
+                <div className="p-2 space-y-2">
+                  {monthItems.map(({ date, items }, idx) => (
+                    <div
+                      key={idx}
+                      onClick={() => handleDayClick(date)}
+                      className="bg-[#2a2f3a] rounded-lg p-3 border border-white/10 active:bg-white/10 touch-manipulation"
+                    >
+                      {/* Date header */}
+                      <div className="text-orange-400 font-bold text-sm mb-2">
+                        {date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
+                        {items.isOccupied && (
+                          <span className="ml-2 text-xs px-2 py-0.5 bg-red-500/80 text-white rounded-full">
+                            {items.occupiedCount} occupied
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Bookings */}
+                      {items.bookings.slice(0, 2).map((booking, bidx) => (
+                        <div key={`b-${bidx}`} className="text-xs px-2 py-1.5 mb-1 rounded border border-blue-500/50 bg-blue-500/10">
+                          <div className="font-bold text-white">{booking.guest_name}</div>
+                          <div className="text-blue-300 text-[10px]">{booking.source || booking.channel || 'Direct'}</div>
+                        </div>
+                      ))}
+
+                      {/* Tasks */}
+                      {items.tasks.slice(0, 1).map((task, tidx) => (
+                        <div key={`t-${tidx}`} className="text-xs px-2 py-1.5 mb-1 rounded border border-yellow-500/50 bg-yellow-500/10">
+                          <div className="font-bold text-white">{task.title}</div>
+                          <div className="text-yellow-300 text-[10px]">{task.task_type || task.category}</div>
+                        </div>
+                      ))}
+
+                      {/* Show count if more items */}
+                      {(items.bookings.length + items.tasks.length + items.issues.length) > 3 && (
+                        <div className="text-xs text-white/60 pl-2 mt-1">
+                          +{items.bookings.length + items.tasks.length + items.issues.length - 3} more items
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
       {/* Day Detail Modal */}
       {selectedDay && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 pl-[280px]">
-          <div className="bg-[#1f2937] rounded-2xl w-full max-w-3xl max-h-[90vh] overflow-hidden border border-white/20 shadow-2xl">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-2 md:p-4 md:pl-[280px]">
+          <div className="bg-[#1f2937] rounded-2xl w-full max-w-3xl max-h-[92vh] md:max-h-[90vh] overflow-hidden border border-white/20 shadow-2xl">
             {/* Modal Header */}
             <div className="bg-[#d85a2a] px-6 py-4 flex items-center justify-between">
               <h3 className="text-xl font-bold text-white">

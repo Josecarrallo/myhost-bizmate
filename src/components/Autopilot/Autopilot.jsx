@@ -3078,11 +3078,11 @@ const Autopilot = ({ onBack }) => {
     };
 
     return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-        <div className="bg-[#1f2937] rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto border-2 border-orange-500/30">
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-2 md:p-4">
+        <div className="bg-[#1f2937] rounded-2xl w-[98%] sm:w-[90%] md:w-full max-w-2xl max-h-[92vh] md:max-h-[90vh] overflow-y-auto border-2 border-orange-500/30">
           {/* Header */}
-          <div className="flex items-center justify-between p-6 border-b border-gray-700">
-            <h3 className="text-2xl font-bold text-[#FF8C42]">
+          <div className="flex items-center justify-between p-4 md:p-6 border-b border-gray-700">
+            <h3 className="text-xl md:text-2xl font-bold text-[#FF8C42]">
               {task ? 'Edit Task' : 'Create New Task'}
             </h3>
             <button
@@ -3094,7 +3094,7 @@ const Autopilot = ({ onBack }) => {
           </div>
 
           {/* Form */}
-          <form onSubmit={handleSubmit} className="p-6 space-y-4">
+          <form onSubmit={handleSubmit} className="p-4 md:p-6 space-y-4">
             {/* Title */}
             <div>
               <label className="block text-white font-bold mb-2">Title *</label>
@@ -3289,9 +3289,9 @@ const Autopilot = ({ onBack }) => {
                 setSelectedTask(null); // null = create mode
                 setShowTaskModal(true);
               }}
-              className="px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg font-bold transition-all flex items-center gap-2"
+              className="px-2 py-1.5 md:px-4 md:py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg font-bold transition-all flex items-center gap-1 md:gap-2 text-xs md:text-base"
             >
-              <Plus className="w-4 h-4" />
+              <Plus className="w-3 h-3 md:w-4 md:h-4" />
               {tasksActiveTab === 'tasks' ? 'New Task' : 'New Issue'}
             </button>
           </div>
@@ -3402,7 +3402,7 @@ const Autopilot = ({ onBack }) => {
           {/* Advanced Filters - Single Row */}
           <div className="space-y-3">
               {/* All Filters in One Row */}
-              <div className="grid gap-1.5" style={{ gridTemplateColumns: '0.9fr 0.85fr 0.95fr 0.8fr 0.75fr 0.75fr' }}>
+              <div className="grid grid-cols-2 md:grid-cols-[0.9fr_0.85fr_0.95fr_0.8fr_0.75fr_0.75fr] gap-1.5">
                 {/* Villa Filter */}
                 <select
                   value={taskVillaFilter}
@@ -3548,11 +3548,16 @@ const Autopilot = ({ onBack }) => {
 
               return (
                 <div key={task.id} className="bg-[#2a2f3a] rounded-lg p-4 border-2 border-gray-700 hover:border-orange-500/50 transition-all">
-                  <div className="flex items-center justify-between mb-2">
+                  <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
                     <div
-                      className="flex-1 cursor-pointer"
+                      className="flex-1 cursor-pointer touch-manipulation"
                       onClick={() => {
                         setSelectedTask(task); // Set task to edit
+                        setShowTaskModal(true);
+                      }}
+                      onTouchEnd={(e) => {
+                        e.preventDefault();
+                        setSelectedTask(task);
                         setShowTaskModal(true);
                       }}
                     >
@@ -3569,8 +3574,8 @@ const Autopilot = ({ onBack }) => {
                         </p>
                       )}
                     </div>
-                    <div className="flex items-center gap-2">
-                      <span className={`px-2 py-1 rounded-full text-xs font-bold ${
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className={`px-2 py-1 rounded-full text-xs font-bold whitespace-nowrap ${
                         task.priority === 'urgent' ? 'bg-red-500/20 text-red-400' :
                         task.priority === 'high' ? 'bg-orange-500/20 text-orange-400' :
                         task.priority === 'medium' ? 'bg-yellow-500/20 text-yellow-400' :
@@ -3578,7 +3583,7 @@ const Autopilot = ({ onBack }) => {
                       }`}>
                         {task.priority?.toUpperCase() || 'MEDIUM'}
                       </span>
-                      <span className={`px-3 py-1 rounded-full text-xs font-bold ${
+                      <span className={`px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap ${
                         isOverdue ? 'bg-red-500/20 text-red-400' :
                         task.status === 'completed' ? 'bg-green-500/20 text-green-400' :
                         task.status === 'in_progress' ? 'bg-blue-500/20 text-blue-400' :
@@ -3607,7 +3612,7 @@ const Autopilot = ({ onBack }) => {
                             }
                           });
                         }}
-                        className="p-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-lg transition-all"
+                        className="p-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-lg transition-all touch-manipulation"
                         title="Delete task"
                       >
                         <Trash2 className="w-4 h-4" />

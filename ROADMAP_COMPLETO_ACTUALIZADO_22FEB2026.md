@@ -1,11 +1,105 @@
 # 🗺️ ROADMAP COMPLETO ACTUALIZADO - MY HOST BIZMATE
-**Fecha actualización:** 23 Febrero 2026
+**Fecha actualización:** 28 Febrero 2026
 **Status:** Documento maestro consolidado
-**Última sesión:** Enhanced Report - Property-Based Selection (23/FEB/2026)
+**Última sesión:** Tasks Advanced Filters + Mobile Responsiveness Spec (28/FEB/2026)
 
 ---
 
-## 🆕 ÚLTIMA ACTUALIZACIÓN - 23 FEBRERO 2026
+## 🆕 ÚLTIMA ACTUALIZACIÓN - 28 FEBRERO 2026
+
+### ✅ **Tasks Advanced Filters Implementation**
+**Commit:** `f5a952a` | **Branch:** `backup-antes-de-automatizacion` | **Status:** COMPLETADO Y PUSHEADO
+
+**Cambios implementados:**
+- ✅ 6 filtros avanzados en una sola línea horizontal (Villa, Dates, Categories, Types, Status, Priority)
+- ✅ Grid optimizado (0.7fr 0.8fr 0.9fr 0.8fr 0.85fr 0.85fr) para caber en pantalla sin overflow
+- ✅ Filtro de fechas con opciones: Today, Week, Month, Custom Range
+- ✅ Custom date range picker (From/To)
+- ✅ Clear Filters button para resetear todas las selecciones
+- ✅ Ordenamiento corregido: ascending por due_date (oldest first)
+- ✅ Limpieza de base de datos: eliminadas 12 tasks (test + NULL villa_id)
+
+**Archivos modificados:**
+- `src/components/Autopilot/Autopilot.jsx` (+227/-31 líneas)
+- `src/services/tasksService.js` (ordenamiento)
+
+**Documentación completa:** `Claude AI and Code Update 28022026/SESSION_28FEB2026_TASKS_FILTERS.md`
+
+---
+
+### 🔴 **PENDIENTE CRÍTICO: Mobile Responsiveness**
+**Prioridad:** ALTA | **Estimación:** 4-6 horas | **Status:** DOCUMENTADO, LISTO PARA IMPLEMENTAR
+
+**Módulos que requieren ajustes móvil:**
+
+1. **📅 Calendar (PMS Calendar)** - Grid de calendario, date pickers, navegación
+2. **📊 Reports (Global, Enhanced, Specialized)** - Tablas financieras, gráficos, selectores
+3. **🔄 Channel Sync (WF-06)** - Formularios configuración OTA, dashboard
+4. **🔧 Maintenance & Tasks (WF-07)** - **Filtros avanzados (6 en línea)**, grid de tasks, modals
+
+**Contexto:**
+El resto de MY HOST BizMate ya tiene responsividad móvil completa. Estos 4 módulos fueron desarrollados recientemente con enfoque desktop-first y requieren ajustes para funcionar correctamente en móvil/tablet.
+
+**Patrón a seguir:**
+- Breakpoints Tailwind: `sm:`, `md:`, `lg:`
+- Grids adaptables: `grid-cols-1 md:grid-cols-2 lg:grid-cols-3`
+- Padding reducido: `px-2 md:px-4 lg:px-6`
+- Font sizes adaptativos: `text-xs sm:text-sm md:text-base`
+- Touch targets mínimos: 44x44px
+
+**Documentación detallada:** `Claude AI and Code Update 28022026/PENDIENTE_MOBILE_RESPONSIVENESS.md`
+
+**Próximos pasos:**
+1. **Fase 1 (2h):** Maintenance & Tasks + Calendar
+2. **Fase 2 (2h):** Reports + Channel Sync
+3. **Testing (1h):** Múltiples breakpoints y dispositivos
+
+---
+
+### 📋 **PENDIENTES COMPLETOS CONSOLIDADOS**
+**Documento:** `Claude AI and Code Update 28022026/PENDIENTES_COMPLETOS_28FEB2026.md`
+**Fecha:** 28 Febrero 2026
+
+**Resumen ejecutivo:**
+Documento maestro que consolida TODOS los temas pendientes del proyecto, organizados por prioridad:
+
+- 🔴 **CRÍTICOS** (5 temas) - 26-32h total
+  1. Mobile Responsiveness (4-6h)
+  2. Maintenance & Tasks Review (2-3h)
+  3. KORA Availability Bug (1h)
+  4. Master Calendar - Source of Truth (6-8h)
+  5. Channel Sync - Booking.com & Airbnb (12-16h)
+
+- 🟠 **ALTOS** (3 temas) - 10-15h total
+  6. Video Storage Temporal (3-4h)
+  7. Video Merge/Concatenation (4-6h)
+  8. OSIRIS AI Optimization (2-3h)
+
+- 🟡 **MEDIOS** (3 temas) - 20-30h total
+  9. Arquitectura Multitenant Completa (8-12h)
+  10. Módulos Supabase Pendientes (8-12h)
+  11. Architecture Reinforcement restante (4-6h)
+
+- 🟢 **BAJOS** (3 temas) - 10-16h total
+  12. n8n Workflows Adicionales
+  13. VAPI Integration
+  14. Testing & Seguridad
+
+**Total estimado:** ~66-93 horas de desarrollo
+
+**Orden recomendado (Sprint 1):**
+1. KORA Bug (1h) - Quick win
+2. Maintenance Review (2-3h)
+3. Mobile Fase 1+2 (4h)
+4. Master Calendar (6-8h) - Bloqueador
+5. Channel Sync Booking.com (8-10h)
+6. Video Storage (3-4h)
+
+**Ver documento completo para:** Especificaciones técnicas detalladas, tareas específicas, código de ejemplo, y checklist por tema.
+
+---
+
+## 🆕 ACTUALIZACIÓN ANTERIOR - 23 FEBRERO 2026
 
 ### ✅ **Enhanced Report - Property-Based Selection**
 **Commit:** `a924e04` | **Branch:** `backup-antes-de-automatizacion` | **Status:** COMPLETADO
@@ -19,11 +113,6 @@
 - ✅ Service layer actualizado con filtro opcional por villa_id
 
 **Documentación completa:** `Claude AI and Code Update 23022026/SESSION_SUMMARY_23FEB2026_ENHANCED_REPORT.md`
-
-**Próximos pasos:**
-1. Gita revisar todos los informes (Global, Enhanced, Specialized)
-2. Optimizar OSIRIS AI prompts
-3. Implementar Video Features
 
 ---
 
