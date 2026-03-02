@@ -1,0 +1,413 @@
+import { supabase } from '../lib/supabase';
+
+const OWNER_IDS = {
+  gita: '1f32d384-4018-46a9-a6f9-058217e6924a',
+  jose: 'c24393db-d318-4d75-8bbf-0fa240b9c1db'
+};
+
+// Call OSIRIS AI for business analysis
+async function callOSIRIS(tenantId, prompt) {
+  try {
+    const response = await fetch('https://n8n-production-bb2d.up.railway.app/webhook/ai/chat-v2', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        tenant_id: tenantId,
+        user_id: tenantId,
+        message: prompt
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const data = await response.json();
+    return data.reply || data.message || '';
+  } catch (error) {
+    console.error('OSIRIS call failed:', error);
+    return null;
+  }
+}
+
+// Generate business report for an owner (optionally filtered by villa)
+export async function generateBusinessReport(ownerId, ownerName, propertyName, currency, startDate = '2026-01-01', endDate = '2026-12-31', villaId = null) {
+  console.log(`Generating report for ${ownerName} from ${startDate} to ${endDate}${villaId ? ` (villa: ${villaId})` : ' (all properties)'}...`);
+
+  // Build query for bookings
+  let bookingsQuery = supabase
+    .from('bookings')
+    .select('*')
+    .eq('tenant_id', ownerId)
+    .gte('check_in', startDate)
+    .lte('check_in', endDate);
+
+  // Add villa filter if specified
+  if (villaId) {
+    bookingsQuery = bookingsQuery.eq('villa_id', villaId);
+  }
+
+  // Execute query
+  const { data: bookings, error: bookingsError } = await bookingsQuery.order('check_in', { ascending: false });
+
+  if (bookingsError || !bookings || bookings.length === 0) {
+    console.error('No bookings found:', bookingsError);
+    return null;
+  }
+
+  console.log(`✓ Found ${bookings.length} bookings`);
+
+  // Get villas - Load by villa_id from bookings
+  const uniqueVillaIds = [...new Set(bookings.map(b => b.villa_id).filter(id => id))];
+  let allVillas = [];
+
+  if (uniqueVillaIds.length > 0) {
+    const { data: villas, error: villasError } = await supabase
+      .from('villas')
+      .select('*')
+      .in('id', uniqueVillaIds);
+
+    if (villas && !villasError) {
+      allVillas = villas;
+    }
+  }
+
+  console.log(`✓ Found ${allVillas.length} villas for ${uniqueVillaIds.length} villa IDs`);
+
+  // Get properties to use as fallback when villa name is not found
+  const uniquePropertyIds = [...new Set(bookings.map(b => b.property_id).filter(id => id))];
+  let allProperties = [];
+
+  for (const propId of uniquePropertyIds) {
+    const { data: property } = await supabase
+      .from('properties')
+      .select('*')
+      .eq('id', propId)
+      .single();
+
+    if (property) {
+      allProperties.push(property);
+    }
+  }
+
+  console.log(`✓ Found ${allProperties.length} properties`);
+
+  // Calculate channel distribution
+  const channelBreakdown = {};
+  let totalChannelRevenue = 0;
+
+  bookings.forEach(booking => {
+    let channel = (booking.source || 'direct').toLowerCase().trim().replace(/\s+/g, '');
+
+    // Consolidate Airbnb variants
+    if (channel === 'airbnb' || channel === 'air-bnb' || channel.includes('airbnb')) {
+      channel = 'airbnb';
+    }
+    // Consolidate Booking.com variants
+    if (channel === 'booking.com' || channel === 'booking' || channel.includes('booking')) {
+      channel = 'booking.com';
+    }
+
+    const revenue = booking.total_price || 0;
+
+    if (!channelBreakdown[channel]) {
+      channelBreakdown[channel] = { bookings: 0, revenue: 0 };
+    }
+
+    channelBreakdown[channel].bookings += 1;
+    channelBreakdown[channel].revenue += revenue;
+    totalChannelRevenue += revenue;
+  });
+
+  // Sort channels by revenue
+  const sortedChannels = Object.entries(channelBreakdown)
+    .map(([channel, data]) => ({
+      channel,
+      bookings: data.bookings,
+      revenue: data.revenue,
+      percentage: totalChannelRevenue > 0 ? (data.revenue / totalChannelRevenue * 100) : 0
+    }))
+    .sort((a, b) => b.revenue - a.revenue);
+
+  // Calculate metrics
+  const totalRevenue = bookings.reduce((sum, b) => sum + (b.total_price || 0), 0);
+  const totalBookings = bookings.length;
+  const totalNights = bookings.reduce((sum, b) => {
+    if (b.check_in && b.check_out) {
+      const checkIn = new Date(b.check_in);
+      const checkOut = new Date(b.check_out);
+      const diffTime = Math.abs(checkOut - checkIn);
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      return sum + diffDays;
+    }
+    return sum;
+  }, 0);
+
+  // Calculate occupancy rate (months with bookings × 31)
+  const monthsWithBookings = new Set(
+    bookings.map(b => {
+      const date = new Date(b.check_in);
+      return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+    })
+  ).size;
+
+  const totalPossibleNights = monthsWithBookings * 31;
+  const occupancyRate = totalPossibleNights > 0 && totalNights > 0
+    ? (totalNights / totalPossibleNights) * 100
+    : 0;
+
+  const avgBookingValue = totalBookings > 0 ? totalRevenue / totalBookings : 0;
+  const avgStayLength = totalBookings > 0 ? totalNights / totalBookings : 0;
+
+  // Calculate OTA dependency
+  const otaRevenue = sortedChannels
+    .filter(ch => ch.channel !== 'direct' && ch.channel !== 'gita')
+    .reduce((sum, ch) => sum + ch.revenue, 0);
+  const otaDependency = totalRevenue > 0 ? (otaRevenue / totalRevenue * 100) : 0;
+
+  // Calculate OTA commission (estimate 15% of OTA revenue)
+  const otaCommission = otaRevenue * 0.15;
+
+  // Calculate payment collection status
+  const completedAmount = bookings
+    .filter(b => b.payment_status === 'completed')
+    .reduce((sum, b) => sum + (b.total_price || 0), 0);
+
+  const pendingAmount = bookings
+    .filter(b => b.payment_status === 'pending' || !b.payment_status)
+    .reduce((sum, b) => sum + (b.total_price || 0), 0);
+
+  // Calculate per-villa metrics
+  const villaGroups = {};
+  bookings.forEach(booking => {
+    let villaName = 'Unknown Villa';
+
+    // Try to get villa name from villa_id first
+    if (booking.villa_id) {
+      const villa = allVillas.find(v => v.id === booking.villa_id);
+      if (villa && villa.name) {
+        villaName = villa.name;
+      }
+    }
+
+    // Fallback: use property name if villa name not found
+    if (villaName === 'Unknown Villa' && booking.property_id) {
+      const property = allProperties.find(p => p.id === booking.property_id);
+      if (property && property.name) {
+        villaName = property.name;
+      }
+    }
+
+    if (!villaGroups[villaName]) {
+      villaGroups[villaName] = [];
+    }
+    villaGroups[villaName].push(booking);
+  });
+
+  const propertyMetrics = Object.entries(villaGroups).map(([name, villaBookings]) => {
+    const propRevenue = villaBookings.reduce((sum, b) => sum + (b.total_price || 0), 0);
+    const propNights = villaBookings.reduce((sum, b) => {
+      if (b.check_in && b.check_out) {
+        const checkIn = new Date(b.check_in);
+        const checkOut = new Date(b.check_out);
+        const diffTime = Math.abs(checkOut - checkIn);
+        return sum + Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      }
+      return sum;
+    }, 0);
+    const propAvgValue = villaBookings.length > 0 ? propRevenue / villaBookings.length : 0;
+
+    const villaMonthsWithBookings = new Set(
+      villaBookings.map(b => {
+        const date = new Date(b.check_in);
+        return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+      })
+    ).size;
+
+    const villaTotalPossibleNights = villaMonthsWithBookings * 31;
+    const propOccupancy = villaTotalPossibleNights > 0 && propNights > 0
+      ? (propNights / villaTotalPossibleNights) * 100
+      : 0;
+
+    // Calculate ADR and RevPAR per villa
+    const villaADR = propNights > 0 ? propRevenue / propNights : 0;
+    const villaRevPAR = villaTotalPossibleNights > 0 ? propRevenue / villaTotalPossibleNights : 0;
+
+    return {
+      name,
+      bookings: villaBookings.length,
+      revenue: propRevenue,
+      avgValue: propAvgValue,
+      nights: propNights,
+      occupancyRate: propOccupancy,
+      adr: villaADR,
+      revpar: villaRevPAR
+    };
+  });
+
+  // Calculate ADR and RevPAR
+  const daysInPeriod = Math.ceil((new Date(endDate) - new Date(startDate)) / (1000 * 60 * 60 * 24));
+  const adr = totalNights > 0 ? totalRevenue / totalNights : 0; // Average Daily Rate
+  const revpar = daysInPeriod > 0 ? totalRevenue / daysInPeriod : 0; // Revenue Per Available Room
+
+  // Calculate cancellation metrics
+  const cancelledBookings = bookings.filter(b =>
+    b.status && (b.status.toLowerCase() === 'cancelled' || b.status.toLowerCase() === 'canceled')
+  );
+  const confirmedBookings = bookings.filter(b =>
+    !b.status || b.status.toLowerCase() === 'confirmed'
+  );
+  const totalCancellations = cancelledBookings.length;
+  const cancellationRate = totalBookings > 0 ? (totalCancellations / totalBookings) * 100 : 0;
+  const lostRevenue = cancelledBookings.reduce((sum, b) => sum + (b.total_price || 0), 0);
+
+  // Calculate monthly breakdown
+  const monthlyData = {};
+  bookings.forEach(booking => {
+    const checkIn = new Date(booking.check_in);
+    const monthKey = `${checkIn.getFullYear()}-${String(checkIn.getMonth() + 1).padStart(2, '0')}`;
+
+    if (!monthlyData[monthKey]) {
+      monthlyData[monthKey] = {
+        month: monthKey,
+        bookings: 0,
+        nights: 0,
+        revenue: 0,
+        channels: {}
+      };
+    }
+
+    const nights = booking.check_in && booking.check_out
+      ? Math.ceil((new Date(booking.check_out) - new Date(booking.check_in)) / (1000 * 60 * 60 * 24))
+      : 0;
+    const channel = (booking.source || 'direct').toLowerCase();
+
+    monthlyData[monthKey].bookings += 1;
+    monthlyData[monthKey].nights += nights;
+    monthlyData[monthKey].revenue += booking.total_price || 0;
+
+    if (!monthlyData[monthKey].channels[channel]) {
+      monthlyData[monthKey].channels[channel] = { bookings: 0, revenue: 0 };
+    }
+    monthlyData[monthKey].channels[channel].bookings += 1;
+    monthlyData[monthKey].channels[channel].revenue += booking.total_price || 0;
+  });
+
+  // Calculate occupancy and ADR per month
+  Object.keys(monthlyData).forEach(month => {
+    const daysInMonth = 30;
+    monthlyData[month].occupancyRate = (monthlyData[month].nights / daysInMonth) * 100;
+    monthlyData[month].adr = monthlyData[month].nights > 0
+      ? monthlyData[month].revenue / monthlyData[month].nights
+      : 0;
+  });
+
+  // Calculate owner statement data (monthly)
+  const monthlyStatements = {};
+  Object.keys(monthlyData).forEach(monthKey => {
+    const monthBookings = bookings.filter(b => {
+      const checkIn = new Date(b.check_in);
+      const key = `${checkIn.getFullYear()}-${String(checkIn.getMonth() + 1).padStart(2, '0')}`;
+      return key === monthKey;
+    });
+
+    const grossRevenue = monthlyData[monthKey].revenue;
+    const otaRevenue = Object.entries(monthlyData[monthKey].channels)
+      .filter(([ch]) => ch !== 'direct' && ch !== 'gita')
+      .reduce((sum, [_, data]) => sum + data.revenue, 0);
+    const otaCommissionMonth = otaRevenue * 0.15; // 15% OTA commission
+    const managementFee = grossRevenue * 0.20; // 20% management fee
+    const netPayout = grossRevenue - otaCommissionMonth - managementFee;
+
+    monthlyStatements[monthKey] = {
+      month: monthKey,
+      grossRevenue,
+      otaCommission: otaCommissionMonth,
+      managementFee,
+      netPayout,
+      bookings: monthBookings.length
+    };
+  });
+
+  const metrics = {
+    totalRevenue,
+    totalBookings,
+    totalNights,
+    occupancyRate,
+    avgBookingValue,
+    avgStayLength,
+    otaDependency,
+    otaCommission,
+    completedAmount,
+    pendingAmount,
+    // New metrics for Enhanced Report
+    adr,
+    revpar,
+    daysInPeriod,
+    totalCancellations,
+    cancellationRate,
+    lostRevenue,
+    confirmedBookings: confirmedBookings.length
+  };
+
+  // Call OSIRIS for AI analysis
+  console.log('📊 Calling OSIRIS for AI analysis...');
+
+  const osirisPrompt = `
+You are OSIRIS, an expert business analyst for luxury vacation rental properties.
+
+Analyze the following business performance data for ${propertyName} (${startDate} to ${endDate}):
+
+**KEY METRICS:**
+- Total Bookings: ${metrics.totalBookings}
+- Total Nights Sold: ${metrics.totalNights}
+- Occupancy Rate: ${metrics.occupancyRate.toFixed(1)}%
+- Total Revenue: ${currency} ${Math.round(metrics.totalRevenue).toLocaleString()}
+- Average Booking Value: ${currency} ${Math.round(metrics.avgBookingValue).toLocaleString()}
+- OTA Dependency: ${metrics.otaDependency.toFixed(1)}%
+
+**CHANNEL DISTRIBUTION:**
+${sortedChannels.map(ch => `- ${ch.channel}: ${ch.bookings} bookings (${ch.percentage.toFixed(1)}%)`).join('\n')}
+
+**VILLA PERFORMANCE:**
+${propertyMetrics.map(v => `- ${v.name}: ${v.bookings} bookings, ${v.occupancyRate.toFixed(1)}% occupancy, ${currency} ${Math.round(v.revenue).toLocaleString()} revenue`).join('\n')}
+
+Provide a business analysis in the following EXACT format with 3 sections. Be specific and practical:
+
+### AREAS OF ATTENTION
+[List 2-3 critical issues that need immediate attention, with specific numbers and actionable recommendations]
+
+### PERFORMANCE INSIGHTS
+[Provide 2-3 key insights about what's working well or notable patterns, with specific data points]
+
+### STRATEGIC OBJECTIVES
+[List exactly 3 strategic objectives in this format:]
+OBJECTIVE 1: [Action verb] | [Goal name] | [Specific target with current number]
+OBJECTIVE 2: [Action verb] | [Goal name] | [Specific target with current number]
+OBJECTIVE 3: [Action verb] | [Goal name] | [Specific target with current number]
+
+Be concise, data-driven, and actionable. Use the exact format above.`;
+
+  const osirisAnalysis = await callOSIRIS(ownerId, osirisPrompt);
+
+  if (osirisAnalysis) {
+    console.log('✓ OSIRIS analysis received');
+  } else {
+    console.log('⚠️  OSIRIS call failed, using fallback');
+  }
+
+  return {
+    metrics,
+    bookings,
+    channels: sortedChannels,
+    villas: allVillas,
+    propertyMetrics,
+    osirisAnalysis,
+    // New data for Enhanced Report
+    monthlyData: Object.values(monthlyData).sort((a, b) => a.month.localeCompare(b.month)),
+    monthlyStatements: Object.values(monthlyStatements).sort((a, b) => a.month.localeCompare(b.month)),
+    cancelledBookings
+  };
+}

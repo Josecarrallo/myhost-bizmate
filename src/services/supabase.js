@@ -700,6 +700,98 @@ export const supabaseService = {
 
     if (error) throw new Error(error.message || 'Failed to delete task');
     return { success: true };
+  },
+
+  // =====================================================
+  // MAINTENANCE ISSUES (Guest Issues) - CRUD Operations
+  // =====================================================
+
+  async getMaintenanceIssues(filters = {}) {
+    let query = supabase
+      .from('maintenance_issues')
+      .select(`
+        *,
+        villa:villas!villa_id(id, name),
+        booking:bookings!booking_id(id, guest_name)
+      `)
+      .order('created_at', { ascending: false });
+
+    if (filters.tenant_id) {
+      query = query.eq('tenant_id', filters.tenant_id);
+    }
+    if (filters.property_id) {
+      query = query.eq('property_id', filters.property_id);
+    }
+    if (filters.villa_id) {
+      query = query.eq('villa_id', filters.villa_id);
+    }
+    if (filters.status) {
+      query = query.eq('status', filters.status);
+    }
+    if (filters.priority) {
+      query = query.eq('priority', filters.priority);
+    }
+
+    const { data, error } = await query;
+    if (error) throw new Error('Failed to fetch maintenance issues');
+    return data;
+  },
+
+  async getMaintenanceIssue(id) {
+    const { data, error } = await supabase
+      .from('maintenance_issues')
+      .select(`
+        *,
+        villa:villas!villa_id(id, name),
+        booking:bookings!booking_id(id, guest_name, check_in, check_out)
+      `)
+      .eq('id', id)
+      .single();
+
+    if (error) throw new Error('Failed to fetch maintenance issue');
+    return data;
+  },
+
+  async createMaintenanceIssue(issueData) {
+    const { data, error } = await supabase
+      .from('maintenance_issues')
+      .insert(issueData)
+      .select()
+      .single();
+
+    if (error) throw new Error(error.message || 'Failed to create maintenance issue');
+    return data;
+  },
+
+  async updateMaintenanceIssue(id, updates) {
+    // If status is changing to 'resolved', set resolved_at to NOW
+    if (updates.status === 'resolved' && !updates.resolved_at) {
+      updates.resolved_at = new Date().toISOString();
+    }
+    // If status is changing from 'resolved' to something else, clear resolved_at
+    if (updates.status && updates.status !== 'resolved') {
+      updates.resolved_at = null;
+    }
+
+    const { data, error } = await supabase
+      .from('maintenance_issues')
+      .update(updates)
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) throw new Error(error.message || 'Failed to update maintenance issue');
+    return data;
+  },
+
+  async deleteMaintenanceIssue(id) {
+    const { error } = await supabase
+      .from('maintenance_issues')
+      .delete()
+      .eq('id', id);
+
+    if (error) throw new Error(error.message || 'Failed to delete maintenance issue');
+    return { success: true };
   }
 };
 

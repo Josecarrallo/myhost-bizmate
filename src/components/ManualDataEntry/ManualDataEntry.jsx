@@ -78,7 +78,8 @@ const ManualDataEntry = ({ onBack }) => {
     checkOut: '',
     guests: '2',
     totalAmount: '',
-    status: 'hold'
+    status: 'hold',
+    notes: ''
   });
 
   // Edit lead form state
@@ -114,7 +115,8 @@ const ManualDataEntry = ({ onBack }) => {
     checkOut: '',
     guests: '2',
     totalAmount: '',
-    status: 'hold'
+    status: 'hold',
+    notes: ''
   });
 
   const [paymentForm, setPaymentForm] = useState({
@@ -359,7 +361,32 @@ const ManualDataEntry = ({ onBack }) => {
         tenant: b.tenant_id
       })));
 
-      setBookings(bookingsData);
+      // Transform iCal bookings to show "Airbnb direct" instead of "Reserved"
+      const transformedBookings = bookingsData.map(booking => {
+        const source = (booking.source || '').toLowerCase().trim();
+        const channel = (booking.channel || '').toLowerCase().trim();
+        const guestName = (booking.guest_name || '').trim();
+
+        // If it's an iCal sync booking with "Reserved" as guest name
+        if (source === 'ical_sync' && guestName.toLowerCase() === 'reserved') {
+          let displayName = 'Channel direct';
+
+          if (channel === 'airbnb') displayName = 'Airbnb direct';
+          else if (channel === 'booking') displayName = 'Booking.com direct';
+          else if (channel) displayName = channel.charAt(0).toUpperCase() + channel.slice(1) + ' direct';
+
+          console.log(`🔄 [Transform] ${guestName} (${source}/${channel}) → ${displayName}`);
+
+          return {
+            ...booking,
+            guest_name: displayName
+          };
+        }
+
+        return booking;
+      });
+
+      setBookings(transformedBookings);
 
     } catch (error) {
       console.error('❌ Error loading bookings:', error);
@@ -531,7 +558,8 @@ const ManualDataEntry = ({ onBack }) => {
       checkOut: booking.check_out || '',
       guests: booking.guests?.toString() || '2',
       totalAmount: booking.total_price?.toString() || '',
-      status: booking.status || 'hold'
+      status: booking.status || 'hold',
+      notes: booking.notes || ''
     });
   };
 
@@ -751,6 +779,7 @@ const ManualDataEntry = ({ onBack }) => {
         payment_status: bookingForm.status === 'confirmed' ? 'paid' : 'pending',
         channel: 'direct', // Manual entries are considered direct bookings
         source: 'autopilot',
+        notes: bookingForm.notes || null,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       };
@@ -778,7 +807,8 @@ const ManualDataEntry = ({ onBack }) => {
         checkOut: '',
         guests: '2',
         totalAmount: '',
-        status: 'hold'
+        status: 'hold',
+        notes: ''
       });
 
       // Auto-switch to View/Edit Bookings tab to see the new booking
@@ -830,6 +860,7 @@ const ManualDataEntry = ({ onBack }) => {
         total_price: parseFloat(editForm.totalAmount),
         status: editForm.status === 'hold' ? 'pending_payment' : 'confirmed',
         payment_status: editForm.status === 'confirmed' ? 'paid' : (editForm.status === 'partial' ? 'partial' : 'pending'),
+        notes: editForm.notes || null,
         updated_at: new Date().toISOString()
       };
 
@@ -1444,7 +1475,11 @@ const ManualDataEntry = ({ onBack }) => {
                             <div>
                               <p className="text-gray-500 text-xs">Total Price</p>
                               <p className="text-green-400 text-sm font-bold">
-                                IDR {booking.total_price?.toLocaleString()}
+                                {booking.source === 'ical_sync' ? (
+                                  <span className="text-gray-500 italic text-xs">N/A</span>
+                                ) : (
+                                  `IDR ${booking.total_price?.toLocaleString()}`
+                                )}
                               </p>
                             </div>
                           </div>
@@ -1541,7 +1576,11 @@ const ManualDataEntry = ({ onBack }) => {
                                   </span>
                                 </td>
                                 <td className="px-4 py-3 text-white text-sm text-right whitespace-nowrap">
-                                  IDR {booking.total_price?.toLocaleString()}
+                                  {booking.source === 'ical_sync' ? (
+                                    <span className="text-gray-500 italic text-xs">N/A</span>
+                                  ) : (
+                                    `IDR ${booking.total_price?.toLocaleString()}`
+                                  )}
                                 </td>
                                 <td className="px-2 py-3 text-center" onClick={(e) => e.stopPropagation()}>
                                   <button
@@ -2141,6 +2180,19 @@ const ManualDataEntry = ({ onBack }) => {
                   <option value="partial">Partial - Deposit Received</option>
                 </select>
               </div>
+
+              {/* Booking Notes */}
+              <div className="md:col-span-2">
+                <label className="block text-[#FF8C42] font-medium mb-2">Booking Notes</label>
+                <textarea
+                  rows="3"
+                  value={bookingForm.notes}
+                  onChange={(e) => setBookingForm({...bookingForm, notes: e.target.value})}
+                  className="w-full px-4 py-3 bg-[#2a2f3a] border-2 border-gray-200 rounded-xl text-[#FF8C42] placeholder-gray-400 focus:outline-none focus:border-orange-300 resize-none"
+                  placeholder="Add any special requests, dietary restrictions, or important notes about this booking..."
+                />
+                <p className="text-xs text-gray-400 mt-1">Optional: Add internal notes visible only to staff</p>
+              </div>
             </div>
 
             {/* Submit Button */}
@@ -2151,7 +2203,7 @@ const ManualDataEntry = ({ onBack }) => {
                   leadId: '', guestName: '', guestPhone: '', guestEmail: '',
                   propertyId: properties.length === 1 ? properties[0].id : '',
                   villaId: '',
-                  checkIn: '', checkOut: '', guests: '2', totalAmount: '', status: 'hold'
+                  checkIn: '', checkOut: '', guests: '2', totalAmount: '', status: 'hold', notes: ''
                 })}
                 className="px-6 py-3 bg-[#2a2f3a] hover:bg-[#374151] text-[#FF8C42] rounded-xl font-medium transition-all border-2 border-gray-200"
               >
@@ -2293,9 +2345,13 @@ const ManualDataEntry = ({ onBack }) => {
                           <div className="col-span-2">
                             <p className="text-gray-500 text-xs">Total Price</p>
                             <p className="text-green-400 text-lg font-bold">
-                              IDR {booking.total_price?.toLocaleString()}
+                              {booking.source === 'ical_sync' ? (
+                                <span className="text-gray-500 italic text-sm">N/A</span>
+                              ) : (
+                                `IDR ${booking.total_price?.toLocaleString()}`
+                              )}
                             </p>
-                            {booking.payment_status !== 'paid' && (
+                            {booking.payment_status !== 'paid' && booking.source !== 'ical_sync' && (
                               <p className="text-gray-400 text-xs mt-1">
                                 Due: IDR {booking.total_price?.toLocaleString()}
                               </p>
@@ -2376,7 +2432,11 @@ const ManualDataEntry = ({ onBack }) => {
                               <td className="px-4 py-3 text-gray-300 text-sm whitespace-nowrap">{booking.check_in}</td>
                               <td className="px-4 py-3 text-gray-300 text-sm whitespace-nowrap">{booking.check_out}</td>
                               <td className="px-4 py-3 text-white text-sm text-right whitespace-nowrap">
-                                {booking.total_price?.toLocaleString()}
+                                {booking.source === 'ical_sync' ? (
+                                  <span className="text-gray-500 italic text-xs">N/A</span>
+                                ) : (
+                                  booking.total_price?.toLocaleString()
+                                )}
                               </td>
                               <td className="px-2 py-3">
                                 <div className="flex flex-col gap-0.5">
@@ -2387,7 +2447,7 @@ const ManualDataEntry = ({ onBack }) => {
                                   }`}>
                                     {booking.payment_status || 'pending'}
                                   </span>
-                                  {booking.payment_status !== 'paid' && (
+                                  {booking.payment_status !== 'paid' && booking.source !== 'ical_sync' && (
                                     <span className="text-[10px] text-gray-400">
                                       Due: {booking.total_price?.toLocaleString()}
                                     </span>
@@ -2885,6 +2945,19 @@ const ManualDataEntry = ({ onBack }) => {
                     <option value="confirmed">Confirmed - Fully Paid</option>
                     <option value="partial">Partial - Deposit Received</option>
                   </select>
+                </div>
+
+                {/* Booking Notes */}
+                <div className="md:col-span-2">
+                  <label className="block text-[#FF8C42] font-medium mb-2">Booking Notes</label>
+                  <textarea
+                    rows="3"
+                    value={editForm.notes}
+                    onChange={(e) => setEditForm({...editForm, notes: e.target.value})}
+                    className="w-full px-4 py-3 bg-[#2a2f3a] border-2 border-gray-200 rounded-xl text-[#FF8C42] placeholder-gray-400 focus:outline-none focus:border-orange-300 resize-none"
+                    placeholder="Add any special requests, dietary restrictions, or important notes about this booking..."
+                  />
+                  <p className="text-xs text-gray-400 mt-1">Optional: Add internal notes visible only to staff</p>
                 </div>
               </div>
 

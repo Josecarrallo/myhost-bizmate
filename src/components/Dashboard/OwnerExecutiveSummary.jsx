@@ -86,6 +86,16 @@ const OwnerExecutiveSummary = ({ userName = 'Owner', onNavigate }) => {
     }
   };
 
+  const getShortPropertyName = (fullName) => {
+    // Extraer "2 BEDROOM" y convertir a "2BR Villa"
+    const match = fullName?.match(/(\d+)\s*BEDROOM/i);
+    if (match) {
+      return `${match[1]}BR Villa`;
+    }
+    // Si no tiene "BEDROOM", truncar a primeras 2 palabras
+    return fullName?.split(' ').slice(0, 2).join(' ') || fullName;
+  };
+
   const handleCustomDateChange = () => {
     if (customStart && customEnd) {
       setDateRange({
@@ -252,7 +262,7 @@ const OwnerExecutiveSummary = ({ userName = 'Owner', onNavigate }) => {
             <p className="text-orange-400 font-bold text-lg md:text-xl mt-1">{userName}</p>
             <p className="text-gray-300 text-sm md:text-base mt-0.5">Revenue & Performance Analytics</p>
           </div>
-          <Filter className="w-5 h-5 md:w-6 md:h-6 text-orange-400 flex-shrink-0 mt-1" />
+          <Filter className="hidden md:block w-5 h-5 md:w-6 md:h-6 text-orange-400 flex-shrink-0 mt-1" />
         </div>
 
         {/* Date Range Selector */}
@@ -482,8 +492,8 @@ const OwnerExecutiveSummary = ({ userName = 'Owner', onNavigate }) => {
             <thead>
               <tr className="border-b border-gray-700">
                 <th className="text-left py-2 md:py-3 px-2 md:px-4 text-xs md:text-sm font-semibold text-orange-400">Month</th>
-                <th className="text-right py-2 md:py-3 px-2 md:px-4 text-xs md:text-sm font-semibold text-orange-400">Bookings</th>
-                <th className="text-right py-2 md:py-3 px-2 md:px-4 text-xs md:text-sm font-semibold text-orange-400">Nights</th>
+                <th className="text-right py-2 md:py-3 px-1 md:px-4 text-xs md:text-sm font-semibold text-orange-400">Bookings</th>
+                <th className="text-right py-2 md:py-3 px-1 md:px-4 text-xs md:text-sm font-semibold text-orange-400">Nights</th>
                 <th className="text-right py-2 md:py-3 px-2 md:px-4 text-xs md:text-sm font-semibold text-orange-400">Revenue</th>
               </tr>
             </thead>
@@ -491,9 +501,9 @@ const OwnerExecutiveSummary = ({ userName = 'Owner', onNavigate }) => {
               {stats?.timeline_data && stats.timeline_data.map((month) => (
                 <tr key={month.month} className="border-b border-gray-700 hover:bg-[#2a2f3a]/50">
                   <td className="py-2 md:py-3 px-2 md:px-4 text-xs md:text-sm text-white">{month.month_name?.trim()}</td>
-                  <td className="text-right py-2 md:py-3 px-2 md:px-4 text-xs md:text-sm text-gray-300">{month.bookings}</td>
-                  <td className="text-right py-2 md:py-3 px-2 md:px-4 text-xs md:text-sm text-gray-300">{month.nights}</td>
-                  <td className="text-right py-2 md:py-3 px-2 md:px-4 text-xs md:text-sm font-semibold text-white">
+                  <td className="text-right py-2 md:py-3 px-1 md:px-4 text-xs md:text-sm text-gray-300">{month.bookings}</td>
+                  <td className="text-right py-2 md:py-3 px-1 md:px-4 text-xs md:text-sm text-gray-300">{month.nights}</td>
+                  <td className="text-right py-2 md:py-3 px-2 md:px-4 text-xs md:text-sm font-semibold text-white whitespace-nowrap">
                     {formatCurrency(month.revenue)}
                   </td>
                 </tr>
@@ -519,8 +529,11 @@ const OwnerExecutiveSummary = ({ userName = 'Owner', onNavigate }) => {
             <tbody>
               {stats?.properties_data && stats.properties_data.map((prop, idx) => (
                 <tr key={idx} className="border-b border-gray-700 hover:bg-[#2a2f3a]/50">
-                  <td className="py-2 md:py-3 px-2 md:px-4 text-xs md:text-sm font-medium text-white">{prop.property_name}</td>
-                  <td className="text-right py-2 md:py-3 px-2 md:px-4 text-[10px] md:text-sm font-semibold text-white break-all">
+                  <td className="py-2 md:py-3 px-2 md:px-4 text-xs md:text-sm font-medium text-white">
+                    <span className="hidden md:inline">{prop.property_name}</span>
+                    <span className="md:hidden">{getShortPropertyName(prop.property_name)}</span>
+                  </td>
+                  <td className="text-right py-2 md:py-3 px-2 md:px-4 text-xs md:text-sm font-semibold text-white whitespace-nowrap">
                     {formatCurrency(prop.revenue)}
                   </td>
                   <td className="text-right py-2 md:py-3 px-2 md:px-4 text-xs md:text-sm text-gray-300">{prop.nights}</td>
@@ -596,7 +609,7 @@ const OwnerExecutiveSummary = ({ userName = 'Owner', onNavigate }) => {
             <p className="text-orange-400 font-medium mb-1">📌 Action Items:</p>
             <ul className="text-white text-sm space-y-1">
               <li>• {stats.payment_status_data.pending.bookings} bookings pending payment follow-up</li>
-              <li>• Expected revenue to collect: {formatCurrency(stats.payment_status_data.pending.revenue)}</li>
+              <li className="whitespace-nowrap overflow-x-auto">• Revenue to collect: {formatCurrency(stats.payment_status_data.pending.revenue)}</li>
             </ul>
           </div>
         )}

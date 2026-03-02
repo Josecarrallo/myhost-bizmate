@@ -19,7 +19,7 @@ const AiAgentsWidget = ({ onOpenAgentCenter }) => {
 
   return (
     <div
-      className="fixed top-4 right-4 z-30"
+      className="fixed top-16 md:top-4 right-4 z-30"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
@@ -27,7 +27,7 @@ const AiAgentsWidget = ({ onOpenAgentCenter }) => {
       <button
         onClick={onOpenAgentCenter}
         className={`
-          flex items-center gap-2 md:gap-3 px-3 py-2 md:px-5 md:py-4
+          flex items-center gap-2 md:gap-3 px-2 py-1.5 md:px-3 md:py-2
           bg-gradient-to-r from-[#FF8C42] via-[#d85a2a] to-[#FF8C42]
           border-2 border-white shadow-2xl rounded-xl md:rounded-2xl
           transition-all duration-300
@@ -37,27 +37,22 @@ const AiAgentsWidget = ({ onOpenAgentCenter }) => {
       >
         {/* Agent Icon with strong pulse animation */}
         <div className="relative">
-          <Bot className="w-5 h-5 md:w-6 md:h-6 text-white animate-bounce-subtle" />
+          <Bot className="w-4 h-4 md:w-5 md:h-5 text-white animate-bounce-subtle" />
           <div className="absolute -top-1 md:-top-2 -right-1 md:-right-2">
-            <span className="flex h-3 w-3 md:h-4 md:w-4">
+            <span className="flex h-2.5 w-2.5 md:h-3 md:w-3">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-3 w-3 md:h-4 md:w-4 bg-white border-2 border-orange-500"></span>
+              <span className="relative inline-flex rounded-full h-2.5 w-2.5 md:h-3 md:w-3 bg-white border-2 border-orange-500"></span>
             </span>
           </div>
           {/* Lightning bolt indicator */}
-          <Zap className="absolute -bottom-1 -right-1 w-2 h-2 md:w-3 md:h-3 text-yellow-300 animate-pulse" />
+          <Zap className="absolute -bottom-0.5 -right-0.5 w-2 h-2 md:w-2.5 md:h-2.5 text-yellow-300 animate-pulse" />
         </div>
 
-        {/* Text Content */}
-        <div className="flex flex-col items-start">
-          <span className="text-white font-bold text-sm md:text-base tracking-wide drop-shadow-lg">AI AGENTS</span>
-          <span className="text-white/90 text-[10px] md:text-xs font-bold drop-shadow">
-            {totalAgents} AGENTS • {activeCount} ACTIVE
-          </span>
-        </div>
+        {/* Text Content - Solo "AI AGENTS" */}
+        <span className="text-white font-bold text-xs md:text-sm tracking-wide drop-shadow-lg">AI AGENTS</span>
 
         {/* Expand Arrow con animación */}
-        <ChevronRight className={`w-4 h-4 md:w-5 md:h-5 text-white transition-transform ${isHovered ? 'translate-x-2' : 'translate-x-0'} animate-pulse`} />
+        <ChevronRight className={`w-3 h-3 md:w-4 md:h-4 text-white transition-transform ${isHovered ? 'translate-x-2' : 'translate-x-0'} animate-pulse`} />
       </button>
 
       {/* Hover Preview - 6 agentes con AURA agrupando contexto */}

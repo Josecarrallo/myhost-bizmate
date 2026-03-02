@@ -71,7 +71,7 @@ const VoiceAssistant = () => {
 
       // Construir payload con datos acumulados
       const accumulatedData = {
-        assistantId: 'ae9ea22a-fc9a-49ba-b5b8-900ed69b7615',
+        assistantId: '816a7c95-bd58-489c-b6ba-d0796fb2a722',
         startedAt: callDataRef.current.startTime,
         endedAt: callDataRef.current.endTime,
         durationMs: durationMs,
@@ -211,11 +211,12 @@ const VoiceAssistant = () => {
 
     try {
       // Usar Assistant MCP configurado en VAPI Dashboard
-      // ID: Izumi Hotel Receptionist (MCP) - ae9ea22a-fc9a-49ba-b5b8-900ed69b7615
+      // ID: Izumi Hotel Receptionist (MCP) - 816a7c95-bd58-489c-b6ba-d0796fb2a722
+      // Multilingüe (ES/EN/ID) con Claude Sonnet 4
       // Con MCP Server: https://n8n-production-bb2d.up.railway.app/mcp/izumi-hotel
       // Server URL: https://n8n-production-bb2d.up.railway.app/webhook/kora-post-call-v2
       // NOTA: VAPI Web SDK requiere string directo, no objeto
-      await vapiRef.current.start('ae9ea22a-fc9a-49ba-b5b8-900ed69b7615');
+      await vapiRef.current.start('816a7c95-bd58-489c-b6ba-d0796fb2a722');
     } catch (error) {
       console.error('Error al iniciar llamada:', error);
       setIsLoading(false);
@@ -296,26 +297,41 @@ const VoiceAssistant = () => {
           </div>
         )}
 
-        {/* Caja simplificada con avatar y botón de llamada - Mobile Optimized */}
+        {/* Mensaje "Connecting to KORA..." durante isLoading */}
+        {isLoading && !isCallActive && (
+          <div className="flex items-center gap-2 md:gap-3 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl md:rounded-2xl p-3 md:p-4 shadow-2xl border-2 border-orange-400 animate-pulse">
+            <div className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-white/20 flex items-center justify-center">
+              <Loader2 className="w-4 h-4 md:w-5 md:h-5 text-white animate-spin" />
+            </div>
+            <div className="text-left flex-1">
+              <p className="text-xs md:text-sm font-bold text-white">
+                🎤 Connecting to KORA...
+              </p>
+              <p className="text-[10px] md:text-xs text-white/80">
+                Preparing your voice assistant
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Caja simplificada con avatar y botón de llamada - Mismo estilo que AI Agents */}
         {!isCallActive && !isLoading && (
-          <div className="flex items-center gap-2 md:gap-3 bg-gradient-to-br from-orange-500/10 to-orange-600/10 rounded-xl md:rounded-2xl p-2 md:p-3 shadow-2xl border-2 border-orange-500/30 animate-fade-in">
+          <div className="flex items-center gap-2 md:gap-3 px-2 py-1.5 md:px-3 md:py-2 bg-gradient-to-r from-[#FF8C42] via-[#d85a2a] to-[#FF8C42] border-2 border-white shadow-2xl rounded-xl md:rounded-2xl transition-all duration-300 animate-pulse-glow hover:scale-105">
             <img
               src="/images/lumina-avatar.jpg"
               alt="KORA - Voice Assistant"
-              className="w-8 h-8 md:w-12 md:h-12 rounded-full object-cover border-2 border-orange-500 shadow-lg"
+              className="w-6 h-6 md:w-8 md:h-8 rounded-full object-cover border-2 border-white shadow-lg"
             />
-            <div className="text-left flex-1">
-              <p className="text-xs md:text-sm font-black text-white">
-                KORA Voice Assistant
-              </p>
-            </div>
+            <span className="text-white font-bold text-xs md:text-sm tracking-wide drop-shadow-lg whitespace-nowrap">
+              KORA Voice Assistant
+            </span>
             <button
               onClick={handleStartCall}
               disabled={isLoading}
-              className="bg-orange-500 hover:bg-orange-600 p-2 md:p-3 rounded-full shadow-lg transition-all hover:scale-110"
+              className="bg-white/20 hover:bg-white/30 p-1.5 md:p-2 rounded-full shadow-lg transition-all hover:scale-110 border border-white/50"
               title="Call KORA"
             >
-              <Phone className="w-4 h-4 md:w-5 md:h-5 text-white" />
+              <Phone className="w-3 h-3 md:w-4 md:h-4 text-white" />
             </button>
           </div>
         )}

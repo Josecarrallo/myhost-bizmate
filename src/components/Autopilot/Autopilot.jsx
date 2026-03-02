@@ -6,6 +6,7 @@ import {
   TrendingUp,
   AlertCircle,
   CheckCircle,
+  CheckCircle2,
   Clock,
   Users,
   DollarSign,
@@ -26,6 +27,7 @@ import {
   ClipboardCheck,
   ExternalLink,
   ChevronRight,
+  ChevronDown,
   Plus,
   Search,
   Filter,
@@ -42,13 +44,20 @@ import {
   Inbox,
   Sparkles,
   Phone,
-  List
+  List,
+  Trash2,
+  X,
+  Save
 } from 'lucide-react';
 import ManualDataEntry from '../ManualDataEntry/ManualDataEntry';
+import MasterCalendar from '../MasterCalendar/MasterCalendar';
+import SpecializedReports from './SpecializedReports';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
 import { generateReportHTML } from '../../services/generateReportHTML';
+import { generateEnhancedReportHTML } from '../../services/enhancedReportHTML';
 import { supabaseService as dataService } from '../../services/supabase';
+import { tasksService } from '../../services/tasksService';
 
 const Autopilot = ({ onBack }) => {
   const { userData } = useAuth();
@@ -66,6 +75,160 @@ const Autopilot = ({ onBack }) => {
   const [reportHTML, setReportHTML] = useState('<html><body style="margin:0;padding:40px;font-family:sans-serif;text-align:center;color:#666;"><h2 style="color:#f97316;">Business Report</h2><p>Select owner and period, then click <strong>Generate Report</strong>.</p></body></html>'); // Business Reports HTML content
   const [selectedPeriod, setSelectedPeriod] = useState('this_month'); // Period selector for reports
   const [selectedAllInfoPeriod, setSelectedAllInfoPeriod] = useState('all_time'); // Period selector for All Information
+  const [businessReportMode, setBusinessReportMode] = useState(null); // null = selection screen, 'global' = existing report, 'enhanced' = enhanced report, 'specialized' = specialized reports
+
+  // Maintenance & Tasks tabs state
+  const [tasksActiveTab, setTasksActiveTab] = useState('tasks'); // 'tasks' or 'issues'
+  const [showAutoTaskInfo, setShowAutoTaskInfo] = useState(false); // Show/hide Automatic Task Creation section
+
+  // Tasks data from Supabase (REAL DATA)
+  const [tasks, setTasks] = useState([]);
+  const [taskStats, setTaskStats] = useState({ open: 0, inProgress: 0, overdue: 0, completedToday: 0 });
+  const [loadingTasks, setLoadingTasks] = useState(false);
+
+  // Advanced filters
+  const [taskVillaFilter, setTaskVillaFilter] = useState('all'); // Villa filter
+  const [taskDateFilter, setTaskDateFilter] = useState('all'); // today, week, month, custom, all
+  const [taskCustomStartDate, setTaskCustomStartDate] = useState('');
+  const [taskCustomEndDate, setTaskCustomEndDate] = useState('');
+  const [taskTypeFilter, setTaskTypeFilter] = useState('all'); // cleaning, repair, maintenance, etc.
+  const [taskStatusFilter, setTaskStatusFilter] = useState('all'); // all, open, assigned, in_progress, completed
+  const [taskPriorityFilter, setTaskPriorityFilter] = useState('all'); // all, low, medium, high, urgent
+  const [taskCategoryFilter, setTaskCategoryFilter] = useState('all'); // housekeeping, engineering, outdoor, etc.
+
+  // Task modals
+  const [showTaskModal, setShowTaskModal] = useState(false);
+  const [selectedTask, setSelectedTask] = useState(null); // null = create new, object = edit existing
+
+  // Notifications and confirmations
+  const [notification, setNotification] = useState(null); // { type: 'success'|'error', message: string }
+  const [confirmDialog, setConfirmDialog] = useState(null); // { message: string, onConfirm: function }
+
+  // Enhanced Report specific states
+  const [enhancedSelectedVilla, setEnhancedSelectedVilla] = useState('all');
+  const [enhancedStartDate, setEnhancedStartDate] = useState('2025-01-01');
+  const [enhancedEndDate, setEnhancedEndDate] = useState('2026-12-31');
+  const [isGeneratingEnhancedReport, setIsGeneratingEnhancedReport] = useState(false);
+  const [enhancedReportHTML, setEnhancedReportHTML] = useState('<html><body style="margin:0;padding:40px;font-family:sans-serif;text-align:center;color:#666;"><h2 style="color:#FF8C42;">Enhanced Global Report</h2><p>Select property and dates, then click <strong>Generate Report</strong>.</p></body></html>');
+
+  // Load tasks data when entering Tasks section or filters change
+  useEffect(() => {
+    console.log('🔄 Tasks useEffect - section:', activeSection, 'tab:', tasksActiveTab, 'tenant_id:', userData?.id);
+    if (activeSection === 'tasks' && userData?.id && tasksActiveTab === 'tasks') {
+      console.log('✅ Conditions met - calling loadTasksData');
+      loadTasksData();
+    }
+  }, [
+    activeSection,
+    taskVillaFilter,
+    taskDateFilter,
+    taskCustomStartDate,
+    taskCustomEndDate,
+    taskTypeFilter,
+    taskStatusFilter,
+    taskPriorityFilter,
+    taskCategoryFilter,
+    userData,
+    tasksActiveTab
+  ]);
+
+  // Load tasks from Supabase with all filters
+  const loadTasksData = async () => {
+    console.log('🔄 loadTasksData called, userData:', userData);
+
+    if (!userData?.id) {
+      console.error('❌ No user id found in userData');
+      return;
+    }
+
+    setLoadingTasks(true);
+    try {
+      // Build filters object
+      const filters = {};
+
+      // Villa filter
+      if (taskVillaFilter !== 'all') {
+        filters.villa_id = taskVillaFilter;
+      }
+
+      // Task type filter
+      if (taskTypeFilter !== 'all') {
+        filters.task_type = taskTypeFilter;
+      }
+
+      // Status filter
+      if (taskStatusFilter !== 'all') {
+        filters.status = taskStatusFilter;
+      }
+
+      // Priority filter
+      if (taskPriorityFilter !== 'all') {
+        filters.priority = taskPriorityFilter;
+      }
+
+      // Category filter
+      if (taskCategoryFilter !== 'all') {
+        filters.category = taskCategoryFilter;
+      }
+
+      console.log('📡 Calling tasksService.getTasks with filters:', filters);
+      let tasksData = await tasksService.getTasks(userData.id, filters);
+
+      // Apply date filter (client-side for now)
+      if (taskDateFilter !== 'all' && tasksData.length > 0) {
+        const now = new Date();
+        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+        tasksData = tasksData.filter(task => {
+          if (!task.due_date) return taskDateFilter === 'all';
+
+          const dueDate = new Date(task.due_date);
+
+          switch (taskDateFilter) {
+            case 'today':
+              const taskDay = new Date(dueDate.getFullYear(), dueDate.getMonth(), dueDate.getDate());
+              return taskDay.getTime() === today.getTime();
+
+            case 'week':
+              const weekFromNow = new Date(today);
+              weekFromNow.setDate(weekFromNow.getDate() + 7);
+              return dueDate >= today && dueDate <= weekFromNow;
+
+            case 'month':
+              const monthFromNow = new Date(today);
+              monthFromNow.setMonth(monthFromNow.getMonth() + 1);
+              return dueDate >= today && dueDate <= monthFromNow;
+
+            case 'custom':
+              if (taskCustomStartDate && taskCustomEndDate) {
+                const start = new Date(taskCustomStartDate);
+                const end = new Date(taskCustomEndDate);
+                end.setHours(23, 59, 59, 999); // Include full end date
+                return dueDate >= start && dueDate <= end;
+              }
+              return true;
+
+            default:
+              return true;
+          }
+        });
+      }
+
+      console.log('✅ Tasks loaded and filtered:', tasksData.length);
+      setTasks(tasksData);
+
+      // Load stats (always unfiltered for dashboard overview)
+      const stats = await tasksService.getTaskStats(userData.id);
+      setTaskStats(stats);
+
+      console.log('✅ Tasks count:', tasksData.length);
+      console.log('✅ Stats:', stats);
+    } catch (error) {
+      console.error('❌ Error loading tasks:', error);
+    } finally {
+      setLoadingTasks(false);
+    }
+  };
 
   // Load saved report from localStorage when entering Business Reports
   useEffect(() => {
@@ -120,8 +283,13 @@ const Autopilot = ({ onBack }) => {
     other: { count: 0, revenue: 0 }
   });
 
-  // Period selector for Channel Sync section
-  const [selectedChannelPeriod, setSelectedChannelPeriod] = useState('2026');
+  // Channel Sync filters
+  const [channelSyncStartDate, setChannelSyncStartDate] = useState('2026-01-01');
+  const [channelSyncEndDate, setChannelSyncEndDate] = useState('2026-12-31');
+  const [selectedChannel, setSelectedChannel] = useState('all');
+
+  // Detailed bookings for Channel Sync report
+  const [channelBookings, setChannelBookings] = useState([]);
 
   // User properties
   const [userProperties, setUserProperties] = useState([]);
@@ -254,7 +422,7 @@ const Autopilot = ({ onBack }) => {
   // DYNAMIC TENANT ID - Use logged in user's ID
   const TENANT_ID = userData?.id || 'c24393db-d318-4d75-8bbf-0fa240b9c1db'; // Fallback to Jose for backwards compatibility
 
-  // AUTOPILOT MENU - 10 Sections
+  // AUTOPILOT MENU - 11 Sections
   const menuSections = [
     {
       id: 'all-data',
@@ -271,10 +439,10 @@ const Autopilot = ({ onBack }) => {
       badge: null
     },
     {
-      id: 'automated-flows',
-      name: 'Automated Flows',
-      icon: Workflow,
-      description: 'View all system automation workflows',
+      id: 'master-calendar',
+      name: 'Master Calendar',
+      icon: Calendar,
+      description: 'Unified calendar view - Bookings, Tasks & Operations',
       badge: 'New'
     },
     {
@@ -318,6 +486,13 @@ const Autopilot = ({ onBack }) => {
       icon: Mail,
       description: 'Unified inbox',
       badge: '8 new'
+    },
+    {
+      id: 'automated-flows',
+      name: 'Automated Flows',
+      icon: Workflow,
+      description: 'View all system automation workflows',
+      badge: null
     },
     {
       id: 'data-export',
@@ -498,34 +673,59 @@ const Autopilot = ({ onBack }) => {
     }
   };
 
-  // Load channel statistics with better classification
-  const loadChannelStats = async (period = '2026') => {
+  // Load channel statistics with date range and channel filter
+  const loadChannelStats = async (startDate, endDate, channel = 'all') => {
     if (!TENANT_ID) return;
 
     try {
-      // Get date range for filtering
-      let dateFilter = null;
-      if (period !== 'all_time') {
-        dateFilter = getDateRange(period);
-      }
-
-      // Load bookings with optional date filter
+      // Load bookings with date filter
       let bookingsQuery = supabase
         .from('bookings')
         .select('*')
-        .eq('tenant_id', TENANT_ID);
-
-      if (dateFilter) {
-        bookingsQuery = bookingsQuery
-          .gte('check_in', dateFilter.startDate)
-          .lte('check_in', dateFilter.endDate);
-      }
+        .eq('tenant_id', TENANT_ID)
+        .gte('check_in', startDate)
+        .lte('check_in', endDate);
 
       const { data: bookings, error: bookingsError } = await bookingsQuery;
 
       if (bookingsError) {
         console.error('Error loading bookings for channels:', bookingsError);
         return;
+      }
+
+      // Filter out ONLY autopilot system bookings (ical_sync are REAL OTA bookings)
+      let filteredBookings = (bookings || []).filter(booking => {
+        const source = (booking.source || '').toLowerCase().trim();
+        return source !== 'autopilot';
+      });
+
+      // Apply channel filter if not "all"
+      if (channel !== 'all') {
+        filteredBookings = filteredBookings.filter(booking => {
+          const source = (booking.source || '').toLowerCase().trim();
+          const bookingChannel = (booking.channel || '').toLowerCase().trim();
+
+          if (channel === 'airbnb') {
+            // Include direct airbnb bookings OR ical_sync bookings from airbnb
+            return source === 'airbnb' || source === 'air bnb' ||
+                   (source === 'ical_sync' && bookingChannel === 'airbnb');
+          } else if (channel === 'booking.com') {
+            // Include direct booking.com bookings OR ical_sync bookings from booking.com
+            return source === 'booking.com' ||
+                   (source === 'ical_sync' && bookingChannel === 'booking');
+          } else if (channel === 'direct') {
+            return source === 'gita';
+          } else if (channel === 'other') {
+            // Everything that's not airbnb, booking.com, or direct
+            const isAirbnb = source === 'airbnb' || source === 'air bnb' ||
+                            (source === 'ical_sync' && bookingChannel === 'airbnb');
+            const isBooking = source === 'booking.com' ||
+                             (source === 'ical_sync' && bookingChannel === 'booking');
+            const isDirect = source === 'gita';
+            return !isAirbnb && !isBooking && !isDirect;
+          }
+          return true;
+        });
       }
 
       // Calculate channel statistics with better source classification
@@ -536,12 +736,25 @@ const Autopilot = ({ onBack }) => {
         other: { count: 0, revenue: 0 }
       };
 
-      (bookings || []).forEach(booking => {
+      filteredBookings.forEach(booking => {
         const source = (booking.source || '').toLowerCase().trim();
+        const bookingChannel = (booking.channel || '').toLowerCase().trim();
         const price = booking.total_price || 0;
 
-        // Better channel classification - recognize variations
-        if (source === 'airbnb' || source === 'air bnb') {
+        // Channel classification - recognize direct bookings AND ical_sync bookings
+        if (source === 'ical_sync') {
+          // Channel Sync bookings - classify by booking.channel field
+          if (bookingChannel === 'airbnb') {
+            channelData.airbnb.count++;
+            channelData.airbnb.revenue += price;
+          } else if (bookingChannel === 'booking') {
+            channelData.bookingCom.count++;
+            channelData.bookingCom.revenue += price;
+          } else {
+            channelData.other.count++;
+            channelData.other.revenue += price;
+          }
+        } else if (source === 'airbnb' || source === 'air bnb') {
           channelData.airbnb.count++;
           channelData.airbnb.revenue += price;
         } else if (source === 'booking.com') {
@@ -557,7 +770,9 @@ const Autopilot = ({ onBack }) => {
         }
       });
 
+      // Save stats and filtered bookings
       setChannelStats(channelData);
+      setChannelBookings(filteredBookings);
     } catch (error) {
       console.error('Error loading channel stats:', error);
     }
@@ -566,7 +781,7 @@ const Autopilot = ({ onBack }) => {
   // Load data on mount
   useEffect(() => {
     loadRealCounts(selectedAllInfoPeriod);
-    loadChannelStats(selectedChannelPeriod);
+    loadChannelStats(channelSyncStartDate, channelSyncEndDate, selectedChannel);
     fetchTodayMetrics();
     fetchAlerts();
     fetchActions();
@@ -580,12 +795,6 @@ const Autopilot = ({ onBack }) => {
       loadRealCounts(selectedAllInfoPeriod);
     }
   }, [selectedAllInfoPeriod, activeSection]);
-
-  // Reload channel stats when Availability period changes OR when entering availability section
-  useEffect(() => {
-    console.log('Reloading channel stats for period:', selectedChannelPeriod);
-    loadChannelStats(selectedChannelPeriod);
-  }, [selectedChannelPeriod]);
 
   // Helper functions
   const formatCurrency = (amount) => {
@@ -2001,99 +2210,73 @@ const Autopilot = ({ onBack }) => {
             <div className="w-12 hidden md:block"></div>
           </div>
 
-          {/* Info Banner */}
-          <div className="mb-6 bg-gradient-to-r from-blue-500/10 to-blue-600/10 rounded-xl p-4 border-2 border-blue-500/30">
-            <p className="text-blue-300 text-sm font-medium text-center">
-              ℹ️ All channels are automatically synchronized in real time to prevent double bookings.
-            </p>
-          </div>
+          {/* Period and Channel Selector */}
+          <div className="mb-6 bg-[#2a2f3a] rounded-xl p-4 border-2 border-gray-700">
+            <h4 className="text-white font-bold text-base mb-4">📅 Select Period and Channel</h4>
 
-          {/* Period Selector */}
-          <div className="mb-6">
-            <label className="block text-gray-300 text-sm font-medium mb-3 text-center md:text-left">
-              📅 Select Period
-            </label>
-            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-2">
-              <button
-                onClick={() => setSelectedChannelPeriod('2026')}
-                className={`px-4 py-2 rounded-lg font-medium transition-all ${
-                  selectedChannelPeriod === '2026'
-                    ? 'bg-orange-500 text-white'
-                    : 'bg-[#2a2f3a] text-gray-300 hover:bg-[#374151]'
-                }`}
-              >
-                2026
-              </button>
-              <button
-                onClick={() => setSelectedChannelPeriod('2025')}
-                className={`px-4 py-2 rounded-lg font-medium transition-all ${
-                  selectedChannelPeriod === '2025'
-                    ? 'bg-orange-500 text-white'
-                    : 'bg-[#2a2f3a] text-gray-300 hover:bg-[#374151]'
-                }`}
-              >
-                2025
-              </button>
-              <button
-                onClick={() => setSelectedChannelPeriod('q1_2026')}
-                className={`px-4 py-2 rounded-lg font-medium transition-all ${
-                  selectedChannelPeriod === 'q1_2026'
-                    ? 'bg-orange-500 text-white'
-                    : 'bg-[#2a2f3a] text-gray-300 hover:bg-[#374151]'
-                }`}
-              >
-                Q1 2026
-              </button>
-              <button
-                onClick={() => setSelectedChannelPeriod('q2_2026')}
-                className={`px-4 py-2 rounded-lg font-medium transition-all ${
-                  selectedChannelPeriod === 'q2_2026'
-                    ? 'bg-orange-500 text-white'
-                    : 'bg-[#2a2f3a] text-gray-300 hover:bg-[#374151]'
-                }`}
-              >
-                Q2 2026
-              </button>
-              <button
-                onClick={() => setSelectedChannelPeriod('q3_2026')}
-                className={`px-4 py-2 rounded-lg font-medium transition-all ${
-                  selectedChannelPeriod === 'q3_2026'
-                    ? 'bg-orange-500 text-white'
-                    : 'bg-[#2a2f3a] text-gray-300 hover:bg-[#374151]'
-                }`}
-              >
-                Q3 2026
-              </button>
-              <button
-                onClick={() => setSelectedChannelPeriod('q4_2026')}
-                className={`px-4 py-2 rounded-lg font-medium transition-all ${
-                  selectedChannelPeriod === 'q4_2026'
-                    ? 'bg-orange-500 text-white'
-                    : 'bg-[#2a2f3a] text-gray-300 hover:bg-[#374151]'
-                }`}
-              >
-                Q4 2026
-              </button>
-              <button
-                onClick={() => setSelectedChannelPeriod('all_time')}
-                className={`px-4 py-2 rounded-lg font-medium transition-all ${
-                  selectedChannelPeriod === 'all_time'
-                    ? 'bg-orange-500 text-white'
-                    : 'bg-[#2a2f3a] text-gray-300 hover:bg-[#374151]'
-                }`}
-              >
-                All Time
-              </button>
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              {/* Start Date */}
+              <div>
+                <label className="block text-gray-400 text-sm mb-2">Start Date</label>
+                <input
+                  type="date"
+                  value={channelSyncStartDate}
+                  onChange={(e) => setChannelSyncStartDate(e.target.value)}
+                  className="w-full px-3 py-2 bg-[#1f2937] text-white rounded-lg border border-gray-600 focus:border-orange-500 focus:outline-none"
+                />
+              </div>
+
+              {/* End Date */}
+              <div>
+                <label className="block text-gray-400 text-sm mb-2">End Date</label>
+                <input
+                  type="date"
+                  value={channelSyncEndDate}
+                  onChange={(e) => setChannelSyncEndDate(e.target.value)}
+                  className="w-full px-3 py-2 bg-[#1f2937] text-white rounded-lg border border-gray-600 focus:border-orange-500 focus:outline-none"
+                />
+              </div>
+
+              {/* Channel Filter */}
+              <div>
+                <label className="block text-gray-400 text-sm mb-2">Channel</label>
+                <select
+                  value={selectedChannel}
+                  onChange={(e) => setSelectedChannel(e.target.value)}
+                  className="w-full px-3 py-2 bg-[#1f2937] text-white rounded-lg border border-gray-600 focus:border-orange-500 focus:outline-none cursor-pointer"
+                >
+                  <option value="all">All Channels</option>
+                  <option value="airbnb">Airbnb</option>
+                  <option value="booking.com">Booking.com</option>
+                  <option value="direct">Direct (Gita)</option>
+                  <option value="other">Other Sources</option>
+                </select>
+              </div>
+
+              {/* Apply Button */}
+              <div className="flex items-end">
+                <button
+                  onClick={() => loadChannelStats(channelSyncStartDate, channelSyncEndDate, selectedChannel)}
+                  className="w-full px-6 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg font-bold transition-all flex items-center justify-center gap-2"
+                >
+                  <Zap className="w-4 h-4" />
+                  Apply Filter
+                </button>
+              </div>
             </div>
-            <p className="text-gray-400 text-sm mt-2 text-center md:text-left">
-              Viewing: {getPeriodLabel(selectedChannelPeriod)}
-            </p>
           </div>
 
           {/* Period Summary */}
           <div className="mb-6 bg-gradient-to-br from-orange-500/20 to-orange-600/20 rounded-xl p-4 md:p-6 border-2 border-orange-500/50">
             <h4 className="text-white font-bold text-base md:text-lg mb-2 flex items-center gap-2">
-              📊 Period Summary - {getPeriodLabel(selectedChannelPeriod)}
+              📊 Period Summary - {channelSyncStartDate} to {channelSyncEndDate}
+              {selectedChannel !== 'all' && (
+                <span className="text-sm text-orange-300">
+                  ({selectedChannel === 'airbnb' ? 'Airbnb' :
+                    selectedChannel === 'booking.com' ? 'Booking.com' :
+                    selectedChannel === 'direct' ? 'Direct' : 'Other'})
+                </span>
+              )}
             </h4>
             <p className="text-gray-300 text-xs mb-3 md:mb-4">
               Revenue and bookings are automatically consolidated across all connected sources.
@@ -2134,184 +2317,255 @@ const Autopilot = ({ onBack }) => {
           </div>
 
           {/* Connected Channels */}
-          <div className="mb-6">
-            <h4 className="text-white font-bold text-lg mb-2">Connected Channels</h4>
-            <p className="text-gray-400 text-sm mb-4">
-              This view shows booking volume and revenue distribution across all active channels for the selected period.
-            </p>
+          <div className="mb-4">
+            <h4 className="text-white font-bold text-lg">Connected Channels</h4>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
           <div className="bg-gradient-to-br from-pink-500/10 to-pink-600/10 rounded-xl p-5 border-2 border-pink-500/30">
-            <div className="flex items-center justify-between mb-3">
+            <div className="mb-3">
               <img src="https://upload.wikimedia.org/wikipedia/commons/6/69/Airbnb_Logo_B%C3%A9lo.svg" alt="Airbnb" className="h-6" />
-              <span className="px-3 py-1 bg-green-500 text-white text-xs font-bold rounded-full">
-                Connected
-              </span>
             </div>
-            <p className="text-gray-300 text-sm">
-              {channelStats.airbnb.count} bookings • {formatCurrency(channelStats.airbnb.revenue)}
+            <p className="text-gray-300 text-sm mb-1">
+              {channelStats.airbnb.count} bookings
+            </p>
+            <p className="text-white text-lg font-bold">
+              {formatCurrency(channelStats.airbnb.revenue)}
             </p>
           </div>
 
           <div className="bg-gradient-to-br from-blue-500/10 to-blue-600/10 rounded-xl p-5 border-2 border-blue-500/30">
-            <div className="flex items-center justify-between mb-3">
+            <div className="mb-3">
               <span className="text-blue-400 font-bold text-lg">Booking.com</span>
-              <span className="px-3 py-1 bg-green-500 text-white text-xs font-bold rounded-full">
-                Connected
-              </span>
             </div>
-            <p className="text-gray-300 text-sm">
-              {channelStats.bookingCom.count} bookings • {formatCurrency(channelStats.bookingCom.revenue)}
+            <p className="text-gray-300 text-sm mb-1">
+              {channelStats.bookingCom.count} bookings
+            </p>
+            <p className="text-white text-lg font-bold">
+              {formatCurrency(channelStats.bookingCom.revenue)}
             </p>
           </div>
 
           <div className="bg-gradient-to-br from-orange-500/10 to-orange-600/10 rounded-xl p-5 border-2 border-orange-500/30">
-            <div className="flex items-center justify-between mb-3">
+            <div className="mb-3">
               <span className="text-orange-400 font-bold text-lg">Direct (Gita)</span>
-              <span className="px-3 py-1 bg-blue-500 text-white text-xs font-bold rounded-full">
-                Active
-              </span>
             </div>
-            <p className="text-gray-300 text-sm">
-              {channelStats.direct.count} bookings • {formatCurrency(channelStats.direct.revenue)}
+            <p className="text-gray-300 text-sm mb-1">
+              {channelStats.direct.count} bookings
+            </p>
+            <p className="text-white text-lg font-bold">
+              {formatCurrency(channelStats.direct.revenue)}
             </p>
           </div>
 
           <div className="bg-gradient-to-br from-purple-500/10 to-purple-600/10 rounded-xl p-5 border-2 border-purple-500/30">
-            <div className="flex items-center justify-between mb-3">
+            <div className="mb-3">
               <span className="text-purple-400 font-bold text-lg">Other Sources</span>
-              <span className="px-3 py-1 bg-blue-500 text-white text-xs font-bold rounded-full">
-                Active
-              </span>
             </div>
-            <p className="text-gray-300 text-sm">
-              {channelStats.other.count} bookings • {formatCurrency(channelStats.other.revenue)}
+            <p className="text-gray-300 text-sm mb-1">
+              {channelStats.other.count} bookings
             </p>
-            <p className="text-gray-500 text-xs mt-1">
+            <p className="text-white text-lg font-bold">
+              {formatCurrency(channelStats.other.revenue)}
+            </p>
+            <p className="text-gray-500 text-xs mt-2">
               Bali Buntu, Ibu Santi, Domus, etc.
             </p>
           </div>
         </div>
 
-        {/* Automation Status */}
-        <div className="mb-6 bg-gradient-to-br from-green-500/10 to-green-600/10 rounded-xl p-5 border-2 border-green-500/30">
-          <h4 className="text-green-400 font-bold text-lg mb-4 flex items-center gap-2">
-            <Zap className="w-5 h-5" />
-            Automation Status
-          </h4>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="flex items-center justify-between">
-              <span className="text-gray-300 text-sm">Availability Sync</span>
-              <span className="px-3 py-1 bg-green-500 text-white text-xs font-bold rounded-full flex items-center gap-1">
-                <CheckCircle className="w-3 h-3" />
-                Active
-              </span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-gray-300 text-sm">Booking Import</span>
-              <span className="px-3 py-1 bg-green-500 text-white text-xs font-bold rounded-full flex items-center gap-1">
-                <CheckCircle className="w-3 h-3" />
-                Active
-              </span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-gray-300 text-sm">Conflict Detection</span>
-              <span className="px-3 py-1 bg-green-500 text-white text-xs font-bold rounded-full flex items-center gap-1">
-                <CheckCircle className="w-3 h-3" />
-                Active
-              </span>
+        {/* Detailed Bookings Report by Channel */}
+        {channelBookings.length > 0 && (
+          <div className="mt-6">
+            <h4 className="text-white font-bold text-lg mb-4">
+              📊 Detailed Report - {channelSyncStartDate} to {channelSyncEndDate}
+              {selectedChannel !== 'all' && (
+                <span className="text-sm text-orange-400 ml-2">
+                  ({selectedChannel === 'airbnb' ? 'Airbnb' :
+                    selectedChannel === 'booking.com' ? 'Booking.com' :
+                    selectedChannel === 'direct' ? 'Direct' : 'Other'})
+                </span>
+              )}
+            </h4>
+
+            <div className="bg-[#2a2f3a] rounded-xl overflow-hidden border-2 border-gray-200">
+              <div className="overflow-x-auto">
+                <table className="w-full table-fixed">
+                  <thead className="bg-orange-500">
+                    <tr>
+                      <th className="w-[20%] px-4 py-3 text-left text-white font-bold">Guest</th>
+                      <th className="w-[15%] px-4 py-3 text-left text-white font-bold">Channel</th>
+                      <th className="w-[13%] px-4 py-3 text-left text-white font-bold">Check-in</th>
+                      <th className="w-[13%] px-4 py-3 text-left text-white font-bold">Check-out</th>
+                      <th className="w-[10%] px-4 py-3 text-center text-white font-bold">Nights</th>
+                      <th className="w-[14%] px-4 py-3 text-right text-white font-bold">Price</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(() => {
+                      // Group bookings by channel
+                      const groupedByChannel = channelBookings.reduce((groups, booking) => {
+                        const source = (booking.source || 'other').toLowerCase().trim();
+                        const bookingChannel = (booking.channel || '').toLowerCase().trim();
+                        let channel;
+
+                        // Classify by channel - handle ical_sync bookings
+                        if (source === 'ical_sync') {
+                          // Channel Sync bookings - use booking.channel field
+                          if (bookingChannel === 'airbnb') channel = 'airbnb';
+                          else if (bookingChannel === 'booking') channel = 'booking.com';
+                          else channel = 'other';
+                        } else if (source === 'airbnb' || source === 'air bnb') {
+                          channel = 'airbnb';
+                        } else if (source === 'booking.com') {
+                          channel = 'booking.com';
+                        } else if (source === 'gita') {
+                          channel = 'direct';
+                        } else {
+                          channel = 'other';
+                        }
+
+                        if (!groups[channel]) groups[channel] = [];
+                        groups[channel].push(booking);
+                        return groups;
+                      }, {});
+
+                      // Order channels: airbnb, booking.com, direct, other
+                      const channelOrder = ['airbnb', 'booking.com', 'direct', 'other'];
+                      const channelIcons = {
+                        'airbnb': '🏠',
+                        'booking.com': '💼',
+                        'direct': '🏡',
+                        'other': '📱'
+                      };
+                      const channelNames = {
+                        'airbnb': 'AIRBNB',
+                        'booking.com': 'BOOKING.COM',
+                        'direct': 'DIRECT (GITA)',
+                        'other': 'OTHER SOURCES'
+                      };
+
+                      let rows = [];
+                      let rowIndex = 0;
+
+                      channelOrder.forEach(channel => {
+                        const bookings = groupedByChannel[channel] || [];
+                        if (bookings.length === 0) return;
+
+                        // Channel header row
+                        rows.push(
+                          <tr key={`header-${channel}`} className="bg-gray-800">
+                            <td colSpan="6" className="px-4 py-2 text-left">
+                              <span className="text-orange-400 font-bold text-sm">
+                                {channelIcons[channel]} {channelNames[channel]}
+                              </span>
+                            </td>
+                          </tr>
+                        );
+
+                        // Booking rows
+                        bookings.forEach(booking => {
+                          const checkIn = booking.check_in ? new Date(booking.check_in) : null;
+                          const checkOut = booking.check_out ? new Date(booking.check_out) : null;
+                          const nights = checkIn && checkOut
+                            ? Math.ceil((checkOut - checkIn) / (1000 * 60 * 60 * 24))
+                            : 0;
+
+                          rows.push(
+                            <tr
+                              key={`booking-${booking.id}`}
+                              className={`border-b border-gray-700 ${rowIndex % 2 === 0 ? 'bg-[#2a2f3a]' : 'bg-[#1f2937]'} hover:bg-[#374151] transition-colors`}
+                            >
+                              <td className="px-4 py-3 text-gray-300 text-sm">
+                                {(() => {
+                                  const source = (booking.source || '').toLowerCase();
+                                  const bookingChannel = (booking.channel || '').toLowerCase();
+
+                                  // Si es Channel Sync, mostrar claramente el nombre del channel
+                                  if (source === 'ical_sync') {
+                                    if (bookingChannel === 'airbnb') return 'Airbnb direct';
+                                    if (bookingChannel === 'booking') return 'Booking.com direct';
+                                    if (bookingChannel === 'agoda') return 'Agoda direct';
+                                    if (bookingChannel === 'traveloka') return 'Traveloka direct';
+                                    return (bookingChannel ? bookingChannel.charAt(0).toUpperCase() + bookingChannel.slice(1) + ' direct' : 'Channel direct');
+                                  }
+                                  // Si no, mostrar nombre del huésped
+                                  return booking.guest_name || 'N/A';
+                                })()}
+                              </td>
+                              <td className="px-4 py-3 text-gray-400 text-xs">
+                                {(() => {
+                                  const source = (booking.source || '').toLowerCase();
+                                  const bookingChannel = (booking.channel || '').toLowerCase();
+
+                                  // Show friendly channel name
+                                  if (source === 'ical_sync') {
+                                    if (bookingChannel === 'airbnb') return 'Airbnb';
+                                    if (bookingChannel === 'booking') return 'Booking.com';
+                                    if (bookingChannel === 'agoda') return 'Agoda';
+                                    if (bookingChannel === 'traveloka') return 'Traveloka';
+                                    return bookingChannel || 'Channel Sync';
+                                  }
+                                  return booking.source || 'N/A';
+                                })()}
+                              </td>
+                              <td className="px-4 py-3 text-gray-300 text-sm whitespace-nowrap">
+                                {checkIn ? checkIn.toLocaleDateString('en-GB') : 'N/A'}
+                              </td>
+                              <td className="px-4 py-3 text-gray-300 text-sm whitespace-nowrap">
+                                {checkOut ? checkOut.toLocaleDateString('en-GB') : 'N/A'}
+                              </td>
+                              <td className="px-4 py-3 text-white text-sm text-center">
+                                {nights}
+                              </td>
+                              <td className="px-4 py-3 text-white text-sm text-right whitespace-nowrap">
+                                {(() => {
+                                  const source = (booking.source || '').toLowerCase();
+                                  const price = booking.total_price || 0;
+
+                                  // Si es iCal sync y precio es 0, no mostrar $0
+                                  if (source === 'ical_sync' && price === 0) {
+                                    return <span className="text-gray-500 italic text-xs">N/A</span>;
+                                  }
+
+                                  return formatCurrency(price);
+                                })()}
+                              </td>
+                            </tr>
+                          );
+                          rowIndex++;
+                        });
+
+                        // Subtotal row
+                        const subtotalRevenue = bookings.reduce((sum, b) => sum + (b.total_price || 0), 0);
+                        rows.push(
+                          <tr key={`subtotal-${channel}`} className="bg-gray-900 border-t-2 border-orange-500/50">
+                            <td colSpan="6" className="px-4 py-2 text-center text-orange-400 font-bold text-sm">
+                              SUBTOTAL {channelNames[channel]}: {bookings.length} bookings • {formatCurrency(subtotalRevenue)}
+                            </td>
+                          </tr>
+                        );
+                      });
+
+                      // Grand total row
+                      const totalBookings = channelBookings.length;
+                      const totalRevenue = channelBookings.reduce((sum, b) => sum + (b.total_price || 0), 0);
+                      rows.push(
+                        <tr key="grand-total" className="bg-orange-500">
+                          <td colSpan="6" className="px-4 py-3 text-center text-white font-black text-base">
+                            TOTAL GENERAL: {totalBookings} bookings • {formatCurrency(totalRevenue)}
+                          </td>
+                        </tr>
+                      );
+
+                      return rows;
+                    })()}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
-          <div className="mt-4 pt-4 border-t border-green-500/20">
-            <p className="text-gray-400 text-xs">
-              ℹ️ When a booking is received from any channel, availability is instantly updated across all platforms to ensure full calendar accuracy.
-            </p>
-          </div>
-        </div>
-
-        <div className="bg-[#2a2f3a] rounded-xl p-6 border-2 border-gray-700">
-          <h4 className="text-white font-bold text-lg mb-4 flex items-center gap-2">
-            <Calendar className="w-5 h-5" />
-            Multi-Channel Availability Calendar
-          </h4>
-          <p className="text-gray-400 text-sm mb-6">
-            Real-time synchronized calendar showing bookings from all connected channels
-          </p>
-
-          {/* Mini Calendar Preview - February 2026 */}
-          <div className="bg-[#1f2937] rounded-lg p-4 border border-gray-700">
-            <div className="flex items-center justify-between mb-4">
-              <h5 className="text-orange-400 font-bold">February 2026</h5>
-              <div className="flex gap-2">
-                <span className="text-xs px-2 py-1 bg-pink-500/20 text-pink-400 rounded">Airbnb</span>
-                <span className="text-xs px-2 py-1 bg-blue-500/20 text-blue-400 rounded">Booking.com</span>
-                <span className="text-xs px-2 py-1 bg-orange-500/20 text-orange-400 rounded">Direct</span>
-              </div>
-            </div>
-
-            {/* Calendar Grid */}
-            <div className="grid grid-cols-7 gap-1 text-center text-xs">
-              {/* Header */}
-              {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
-                <div key={day} className="text-gray-500 font-bold py-2">{day}</div>
-              ))}
-
-              {/* Days */}
-              {Array.from({length: 29}, (_, i) => {
-                const day = i + 1;
-                const isBooked = [3,4,5,10,11,12,18,19,20,25,26,27].includes(day);
-                const isCheckIn = [3,10,18,25].includes(day);
-                const channel = day <= 5 ? 'airbnb' : day <= 12 ? 'booking' : day <= 20 ? 'direct' : 'airbnb';
-
-                return (
-                  <div
-                    key={day}
-                    className={`aspect-square flex items-center justify-center rounded ${
-                      isBooked
-                        ? channel === 'airbnb' ? 'bg-pink-500/30 text-pink-200 font-bold' :
-                          channel === 'booking' ? 'bg-blue-500/30 text-blue-200 font-bold' :
-                          'bg-orange-500/30 text-orange-200 font-bold'
-                        : 'bg-gray-700/30 text-gray-400 hover:bg-gray-700/50 cursor-pointer'
-                    } ${isCheckIn ? 'border-2 border-green-400' : ''}`}
-                  >
-                    {day}
-                  </div>
-                );
-              })}
-            </div>
-
-            {/* Legend */}
-            <div className="mt-4 pt-4 border-t border-gray-700 flex flex-wrap gap-3 text-xs">
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 rounded bg-gray-700/30"></div>
-                <span className="text-gray-400">Available</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 rounded bg-pink-500/30"></div>
-                <span className="text-gray-400">Airbnb Booking</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 rounded bg-blue-500/30"></div>
-                <span className="text-gray-400">Booking.com</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 rounded bg-orange-500/30"></div>
-                <span className="text-gray-400">Direct Booking</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 rounded border-2 border-green-400"></div>
-                <span className="text-gray-400">Check-in Day</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="mt-4 text-center">
-            <button className="px-6 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg font-medium transition-all">
-              Open Full Calendar
-            </button>
-          </div>
-        </div>
+        )}
       </div>
     </div>
   );
@@ -2704,6 +2958,314 @@ const Autopilot = ({ onBack }) => {
     </div>
   );
 
+  // Notification Toast Component
+  const NotificationToast = ({ notification, onClose }) => {
+    useEffect(() => {
+      if (notification) {
+        const timer = setTimeout(onClose, 3000); // Auto-close after 3 seconds
+        return () => clearTimeout(timer);
+      }
+    }, [notification, onClose]);
+
+    if (!notification) return null;
+
+    const bgColor = notification.type === 'success' ? 'bg-green-500' : 'bg-red-500';
+    const Icon = notification.type === 'success' ? CheckCircle2 : AlertCircle;
+
+    return (
+      <div className="fixed top-4 right-4 z-[9999] animate-slide-in">
+        <div className={`${bgColor} text-white px-6 py-4 rounded-lg shadow-2xl flex items-center gap-3 min-w-[300px]`}>
+          <Icon className="w-6 h-6 flex-shrink-0" />
+          <p className="flex-1 font-medium">{notification.message}</p>
+          <button onClick={onClose} className="p-1 hover:bg-white/20 rounded transition-colors">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+      </div>
+    );
+  };
+
+  // Confirmation Dialog Component
+  const ConfirmDialog = ({ dialog, onClose }) => {
+    if (!dialog) return null;
+
+    return (
+      <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+        <div className="bg-[#1f2937] rounded-2xl w-full max-w-md border-2 border-orange-500/30 shadow-2xl">
+          <div className="p-6">
+            <div className="flex items-start gap-4">
+              <div className="p-3 bg-orange-500/20 rounded-full">
+                <AlertCircle className="w-6 h-6 text-orange-400" />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-xl font-bold text-white mb-2">Confirmar Acción</h3>
+                <p className="text-gray-300">{dialog.message}</p>
+              </div>
+            </div>
+          </div>
+          <div className="flex gap-3 p-6 pt-0">
+            <button
+              onClick={onClose}
+              className="flex-1 px-4 py-3 bg-gray-700 hover:bg-gray-600 text-white rounded-lg font-bold transition-all"
+            >
+              Cancelar
+            </button>
+            <button
+              onClick={() => {
+                dialog.onConfirm();
+                onClose();
+              }}
+              className="flex-1 px-4 py-3 bg-red-500 hover:bg-red-600 text-white rounded-lg font-bold transition-all"
+            >
+              Eliminar
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // Task Modal Component (Create/Edit)
+  const TaskModal = ({ task, onClose, onSave }) => {
+    const [formData, setFormData] = useState({
+      title: task?.title || '',
+      description: task?.description || '',
+      task_type: task?.task_type || 'cleaning',
+      category: task?.category || 'housekeeping',
+      priority: task?.priority || 'medium',
+      status: task?.status || 'open',
+      assignee: task?.assignee || '',
+      due_date: task?.due_date ? task.due_date.split('T')[0] + 'T' + task.due_date.split('T')[1].substring(0,5) : '',
+      villaId: task?.villa_id || null,
+      notes: task?.notes || ''
+    });
+
+    const [villas, setVillas] = useState([]);
+
+    useEffect(() => {
+      // Load villas for dropdown - Filter only user's villas
+      const loadVillas = async () => {
+        try {
+          const allVillas = await dataService.getVillas();
+          // Filter only Gita's villas (Nismara and Graha Uma)
+          const userVillas = allVillas.filter(villa =>
+            villa.name.toUpperCase().includes('NISMARA') || villa.name.toUpperCase().includes('GRAHA UMA')
+          );
+          setVillas(userVillas);
+        } catch (error) {
+          console.error('Error loading villas:', error);
+        }
+      };
+      loadVillas();
+    }, []);
+
+    const handleSubmit = (e) => {
+      e.preventDefault();
+      // Convert snake_case to camelCase for the service
+      const taskDataForService = {
+        title: formData.title,
+        description: formData.description,
+        taskType: formData.task_type,  // Convert to camelCase
+        category: formData.category,
+        priority: formData.priority,
+        status: formData.status,
+        assignee: formData.assignee,
+        dueDate: formData.due_date,    // Convert to camelCase
+        villaId: formData.villaId,
+        notes: formData.notes
+      };
+      onSave(taskDataForService);
+    };
+
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-2 md:p-4">
+        <div className="bg-[#1f2937] rounded-2xl w-[98%] sm:w-[90%] md:w-full max-w-2xl max-h-[92vh] md:max-h-[90vh] overflow-y-auto border-2 border-orange-500/30">
+          {/* Header */}
+          <div className="flex items-center justify-between p-4 md:p-6 border-b border-gray-700">
+            <h3 className="text-xl md:text-2xl font-bold text-[#FF8C42]">
+              {task ? 'Edit Task' : 'Create New Task'}
+            </h3>
+            <button
+              onClick={onClose}
+              className="p-2 hover:bg-gray-700 rounded-lg transition-colors"
+            >
+              <X className="w-6 h-6 text-gray-400" />
+            </button>
+          </div>
+
+          {/* Form */}
+          <form onSubmit={handleSubmit} className="p-4 md:p-6 space-y-4">
+            {/* Title */}
+            <div>
+              <label className="block text-white font-bold mb-2">Title *</label>
+              <input
+                type="text"
+                required
+                value={formData.title}
+                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                className="w-full px-4 py-2 bg-[#2a2f3a] text-white rounded-lg border-2 border-gray-700 focus:border-orange-500 outline-none"
+                placeholder="e.g., Deep cleaning Villa 1"
+              />
+            </div>
+
+            {/* Description */}
+            <div>
+              <label className="block text-white font-bold mb-2">Description</label>
+              <textarea
+                value={formData.description}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                rows={3}
+                className="w-full px-4 py-2 bg-[#2a2f3a] text-white rounded-lg border-2 border-gray-700 focus:border-orange-500 outline-none"
+                placeholder="Task details..."
+              />
+            </div>
+
+            {/* Row 1: Task Type, Category */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-white font-bold mb-2">Task Type *</label>
+                <select
+                  required
+                  value={formData.task_type}
+                  onChange={(e) => setFormData({ ...formData, task_type: e.target.value })}
+                  className="w-full px-4 py-2 bg-[#2a2f3a] text-white rounded-lg border-2 border-gray-700 focus:border-orange-500 outline-none"
+                >
+                  <option value="cleaning">Cleaning</option>
+                  <option value="deep_cleaning">Deep Cleaning</option>
+                  <option value="maintenance">Maintenance</option>
+                  <option value="repair">Repair</option>
+                  <option value="inspection">Inspection</option>
+                  <option value="restocking">Restocking</option>
+                  <option value="guest_request">Guest Request</option>
+                  <option value="other">Other</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-white font-bold mb-2">Category *</label>
+                <select
+                  required
+                  value={formData.category}
+                  onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                  className="w-full px-4 py-2 bg-[#2a2f3a] text-white rounded-lg border-2 border-gray-700 focus:border-orange-500 outline-none"
+                >
+                  <option value="housekeeping">Housekeeping</option>
+                  <option value="engineering">Engineering</option>
+                  <option value="outdoor">Outdoor</option>
+                  <option value="guest_request">Guest Request</option>
+                  <option value="operations">Operations</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Row 2: Priority, Status */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-white font-bold mb-2">Priority *</label>
+                <select
+                  required
+                  value={formData.priority}
+                  onChange={(e) => setFormData({ ...formData, priority: e.target.value })}
+                  className="w-full px-4 py-2 bg-[#2a2f3a] text-white rounded-lg border-2 border-gray-700 focus:border-orange-500 outline-none"
+                >
+                  <option value="low">Low</option>
+                  <option value="medium">Medium</option>
+                  <option value="high">High</option>
+                  <option value="urgent">Urgent</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-white font-bold mb-2">Status *</label>
+                <select
+                  required
+                  value={formData.status}
+                  onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                  className="w-full px-4 py-2 bg-[#2a2f3a] text-white rounded-lg border-2 border-gray-700 focus:border-orange-500 outline-none"
+                >
+                  <option value="open">Open</option>
+                  <option value="assigned">Assigned</option>
+                  <option value="in_progress">In Progress</option>
+                  <option value="completed">Completed</option>
+                  <option value="cancelled">Cancelled</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Row 3: Villa, Assignee */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-white font-bold mb-2">Villa</label>
+                <select
+                  value={formData.villaId || ''}
+                  onChange={(e) => setFormData({ ...formData, villaId: e.target.value || null })}
+                  className="w-full px-4 py-2 bg-[#2a2f3a] text-white rounded-lg border-2 border-gray-700 focus:border-orange-500 outline-none"
+                >
+                  <option value="">No villa (general task)</option>
+                  {villas.map(villa => (
+                    <option key={villa.id} value={villa.id}>{villa.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-white font-bold mb-2">Assignee</label>
+                <input
+                  type="text"
+                  value={formData.assignee}
+                  onChange={(e) => setFormData({ ...formData, assignee: e.target.value })}
+                  className="w-full px-4 py-2 bg-[#2a2f3a] text-white rounded-lg border-2 border-gray-700 focus:border-orange-500 outline-none"
+                  placeholder="Staff name"
+                />
+              </div>
+            </div>
+
+            {/* Due Date */}
+            <div>
+              <label className="block text-white font-bold mb-2">Due Date</label>
+              <input
+                type="datetime-local"
+                value={formData.due_date}
+                onChange={(e) => setFormData({ ...formData, due_date: e.target.value })}
+                className="w-full px-4 py-2 bg-[#2a2f3a] text-white rounded-lg border-2 border-gray-700 focus:border-orange-500 outline-none"
+              />
+            </div>
+
+            {/* Notes */}
+            <div>
+              <label className="block text-white font-bold mb-2">Notes</label>
+              <textarea
+                value={formData.notes}
+                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                rows={2}
+                className="w-full px-4 py-2 bg-[#2a2f3a] text-white rounded-lg border-2 border-gray-700 focus:border-orange-500 outline-none"
+                placeholder="Additional notes..."
+              />
+            </div>
+
+            {/* Buttons */}
+            <div className="flex gap-3 pt-4">
+              <button
+                type="submit"
+                className="flex-1 px-6 py-3 bg-orange-500 hover:bg-orange-600 text-white rounded-lg font-bold transition-all flex items-center justify-center gap-2"
+              >
+                <Save className="w-5 h-5" />
+                {task ? 'Update Task' : 'Create Task'}
+              </button>
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-6 py-3 bg-gray-700 hover:bg-gray-600 text-white rounded-lg font-bold transition-all"
+              >
+                Cancel
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    );
+  };
+
   const renderTasksSection = () => (
     <div className="space-y-6">
       <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-3xl p-6 shadow-2xl border-2 border-[#d85a2a]/20">
@@ -2722,20 +3284,48 @@ const Autopilot = ({ onBack }) => {
             <p className="text-gray-400 text-sm mt-1">Automated operational management</p>
           </div>
           <div className="flex gap-2">
-            <button className="px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg font-bold transition-all flex items-center gap-2">
-              <Plus className="w-4 h-4" />
-              New Task
+            <button
+              onClick={() => {
+                setSelectedTask(null); // null = create mode
+                setShowTaskModal(true);
+              }}
+              className="px-2 py-1.5 md:px-4 md:py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg font-bold transition-all flex items-center gap-1 md:gap-2 text-xs md:text-base"
+            >
+              <Plus className="w-3 h-3 md:w-4 md:h-4" />
+              {tasksActiveTab === 'tasks' ? 'New Task' : 'New Issue'}
             </button>
           </div>
         </div>
 
-        {/* Summary Text */}
-        <div className="bg-blue-500/10 border-2 border-blue-500/30 rounded-xl p-4 mb-6">
-          <p className="text-blue-200 text-sm">
-            This section displays maintenance tasks and operational activities for your properties.
-            Tasks are created automatically based on booking events and property schedules, or manually by your team.
-          </p>
+        {/* Tabs Navigation */}
+        <div className="flex gap-2 mb-6 border-b-2 border-gray-700">
+          <button
+            onClick={() => setTasksActiveTab('tasks')}
+            className={`flex items-center gap-2 px-6 py-3 font-bold transition-all ${
+              tasksActiveTab === 'tasks'
+                ? 'text-[#FF8C42] border-b-4 border-orange-500'
+                : 'text-gray-400 hover:text-gray-200'
+            }`}
+          >
+            <CheckCircle className="w-5 h-5" />
+            Tasks
+          </button>
+          <button
+            onClick={() => setTasksActiveTab('issues')}
+            className={`flex items-center gap-2 px-6 py-3 font-bold transition-all ${
+              tasksActiveTab === 'issues'
+                ? 'text-[#FF8C42] border-b-4 border-orange-500'
+                : 'text-gray-400 hover:text-gray-200'
+            }`}
+          >
+            <AlertCircle className="w-5 h-5" />
+            Guest Issues
+          </button>
         </div>
+
+        {/* Tasks Tab Content */}
+        {tasksActiveTab === 'tasks' && (
+          <>
 
         {/* Task Overview */}
         <div className="mb-6">
@@ -2746,95 +3336,606 @@ const Autopilot = ({ onBack }) => {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div className="bg-gradient-to-br from-yellow-500/10 to-yellow-600/10 rounded-xl p-5 border-2 border-yellow-500/30">
               <p className="text-yellow-300 text-sm font-medium mb-2">Open Tasks</p>
-              <p className="text-3xl font-black text-white">5</p>
+              <p className="text-3xl font-black text-white">{loadingTasks ? '...' : taskStats.open}</p>
             </div>
 
             <div className="bg-gradient-to-br from-blue-500/10 to-blue-600/10 rounded-xl p-5 border-2 border-blue-500/30">
               <p className="text-blue-300 text-sm font-medium mb-2">In Progress</p>
-              <p className="text-3xl font-black text-white">2</p>
+              <p className="text-3xl font-black text-white">{loadingTasks ? '...' : taskStats.inProgress}</p>
             </div>
 
             <div className="bg-gradient-to-br from-green-500/10 to-green-600/10 rounded-xl p-5 border-2 border-green-500/30">
               <p className="text-green-300 text-sm font-medium mb-2">Completed Today</p>
-              <p className="text-3xl font-black text-white">3</p>
+              <p className="text-3xl font-black text-white">{loadingTasks ? '...' : taskStats.completedToday}</p>
             </div>
 
             <div className="bg-gradient-to-br from-red-500/10 to-red-600/10 rounded-xl p-5 border-2 border-red-500/30">
               <p className="text-red-300 text-sm font-medium mb-2">Overdue</p>
-              <p className="text-3xl font-black text-white">1</p>
+              <p className="text-3xl font-black text-white">{loadingTasks ? '...' : taskStats.overdue}</p>
             </div>
           </div>
         </div>
 
-        {/* Automatic Task Creation */}
+        {/* Automatic Task Creation - Collapsible */}
         <div className="bg-[#2a2f3a] rounded-xl p-6 border-2 border-gray-700 mb-6">
-          <h4 className="text-white font-bold text-lg mb-4 flex items-center gap-2">
-            <Zap className="w-5 h-5 text-orange-400" />
-            Automatic Task Creation
-          </h4>
-          <p className="text-gray-400 text-sm mb-4">
-            Tasks are automatically generated based on the following triggers:
-          </p>
-          <div className="space-y-2">
-            {[
-              '✅ After booking confirmation → Cleaning & preparation tasks',
-              '✅ After checkout → Deep cleaning & inspection tasks',
-              '✅ Scheduled maintenance → Recurring tasks (pool, garden, AC)',
-              '✅ Guest requests → Custom tasks assigned to staff',
-              '✅ Inventory alerts → Restocking tasks'
-            ].map((trigger, i) => (
-              <div key={i} className="bg-[#1f2937] rounded-lg p-3 border border-gray-700">
-                <p className="text-gray-300 text-sm">{trigger}</p>
+          <button
+            onClick={() => setShowAutoTaskInfo(!showAutoTaskInfo)}
+            className="w-full flex items-center justify-between text-white font-bold text-lg hover:text-orange-400 transition-colors"
+          >
+            <div className="flex items-center gap-2">
+              <Zap className="w-5 h-5 text-orange-400" />
+              Automatic Task Creation
+            </div>
+            <ChevronDown className={`w-5 h-5 transition-transform ${showAutoTaskInfo ? 'rotate-180' : ''}`} />
+          </button>
+
+          {showAutoTaskInfo && (
+            <>
+              <p className="text-gray-400 text-sm mb-4 mt-4">
+                Tasks are automatically generated based on the following triggers:
+              </p>
+              <div className="space-y-2">
+                {[
+                  '✅ After booking confirmation → Cleaning & preparation tasks',
+                  '✅ After checkout → Deep cleaning & inspection tasks',
+                  '✅ Scheduled maintenance → Recurring tasks (pool, garden, AC)',
+                  '✅ Guest requests → Custom tasks assigned to staff',
+                  '✅ Inventory alerts → Restocking tasks'
+                ].map((trigger, i) => (
+                  <div key={i} className="bg-[#1f2937] rounded-lg p-3 border border-gray-700">
+                    <p className="text-gray-300 text-sm">{trigger}</p>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
+            </>
+          )}
         </div>
 
-        {/* Sample Tasks */}
+        {/* Real Tasks from Supabase */}
         <div className="space-y-3">
-          <h4 className="text-white font-bold text-lg mb-4 flex items-center gap-2">
+          {/* Title */}
+          <h4 className="text-white font-bold text-lg flex items-center gap-2 mb-3">
             <List className="w-5 h-5 text-orange-400" />
-            Current Tasks
+            Current Tasks ({loadingTasks ? '...' : tasks.length})
           </h4>
-          {[
-            { task: 'Deep cleaning Villa 1', type: 'Cleaning', assignee: 'Maria Santos', due: 'Feb 16, 2PM', status: 'in_progress', priority: 'high' },
-            { task: 'Pool maintenance Villa 2', type: 'Maintenance', assignee: 'Ketut Ngurah', due: 'Feb 16, 4PM', status: 'open', priority: 'medium' },
-            { task: 'Linen inventory check', type: 'Inventory', assignee: 'Wayan Sari', due: 'Feb 17, 10AM', status: 'open', priority: 'low' },
-            { task: 'AC service Villa 3', type: 'Maintenance', assignee: 'Putu Agung', due: 'Feb 15, 5PM', status: 'overdue', priority: 'urgent' },
-            { task: 'Welcome basket preparation', type: 'Guest Services', assignee: 'Kadek Ayu', due: 'Feb 16, 11AM', status: 'in_progress', priority: 'high' }
-          ].map((task, i) => (
-            <div key={i} className="bg-[#2a2f3a] rounded-lg p-4 border-2 border-gray-700 hover:border-orange-500/50 transition-all">
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex-1">
-                  <h4 className="text-white font-bold">{task.task}</h4>
-                  <p className="text-gray-400 text-sm">{task.type} • {task.assignee} • Due: {task.due}</p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className={`px-2 py-1 rounded-full text-xs font-bold ${
-                    task.priority === 'urgent' ? 'bg-red-500/20 text-red-400' :
-                    task.priority === 'high' ? 'bg-orange-500/20 text-orange-400' :
-                    task.priority === 'medium' ? 'bg-yellow-500/20 text-yellow-400' :
-                    'bg-green-500/20 text-green-400'
-                  }`}>
-                    {task.priority.toUpperCase()}
-                  </span>
-                  <span className={`px-3 py-1 rounded-full text-xs font-bold ${
-                    task.status === 'overdue' ? 'bg-red-500/20 text-red-400' :
-                    task.status === 'open' ? 'bg-yellow-500/20 text-yellow-400' :
-                    'bg-blue-500/20 text-blue-400'
-                  }`}>
-                    {task.status === 'in_progress' ? 'In Progress' : task.status === 'overdue' ? 'OVERDUE' : 'Open'}
-                  </span>
-                </div>
+
+          {/* Advanced Filters - Single Row */}
+          <div className="space-y-3">
+              {/* All Filters in One Row */}
+              <div className="grid grid-cols-2 md:grid-cols-[0.9fr_0.85fr_0.95fr_0.8fr_0.75fr_0.75fr] gap-1.5">
+                {/* Villa Filter */}
+                <select
+                  value={taskVillaFilter}
+                  onChange={(e) => setTaskVillaFilter(e.target.value)}
+                  className="px-2 py-2 bg-[#2a2f3a] text-white rounded-lg text-xs border border-gray-700 focus:border-orange-500 outline-none"
+                >
+                  <option value="all">Villas</option>
+                  {userProperties.map(villa => (
+                    <option key={villa.id} value={villa.id}>{villa.name}</option>
+                  ))}
+                </select>
+
+                {/* Date Filter */}
+                <select
+                  value={taskDateFilter}
+                  onChange={(e) => setTaskDateFilter(e.target.value)}
+                  className="px-1.5 py-2 bg-[#2a2f3a] text-white rounded-lg text-xs border border-gray-700 focus:border-orange-500 outline-none"
+                >
+                  <option value="all">Dates</option>
+                  <option value="today">Today</option>
+                  <option value="week">Week</option>
+                  <option value="month">Month</option>
+                  <option value="custom">Custom</option>
+                </select>
+
+                {/* Category Filter */}
+                <select
+                  value={taskCategoryFilter}
+                  onChange={(e) => setTaskCategoryFilter(e.target.value)}
+                  className="px-1.5 py-2 bg-[#2a2f3a] text-white rounded-lg text-xs border border-gray-700 focus:border-orange-500 outline-none"
+                >
+                  <option value="all">Categories</option>
+                  <option value="housekeeping">Housekeeping</option>
+                  <option value="engineering">Engineering</option>
+                  <option value="outdoor">Outdoor</option>
+                  <option value="guest_request">Guest Request</option>
+                  <option value="operations">Operations</option>
+                </select>
+
+                {/* Type Filter */}
+                <select
+                  value={taskTypeFilter}
+                  onChange={(e) => setTaskTypeFilter(e.target.value)}
+                  className="px-1.5 py-2 bg-[#2a2f3a] text-white rounded-lg text-xs border border-gray-700 focus:border-orange-500 outline-none"
+                >
+                  <option value="all">Types</option>
+                  <option value="cleaning">Cleaning</option>
+                  <option value="deep_cleaning">Deep Clean</option>
+                  <option value="maintenance">Maintenance</option>
+                  <option value="repair">Repair</option>
+                  <option value="inspection">Inspection</option>
+                  <option value="restocking">Restocking</option>
+                  <option value="guest_request">Guest Req</option>
+                  <option value="other">Other</option>
+                </select>
+
+                {/* Status Filter */}
+                <select
+                  value={taskStatusFilter}
+                  onChange={(e) => setTaskStatusFilter(e.target.value)}
+                  className="px-1.5 py-2 bg-[#2a2f3a] text-white rounded-lg text-xs border border-gray-700 focus:border-orange-500 outline-none"
+                >
+                  <option value="all">Status</option>
+                  <option value="open">Open</option>
+                  <option value="assigned">Assigned</option>
+                  <option value="in_progress">In Progress</option>
+                  <option value="completed">Completed</option>
+                  <option value="cancelled">Cancelled</option>
+                </select>
+
+                {/* Priority Filter */}
+                <select
+                  value={taskPriorityFilter}
+                  onChange={(e) => setTaskPriorityFilter(e.target.value)}
+                  className="px-1.5 py-2 bg-[#2a2f3a] text-white rounded-lg text-xs border border-gray-700 focus:border-orange-500 outline-none"
+                >
+                  <option value="all">Priority</option>
+                  <option value="low">Low</option>
+                  <option value="medium">Medium</option>
+                  <option value="high">High</option>
+                  <option value="urgent">Urgent</option>
+                </select>
               </div>
+
+              {/* Custom Date Range (if selected) */}
+              {taskDateFilter === 'custom' && (
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs text-gray-400 mb-1 block">From</label>
+                    <input
+                      type="date"
+                      value={taskCustomStartDate}
+                      onChange={(e) => setTaskCustomStartDate(e.target.value)}
+                      className="w-full px-3 py-2 bg-[#2a2f3a] text-white rounded-lg text-sm border border-gray-700 focus:border-orange-500 outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-gray-400 mb-1 block">To</label>
+                    <input
+                      type="date"
+                      value={taskCustomEndDate}
+                      onChange={(e) => setTaskCustomEndDate(e.target.value)}
+                      className="w-full px-3 py-2 bg-[#2a2f3a] text-white rounded-lg text-sm border border-gray-700 focus:border-orange-500 outline-none"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Clear Filters Button */}
+              <button
+                onClick={() => {
+                  setTaskVillaFilter('all');
+                  setTaskDateFilter('all');
+                  setTaskCustomStartDate('');
+                  setTaskCustomEndDate('');
+                  setTaskTypeFilter('all');
+                  setTaskStatusFilter('all');
+                  setTaskPriorityFilter('all');
+                  setTaskCategoryFilter('all');
+                }}
+                className="w-full px-3 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg text-sm font-bold transition-all"
+              >
+                Clear Filters
+              </button>
             </div>
-          ))}
+
+          {loadingTasks ? (
+            <div className="text-center py-8">
+              <p className="text-gray-400">Loading tasks...</p>
+            </div>
+          ) : tasks.length === 0 ? (
+            <div className="text-center py-8">
+              <p className="text-gray-400">No tasks found</p>
+            </div>
+          ) : (
+            tasks.map((task) => {
+              // Format due date
+              const dueDate = task.due_date ? new Date(task.due_date) : null;
+              const dueDateStr = dueDate ? dueDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : 'No due date';
+
+              // Check if overdue
+              const isOverdue = dueDate && dueDate < new Date() && !['completed', 'cancelled'].includes(task.status);
+
+              return (
+                <div key={task.id} className="bg-[#2a2f3a] rounded-lg p-4 border-2 border-gray-700 hover:border-orange-500/50 transition-all">
+                  <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
+                    <div
+                      className="flex-1 cursor-pointer touch-manipulation"
+                      onClick={() => {
+                        setSelectedTask(task); // Set task to edit
+                        setShowTaskModal(true);
+                      }}
+                      onTouchEnd={(e) => {
+                        e.preventDefault();
+                        setSelectedTask(task);
+                        setShowTaskModal(true);
+                      }}
+                    >
+                      <h4 className="text-white font-bold hover:text-orange-400 transition-colors">{task.title}</h4>
+                      <p className="text-gray-400 text-sm">
+                        {task.category || task.task_type}
+                        {task.assignee && ` • ${task.assignee}`}
+                        {task.villa?.name && ` • ${task.villa.name}`}
+                        {` • Due: ${dueDateStr}`}
+                      </p>
+                      {task.source && (
+                        <p className="text-gray-500 text-xs mt-1">
+                          Source: {task.source === 'auto_booking' ? '🤖 Auto-created' : task.source === 'manual' ? '👤 Manual' : task.source}
+                        </p>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className={`px-2 py-1 rounded-full text-xs font-bold whitespace-nowrap ${
+                        task.priority === 'urgent' ? 'bg-red-500/20 text-red-400' :
+                        task.priority === 'high' ? 'bg-orange-500/20 text-orange-400' :
+                        task.priority === 'medium' ? 'bg-yellow-500/20 text-yellow-400' :
+                        'bg-green-500/20 text-green-400'
+                      }`}>
+                        {task.priority?.toUpperCase() || 'MEDIUM'}
+                      </span>
+                      <span className={`px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap ${
+                        isOverdue ? 'bg-red-500/20 text-red-400' :
+                        task.status === 'completed' ? 'bg-green-500/20 text-green-400' :
+                        task.status === 'in_progress' ? 'bg-blue-500/20 text-blue-400' :
+                        task.status === 'assigned' ? 'bg-purple-500/20 text-purple-400' :
+                        'bg-yellow-500/20 text-yellow-400'
+                      }`}>
+                        {isOverdue ? 'OVERDUE' :
+                         task.status === 'in_progress' ? 'In Progress' :
+                         task.status === 'assigned' ? 'Assigned' :
+                         task.status === 'completed' ? 'Completed' :
+                         'Open'}
+                      </span>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setConfirmDialog({
+                            message: `¿Eliminar tarea "${task.title}"?`,
+                            onConfirm: async () => {
+                              try {
+                                await tasksService.deleteTask(task.id);
+                                setNotification({ type: 'success', message: `Tarea "${task.title}" eliminada correctamente` });
+                                await loadTasksData();
+                              } catch (error) {
+                                setNotification({ type: 'error', message: 'Error al eliminar tarea' });
+                              }
+                            }
+                          });
+                        }}
+                        className="p-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-lg transition-all touch-manipulation"
+                        title="Delete task"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })
+          )}
         </div>
+        </>
+        )}
+
+        {/* Guest Issues Tab Content */}
+        {tasksActiveTab === 'issues' && (
+          <div className="space-y-4">
+            <div className="bg-blue-500/10 border-2 border-blue-500/30 rounded-xl p-4">
+              <p className="text-blue-200 text-sm">
+                Track and manage issues reported by guests during their stay. Issues are organized by priority and status.
+              </p>
+            </div>
+
+            <div className="text-center py-12">
+              <p className="text-gray-400 text-lg">Guest Issues tab - Coming soon</p>
+            </div>
+          </div>
+        )}
+
       </div>
     </div>
   );
 
   const renderBusinessReportsSection = () => {
+    // If no mode selected, show selection screen
+    if (businessReportMode === null) {
+      return (
+        <div className="space-y-6">
+          <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-3xl p-6 shadow-2xl border-2 border-[#d85a2a]/20">
+            <div className="flex items-center mb-6 gap-4">
+              <button
+                onClick={() => setActiveSection('menu')}
+                className="p-2 bg-[#1f2937]/95 backdrop-blur-sm rounded-xl hover:bg-orange-500 transition-all border border-[#d85a2a]/20"
+              >
+                <ArrowLeft className="w-5 h-5 text-[#FF8C42]" />
+              </button>
+              <h3 className="text-xl md:text-2xl font-black text-[#FF8C42] flex items-center gap-2 flex-1">
+                <FileText className="w-5 h-5 md:w-6 md:h-6" />
+                <span>Business Reports</span>
+              </h3>
+            </div>
+
+            <div className="text-center mb-8">
+              <p className="text-gray-300 text-lg">Choose the type of report you want to generate:</p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {/* Global Report Option */}
+              <button
+                onClick={() => setBusinessReportMode('global')}
+                className="bg-gradient-to-br from-white to-gray-100 hover:from-gray-50 hover:to-gray-200 text-gray-900 p-6 rounded-2xl shadow-2xl transition-all transform hover:scale-105 border-2 border-[#FF8C42]/50"
+              >
+                <FileText className="w-12 h-12 mx-auto mb-3 text-[#FF8C42]" />
+                <h4 className="text-xl font-bold mb-2 text-[#FF8C42]">Global Report</h4>
+                <p className="text-gray-700 text-sm">
+                  Current version with OSIRIS AI insights and performance metrics
+                </p>
+              </button>
+
+              {/* Enhanced Global Report Option - NEW */}
+              <button
+                onClick={() => setBusinessReportMode('enhanced')}
+                className="bg-gradient-to-br from-[#f5a524] to-[#FF8C42] hover:from-[#ffc107] hover:to-[#f5a524] text-white p-6 rounded-2xl shadow-2xl transition-all transform hover:scale-105 border-2 border-[#FF8C42]/50"
+              >
+                <TrendingUp className="w-12 h-12 mx-auto mb-3" />
+                <h4 className="text-xl font-bold mb-2">Enhanced Global Report</h4>
+                <p className="text-white/90 text-sm">
+                  Complete version with ADR, RevPAR, monthly trends, and financial statements
+                </p>
+              </button>
+
+              {/* Specialized Reports Option */}
+              <button
+                onClick={() => setBusinessReportMode('specialized')}
+                className="bg-gradient-to-br from-[#FF8C42] to-[#d85a2a] hover:from-[#f5a524] hover:to-[#FF8C42] text-white p-6 rounded-2xl shadow-2xl transition-all transform hover:scale-105 border-2 border-[#FF8C42]/30"
+              >
+                <BarChart3 className="w-12 h-12 mx-auto mb-3" />
+                <h4 className="text-xl font-bold mb-2">Specialized Reports</h4>
+                <p className="text-white/90 text-sm">
+                  Individual reports: occupancy, channels, ADR/RevPAR, cancellations, statements
+                </p>
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // If 'specialized' mode selected, show new component
+    if (businessReportMode === 'specialized') {
+      return (
+        <div className="space-y-6">
+          <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-3xl p-6 shadow-2xl border-2 border-[#d85a2a]/20">
+            <div className="flex items-center mb-6 gap-4">
+              <button
+                onClick={() => setBusinessReportMode(null)}
+                className="p-2 bg-[#1f2937]/95 backdrop-blur-sm rounded-xl hover:bg-orange-500 transition-all border border-[#d85a2a]/20"
+              >
+                <ArrowLeft className="w-5 h-5 text-[#FF8C42]" />
+              </button>
+              <h3 className="text-xl md:text-2xl font-black text-[#FF8C42] flex items-center gap-2 flex-1">
+                <BarChart3 className="w-5 h-5 md:w-6 md:h-6" />
+                <span>Specialized Reports</span>
+              </h3>
+            </div>
+          </div>
+          <SpecializedReports />
+        </div>
+      );
+    }
+
+    // If 'enhanced' mode selected, show Enhanced Global Report
+    if (businessReportMode === 'enhanced') {
+      // Get logged-in user data
+      const ownerId = userData?.id || '1f32d384-4018-46a9-a6f9-058217e6924a'; // Gita's ID as default
+      const ownerName = 'Gita Pradnyana';
+      const businessName = 'Nismara Uma Villa';
+      const currency = 'IDR';
+
+      // Villa selector options (matching Specialized Reports)
+      const villas = [
+        { value: 'all', label: 'All Properties' },
+        { value: 'nismara', label: 'Nismara 2BR Villa' },
+        { value: 'uma', label: 'Uma 1BR Villa' },
+        { value: 'santai', label: 'Santai 3BR Villa' }
+      ];
+
+      // Villa ID mapping (matching Specialized Reports)
+      const villaIdMap = {
+        'all': null,
+        'nismara': 'b1000001-0001-4001-8001-000000000001',
+        'uma': 'b2000002-0002-4002-8002-000000000002',
+        'santai': 'b3000003-0003-4003-8003-000000000003'
+      };
+
+      // Get current property name for display
+      const currentProperty = villas.find(v => v.value === enhancedSelectedVilla)?.label || 'All Properties';
+
+      const handleEnhancedPrint = () => {
+        const iframe = document.getElementById('enhanced-report-frame');
+        if (iframe) {
+          iframe.contentWindow.print();
+        }
+      };
+
+      const handleEnhancedGenerate = async () => {
+        setIsGeneratingEnhancedReport(true);
+        console.log('🔄 Generating Enhanced Report with latest version...');
+
+        try {
+          // Import enhanced services
+          const { generateBusinessReport } = await import('../../services/enhancedReportService');
+
+          // Get villa ID based on selection
+          const villaId = villaIdMap[enhancedSelectedVilla];
+
+          // Determine property name for display
+          const propertyName = enhancedSelectedVilla === 'all'
+            ? businessName
+            : villas.find(v => v.value === enhancedSelectedVilla)?.label;
+
+          // Use custom date range
+          console.log(`📊 Generating Enhanced Report for ${propertyName} (${enhancedStartDate} to ${enhancedEndDate})...`);
+
+          // Generate report data (calls Supabase + OSIRIS) with optional villa filter
+          const reportData = await generateBusinessReport(
+            ownerId,
+            ownerName,
+            propertyName,
+            currency,
+            enhancedStartDate,
+            enhancedEndDate,
+            villaId  // Pass villaId (null for 'all', specific ID otherwise)
+          );
+
+          if (reportData) {
+            console.log('✅ Data generated, creating Enhanced HTML...');
+
+            // Generate complete Enhanced HTML with 4 pages
+            const reportHTML = generateEnhancedReportHTML(
+              ownerName,
+              propertyName,
+              currency,
+              reportData,
+              reportData.osirisAnalysis,
+              enhancedStartDate,
+              enhancedEndDate
+            );
+
+            // Display in iframe and save to localStorage
+            setEnhancedReportHTML(reportHTML);
+            localStorage.setItem(`enhanced-report-${enhancedSelectedVilla}-${enhancedStartDate}-${enhancedEndDate}`, reportHTML);
+            console.log(`✅ Enhanced Report generated and saved for ${enhancedSelectedVilla} (${enhancedStartDate} to ${enhancedEndDate})`);
+          } else {
+            alert('❌ Error generating report. No data found.');
+          }
+        } catch (error) {
+          console.error('Error generating Enhanced Report:', error);
+          alert('❌ Error: ' + error.message);
+        } finally {
+          setIsGeneratingEnhancedReport(false);
+        }
+      };
+
+      return (
+        <div className="space-y-6">
+          {/* Header with Owner Selector and Action Buttons */}
+          <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-3xl p-6 shadow-2xl border-2 border-[#d85a2a]/20">
+            {/* Header Row with Back Button and Title */}
+            <div className="flex items-center mb-6 gap-4">
+              <button
+                onClick={() => setBusinessReportMode(null)}
+                className="p-2 bg-[#1f2937]/95 backdrop-blur-sm rounded-xl hover:bg-orange-500 transition-all border border-[#d85a2a]/20"
+              >
+                <ArrowLeft className="w-5 h-5 text-[#FF8C42]" />
+              </button>
+              <h3 className="text-xl md:text-2xl font-black text-[#FF8C42] flex items-center gap-2 flex-1">
+                <TrendingUp className="w-5 h-5 md:w-6 md:h-6" />
+                <span className="hidden md:inline">Enhanced Global Report - {currentProperty}</span>
+                <span className="md:hidden">Enhanced Report</span>
+              </h3>
+
+              {/* Action Buttons - Top Right Corner, Stacked Vertically */}
+              <div className="flex flex-col gap-2 ml-auto">
+                <button
+                  onClick={handleEnhancedGenerate}
+                  disabled={isGeneratingEnhancedReport}
+                  className={`flex items-center justify-center gap-2 px-4 py-2 text-white rounded-lg font-semibold transition-all shadow-lg text-sm ${
+                    isGeneratingEnhancedReport
+                      ? 'bg-purple-400 cursor-not-allowed'
+                      : 'bg-purple-500 hover:bg-purple-600'
+                  }`}
+                >
+                  {isGeneratingEnhancedReport ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      <span>Generating...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Zap className="w-4 h-4" />
+                      <span>Generate</span>
+                    </>
+                  )}
+                </button>
+                <button
+                  onClick={handleEnhancedPrint}
+                  className="flex items-center justify-center gap-2 px-4 py-2 bg-orange-500 text-white rounded-lg font-semibold hover:bg-orange-600 transition-all shadow-lg text-sm"
+                >
+                  <Printer className="w-4 h-4" />
+                  <span>Print</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Selectors Row - Property and Date Range */}
+            <div className="flex flex-col gap-4">
+              {/* Select Property */}
+              <div className="flex flex-col gap-2">
+                <label className="text-gray-300 text-xs font-semibold uppercase">Property:</label>
+                <select
+                  value={enhancedSelectedVilla}
+                  onChange={(e) => setEnhancedSelectedVilla(e.target.value)}
+                  className="bg-[#374151] text-white px-4 py-2 rounded-lg border-2 border-orange-500/30 focus:border-orange-500 focus:outline-none hover:border-orange-500/50 transition-all cursor-pointer w-full"
+                >
+                  {villas.map(villa => (
+                    <option key={villa.value} value={villa.value}>
+                      {villa.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Date Range */}
+              <div className="flex flex-col gap-2">
+                <label className="text-gray-300 text-xs font-semibold uppercase">Date Range:</label>
+                <div className="grid grid-cols-2 gap-3">
+                  <input
+                    type="date"
+                    value={enhancedStartDate}
+                    onChange={(e) => setEnhancedStartDate(e.target.value)}
+                    className="px-4 py-2 bg-[#374151] text-white rounded-lg border-2 border-purple-500/30 focus:border-purple-500 focus:outline-none hover:border-purple-500/50 transition-all"
+                  />
+                  <input
+                    type="date"
+                    value={enhancedEndDate}
+                    onChange={(e) => setEnhancedEndDate(e.target.value)}
+                    className="px-4 py-2 bg-[#374151] text-white rounded-lg border-2 border-purple-500/30 focus:border-purple-500 focus:outline-none hover:border-purple-500/50 transition-all"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Report Display - Taller for 4 pages */}
+          <div className="bg-white rounded-3xl shadow-2xl border-2 border-gray-200" style={{ height: '1400px', overflowY: 'auto', overflowX: 'hidden' }}>
+            <iframe
+              srcDoc={enhancedReportHTML}
+              id="enhanced-report-frame"
+              style={{
+                width: '100%',
+                height: '4500px',
+                border: 'none',
+                display: 'block'
+              }}
+              title="Enhanced Global Report"
+            />
+          </div>
+        </div>
+      );
+    }
+
+    // If 'global' mode selected, show existing Global Report code (DO NOT MODIFY)
     const owners = [
       {
         id: 'gita',
@@ -2933,15 +4034,15 @@ const Autopilot = ({ onBack }) => {
           {/* Header Row with Back Button and Title */}
           <div className="flex items-center mb-6 gap-4">
             <button
-              onClick={() => setActiveSection('menu')}
+              onClick={() => setBusinessReportMode(null)}
               className="p-2 bg-[#1f2937]/95 backdrop-blur-sm rounded-xl hover:bg-orange-500 transition-all border border-[#d85a2a]/20"
             >
               <ArrowLeft className="w-5 h-5 text-[#FF8C42]" />
             </button>
             <h3 className="text-xl md:text-2xl font-black text-[#FF8C42] flex items-center gap-2 flex-1">
               <FileText className="w-5 h-5 md:w-6 md:h-6" />
-              <span className="hidden md:inline">Business Reports - {currentOwner.property}</span>
-              <span className="md:hidden">Reports</span>
+              <span className="hidden md:inline">Global Business Report - {currentOwner.property}</span>
+              <span className="md:hidden">Global Report</span>
             </h3>
 
             {/* Action Buttons - Top Right Corner, Stacked Vertically */}
@@ -4462,6 +5563,7 @@ const Autopilot = ({ onBack }) => {
           {activeSection === 'business-reports' && renderBusinessReportsSection()}
           {activeSection === 'all-data' && renderAllDataSection()}
           {activeSection === 'availability' && renderAvailabilitySection()}
+          {activeSection === 'master-calendar' && <MasterCalendar onBack={() => setActiveSection('menu')} />}
           {activeSection === 'communication' && renderCommunicationSection()}
           {activeSection === 'website' && renderWebsiteSection()}
           {activeSection === 'tasks' && renderTasksSection()}
@@ -4469,6 +5571,57 @@ const Autopilot = ({ onBack }) => {
           {activeSection === 'data-export' && renderDataExportSection()}
         </div>
       </div>
+
+      {/* Task Modal (Create/Edit) - MOVED OUTSIDE renderTasksSection to prevent re-renders */}
+      {showTaskModal && (
+        <TaskModal
+          task={selectedTask}
+          onClose={() => {
+            setShowTaskModal(false);
+            setSelectedTask(null);
+          }}
+          onSave={async (taskData) => {
+            try {
+              if (!userData?.id) {
+                setNotification({ type: 'error', message: 'Error: User ID no encontrado. Por favor, vuelva a iniciar sesión.' });
+                return;
+              }
+
+              if (selectedTask) {
+                // Edit existing task
+                await tasksService.updateTask(selectedTask.id, taskData);
+                setNotification({ type: 'success', message: 'Tarea actualizada correctamente' });
+              } else {
+                // Create new task - IMPORTANTE: pasar tenant_id del usuario logueado
+                await tasksService.createTask({
+                  ...taskData,
+                  tenantId: userData.id,
+                  propertyId: null // tasks can be property-agnostic
+                }, userData);
+                setNotification({ type: 'success', message: 'Tarea creada correctamente' });
+              }
+              setShowTaskModal(false);
+              setSelectedTask(null);
+              await loadTasksData(); // Reload tasks
+            } catch (error) {
+              console.error('Full error:', error);
+              setNotification({ type: 'error', message: 'Error al guardar: ' + error.message });
+            }
+          }}
+        />
+      )}
+
+      {/* Notification Toast */}
+      <NotificationToast
+        notification={notification}
+        onClose={() => setNotification(null)}
+      />
+
+      {/* Confirmation Dialog */}
+      <ConfirmDialog
+        dialog={confirmDialog}
+        onClose={() => setConfirmDialog(null)}
+      />
     </div>
   );
 };
