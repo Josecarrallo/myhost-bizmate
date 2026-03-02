@@ -225,12 +225,12 @@ const AgentCenterDrawer = ({ isOpen, onClose }) => {
                 className="bg-white/5 rounded-2xl p-5 border border-white/10 hover:bg-white/8 transition-all"
               >
                 {/* Agent Header */}
-                <div className="flex items-start justify-between mb-4">
-                  <div className="flex items-center gap-3">
+                <div className="mb-6 md:mb-4">
+                  <div className="flex items-center gap-3 mb-3">
                     <div className={`p-3 rounded-xl bg-gradient-to-br ${getColorClasses(agent.color)} border`}>
                       <Icon className="w-6 h-6" />
                     </div>
-                    <div>
+                    <div className="flex-1">
                       <h3 className="text-white font-bold text-lg">{agent.name}.AI</h3>
                       <p className="text-white/60 text-sm">{agent.fullName}</p>
                     </div>
@@ -241,8 +241,8 @@ const AgentCenterDrawer = ({ isOpen, onClose }) => {
                   </div>
                 </div>
 
-                {/* Stats Grid */}
-                <div className="grid grid-cols-3 gap-3 mb-4">
+                {/* Stats Grid - Responsive mobile */}
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-4">
                   {Object.entries(agent.stats).map(([key, value]) => (
                     <div key={key} className="bg-white/5 rounded-lg p-3 border border-white/10">
                       <div className="text-white/60 text-xs mb-1 capitalize">

@@ -314,26 +314,24 @@ const VoiceAssistant = () => {
           </div>
         )}
 
-        {/* Caja simplificada con avatar y botón de llamada - Mobile Optimized */}
+        {/* Caja simplificada con avatar y botón de llamada - Mismo estilo que AI Agents */}
         {!isCallActive && !isLoading && (
-          <div className="flex items-center gap-2 md:gap-3 bg-gradient-to-br from-orange-500/10 to-orange-600/10 rounded-xl md:rounded-2xl p-2 md:p-3 shadow-2xl border-2 border-orange-500/30 animate-fade-in">
+          <div className="flex items-center gap-2 md:gap-3 px-2 py-1.5 md:px-3 md:py-2 bg-gradient-to-r from-[#FF8C42] via-[#d85a2a] to-[#FF8C42] border-2 border-white shadow-2xl rounded-xl md:rounded-2xl transition-all duration-300 animate-pulse-glow hover:scale-105">
             <img
               src="/images/lumina-avatar.jpg"
               alt="KORA - Voice Assistant"
-              className="w-8 h-8 md:w-12 md:h-12 rounded-full object-cover border-2 border-orange-500 shadow-lg"
+              className="w-6 h-6 md:w-8 md:h-8 rounded-full object-cover border-2 border-white shadow-lg"
             />
-            <div className="text-left flex-1">
-              <p className="text-xs md:text-sm font-black text-white">
-                KORA Voice Assistant
-              </p>
-            </div>
+            <span className="text-white font-bold text-xs md:text-sm tracking-wide drop-shadow-lg whitespace-nowrap">
+              KORA Voice Assistant
+            </span>
             <button
               onClick={handleStartCall}
               disabled={isLoading}
-              className="bg-orange-500 hover:bg-orange-600 p-2 md:p-3 rounded-full shadow-lg transition-all hover:scale-110"
+              className="bg-white/20 hover:bg-white/30 p-1.5 md:p-2 rounded-full shadow-lg transition-all hover:scale-110 border border-white/50"
               title="Call KORA"
             >
-              <Phone className="w-4 h-4 md:w-5 md:h-5 text-white" />
+              <Phone className="w-3 h-3 md:w-4 md:h-4 text-white" />
             </button>
           </div>
         )}
