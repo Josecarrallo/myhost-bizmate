@@ -183,10 +183,10 @@ const ManualDataEntry = ({ onBack }) => {
         const propertyIds = [...new Set(bookings.map(b => b.property_id))];
         console.log(`[ManualDataEntry] User has ${propertyIds.length} property_id(s):`, propertyIds);
 
-        // Create dummy property entries for the form
-        const propertiesData = propertyIds.map((id, index) => ({
+        // Create property entries showing owner name
+        const propertiesData = propertyIds.map((id) => ({
           id: id,
-          name: `Property ${index + 1}`,
+          name: `Owner - ${userData?.full_name || userData?.email || 'Property Owner'}`,
           owner_id: tenantId
         }));
         setProperties(propertiesData);
