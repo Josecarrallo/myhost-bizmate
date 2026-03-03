@@ -57,20 +57,35 @@ const MasterCalendar = ({ onBack }) => {
     console.log('🔄 Loading calendar data...');
     setLoading(true);
     try {
-      // Get properties
-      console.log('📍 Fetching properties for user:', user.id);
-      const { data: propsData, error: propsError } = await supabase
-        .from('properties')
-        .select('*')
-        .eq('owner_id', user.id);
+      // Get user's property_id from their bookings
+      const { data: userBooking } = await supabase
+        .from('bookings')
+        .select('property_id')
+        .eq('tenant_id', user.id)
+        .limit(1);
 
-      if (propsError) {
-        console.error('❌ Properties error:', propsError);
-        throw propsError;
+      const userPropertyId = userBooking?.[0]?.property_id;
+      console.log('📍 User property_id:', userPropertyId);
+
+      // Get villas for this property_id
+      let villasData = [];
+      if (userPropertyId) {
+        const { data: villas, error: villasError } = await supabase
+          .from('villas')
+          .select('*')
+          .eq('property_id', userPropertyId)
+          .eq('status', 'active')
+          .order('name');
+
+        if (villasError) {
+          console.error('❌ Villas error:', villasError);
+        } else {
+          villasData = villas || [];
+        }
       }
 
-      console.log('✅ Properties loaded:', propsData?.length || 0);
-      setProperties(propsData || []);
+      console.log('✅ Villas loaded:', villasData?.length || 0);
+      setProperties(villasData);
 
       // Get first and last day of current month
       const year = currentDate.getFullYear();
@@ -101,9 +116,9 @@ const MasterCalendar = ({ onBack }) => {
         .gte('check_in', startRange)
         .lte('check_in', endRange);
 
-      // Apply property filter
+      // Apply property filter (using villa_id, not property_id)
       if (selectedProperty !== 'all') {
-        bookingsQuery = bookingsQuery.eq('property_id', selectedProperty);
+        bookingsQuery = bookingsQuery.eq('villa_id', selectedProperty);
       }
 
       // Apply status filter
@@ -193,7 +208,7 @@ const MasterCalendar = ({ onBack }) => {
         .lte('scheduled_date', lastDay.toISOString().split('T')[0]);
 
       if (selectedProperty !== 'all') {
-        tasksQuery = tasksQuery.eq('property_id', selectedProperty);
+        tasksQuery = tasksQuery.eq('villa_id', selectedProperty);
       }
 
       console.log('📍 Fetching tasks...');
@@ -215,7 +230,7 @@ const MasterCalendar = ({ onBack }) => {
         .lte('created_at', lastDay.toISOString());
 
       if (selectedProperty !== 'all') {
-        issuesQuery = issuesQuery.eq('property_id', selectedProperty);
+        issuesQuery = issuesQuery.eq('villa_id', selectedProperty);
       }
 
       console.log('📍 Fetching issues...');

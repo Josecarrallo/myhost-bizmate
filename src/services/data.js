@@ -3,12 +3,13 @@ import { supabase } from '../lib/supabase';
 import { onBookingCreated } from './n8n';
 
 export const dataService = {
-  // Obtener todas las properties
+  // Obtener todas las properties (villas)
   async getProperties() {
     const { data, error } = await supabase
-      .from('properties')
+      .from('villas')
       .select('*')
-      .eq('status', 'active');
+      .eq('status', 'active')
+      .order('name');
 
     if (error) {
       console.error('Error fetching properties:', error);

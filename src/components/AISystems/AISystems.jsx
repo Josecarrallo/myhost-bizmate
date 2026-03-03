@@ -15,6 +15,7 @@ import {
   TrendingUp,
   ArrowUp,
   ArrowDown,
+  ArrowLeft,
   AlertCircle,
   CheckCircle,
   List,
@@ -444,19 +445,19 @@ const AISystems = ({ onBack }) => {
       <div className="flex-1 h-screen bg-gradient-to-br from-[#1a1f2e] via-[#2a2f3a] to-[#1a1f2e] flex flex-col overflow-auto">
         {/* Header */}
         <div className="bg-gradient-to-r from-white/10 via-white/5 to-white/10 backdrop-blur-xl border-b border-orange-500/20 p-8 shadow-2xl">
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-3 mb-4">
+            <button
+              onClick={onBack}
+              className="p-2 bg-[#1f2937]/95 backdrop-blur-sm rounded-xl hover:bg-orange-500 transition-all border border-[#d85a2a]/20"
+            >
+              <ArrowLeft className="w-5 h-5 text-[#FF8C42]" />
+            </button>
             <div>
               <h1 className="text-4xl font-bold bg-gradient-to-r from-white via-orange-200 to-white bg-clip-text text-transparent mb-2">
                 BIZMATE AI
               </h1>
               <p className="text-lg text-orange-300 font-medium">Select an AI Agent to start</p>
             </div>
-            <button
-              onClick={onBack}
-              className="px-6 py-3 bg-white/10 hover:bg-white/20 text-white rounded-xl transition-all duration-300 flex items-center gap-2"
-            >
-              <span>← Back</span>
-            </button>
           </div>
         </div>
 
@@ -735,7 +736,7 @@ const AISystems = ({ onBack }) => {
                   >
                     <div className="flex items-center justify-center gap-1">
                       <List className="w-3 h-3" />
-                      <span>Ver todas las preguntas (60+)</span>
+                      <span>View all questions (60+)</span>
                     </div>
                   </button>
                 )}

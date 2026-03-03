@@ -3135,7 +3135,7 @@ const Autopilot = ({ onBack }) => {
               onClick={onClose}
               className="flex-1 px-4 py-3 bg-gray-700 hover:bg-gray-600 text-white rounded-lg font-bold transition-all"
             >
-              Cancelar
+              Cancel
             </button>
             <button
               onClick={() => {
@@ -3144,7 +3144,7 @@ const Autopilot = ({ onBack }) => {
               }}
               className="flex-1 px-4 py-3 bg-red-500 hover:bg-red-600 text-white rounded-lg font-bold transition-all"
             >
-              Eliminar
+              Delete
             </button>
           </div>
         </div>
@@ -4009,14 +4009,14 @@ const Autopilot = ({ onBack }) => {
                         onClick={(e) => {
                           e.stopPropagation();
                           setConfirmDialog({
-                            message: `¿Eliminar tarea "${task.title}"?`,
+                            message: `Delete task "${task.title}"?`,
                             onConfirm: async () => {
                               try {
                                 await tasksService.deleteTask(task.id);
-                                setNotification({ type: 'success', message: `Tarea "${task.title}" eliminada correctamente` });
+                                setNotification({ type: 'success', message: `Task "${task.title}" deleted successfully` });
                                 await loadTasksData();
                               } catch (error) {
-                                setNotification({ type: 'error', message: 'Error al eliminar tarea' });
+                                setNotification({ type: 'error', message: 'Error deleting task' });
                               }
                             }
                           });
@@ -6216,7 +6216,7 @@ const Autopilot = ({ onBack }) => {
               if (selectedTask) {
                 // Edit existing task
                 await tasksService.updateTask(selectedTask.id, taskData);
-                setNotification({ type: 'success', message: 'Tarea actualizada correctamente' });
+                setNotification({ type: 'success', message: 'Task updated successfully' });
               } else {
                 // Create new task - IMPORTANTE: pasar tenant_id del usuario logueado
                 await tasksService.createTask({
@@ -6224,14 +6224,14 @@ const Autopilot = ({ onBack }) => {
                   tenantId: userData.id,
                   propertyId: null // tasks can be property-agnostic
                 }, userData);
-                setNotification({ type: 'success', message: 'Tarea creada correctamente' });
+                setNotification({ type: 'success', message: 'Task created successfully' });
               }
               setShowTaskModal(false);
               setSelectedTask(null);
               await loadTasksData(); // Reload tasks
             } catch (error) {
               console.error('Full error:', error);
-              setNotification({ type: 'error', message: 'Error al guardar: ' + error.message });
+              setNotification({ type: 'error', message: 'Error saving: ' + error.message });
             }
           }}
         />
