@@ -980,7 +980,7 @@ const MasterCalendar = ({ onBack }) => {
                 onClick={() => setSelectedDay(null)}
                 className="w-full px-4 py-2 bg-[#d85a2a] hover:bg-[#c14e1e] text-white rounded-lg transition-all"
               >
-                Volver al Calendario
+                Back to Calendar
               </button>
             </div>
           </div>
