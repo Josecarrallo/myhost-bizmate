@@ -503,6 +503,21 @@ export function generateEnhancedReportHTML(ownerName, propertyName, currency, da
             <div style="font-size:8px;color:#999;text-align:center;margin-top:5px;">VERSION 2.1 MOBILE</div>
         </div>
 
+        ${data.alert ? `
+        <!-- ALERT MESSAGE -->
+        <div style="background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); border-left: 4px solid #f59e0b; padding: 15px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(245, 158, 11, 0.2);">
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <div style="font-size: 24px;">⚠️</div>
+                <div style="flex: 1;">
+                    <div style="font-weight: 700; color: #92400e; font-size: 14px; margin-bottom: 5px;">NO BOOKINGS FOUND</div>
+                    <div style="font-size: 12px; color: #78350f; line-height: 1.5;">
+                        ${data.alert.message}
+                    </div>
+                </div>
+            </div>
+        </div>
+        ` : ''}
+
         <!-- KEY METRICS - Row 1 -->
         <div class="metrics-grid">
             <div class="metric-box">
@@ -545,7 +560,7 @@ export function generateEnhancedReportHTML(ownerName, propertyName, currency, da
             <div class="metric-box">
                 <div class="metric-label">Confirmed</div>
                 <div class="metric-value">${metrics.confirmedBookings}</div>
-                <div class="metric-subtitle">${((metrics.confirmedBookings / metrics.totalBookings) * 100).toFixed(1)}% success</div>
+                <div class="metric-subtitle">${metrics.totalBookings > 0 ? ((metrics.confirmedBookings / metrics.totalBookings) * 100).toFixed(1) : 0}% success</div>
             </div>
         </div>
 
@@ -570,7 +585,7 @@ export function generateEnhancedReportHTML(ownerName, propertyName, currency, da
 
                 <div class="observation-card warning">
                     <div class="observation-title">OTA Commission Cost</div>
-                    <div class="observation-text">${formatCurrencyFull(metrics.otaCommission, currency)} paid in commissions (${(metrics.otaCommission / metrics.totalRevenue * 100).toFixed(1)}% of total revenue).</div>
+                    <div class="observation-text">${formatCurrencyFull(metrics.otaCommission, currency)} paid in commissions (${metrics.totalRevenue > 0 ? (metrics.otaCommission / metrics.totalRevenue * 100).toFixed(1) : 0}% of total revenue).</div>
                 </div>
 
                 <div class="observation-card ${metrics.pendingAmount > metrics.completedAmount ? 'warning' : ''}">
@@ -953,41 +968,50 @@ export function generateEnhancedReportHTML(ownerName, propertyName, currency, da
 
     <script>
         // Chart.js visualization for occupancy
-        const ctx = document.getElementById('villaOccupancyChart');
-        if (ctx) {
-            new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: ${JSON.stringify(propertyMetrics.map(p => p.name))},
-                    datasets: [{
-                        label: 'Occupancy Rate (%)',
-                        data: ${JSON.stringify(propertyMetrics.map(p => parseFloat(p.occupancyRate.toFixed(1))))},
-                        backgroundColor: ${JSON.stringify(propertyMetrics.map(() => '#f97316'))},
-                        borderColor: ${JSON.stringify(propertyMetrics.map(() => '#ea580c'))},
-                        borderWidth: 2
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            max: 100,
-                            ticks: {
-                                callback: function(value) {
-                                    return value + '%';
+        try {
+            const ctx = document.getElementById('villaOccupancyChart');
+            const hasData = ${metrics.totalBookings > 0};
+
+            if (ctx && hasData) {
+                new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: ${JSON.stringify(propertyMetrics.map(p => p.name))},
+                        datasets: [{
+                            label: 'Occupancy Rate (%)',
+                            data: ${JSON.stringify(propertyMetrics.map(p => parseFloat(p.occupancyRate.toFixed(1))))},
+                            backgroundColor: ${JSON.stringify(propertyMetrics.map(() => '#f97316'))},
+                            borderColor: ${JSON.stringify(propertyMetrics.map(() => '#ea580c'))},
+                            borderWidth: 2
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                max: 100,
+                                ticks: {
+                                    callback: function(value) {
+                                        return value + '%';
+                                    }
                                 }
                             }
-                        }
-                    },
-                    plugins: {
-                        legend: {
-                            display: false
+                        },
+                        plugins: {
+                            legend: {
+                                display: false
+                            }
                         }
                     }
-                }
-            });
+                });
+            } else if (ctx && !hasData) {
+                // Show message when no data
+                ctx.parentElement.innerHTML = '<div style="text-align: center; padding: 40px; color: #999;">No booking data available for chart</div>';
+            }
+        } catch (error) {
+            console.error('Chart.js error:', error);
         }
     </script>
 </body>

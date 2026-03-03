@@ -4368,20 +4368,20 @@ const Autopilot = ({ onBack }) => {
       const businessName = 'Nismara Uma Villa';
       const currency = 'IDR';
 
-      // Villa selector options (matching Specialized Reports)
+      // Villa selector options (exact Supabase names)
       const villas = [
         { value: 'all', label: 'All Properties' },
-        { value: 'nismara', label: 'Nismara 2BR Villa' },
-        { value: 'uma', label: 'Uma 1BR Villa' },
-        { value: 'santai', label: 'Santai 3BR Villa' }
+        { value: 'graha-uma', label: 'Graha Uma 1 Bedroom Pool Villa' },
+        { value: 'nismara-1br', label: 'Nismara 1BR Villa' },
+        { value: 'nismara-2br', label: 'NISMARA 2 BEDROOM POOL VILLA' }
       ];
 
-      // Villa ID mapping (matching Specialized Reports)
+      // Villa ID mapping (exact Supabase names)
       const villaIdMap = {
         'all': null,
-        'nismara': 'b1000001-0001-4001-8001-000000000001',
-        'uma': 'b2000002-0002-4002-8002-000000000002',
-        'santai': 'b3000003-0003-4003-8003-000000000003'
+        'graha-uma': 'b2000002-0002-4002-8002-000000000002',      // Graha Uma 1 Bedroom Pool Villa (16 bookings)
+        'nismara-1br': 'b1000001-0001-4001-8001-000000000001',   // Nismara 1BR Villa (0 bookings)
+        'nismara-2br': 'b3000003-0003-4003-8003-000000000003'    // NISMARA 2 BEDROOM POOL VILLA (52 bookings)
       };
 
       // Get current property name for display

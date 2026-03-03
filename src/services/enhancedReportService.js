@@ -52,9 +52,73 @@ export async function generateBusinessReport(ownerId, ownerName, propertyName, c
   // Execute query
   const { data: bookings, error: bookingsError } = await bookingsQuery.order('check_in', { ascending: false });
 
-  if (bookingsError || !bookings || bookings.length === 0) {
-    console.error('No bookings found:', bookingsError);
+  if (bookingsError) {
+    console.error('Database error fetching bookings:', bookingsError);
     return null;
+  }
+
+  // If no bookings found, return empty report with alert instead of null
+  if (!bookings || bookings.length === 0) {
+    console.log('⚠️ No bookings found - generating empty report with alert');
+
+    // Try to get villa info even without bookings
+    let villaInfo = [];
+    if (villaId) {
+      const { data: villa } = await supabase
+        .from('villas')
+        .select('*')
+        .eq('id', villaId)
+        .single();
+      if (villa) villaInfo = [villa];
+    }
+
+    return {
+      metrics: {
+        totalBookings: 0,
+        totalRevenue: 0,
+        totalNights: 0,
+        avgBookingValue: 0,
+        avgNightlyRate: 0,
+        occupancyRate: 0,
+        otaDependency: 0,
+        avgLengthOfStay: 0,
+        avgStayLength: 0,
+        cancellationRate: 0,
+        lostRevenue: 0,
+        confirmedBookings: 0,
+        adr: 0,
+        revpar: 0,
+        totalCancellations: 0,
+        otaCommission: 0,
+        completedAmount: 0,
+        pendingAmount: 0
+      },
+      bookings: [],
+      channels: [],
+      villas: villaInfo,
+      propertyMetrics: villaInfo.map(v => ({
+        id: v.id,
+        name: v.name,
+        bookings: 0,
+        nights: 0,
+        revenue: 0,
+        occupancyRate: 0,
+        avgNightlyRate: 0,
+        avgValue: 0,
+        adr: 0,
+        revpar: 0
+      })),
+      osirisAnalysis: null,
+      monthlyData: [],
+      monthlyStatements: [],
+      cancelledBookings: [],
+      alert: {
+        type: 'no_bookings',
+        message: villaInfo.length > 0
+          ? `No bookings found for ${villaInfo[0].name} in the selected period (${startDate} to ${endDate}). This villa may be on long-term rental or have no short-term bookings during this period.`
+          : `No bookings found for the selected period (${startDate} to ${endDate}).`
+      }
+    };
   }
 
   console.log(`✓ Found ${bookings.length} bookings`);
