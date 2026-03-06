@@ -3214,7 +3214,7 @@ const Autopilot = ({ onBack }) => {
 
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-2 md:p-4">
-        <div className="bg-[#1f2937] rounded-2xl w-[98%] sm:w-[90%] md:w-full max-w-2xl max-h-[92vh] md:max-h-[90vh] overflow-y-auto border-2 border-orange-500/30">
+        <div className="bg-[#1f2937] rounded-2xl w-[98%] sm:w-[90%] md:w-full max-w-2xl max-h-[92vh] md:max-h-[90vh] overflow-y-auto border-2 border-orange-500/30" style={{ marginLeft: '40px' }}>
           {/* Header */}
           <div className="flex items-center justify-between p-4 md:p-6 border-b border-gray-700">
             <h3 className="text-xl md:text-2xl font-bold text-[#FF8C42]">
@@ -3518,7 +3518,7 @@ const Autopilot = ({ onBack }) => {
 
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-2 md:p-4">
-        <div className="bg-[#1f2937] rounded-2xl w-[98%] sm:w-[90%] md:w-full max-w-2xl max-h-[92vh] md:max-h-[90vh] overflow-y-auto border-2 border-orange-500/30">
+        <div className="bg-[#1f2937] rounded-2xl w-[98%] sm:w-[90%] md:w-full max-w-2xl max-h-[92vh] md:max-h-[90vh] overflow-y-auto border-2 border-orange-500/30" style={{ marginLeft: '60px' }}>
           {/* Header */}
           <div className="flex items-center justify-between p-4 md:p-6 border-b border-gray-700">
             <h3 className="text-xl md:text-2xl font-bold text-[#FF8C42]">

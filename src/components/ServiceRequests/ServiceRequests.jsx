@@ -1192,15 +1192,16 @@ const ServiceRequests = ({ onBack }) => {
         </div>
       )}
 
-      {/* Detail Panel - Centered Modal */}
+      {/* Detail Panel - Right-aligned Modal */}
       {selectedRequest && editedRequest && (
-        <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4" onClick={() => {setSelectedRequest(null); setEditedRequest(null);}}>
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50" onClick={() => {setSelectedRequest(null); setEditedRequest(null);}}>
           <div
-            className="w-full max-w-4xl max-h-[90vh] bg-[#2a2f3a] rounded-2xl overflow-hidden border-2 border-[#d85a2a]/30 shadow-2xl"
+            className="bg-[#2a2f3a] rounded-3xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto"
+            style={{ marginLeft: '145px' }}
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
-            <div className="bg-gradient-to-r from-[#d85a2a] to-[#f5a524] p-6">
+            <div className="bg-gradient-to-r from-[#d85a2a] to-[#f5a524] p-6 rounded-t-3xl">
               <div className="flex items-center justify-between">
                 <div>
                   <h2 className="text-2xl font-bold text-white">Edit Service Request</h2>
@@ -1216,7 +1217,7 @@ const ServiceRequests = ({ onBack }) => {
             </div>
 
             {/* Content */}
-            <div className="p-6 overflow-hidden">
+            <div className="p-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
 
                 {/* Title */}
@@ -1388,7 +1389,7 @@ const ServiceRequests = ({ onBack }) => {
             </div>
 
             {/* Action Buttons */}
-            <div className="bg-[#1f2937] p-6 border-t border-[#d85a2a]/20 flex gap-3">
+            <div className="bg-[#1f2937] p-6 border-t border-[#d85a2a]/20 flex gap-3 rounded-b-3xl">
               <button
                 onClick={() => {setSelectedRequest(null); setEditedRequest(null);}}
                 disabled={isSavingEdit}
