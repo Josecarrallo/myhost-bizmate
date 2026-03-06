@@ -51,6 +51,7 @@ import {
 } from 'lucide-react';
 import ManualDataEntry from '../ManualDataEntry/ManualDataEntry';
 import MasterCalendar from '../MasterCalendar/MasterCalendar';
+import ServiceRequests from '../ServiceRequests/ServiceRequests';
 import SpecializedReports from './SpecializedReports';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
@@ -599,6 +600,13 @@ const Autopilot = ({ onBack }) => {
       icon: Wrench,
       description: 'Operations',
       badge: '5 open'
+    },
+    {
+      id: 'service-requests',
+      name: 'Service Requests',
+      icon: ClipboardList,
+      description: 'Guest services',
+      badge: null
     },
     {
       id: 'decisions',
@@ -6193,6 +6201,7 @@ const Autopilot = ({ onBack }) => {
           {activeSection === 'communication' && renderCommunicationSection()}
           {activeSection === 'website' && renderWebsiteSection()}
           {activeSection === 'tasks' && renderTasksSection()}
+          {activeSection === 'service-requests' && <ServiceRequests onBack={() => setActiveSection('menu')} />}
           {activeSection === 'decisions' && renderDecisionsSection()}
           {activeSection === 'data-export' && renderDataExportSection()}
         </div>
