@@ -394,14 +394,23 @@ const MasterCalendar = ({ onBack }) => {
       await supabaseService.createBooking(bookingData);
 
       console.log('✅ Date blocked successfully');
-      // Reload data and close modal
+
+      // Show success message
+      setSuccessMessage(`Date blocked successfully for ${villa.name}`);
+
+      // Reload data
       await loadData();
-      setSelectedDay(null);
+
+      // Close modal after 2 seconds (gives time for calendar to refresh)
+      setTimeout(() => {
+        setSelectedDay(null);
+        setSuccessMessage('');
+      }, 2000);
 
     } catch (error) {
       console.error('❌ Error blocking date:', error);
       console.error('Error details:', error.message || error);
-      alert(`Failed to block date: ${error.message || 'Unknown error'}. Please try again.`);
+      setErrorMessage(`Failed to block date: ${error.message || 'Unknown error'}. Please try again.`);
     } finally {
       setIsSubmitting(false);
     }
