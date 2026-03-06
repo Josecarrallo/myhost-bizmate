@@ -19,7 +19,8 @@ import {
   AlertCircle,
   CheckCircle,
   List,
-  X
+  X,
+  Compass
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
@@ -156,7 +157,40 @@ const AISystems = ({ onBack }) => {
   };
 
   // Agent definitions with corporate orange theme
+  // Order: BANYU, KORA, OSIRIS, NUSANTARA, LUMINA, IRIS, AURA
   const agents = {
+    banyu: {
+      id: 'banyu',
+      name: 'BANYU',
+      fullName: 'BANYU.AI',
+      description: 'WhatsApp Concierge',
+      icon: MessageSquare,
+      gradient: 'from-emerald-500 via-green-500 to-teal-400',
+      glowColor: 'shadow-emerald-500/50',
+      quickQuestions: [
+        "How does automated chat affect my booking conversion?",
+        "What are the most common guest pain points?",
+        "Calculate time saved by automation vs manual responses",
+        "Which guest segments have highest satisfaction scores?",
+        "Identify opportunities to upsell through chat interactions"
+      ]
+    },
+    kora: {
+      id: 'kora',
+      name: 'KORA',
+      fullName: 'KORA.AI',
+      description: 'Voice Assistant',
+      icon: PhoneCall,
+      gradient: 'from-blue-500 via-indigo-500 to-violet-400',
+      glowColor: 'shadow-blue-500/50',
+      quickQuestions: [
+        "What's my call-to-booking conversion rate?",
+        "Analyze common objections preventing bookings",
+        "How much staff time is voice AI saving me monthly?",
+        "Compare guest satisfaction: AI vs human calls",
+        "Identify high-value guests from call patterns"
+      ]
+    },
     osiris: {
       id: 'osiris',
       name: 'OSIRIS',
@@ -176,6 +210,25 @@ const AISystems = ({ onBack }) => {
         // B. Occupancy & Inventory Control
         "Are any villas idle within the next 7 days?",
         "Which dates in the next 30 days show low demand and require promotion?"
+      ]
+    },
+    nusantara: {
+      id: 'nusantara',
+      name: 'NUSANTARA',
+      fullName: 'NUSANTARA.AI',
+      description: 'Cultural Intelligence',
+      icon: Compass,
+      gradient: 'from-rose-500 via-pink-500 to-fuchsia-500',
+      glowColor: 'shadow-rose-500/50',
+      quickQuestions: [
+        "What cultural events happen in March?",
+        "Tell me about Nyepi Day and guest impact",
+        "What are the best restaurants in Canggu?",
+        "Temple etiquette rules for my guests",
+        "Beach safety and sea conditions in Uluwatu",
+        "Traffic peak hours in Seminyak",
+        "Recommended wellness centers in Ubud",
+        "What should guests know about Canang Sari?"
       ]
     },
     lumina: {
@@ -208,38 +261,6 @@ const AISystems = ({ onBack }) => {
         "What's my social media engagement ROI?",
         "Recommend optimal posting times based on audience data",
         "Create a content strategy for peak season"
-      ]
-    },
-    banyu: {
-      id: 'banyu',
-      name: 'BANYU',
-      fullName: 'BANYU.AI',
-      description: 'WhatsApp Concierge',
-      icon: MessageSquare,
-      gradient: 'from-emerald-500 via-green-500 to-teal-400',
-      glowColor: 'shadow-emerald-500/50',
-      quickQuestions: [
-        "How does automated chat affect my booking conversion?",
-        "What are the most common guest pain points?",
-        "Calculate time saved by automation vs manual responses",
-        "Which guest segments have highest satisfaction scores?",
-        "Identify opportunities to upsell through chat interactions"
-      ]
-    },
-    kora: {
-      id: 'kora',
-      name: 'KORA',
-      fullName: 'KORA.AI',
-      description: 'Voice Assistant',
-      icon: PhoneCall,
-      gradient: 'from-blue-500 via-indigo-500 to-violet-400',
-      glowColor: 'shadow-blue-500/50',
-      quickQuestions: [
-        "What's my call-to-booking conversion rate?",
-        "Analyze common objections preventing bookings",
-        "How much staff time is voice AI saving me monthly?",
-        "Compare guest satisfaction: AI vs human calls",
-        "Identify high-value guests from call patterns"
       ]
     },
     aura: {
@@ -327,6 +348,35 @@ const AISystems = ({ onBack }) => {
         };
 
         setMessages(prev => [...prev, assistantMessage]);
+      } else if (selectedAgent === 'nusantara') {
+        // ✅ NUSANTARA: Call real n8n endpoint
+        // ✅ Webhook: /webhook/nusantara/chat (Cultural Intelligence)
+        const response = await fetch('https://n8n-production-bb2d.up.railway.app/webhook/nusantara/chat', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            tenant_id: userData?.id || 'c24393db-d318-4d75-8bbf-0fa240b9c1db',
+            message: currentQuestion
+          })
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+
+        const assistantMessage = {
+          type: 'assistant',
+          agent: 'nusantara',
+          content: data.reply,
+          meta: data.meta || null,
+          timestamp: new Date()
+        };
+
+        setMessages(prev => [...prev, assistantMessage]);
       } else {
         // Other agents: Use mock response
         setTimeout(() => {
@@ -364,6 +414,7 @@ const AISystems = ({ onBack }) => {
       iris: "Marketing insights:\n\n✨ **Content Ideas:** Beach sunset posts, villa tours, guest testimonials\n\n⭐ **Review Performance:** 4.8 avg rating (last month)\n\n📱 **Best Time to Post:** 6-8 PM local time\n\nWant me to create a content calendar?",
       banyu: "WhatsApp status:\n\n💬 **Active Conversations:** 12 guests\n\n📨 **Messages Today:** 47 messages\n\n⚡ **Avg Response Time:** 3.2 minutes\n\nNeed help with any specific conversation?",
       kora: "Voice activity:\n\n📞 **Calls Today:** 8 calls\n\n⏱️ **Avg Duration:** 4m 32s\n\n😊 **Sentiment:** 85% positive\n\nAny call you'd like to review?",
+      nusantara: "Cultural insights:\n\n🎭 **March Events:**\n• Nyepi Day (Mar 19) - Silent Day, no activities\n• Melasti Ceremony (Mar 16-18) - Beach purification\n• Bali Spirit Festival (Mar 15-19) - Yoga & wellness\n\n🏖️ **Canggu Recommendations:**\n• Finns Beach Club - Best sunset views\n• La Brisa - Beachfront dining\n• Deus Ex Machina - Surf culture café\n\n🙏 **Temple Etiquette:**\n• Wear sarong and sash (required)\n• No photos during ceremonies\n• Remove shoes before entering\n\nNeed specific cultural guidance?",
       aura: "Market intelligence:\n\n📈 **Revenue Forecast:** +15% next month\n\n🌴 **Bali Trends:** High season starting\n\n💡 **Recommendation:** Increase rates 10-15%\n\nWant detailed analysis?"
     };
 
