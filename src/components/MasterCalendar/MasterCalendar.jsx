@@ -678,9 +678,9 @@ const MasterCalendar = ({ onBack }) => {
   }
 
   return (
-    <div className="flex-1 h-screen bg-[#2a2f3a] flex flex-col overflow-hidden">
+    <div className="flex-1 h-screen bg-[#2a2f3a] flex flex-col">
       {/* Header */}
-      <div className="bg-[#1f2937] border-b border-[#d85a2a]/20 px-3 md:px-6 py-3 md:py-4">
+      <div className="bg-[#1f2937] border-b border-[#d85a2a]/20 px-3 md:px-6 py-3 md:py-4 flex-shrink-0">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 md:gap-0 mb-4">
           <div className="flex items-center gap-3 md:gap-4">
             <button onClick={onBack} className="p-2 hover:bg-white/10 rounded-lg">
@@ -847,6 +847,17 @@ const MasterCalendar = ({ onBack }) => {
               <button onClick={handleNextMonth} className="p-2 hover:bg-white/10 rounded-lg">
                 <ChevronRight className="w-5 h-5 text-white" />
               </button>
+            </div>
+          )}
+
+          {/* Date Range Title - Show when date filter is applied */}
+          {appliedStartDate && appliedEndDate && (
+            <div className="bg-[#1f2937]/30 border-b border-white/10 px-6 py-3 text-center">
+              <div className="text-white font-bold text-lg">
+                {new Date(appliedStartDate).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+                {' - '}
+                {new Date(appliedEndDate).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+              </div>
             </div>
           )}
 
@@ -1049,8 +1060,8 @@ const MasterCalendar = ({ onBack }) => {
 
       {/* Day Detail Modal */}
       {selectedDay && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-2 md:p-4 md:pl-[280px]">
-          <div className="bg-[#1f2937] rounded-2xl w-full max-w-3xl max-h-[92vh] md:max-h-[90vh] overflow-hidden border border-white/20 shadow-2xl">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-3 md:p-4 md:pl-[280px]">
+          <div className="bg-[#1f2937] rounded-2xl w-full max-w-3xl max-h-[80vh] md:max-h-[90vh] overflow-hidden border border-white/20 shadow-2xl">
             {/* Modal Header */}
             <div className="bg-[#d85a2a] px-6 py-4 flex items-center justify-between">
               <h3 className="text-xl font-bold text-white">
@@ -1073,7 +1084,7 @@ const MasterCalendar = ({ onBack }) => {
             </div>
 
             {/* Modal Content */}
-            <div className="p-6 overflow-y-auto max-h-[calc(90vh-80px)]">
+            <div className="p-4 md:p-6 overflow-y-auto max-h-[calc(80vh-140px)] md:max-h-[calc(90vh-80px)]">
               {(() => {
                 const items = getItemsForDay(selectedDay);
                 const hasItems = items.bookings.length > 0 || items.tasks.length > 0;
