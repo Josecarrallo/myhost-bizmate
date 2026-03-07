@@ -48,6 +48,8 @@ const ServiceRequests = ({ onBack }) => {
   const [filterType, setFilterType] = useState('All');
   const [filterVilla, setFilterVilla] = useState('all');
   const [filterDate, setFilterDate] = useState('all');
+  const [customDateFrom, setCustomDateFrom] = useState('');
+  const [customDateTo, setCustomDateTo] = useState('');
   const [showFilters, setShowFilters] = useState(false);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [editingNotes, setEditingNotes] = useState(false);
@@ -697,6 +699,14 @@ const ServiceRequests = ({ onBack }) => {
             monthEnd.setMonth(monthEnd.getMonth() + 1);
             matchesDate = requestDate >= today && requestDate <= monthEnd;
             break;
+          case 'custom':
+            if (customDateFrom && customDateTo) {
+              const start = new Date(customDateFrom);
+              const end = new Date(customDateTo);
+              end.setHours(23, 59, 59, 999); // Include full end date
+              matchesDate = requestDate >= start && requestDate <= end;
+            }
+            break;
         }
       }
 
@@ -889,6 +899,46 @@ const ServiceRequests = ({ onBack }) => {
             />
           </div>
         </div>
+
+        {/* Custom Date Range (if selected) */}
+        {filterDate === 'custom' && (
+          <div className="grid grid-cols-2 gap-3 mt-3">
+            <div>
+              <label className="text-xs text-gray-400 mb-1 block">From</label>
+              <input
+                type="date"
+                value={customDateFrom}
+                onChange={(e) => setCustomDateFrom(e.target.value)}
+                className="w-full px-3 py-2 bg-[#2a2f3a] text-white rounded-lg text-sm border border-gray-700 focus:border-orange-500 outline-none"
+              />
+            </div>
+            <div>
+              <label className="text-xs text-gray-400 mb-1 block">To</label>
+              <input
+                type="date"
+                value={customDateTo}
+                onChange={(e) => setCustomDateTo(e.target.value)}
+                className="w-full px-3 py-2 bg-[#2a2f3a] text-white rounded-lg text-sm border border-gray-700 focus:border-orange-500 outline-none"
+              />
+            </div>
+          </div>
+        )}
+
+        {/* Clear Filters Button */}
+        <button
+          onClick={() => {
+            setFilterVilla('all');
+            setFilterDate('all');
+            setCustomDateFrom('');
+            setCustomDateTo('');
+            setFilterStatus('All');
+            setFilterType('All');
+            setSearchTerm('');
+          }}
+          className="w-full px-3 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg text-sm font-bold transition-all mt-3"
+        >
+          Clear Filters
+        </button>
       </div>
 
       {/* Service Requests Table */}
@@ -987,7 +1037,7 @@ const ServiceRequests = ({ onBack }) => {
       {showCreateForm && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => {setShowCreateForm(false); setCreateError('');}}>
           <div
-            className="w-full max-w-2xl bg-[#2a2f3a] rounded-2xl overflow-hidden border border-[#d85a2a]/20"
+            className="w-full max-w-2xl bg-[#2a2f3a] rounded-2xl border border-[#d85a2a]/20 max-h-[90vh] overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="bg-[#1f2937] p-6 border-b border-[#d85a2a]/20">
@@ -1009,7 +1059,7 @@ const ServiceRequests = ({ onBack }) => {
               </div>
             )}
 
-            <div className="p-6 max-h-[70vh] overflow-y-auto">
+            <div className="p-6">
               <div className="space-y-4">
                 {/* Villa Selection */}
                 <div>
@@ -1197,7 +1247,7 @@ const ServiceRequests = ({ onBack }) => {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50" onClick={() => {setSelectedRequest(null); setEditedRequest(null);}}>
           <div
             className="bg-[#2a2f3a] rounded-3xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto"
-            style={{ marginLeft: '145px' }}
+            style={{ marginLeft: '137px' }}
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
