@@ -766,9 +766,9 @@ const ServiceRequests = ({ onBack }) => {
         </div>
         <button
           onClick={() => setShowCreateForm(true)}
-          className="flex items-center gap-2 px-6 py-3 bg-[#d85a2a] hover:bg-[#c14e1f] text-white rounded-xl font-semibold transition-all shadow-lg"
+          className="flex items-center gap-2 px-4 py-2 bg-[#d85a2a] hover:bg-[#c14e1f] text-white rounded-xl font-semibold transition-all shadow-lg ml-6"
         >
-          <Plus className="w-5 h-5" />
+          <Plus className="w-4 h-4" />
           Create Request
         </button>
       </div>
