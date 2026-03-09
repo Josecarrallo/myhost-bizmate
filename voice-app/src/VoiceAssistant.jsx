@@ -198,16 +198,21 @@ const VoiceAssistant = () => {
     };
   }, []);
 
-  const handleStartCall = async () => {
+  const MAX_RETRIES = 3;
+
+  const handleStartCall = async (attempt = 1) => {
     if (!vapiRef.current) {
       console.error('Vapi no inicializado');
       setError('Vapi no está configurado');
       return;
     }
 
-    setIsLoading(true);
-    setCallStatus('connecting');
-    setError(null);
+    // Solo setear estos estados en el primer intento
+    if (attempt === 1) {
+      setIsLoading(true);
+      setCallStatus('connecting');
+      setError(null);
+    }
 
     try {
       // Usar KORA Squad configurado en VAPI Dashboard
@@ -216,12 +221,28 @@ const VoiceAssistant = () => {
       // Con MCP Server: https://n8n-production-bb2d.up.railway.app/mcp/izumi-hotel
       // Server URL: https://n8n-production-bb2d.up.railway.app/webhook/kora-post-call-v2
       // NOTA: VAPI Web SDK requiere squadId como tercer parámetro: start(null, null, squadId)
+      // Timeout aumentado a 30s en VAPI API (10 MAR 2026)
       await vapiRef.current.start(null, null, '56ca0b34-a9d3-43f6-a0ec-f0f4a49cf0ee');
-    } catch (error) {
-      console.error('Error al iniciar llamada:', error);
+
+      // Si llega aquí, la conexión fue exitosa
+      console.log(`✅ Conexión exitosa en intento ${attempt}`);
+
+    } catch (err) {
+      console.error(`❌ Intento ${attempt} fallido:`, err);
+
+      if (attempt < MAX_RETRIES) {
+        console.log(`🔄 Reintentando... (${attempt + 1}/${MAX_RETRIES})`);
+        // 1.5s delay suficiente porque timeout VAPI es ahora 30s
+        await new Promise(res => setTimeout(res, 1500));
+        // Reintentar recursivamente
+        return handleStartCall(attempt + 1);
+      }
+
+      // Si llegamos aquí, fallaron todos los intentos
+      console.error(`❌ Fallaron ${MAX_RETRIES} intentos de conexión`);
       setIsLoading(false);
       setCallStatus('idle');
-      setError(error.message || 'No se pudo iniciar la llamada');
+      setError('Could not connect after 3 attempts. Please try again.');
     }
   };
 
@@ -314,26 +335,30 @@ const VoiceAssistant = () => {
           </div>
         )}
 
-        {/* Caja simplificada con avatar y botón de llamada - Mismo estilo que AI Agents */}
-        {!isCallActive && !isLoading && (
-          <div className="flex items-center gap-2 md:gap-3 px-2 py-1.5 md:px-3 md:py-2 bg-gradient-to-r from-[#FF8C42] via-[#d85a2a] to-[#FF8C42] border-2 border-white shadow-2xl rounded-xl md:rounded-2xl transition-all duration-300 animate-pulse-glow hover:scale-105">
+        {/* Botón grande clickeable - Todo el cuadro naranja inicia la llamada */}
+        {!isCallActive && (
+          <button
+            onClick={handleStartCall}
+            disabled={isLoading}
+            className={`flex items-center gap-2 md:gap-3 px-4 py-3 md:px-6 md:py-4 bg-gradient-to-r from-[#FF8C42] via-[#d85a2a] to-[#FF8C42] border-2 border-white shadow-2xl rounded-xl md:rounded-2xl transition-all duration-300 hover:scale-105 cursor-pointer ${isLoading ? 'animate-pulse' : 'animate-pulse-glow'}`}
+            title="Click to talk with KORA"
+          >
             <img
               src="/images/lumina-avatar.jpg"
               alt="KORA - Voice Assistant"
-              className="w-6 h-6 md:w-8 md:h-8 rounded-full object-cover border-2 border-white shadow-lg"
+              className={`w-8 h-8 md:w-10 md:h-10 rounded-full object-cover border-4 shadow-lg transition-all ${isLoading ? 'border-yellow-300 animate-ping' : 'border-white'}`}
+              style={isLoading ? { animation: 'ping 1s cubic-bezier(0, 0, 0.2, 1) infinite' } : {}}
             />
-            <span className="text-white font-bold text-xs md:text-sm tracking-wide drop-shadow-lg whitespace-nowrap">
-              KORA Voice Assistant
-            </span>
-            <button
-              onClick={handleStartCall}
-              disabled={isLoading}
-              className="bg-white/20 hover:bg-white/30 p-1.5 md:p-2 rounded-full shadow-lg transition-all hover:scale-110 border border-white/50"
-              title="Call KORA"
-            >
-              <Phone className="w-3 h-3 md:w-4 md:h-4 text-white" />
-            </button>
-          </div>
+            <div className="text-left flex-1">
+              <p className="text-white font-bold text-sm md:text-base tracking-wide drop-shadow-lg">
+                {isLoading ? '🔄 Connecting...' : 'KORA Voice Assistant'}
+              </p>
+              <p className="text-white/90 text-xs md:text-sm drop-shadow-md">
+                {isLoading ? 'Please wait / Por favor espere' : 'Click here to start talking'}
+              </p>
+            </div>
+            <Phone className={`w-6 h-6 md:w-8 md:h-8 text-white ${isLoading ? 'animate-bounce' : 'animate-pulse'}`} />
+          </button>
         )}
 
         {/* Botón para colgar cuando está en llamada */}
