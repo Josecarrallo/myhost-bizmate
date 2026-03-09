@@ -11,21 +11,24 @@ import { AuthProvider } from './contexts/AuthContext'
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <BrowserRouter>
-      <AuthProvider>
-        <Routes>
-          {/* Public site route */}
-          <Route path="/site/:slug" element={<PublicSite />} />
+      <Routes>
+        {/* Public routes - NO authentication required */}
+        <Route path="/site/:slug" element={<PublicSite />} />
+        <Route path="/voice" element={<PublicVoicePage />} />
 
-          {/* Public voice assistant route - for guests to speak with KORA */}
-          <Route path="/voice" element={<PublicVoicePage />} />
+        {/* Protected routes - wrapped in AuthProvider */}
+        <Route path="/*" element={
+          <AuthProvider>
+            <Routes>
+              {/* TEMPORAL: Test Master Calendar - BORRAR ANTES DE PRODUCCIÓN */}
+              <Route path="/test-calendar" element={<TestMasterCalendar />} />
 
-          {/* TEMPORAL: Test Master Calendar - BORRAR ANTES DE PRODUCCIÓN */}
-          <Route path="/test-calendar" element={<TestMasterCalendar />} />
-
-          {/* Main app route */}
-          <Route path="/*" element={<App />} />
-        </Routes>
-      </AuthProvider>
+              {/* Main app route */}
+              <Route path="/*" element={<App />} />
+            </Routes>
+          </AuthProvider>
+        } />
+      </Routes>
     </BrowserRouter>
   </React.StrictMode>
 )
