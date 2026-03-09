@@ -34,6 +34,32 @@ npm run preview
 
 ### Recent Refactors
 
+**March 9, 2026 - KORA Voice Assistant Standalone + Delete Booking Fix**:
+- Created standalone voice-app/ project for KORA Voice Assistant
+  - Independent deployment at https://voice-app-vert.vercel.app
+  - React 18.2 + Vite 4.3.9 stack (same as main app)
+  - VAPI SDK integration (@vapi-ai/web 2.5.2)
+  - Tailwind CSS 3.3.2 for styling
+  - 15 files, 3,068 lines of code, 128 KB gzipped bundle
+  - Build time: 3.63s, Deploy time: 43s
+- Fixed Master Calendar delete booking bug
+  - Error: "violates foreign key constraint tasks_booking_id_fkey"
+  - Solution: Modified deleteBooking() to cascade delete tasks first, then booking
+  - File: src/services/supabase.js
+- Technical insights:
+  - @vapi-ai/web requires bundler (Vite/Webpack), doesn't work from CDN
+  - VAPI html-script-tag SDK incompatible with Squad routing API
+  - Standalone projects should use same stack as main app for consistency
+
+**📁 Complete Documentation (Mar 9):**
+- `Claude AI and Code Update 09032026/RESUMEN_EJECUTIVO_09MAR2026.md` - Executive summary
+- `Claude AI and Code Update 09032026/PROBLEMA_Y_SOLUCION_TECNICA.md` - Technical problem analysis
+- `Claude AI and Code Update 09032026/VOICE_APP_ARCHITECTURE.md` - Complete architecture
+- `Claude AI and Code Update 09032026/SESSION_LOG_09MAR2026.md` - Detailed session log
+- `Claude AI and Code Update 09032026/README.md` - Quick start guide
+
+**Commits:** da40266, a0a5135, aefa850
+
 **December 21, 2025 - Authentication Stability Fix + n8n Workflows**:
 - Fixed infinite loading screen on login/logout (Promise.race with 3s timeout)
 - Resolved corrupted localStorage issues after logout (sessionStorage migration)
@@ -148,6 +174,21 @@ src/
 │   └── supabase.js            # Centralized Supabase API service
 └── context/
     └── AppContext.jsx         # Global state management (currently minimal)
+
+voice-app/                      # Standalone KORA Voice Assistant (NEW: Mar 9, 2026)
+├── src/
+│   ├── App.jsx                # Main voice page component
+│   ├── VoiceAssistant.jsx     # VAPI integration (copy from main app)
+│   ├── main.jsx               # Entry point
+│   └── index.css              # Styles with Tailwind
+├── public/
+│   └── images/
+│       └── lumina-avatar.jpg  # KORA avatar
+├── package.json               # Dependencies (@vapi-ai/web, React, Vite)
+├── vite.config.js             # Vite configuration
+├── tailwind.config.js         # Tailwind configuration
+├── vercel.json                # Vercel deployment config
+└── README.md                  # Voice app documentation
 ```
 
 ### Module Organization
@@ -282,8 +323,12 @@ The project uses Supabase for backend services:
 
 Current implementation includes:
 - Property management (create, read)
+- Booking management (create, read, delete with cascade)
 - Centralized headers and configuration
 - Ready for expansion to other resources
+
+**Important - Cascade Deletes (Mar 9, 2026):**
+The `deleteBooking()` method now handles foreign key constraints by deleting child records (tasks) before deleting the parent booking. This prevents "violates foreign key constraint" errors in Master Calendar.
 
 **Supabase URL:** `https://jjpscimtxrudtepzwhag.supabase.co`
 
@@ -440,6 +485,18 @@ This is a vacation rental management platform targeting property managers and ho
 
 ## Key Commits
 
+- `aefa850` - **Merge branch 'backup-antes-de-automatizacion'** (Mar 9, 2026)
+  - Merged voice-app/ and bug fix to main
+- `a0a5135` - **fix: Delete tasks before booking to prevent foreign key constraint violation** (Mar 9, 2026)
+  - Fixed Master Calendar delete booking error
+  - Modified deleteBooking() in src/services/supabase.js to cascade delete tasks first
+  - Added complete session documentation in Claude AI and Code Update 09032026/
+- `da40266` - **feat: Add standalone KORA Voice Assistant app (voice-app/)** (Mar 9, 2026)
+  - Created independent React + Vite project for KORA Voice Assistant
+  - Deployed to https://voice-app-vert.vercel.app
+  - 15 files, 3,068 lines of code, 128 KB gzipped bundle
+  - Same stack as main app: React 18.2, Vite 4.3.9, @vapi-ai/web 2.5.2
+  - Trilingual support (English, Spanish, Indonesian)
 - `0fac888` - **feat: Complete My Site module with public website builder and React Router** (Dec 20, 2025)
   - Full My Site module with 5-step wizard for creating direct booking websites
   - Public website component (PublicSite.jsx) with professional landing pages
