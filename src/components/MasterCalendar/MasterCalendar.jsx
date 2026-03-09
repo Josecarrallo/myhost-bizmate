@@ -984,23 +984,22 @@ const MasterCalendar = ({ onBack }) => {
         </div>
       </div>
 
-      {/* Mobile List View */}
+      {/* Mobile List View - All days */}
       <div className="md:hidden flex-1 overflow-auto p-3">
         <div className="space-y-3">
           {getMonthsToDisplay().map((monthDate, monthIdx) => {
             const calendarDays = getCalendarDaysForMonth(monthDate);
             const monthName = monthDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
 
-            // Get all items for this month
+            // Get ALL days for this month (filter only current month days)
             const monthItems = [];
             calendarDays.forEach(date => {
-              const items = getItemsForDay(date);
-              if (items.bookings.length > 0 || items.tasks.length > 0) {
+              const isCurrentMonth = date.getMonth() === monthDate.getMonth();
+              if (isCurrentMonth) {
+                const items = getItemsForDay(date);
                 monthItems.push({ date, items });
               }
             });
-
-            if (monthItems.length === 0) return null;
 
             return (
               <div key={monthIdx} className="bg-white/5 rounded-lg border border-white/10 overflow-hidden">
@@ -1009,48 +1008,60 @@ const MasterCalendar = ({ onBack }) => {
                   <h3 className="text-white font-bold text-base">{monthName}</h3>
                 </div>
 
-                {/* List of days with items */}
+                {/* List of ALL days */}
                 <div className="p-2 space-y-2">
-                  {monthItems.map(({ date, items }, idx) => (
-                    <div
-                      key={idx}
-                      onClick={() => handleDayClick(date)}
-                      className="bg-[#2a2f3a] rounded-lg p-3 border border-white/10 active:bg-white/10 touch-manipulation"
-                    >
-                      {/* Date header */}
-                      <div className="text-orange-400 font-bold text-sm mb-2">
-                        {date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
-                        {items.isOccupied && (
-                          <span className="ml-2 text-xs px-2 py-0.5 bg-red-500/80 text-white rounded-full">
-                            {items.occupiedCount} occupied
-                          </span>
+                  {monthItems.map(({ date, items }, idx) => {
+                    const hasItems = items.bookings.length > 0 || items.tasks.length > 0;
+                    const isToday = date.toDateString() === new Date().toDateString();
+
+                    return (
+                      <div
+                        key={idx}
+                        onClick={() => handleDayClick(date)}
+                        className={`
+                          bg-[#2a2f3a] rounded-lg p-3 border border-white/10 active:bg-white/10 touch-manipulation
+                          ${isToday ? 'border-orange-500/50 bg-orange-500/5' : ''}
+                          ${!hasItems ? 'opacity-70' : ''}
+                        `}
+                      >
+                        {/* Date header */}
+                        <div className={`font-bold text-sm mb-2 ${isToday ? 'text-orange-400' : 'text-white'}`}>
+                          {date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
+                          {items.isOccupied && (
+                            <span className="ml-2 text-xs px-2 py-0.5 bg-red-500/80 text-white rounded-full">
+                              {items.occupiedCount} occupied
+                            </span>
+                          )}
+                          {!hasItems && (
+                            <span className="ml-2 text-xs text-white/40 italic">No activities</span>
+                          )}
+                        </div>
+
+                        {/* Bookings */}
+                        {items.bookings.slice(0, 2).map((booking, bidx) => (
+                          <div key={`b-${bidx}`} className="text-xs px-2 py-1.5 mb-1 rounded border border-blue-500/50 bg-blue-500/10">
+                            <div className="font-bold text-white">{booking.guest_name}</div>
+                            <div className="text-blue-300 text-[10px]">{booking.source || booking.channel || 'Direct'}</div>
+                          </div>
+                        ))}
+
+                        {/* Tasks */}
+                        {items.tasks.slice(0, 1).map((task, tidx) => (
+                          <div key={`t-${tidx}`} className="text-xs px-2 py-1.5 mb-1 rounded border border-yellow-500/50 bg-yellow-500/10">
+                            <div className="font-bold text-white">{task.title}</div>
+                            <div className="text-yellow-300 text-[10px]">{task.task_type || task.category}</div>
+                          </div>
+                        ))}
+
+                        {/* Show count if more items */}
+                        {(items.bookings.length + items.tasks.length) > 3 && (
+                          <div className="text-xs text-white/60 pl-2 mt-1">
+                            +{items.bookings.length + items.tasks.length - 3} more items
+                          </div>
                         )}
                       </div>
-
-                      {/* Bookings */}
-                      {items.bookings.slice(0, 2).map((booking, bidx) => (
-                        <div key={`b-${bidx}`} className="text-xs px-2 py-1.5 mb-1 rounded border border-blue-500/50 bg-blue-500/10">
-                          <div className="font-bold text-white">{booking.guest_name}</div>
-                          <div className="text-blue-300 text-[10px]">{booking.source || booking.channel || 'Direct'}</div>
-                        </div>
-                      ))}
-
-                      {/* Tasks */}
-                      {items.tasks.slice(0, 1).map((task, tidx) => (
-                        <div key={`t-${tidx}`} className="text-xs px-2 py-1.5 mb-1 rounded border border-yellow-500/50 bg-yellow-500/10">
-                          <div className="font-bold text-white">{task.title}</div>
-                          <div className="text-yellow-300 text-[10px]">{task.task_type || task.category}</div>
-                        </div>
-                      ))}
-
-                      {/* Show count if more items */}
-                      {(items.bookings.length + items.tasks.length) > 3 && (
-                        <div className="text-xs text-white/60 pl-2 mt-1">
-                          +{items.bookings.length + items.tasks.length - 3} more items
-                        </div>
-                      )}
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             );
