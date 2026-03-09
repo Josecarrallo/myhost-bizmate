@@ -78,6 +78,24 @@ const AgentCenterDrawer = ({ isOpen, onClose }) => {
       ]
     },
     {
+      id: 'nusantara',
+      name: 'NUSANTARA',
+      fullName: 'Cultural Intelligence',
+      icon: Sparkles,
+      status: 'Active',
+      color: 'purple',
+      stats: {
+        recommendationsToday: 42,
+        culturalAlerts: 3,
+        guestSatisfaction: '97%'
+      },
+      recentActivity: [
+        { time: '5 min ago', action: 'Provided local cultural etiquette tips to guest' },
+        { time: '18 min ago', action: 'Recommended traditional ceremony schedule' },
+        { time: '45 min ago', action: 'Sent Nyepi Day preparation guide to guests' }
+      ]
+    },
+    {
       id: 'iris',
       name: 'IRIS',
       fullName: 'Marketing & Content',
@@ -190,15 +208,25 @@ const AgentCenterDrawer = ({ isOpen, onClose }) => {
             </button>
           </div>
 
+          {/* Demo Mode Disclaimer */}
+          <div className="mt-4 bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-3">
+            <div className="flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 text-yellow-400 flex-shrink-0" />
+              <p className="text-yellow-200 text-xs font-medium">
+                <span className="font-bold">Demo Mode:</span> Displaying sample data. Real-time integration coming soon.
+              </p>
+            </div>
+          </div>
+
           {/* Overall Stats */}
-          <div className="grid grid-cols-4 gap-3">
+          <div className="grid grid-cols-4 gap-3 mt-4">
             <div className="bg-white/5 rounded-lg p-3 border border-white/10">
               <div className="text-white/60 text-xs mb-1">Total Agents</div>
-              <div className="text-white font-bold text-xl">6</div>
+              <div className="text-white font-bold text-xl">7</div>
             </div>
             <div className="bg-white/5 rounded-lg p-3 border border-white/10">
               <div className="text-white/60 text-xs mb-1">All Active</div>
-              <div className="text-orange-400 font-bold text-xl">6</div>
+              <div className="text-orange-400 font-bold text-xl">7</div>
             </div>
             <div className="bg-white/5 rounded-lg p-3 border border-white/10">
               <div className="text-white/60 text-xs mb-1">Efficiency</div>
@@ -309,12 +337,9 @@ const AgentCenterDrawer = ({ isOpen, onClose }) => {
                 )}
 
                 {/* Action Buttons */}
-                <div className="mt-4 flex gap-2">
-                  <button className="flex-1 px-3 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-white text-sm font-medium transition-all">
+                <div className="mt-4">
+                  <button className="w-full px-3 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-white text-sm font-medium transition-all">
                     View Details
-                  </button>
-                  <button className="px-3 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-white text-sm font-medium transition-all">
-                    Configure
                   </button>
                 </div>
               </div>

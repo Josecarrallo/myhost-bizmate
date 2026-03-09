@@ -51,6 +51,7 @@ import {
 } from 'lucide-react';
 import ManualDataEntry from '../ManualDataEntry/ManualDataEntry';
 import MasterCalendar from '../MasterCalendar/MasterCalendar';
+import ServiceRequests from '../ServiceRequests/ServiceRequests';
 import SpecializedReports from './SpecializedReports';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
@@ -100,6 +101,20 @@ const Autopilot = ({ onBack }) => {
   const [showTaskModal, setShowTaskModal] = useState(false);
   const [selectedTask, setSelectedTask] = useState(null); // null = create new, object = edit existing
 
+  // Guest Issues data from Supabase (REAL DATA)
+  const [guestIssues, setGuestIssues] = useState([]);
+  const [loadingIssues, setLoadingIssues] = useState(false);
+  const [showIssueModal, setShowIssueModal] = useState(false);
+  const [selectedIssue, setSelectedIssue] = useState(null); // null = create new, object = edit existing
+
+  // Guest Issues filters
+  const [issueVillaFilter, setIssueVillaFilter] = useState('all');
+  const [issueStatusFilter, setIssueStatusFilter] = useState('all'); // all, open, in_progress, resolved
+  const [issuePriorityFilter, setIssuePriorityFilter] = useState('all'); // all, low, medium, high, urgent
+
+  // Villas data (for filters and dropdowns)
+  const [villas, setVillas] = useState([]);
+
   // Notifications and confirmations
   const [notification, setNotification] = useState(null); // { type: 'success'|'error', message: string }
   const [confirmDialog, setConfirmDialog] = useState(null); // { message: string, onConfirm: function }
@@ -111,12 +126,36 @@ const Autopilot = ({ onBack }) => {
   const [isGeneratingEnhancedReport, setIsGeneratingEnhancedReport] = useState(false);
   const [enhancedReportHTML, setEnhancedReportHTML] = useState('<html><body style="margin:0;padding:40px;font-family:sans-serif;text-align:center;color:#666;"><h2 style="color:#FF8C42;">Enhanced Global Report</h2><p>Select property and dates, then click <strong>Generate Report</strong>.</p></body></html>');
 
+  // Load villas when entering Tasks section
+  useEffect(() => {
+    if (activeSection === 'tasks' && userData?.id) {
+      const loadVillas = async () => {
+        try {
+          const allVillas = await dataService.getVillas();
+          // Filter only user's villas
+          const userVillas = allVillas.filter(villa =>
+            villa.name.toUpperCase().includes('NISMARA') || villa.name.toUpperCase().includes('GRAHA UMA')
+          );
+          setVillas(userVillas);
+        } catch (error) {
+          console.error('Error loading villas:', error);
+        }
+      };
+      loadVillas();
+    }
+  }, [activeSection, userData]);
+
   // Load tasks data when entering Tasks section or filters change
   useEffect(() => {
     console.log('🔄 Tasks useEffect - section:', activeSection, 'tab:', tasksActiveTab, 'tenant_id:', userData?.id);
-    if (activeSection === 'tasks' && userData?.id && tasksActiveTab === 'tasks') {
-      console.log('✅ Conditions met - calling loadTasksData');
-      loadTasksData();
+    if (activeSection === 'tasks' && userData?.id) {
+      if (tasksActiveTab === 'tasks') {
+        console.log('✅ Conditions met - calling loadTasksData');
+        loadTasksData();
+      } else if (tasksActiveTab === 'issues') {
+        console.log('✅ Conditions met - calling loadGuestIssuesData');
+        loadGuestIssuesData();
+      }
     }
   }, [
     activeSection,
@@ -128,6 +167,9 @@ const Autopilot = ({ onBack }) => {
     taskStatusFilter,
     taskPriorityFilter,
     taskCategoryFilter,
+    issueVillaFilter,
+    issueStatusFilter,
+    issuePriorityFilter,
     userData,
     tasksActiveTab
   ]);
@@ -227,6 +269,92 @@ const Autopilot = ({ onBack }) => {
       console.error('❌ Error loading tasks:', error);
     } finally {
       setLoadingTasks(false);
+    }
+  };
+
+  // Load guest issues from Supabase with filters
+  const loadGuestIssuesData = async () => {
+    console.log('🔄 loadGuestIssuesData called, userData:', userData);
+    console.log('🔍 Filtering by tenant_id:', userData?.id);
+
+    if (!userData?.id) {
+      console.error('❌ No user id found in userData');
+      return;
+    }
+
+    setLoadingIssues(true);
+    try {
+      // Build query WITHOUT joins (foreign keys don't exist yet)
+      let query = supabase
+        .from('maintenance_issues')
+        .select('*')
+        .eq('tenant_id', userData.id)
+        .order('created_at', { ascending: false });
+
+      // Apply filters
+      if (issueVillaFilter !== 'all') {
+        query = query.eq('villa_id', issueVillaFilter);
+      }
+
+      if (issueStatusFilter !== 'all') {
+        query = query.eq('status', issueStatusFilter);
+      }
+
+      if (issuePriorityFilter !== 'all') {
+        query = query.eq('priority', issuePriorityFilter);
+      }
+
+      console.log('🔍 Query filters:', {
+        tenant_id: userData.id,
+        villa_filter: issueVillaFilter,
+        status_filter: issueStatusFilter,
+        priority_filter: issuePriorityFilter
+      });
+
+      const { data, error } = await query;
+
+      if (error) {
+        console.error('❌ Error loading guest issues:', error);
+        setGuestIssues([]);
+      } else {
+        console.log('✅ Guest issues loaded:', data.length);
+
+        // Manually add villa and booking names
+        const issuesWithDetails = await Promise.all(data.map(async (issue) => {
+          let villaName = null;
+          let guestName = null;
+
+          // Get villa name
+          if (issue.villa_id) {
+            const villa = villas.find(v => v.id === issue.villa_id);
+            villaName = villa?.name || null;
+          }
+
+          // Get booking guest name
+          if (issue.booking_id) {
+            const { data: booking } = await supabase
+              .from('bookings')
+              .select('guest_name')
+              .eq('id', issue.booking_id)
+              .single();
+            guestName = booking?.guest_name || null;
+          }
+
+          return {
+            ...issue,
+            villa: villaName ? { name: villaName } : null,
+            booking: guestName ? { guest_name: guestName } : null
+          };
+        }));
+
+        console.log('📋 Issues with details:', issuesWithDetails);
+        setGuestIssues(issuesWithDetails || []);
+      }
+    } catch (error) {
+      console.error('❌ Error loading guest issues:', error);
+      setGuestIssues([]);
+    } finally {
+      setLoadingIssues(false);
     }
   };
 
@@ -472,6 +600,13 @@ const Autopilot = ({ onBack }) => {
       icon: Wrench,
       description: 'Operations',
       badge: '5 open'
+    },
+    {
+      id: 'service-requests',
+      name: 'Service Requests',
+      icon: ClipboardList,
+      description: 'Guest services',
+      badge: null
     },
     {
       id: 'decisions',
@@ -3008,7 +3143,7 @@ const Autopilot = ({ onBack }) => {
               onClick={onClose}
               className="flex-1 px-4 py-3 bg-gray-700 hover:bg-gray-600 text-white rounded-lg font-bold transition-all"
             >
-              Cancelar
+              Cancel
             </button>
             <button
               onClick={() => {
@@ -3017,7 +3152,7 @@ const Autopilot = ({ onBack }) => {
               }}
               className="flex-1 px-4 py-3 bg-red-500 hover:bg-red-600 text-white rounded-lg font-bold transition-all"
             >
-              Eliminar
+              Delete
             </button>
           </div>
         </div>
@@ -3079,7 +3214,7 @@ const Autopilot = ({ onBack }) => {
 
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-2 md:p-4">
-        <div className="bg-[#1f2937] rounded-2xl w-[98%] sm:w-[90%] md:w-full max-w-2xl max-h-[92vh] md:max-h-[90vh] overflow-y-auto border-2 border-orange-500/30">
+        <div className="bg-[#1f2937] rounded-2xl w-[98%] sm:w-[90%] md:w-full max-w-2xl max-h-[92vh] md:max-h-[90vh] overflow-y-auto border-2 border-orange-500/30" style={{ marginLeft: '40px' }}>
           {/* Header */}
           <div className="flex items-center justify-between p-4 md:p-6 border-b border-gray-700">
             <h3 className="text-xl md:text-2xl font-bold text-[#FF8C42]">
@@ -3266,6 +3401,283 @@ const Autopilot = ({ onBack }) => {
     );
   };
 
+  const IssueModal = ({ issue, onClose, onSave }) => {
+    const [formData, setFormData] = useState({
+      villa_id: issue?.villa_id || '',
+      booking_id: issue?.booking_id || null,
+      issue_type: issue?.issue_type || 'other',
+      title: issue?.title || '',
+      description: issue?.description || '',
+      priority: issue?.priority || 'medium',
+      status: issue?.status || 'open',
+      assigned_to: issue?.assigned_to || ''
+    });
+
+    const [villas, setVillas] = useState([]);
+    const [bookings, setBookings] = useState([]);
+
+    useEffect(() => {
+      // Load villas for dropdown
+      const loadVillas = async () => {
+        try {
+          const allVillas = await dataService.getVillas();
+          // Filter only user's villas
+          const userVillas = allVillas.filter(villa =>
+            villa.name.toUpperCase().includes('NISMARA') || villa.name.toUpperCase().includes('GRAHA UMA')
+          );
+          setVillas(userVillas);
+        } catch (error) {
+          console.error('Error loading villas:', error);
+        }
+      };
+      loadVillas();
+    }, []);
+
+    useEffect(() => {
+      // Load bookings when villa is selected
+      if (formData.villa_id) {
+        const loadBookings = async () => {
+          try {
+            const { data, error } = await supabase
+              .from('bookings')
+              .select('id, guest_name, check_in, check_out')
+              .eq('villa_id', formData.villa_id)
+              .in('status', ['confirmed', 'checked_in'])
+              .gte('check_out', new Date().toISOString().split('T')[0])
+              .order('check_in');
+
+            if (!error && data) {
+              setBookings(data);
+            }
+          } catch (error) {
+            console.error('Error loading bookings:', error);
+          }
+        };
+        loadBookings();
+      } else {
+        setBookings([]);
+        setFormData({ ...formData, booking_id: null });
+      }
+    }, [formData.villa_id]);
+
+    const handleSubmit = async (e) => {
+      e.preventDefault();
+
+      try {
+        // Get property_id from selected villa
+        const selectedVilla = villas.find(v => v.id === formData.villa_id);
+        const property_id = selectedVilla?.property_id || null;
+
+        const issueData = {
+          villa_id: formData.villa_id || null,
+          booking_id: formData.booking_id || null,
+          issue_type: formData.issue_type,
+          title: formData.title,
+          description: formData.description || null,
+          priority: formData.priority,
+          status: formData.status,
+          assigned_to: formData.assigned_to || null,
+          property_id: property_id,
+          tenant_id: userData.id,
+          resolved_at: formData.status === 'resolved' ? new Date().toISOString() : null
+        };
+
+        if (issue?.id) {
+          // Update existing issue
+          const { error } = await supabase
+            .from('maintenance_issues')
+            .update(issueData)
+            .eq('id', issue.id);
+
+          if (error) throw error;
+        } else {
+          // Create new issue
+          const { error } = await supabase
+            .from('maintenance_issues')
+            .insert([issueData]);
+
+          if (error) throw error;
+        }
+
+        onSave();
+      } catch (error) {
+        console.error('Error saving guest issue:', error);
+        alert('Error saving issue: ' + error.message);
+      }
+    };
+
+    const issueTypes = [
+      { value: 'plumbing', label: 'Plumbing' },
+      { value: 'electrical', label: 'Electrical' },
+      { value: 'ac', label: 'Air Conditioning' },
+      { value: 'wifi', label: 'WiFi' },
+      { value: 'pest', label: 'Pest Control' },
+      { value: 'cleaning', label: 'Cleaning' },
+      { value: 'other', label: 'Other' }
+    ];
+
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-2 md:p-4">
+        <div className="bg-[#1f2937] rounded-2xl w-[98%] sm:w-[90%] md:w-full max-w-2xl max-h-[92vh] md:max-h-[90vh] overflow-y-auto border-2 border-orange-500/30" style={{ marginLeft: '60px' }}>
+          {/* Header */}
+          <div className="flex items-center justify-between p-4 md:p-6 border-b border-gray-700">
+            <h3 className="text-xl md:text-2xl font-bold text-[#FF8C42]">
+              {issue ? 'Edit Guest Issue' : 'Report New Guest Issue'}
+            </h3>
+            <button
+              onClick={onClose}
+              className="p-2 hover:bg-gray-700 rounded-lg transition-colors"
+            >
+              <X className="w-6 h-6 text-gray-400" />
+            </button>
+          </div>
+
+          {/* Form */}
+          <form onSubmit={handleSubmit} className="p-4 md:p-6 space-y-4">
+            {/* Villa * */}
+            <div>
+              <label className="block text-white font-bold mb-2">Villa *</label>
+              <select
+                required
+                value={formData.villa_id}
+                onChange={(e) => setFormData({ ...formData, villa_id: e.target.value })}
+                className="w-full px-4 py-2 bg-[#2a2f3a] text-white rounded-lg border-2 border-gray-700 focus:border-orange-500 outline-none"
+              >
+                <option value="">Select a villa</option>
+                {villas.map(villa => (
+                  <option key={villa.id} value={villa.id}>{villa.name}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Booking (optional, depends on villa) */}
+            {formData.villa_id && (
+              <div>
+                <label className="block text-white font-bold mb-2">Related Booking (optional)</label>
+                <select
+                  value={formData.booking_id || ''}
+                  onChange={(e) => setFormData({ ...formData, booking_id: e.target.value || null })}
+                  className="w-full px-4 py-2 bg-[#2a2f3a] text-white rounded-lg border-2 border-gray-700 focus:border-orange-500 outline-none"
+                >
+                  <option value="">No active booking linked</option>
+                  {bookings.map(booking => (
+                    <option key={booking.id} value={booking.id}>
+                      {booking.guest_name} ({new Date(booking.check_in).toLocaleDateString()} - {new Date(booking.check_out).toLocaleDateString()})
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            {/* Issue Type * */}
+            <div>
+              <label className="block text-white font-bold mb-2">Issue Type *</label>
+              <select
+                required
+                value={formData.issue_type}
+                onChange={(e) => setFormData({ ...formData, issue_type: e.target.value })}
+                className="w-full px-4 py-2 bg-[#2a2f3a] text-white rounded-lg border-2 border-gray-700 focus:border-orange-500 outline-none"
+              >
+                {issueTypes.map(type => (
+                  <option key={type.value} value={type.value}>{type.label}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Title * */}
+            <div>
+              <label className="block text-white font-bold mb-2">Title *</label>
+              <input
+                type="text"
+                required
+                maxLength={200}
+                value={formData.title}
+                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                className="w-full px-4 py-2 bg-[#2a2f3a] text-white rounded-lg border-2 border-gray-700 focus:border-orange-500 outline-none"
+                placeholder="e.g., AC not cooling in bedroom"
+              />
+            </div>
+
+            {/* Description */}
+            <div>
+              <label className="block text-white font-bold mb-2">Description</label>
+              <textarea
+                value={formData.description}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                maxLength={2000}
+                rows={3}
+                className="w-full px-4 py-2 bg-[#2a2f3a] text-white rounded-lg border-2 border-gray-700 focus:border-orange-500 outline-none"
+                placeholder="Guest reported AC in master bedroom not reaching set temperature. Checked filter - appears clean."
+              />
+            </div>
+
+            {/* Row: Priority, Status */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-white font-bold mb-2">Priority *</label>
+                <select
+                  required
+                  value={formData.priority}
+                  onChange={(e) => setFormData({ ...formData, priority: e.target.value })}
+                  className="w-full px-4 py-2 bg-[#2a2f3a] text-white rounded-lg border-2 border-gray-700 focus:border-orange-500 outline-none"
+                >
+                  <option value="low">Low</option>
+                  <option value="medium">Medium</option>
+                  <option value="high">High</option>
+                  <option value="urgent">Urgent</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-white font-bold mb-2">Status *</label>
+                <select
+                  required
+                  value={formData.status}
+                  onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                  className="w-full px-4 py-2 bg-[#2a2f3a] text-white rounded-lg border-2 border-gray-700 focus:border-orange-500 outline-none"
+                >
+                  <option value="open">Open</option>
+                  <option value="in_progress">In Progress</option>
+                  <option value="resolved">Resolved</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Assigned To */}
+            <div>
+              <label className="block text-white font-bold mb-2">Assigned To</label>
+              <input
+                type="text"
+                value={formData.assigned_to}
+                onChange={(e) => setFormData({ ...formData, assigned_to: e.target.value })}
+                className="w-full px-4 py-2 bg-[#2a2f3a] text-white rounded-lg border-2 border-gray-700 focus:border-orange-500 outline-none"
+                placeholder="Staff member name"
+              />
+            </div>
+
+            {/* Buttons */}
+            <div className="flex gap-3 pt-4">
+              <button
+                type="submit"
+                className="flex-1 px-6 py-3 bg-orange-500 hover:bg-orange-600 text-white rounded-lg font-bold transition-all flex items-center justify-center gap-2"
+              >
+                <Save className="w-5 h-5" />
+                {issue ? 'Update Issue' : 'Create Issue'}
+              </button>
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-6 py-3 bg-gray-700 hover:bg-gray-600 text-white rounded-lg font-bold transition-all"
+              >
+                Cancel
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    );
+  };
+
   const renderTasksSection = () => (
     <div className="space-y-6">
       <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-3xl p-6 shadow-2xl border-2 border-[#d85a2a]/20">
@@ -3286,8 +3698,13 @@ const Autopilot = ({ onBack }) => {
           <div className="flex gap-2">
             <button
               onClick={() => {
-                setSelectedTask(null); // null = create mode
-                setShowTaskModal(true);
+                if (tasksActiveTab === 'tasks') {
+                  setSelectedTask(null);
+                  setShowTaskModal(true);
+                } else {
+                  setSelectedIssue(null);
+                  setShowIssueModal(true);
+                }
               }}
               className="px-2 py-1.5 md:px-4 md:py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg font-bold transition-all flex items-center gap-1 md:gap-2 text-xs md:text-base"
             >
@@ -3600,14 +4017,14 @@ const Autopilot = ({ onBack }) => {
                         onClick={(e) => {
                           e.stopPropagation();
                           setConfirmDialog({
-                            message: `¿Eliminar tarea "${task.title}"?`,
+                            message: `Delete task "${task.title}"?`,
                             onConfirm: async () => {
                               try {
                                 await tasksService.deleteTask(task.id);
-                                setNotification({ type: 'success', message: `Tarea "${task.title}" eliminada correctamente` });
+                                setNotification({ type: 'success', message: `Task "${task.title}" deleted successfully` });
                                 await loadTasksData();
                               } catch (error) {
-                                setNotification({ type: 'error', message: 'Error al eliminar tarea' });
+                                setNotification({ type: 'error', message: 'Error deleting task' });
                               }
                             }
                           });
@@ -3629,17 +4046,234 @@ const Autopilot = ({ onBack }) => {
 
         {/* Guest Issues Tab Content */}
         {tasksActiveTab === 'issues' && (
-          <div className="space-y-4">
-            <div className="bg-blue-500/10 border-2 border-blue-500/30 rounded-xl p-4">
-              <p className="text-blue-200 text-sm">
-                Track and manage issues reported by guests during their stay. Issues are organized by priority and status.
-              </p>
+        <>
+          {/* Filters */}
+          <div className="bg-white/5 rounded-xl p-4 mb-6">
+            <div className="flex items-center gap-2 mb-4">
+              <Filter className="w-5 h-5 text-[#FF8C42]" />
+              <h4 className="text-white font-bold">Filters</h4>
             </div>
 
-            <div className="text-center py-12">
-              <p className="text-gray-400 text-lg">Guest Issues tab - Coming soon</p>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+              {/* Villa Filter */}
+              <div>
+                <label className="block text-gray-400 text-sm mb-1">Villa</label>
+                <select
+                  value={issueVillaFilter}
+                  onChange={(e) => setIssueVillaFilter(e.target.value)}
+                  className="w-full px-3 py-2 bg-[#2a2f3a] text-white rounded-lg border border-gray-700 text-sm"
+                >
+                  <option value="all">All Villas</option>
+                  {villas.map(villa => (
+                    <option key={villa.id} value={villa.id}>{villa.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Status Filter */}
+              <div>
+                <label className="block text-gray-400 text-sm mb-1">Status</label>
+                <select
+                  value={issueStatusFilter}
+                  onChange={(e) => setIssueStatusFilter(e.target.value)}
+                  className="w-full px-3 py-2 bg-[#2a2f3a] text-white rounded-lg border border-gray-700 text-sm"
+                >
+                  <option value="all">All Status</option>
+                  <option value="open">Open</option>
+                  <option value="in_progress">In Progress</option>
+                  <option value="resolved">Resolved</option>
+                </select>
+              </div>
+
+              {/* Priority Filter */}
+              <div>
+                <label className="block text-gray-400 text-sm mb-1">Priority</label>
+                <select
+                  value={issuePriorityFilter}
+                  onChange={(e) => setIssuePriorityFilter(e.target.value)}
+                  className="w-full px-3 py-2 bg-[#2a2f3a] text-white rounded-lg border border-gray-700 text-sm"
+                >
+                  <option value="all">All Priorities</option>
+                  <option value="low">Low</option>
+                  <option value="medium">Medium</option>
+                  <option value="high">High</option>
+                  <option value="urgent">Urgent</option>
+                </select>
+              </div>
             </div>
+
+            {/* Clear Filters */}
+            <button
+              onClick={() => {
+                setIssueVillaFilter('all');
+                setIssueStatusFilter('all');
+                setIssuePriorityFilter('all');
+              }}
+              className="w-full mt-3 px-3 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg text-sm font-bold transition-all"
+            >
+              Clear Filters
+            </button>
           </div>
+
+          {/* Issues List */}
+          <div className="space-y-3">
+          {loadingIssues ? (
+            <div className="text-center py-8">
+              <p className="text-gray-400">Loading guest issues...</p>
+            </div>
+          ) : guestIssues.length === 0 ? (
+            <div className="text-center py-8">
+              <p className="text-gray-400">No guest issues found</p>
+              <p className="text-gray-500 text-sm mt-2">Click "New Issue" to report a guest issue</p>
+            </div>
+          ) : (
+            guestIssues.map((issue) => {
+              // Priority colors
+              const priorityColors = {
+                low: 'bg-gray-500/20 text-gray-300',
+                medium: 'bg-yellow-500/20 text-yellow-300',
+                high: 'bg-orange-500/20 text-orange-300',
+                urgent: 'bg-red-500/20 text-red-300'
+              };
+
+              // Status colors
+              const statusColors = {
+                open: 'bg-blue-500/20 text-blue-300',
+                in_progress: 'bg-yellow-500/20 text-yellow-300',
+                resolved: 'bg-green-500/20 text-green-300'
+              };
+
+              // Format issue type
+              const issueTypeLabels = {
+                plumbing: 'Plumbing',
+                electrical: 'Electrical',
+                ac: 'Air Conditioning',
+                wifi: 'WiFi',
+                pest: 'Pest Control',
+                cleaning: 'Cleaning',
+                other: 'Other'
+              };
+
+              // Format created date
+              const createdDate = new Date(issue.created_at);
+              const now = new Date();
+              const diffMs = now - createdDate;
+              const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+              const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+              let createdStr;
+              if (diffHours < 1) {
+                createdStr = 'Just now';
+              } else if (diffHours < 24) {
+                createdStr = `${diffHours}h ago`;
+              } else if (diffDays < 7) {
+                createdStr = `${diffDays}d ago`;
+              } else {
+                createdStr = createdDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+              }
+
+              return (
+                <div
+                  key={issue.id}
+                  className="bg-[#2a2f3a] rounded-xl p-4 border-2 border-gray-700 hover:border-orange-500/50 transition-all cursor-pointer"
+                  onClick={() => {
+                    setSelectedIssue(issue);
+                    setShowIssueModal(true);
+                  }}
+                >
+                  <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
+                    {/* Main Info */}
+                    <div className="flex-1 cursor-pointer touch-manipulation">
+                      {/* Title and Priority */}
+                      <div className="flex items-center gap-2 mb-2">
+                        <h4 className="text-white font-bold">{issue.title}</h4>
+                        <span className={`px-2 py-1 rounded-full text-xs font-bold ${priorityColors[issue.priority]}`}>
+                          {issue.priority.toUpperCase()}
+                        </span>
+                      </div>
+
+                      {/* Villa, Type, Guest */}
+                      <div className="flex flex-wrap items-center gap-3 text-sm mb-2">
+                        <div className="flex items-center gap-1 text-gray-400">
+                          <Home className="w-4 h-4" />
+                          <span>{issue.villa?.name || 'No villa'}</span>
+                        </div>
+                        <div className="flex items-center gap-1 text-gray-400">
+                          <AlertCircle className="w-4 h-4" />
+                          <span>{issueTypeLabels[issue.issue_type]}</span>
+                        </div>
+                        {issue.booking?.guest_name && (
+                          <div className="flex items-center gap-1 text-gray-400">
+                            <Users className="w-4 h-4" />
+                            <span>{issue.booking.guest_name}</span>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Description preview */}
+                      {issue.description && (
+                        <p className="text-gray-400 text-sm line-clamp-2">{issue.description}</p>
+                      )}
+                    </div>
+
+                    {/* Right Side: Status, Date, Actions */}
+                    <div className="flex md:flex-col items-center md:items-end gap-2">
+                      {/* Status Badge */}
+                      <span className={`px-3 py-1 rounded-full text-xs font-bold ${statusColors[issue.status]}`}>
+                        {issue.status.replace('_', ' ').toUpperCase()}
+                      </span>
+
+                      {/* Created Date */}
+                      <div className="flex items-center gap-1 text-gray-500 text-xs">
+                        <Clock className="w-3 h-3" />
+                        <span>{createdStr}</span>
+                      </div>
+
+                      {/* Assigned To */}
+                      {issue.assigned_to && (
+                        <div className="flex items-center gap-1 text-gray-500 text-xs">
+                          <UserCheck className="w-3 h-3" />
+                          <span>{issue.assigned_to}</span>
+                        </div>
+                      )}
+
+                      {/* Delete Button */}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setConfirmDialog({
+                            show: true,
+                            title: 'Delete Guest Issue',
+                            message: `Are you sure you want to delete "${issue.title}"? This action cannot be undone.`,
+                            onConfirm: async () => {
+                              try {
+                                await supabase
+                                  .from('maintenance_issues')
+                                  .delete()
+                                  .eq('id', issue.id);
+
+                                setNotification({ type: 'success', message: 'Guest issue deleted successfully' });
+                                await loadGuestIssuesData();
+                              } catch (error) {
+                                console.error('Error deleting issue:', error);
+                                setNotification({ type: 'error', message: 'Error deleting issue: ' + error.message });
+                              }
+                            }
+                          });
+                        }}
+                        className="p-2 hover:bg-red-500/20 rounded-lg transition-all group"
+                        title="Delete issue"
+                      >
+                        <Trash2 className="w-4 h-4 text-gray-500 group-hover:text-red-400" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })
+          )}
+          </div>
+        </>
         )}
 
       </div>
@@ -3742,20 +4376,20 @@ const Autopilot = ({ onBack }) => {
       const businessName = 'Nismara Uma Villa';
       const currency = 'IDR';
 
-      // Villa selector options (matching Specialized Reports)
+      // Villa selector options (exact Supabase names)
       const villas = [
         { value: 'all', label: 'All Properties' },
-        { value: 'nismara', label: 'Nismara 2BR Villa' },
-        { value: 'uma', label: 'Uma 1BR Villa' },
-        { value: 'santai', label: 'Santai 3BR Villa' }
+        { value: 'graha-uma', label: 'Graha Uma 1 Bedroom Pool Villa' },
+        { value: 'nismara-1br', label: 'Nismara 1BR Villa' },
+        { value: 'nismara-2br', label: 'NISMARA 2 BEDROOM POOL VILLA' }
       ];
 
-      // Villa ID mapping (matching Specialized Reports)
+      // Villa ID mapping (exact Supabase names)
       const villaIdMap = {
         'all': null,
-        'nismara': 'b1000001-0001-4001-8001-000000000001',
-        'uma': 'b2000002-0002-4002-8002-000000000002',
-        'santai': 'b3000003-0003-4003-8003-000000000003'
+        'graha-uma': 'b2000002-0002-4002-8002-000000000002',      // Graha Uma 1 Bedroom Pool Villa (16 bookings)
+        'nismara-1br': 'b1000001-0001-4001-8001-000000000001',   // Nismara 1BR Villa (0 bookings)
+        'nismara-2br': 'b3000003-0003-4003-8003-000000000003'    // NISMARA 2 BEDROOM POOL VILLA (52 bookings)
       };
 
       // Get current property name for display
@@ -5567,6 +6201,7 @@ const Autopilot = ({ onBack }) => {
           {activeSection === 'communication' && renderCommunicationSection()}
           {activeSection === 'website' && renderWebsiteSection()}
           {activeSection === 'tasks' && renderTasksSection()}
+          {activeSection === 'service-requests' && <ServiceRequests onBack={() => setActiveSection('menu')} />}
           {activeSection === 'decisions' && renderDecisionsSection()}
           {activeSection === 'data-export' && renderDataExportSection()}
         </div>
@@ -5590,7 +6225,7 @@ const Autopilot = ({ onBack }) => {
               if (selectedTask) {
                 // Edit existing task
                 await tasksService.updateTask(selectedTask.id, taskData);
-                setNotification({ type: 'success', message: 'Tarea actualizada correctamente' });
+                setNotification({ type: 'success', message: 'Task updated successfully' });
               } else {
                 // Create new task - IMPORTANTE: pasar tenant_id del usuario logueado
                 await tasksService.createTask({
@@ -5598,14 +6233,36 @@ const Autopilot = ({ onBack }) => {
                   tenantId: userData.id,
                   propertyId: null // tasks can be property-agnostic
                 }, userData);
-                setNotification({ type: 'success', message: 'Tarea creada correctamente' });
+                setNotification({ type: 'success', message: 'Task created successfully' });
               }
               setShowTaskModal(false);
               setSelectedTask(null);
               await loadTasksData(); // Reload tasks
             } catch (error) {
               console.error('Full error:', error);
-              setNotification({ type: 'error', message: 'Error al guardar: ' + error.message });
+              setNotification({ type: 'error', message: 'Error saving: ' + error.message });
+            }
+          }}
+        />
+      )}
+
+      {/* Guest Issue Modal (Create/Edit) */}
+      {showIssueModal && (
+        <IssueModal
+          issue={selectedIssue}
+          onClose={() => {
+            setShowIssueModal(false);
+            setSelectedIssue(null);
+          }}
+          onSave={async () => {
+            try {
+              setShowIssueModal(false);
+              setSelectedIssue(null);
+              setNotification({ type: 'success', message: selectedIssue ? 'Guest issue updated successfully' : 'Guest issue created successfully' });
+              await loadGuestIssuesData(); // Reload issues
+            } catch (error) {
+              console.error('Error saving guest issue:', error);
+              setNotification({ type: 'error', message: 'Error saving guest issue: ' + error.message });
             }
           }}
         />

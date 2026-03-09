@@ -93,6 +93,15 @@ body {
   }
 }
 
+@keyframes slideInLeft {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
 @keyframes pulseGlow {
   0%, 100% {
     box-shadow: 0 0 20px rgba(255, 140, 66, 0.5), 0 0 40px rgba(255, 140, 66, 0.3);
@@ -117,6 +126,10 @@ body {
 
 .animate-slideInRight {
   animation: slideInRight 0.3s ease-out;
+}
+
+.animate-slideInLeft {
+  animation: slideInLeft 0.3s ease-out;
 }
 
 .animate-pulse-glow {

@@ -183,10 +183,10 @@ const ManualDataEntry = ({ onBack }) => {
         const propertyIds = [...new Set(bookings.map(b => b.property_id))];
         console.log(`[ManualDataEntry] User has ${propertyIds.length} property_id(s):`, propertyIds);
 
-        // Create dummy property entries for the form
-        const propertiesData = propertyIds.map((id, index) => ({
+        // Create property entries showing owner name
+        const propertiesData = propertyIds.map((id) => ({
           id: id,
-          name: `Property ${index + 1}`,
+          name: `Owner - ${userData?.full_name || userData?.email || 'Property Owner'}`,
           owner_id: tenantId
         }));
         setProperties(propertiesData);
@@ -1297,7 +1297,7 @@ const ManualDataEntry = ({ onBack }) => {
                 }}
                 className="px-3 py-1.5 bg-red-500 hover:bg-red-600 text-white rounded-lg text-sm font-medium transition-all"
               >
-                Reintentar
+                Retry
               </button>
             </div>
           </div>
@@ -2595,7 +2595,7 @@ const ManualDataEntry = ({ onBack }) => {
                   }}
                   className="px-4 py-2 bg-[#2a2f3a] border-2 border-gray-200 rounded-xl text-white focus:outline-none focus:border-orange-300"
                 >
-                  <option value="">Todas las villas</option>
+                  <option value="">All Villas</option>
                   {villas.map(v => (
                     <option key={v.id} value={v.id}>{v.name}</option>
                   ))}
@@ -2817,13 +2817,13 @@ const ManualDataEntry = ({ onBack }) => {
       {editingBooking && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4 overflow-y-auto">
           <div className="bg-[#1f2937] rounded-2xl p-6 max-w-2xl w-full border-2 border-orange-500 my-8">
-            <h3 className="text-2xl font-bold text-orange-400 mb-6">Editar Booking</h3>
+            <h3 className="text-2xl font-bold text-orange-400 mb-6">Edit Booking</h3>
 
             <form onSubmit={handleUpdateBooking} className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* Guest Name */}
                 <div className="md:col-span-2">
-                  <label className="block text-[#FF8C42] font-medium mb-2">Nombre del Huésped *</label>
+                  <label className="block text-[#FF8C42] font-medium mb-2">Guest Name *</label>
                   <input
                     type="text"
                     required
@@ -2836,7 +2836,7 @@ const ManualDataEntry = ({ onBack }) => {
 
                 {/* Guest Phone */}
                 <div>
-                  <label className="block text-[#FF8C42] font-medium mb-2">Teléfono</label>
+                  <label className="block text-[#FF8C42] font-medium mb-2">Phone</label>
                   <input
                     type="tel"
                     value={editForm.guestPhone}
@@ -2906,7 +2906,7 @@ const ManualDataEntry = ({ onBack }) => {
 
                 {/* Guests */}
                 <div>
-                  <label className="block text-[#FF8C42] font-medium mb-2">Huéspedes *</label>
+                  <label className="block text-[#FF8C42] font-medium mb-2">Guests *</label>
                   <input
                     type="number"
                     required
@@ -2920,7 +2920,7 @@ const ManualDataEntry = ({ onBack }) => {
 
                 {/* Total Amount */}
                 <div>
-                  <label className="block text-[#FF8C42] font-medium mb-2">Precio Total *</label>
+                  <label className="block text-[#FF8C42] font-medium mb-2">Total Price *</label>
                   <input
                     type="number"
                     required
@@ -2934,7 +2934,7 @@ const ManualDataEntry = ({ onBack }) => {
 
                 {/* Payment Status */}
                 <div className="md:col-span-2">
-                  <label className="block text-[#FF8C42] font-medium mb-2">Estado de Pago *</label>
+                  <label className="block text-[#FF8C42] font-medium mb-2">Payment Status *</label>
                   <select
                     required
                     value={editForm.status}
@@ -2969,7 +2969,7 @@ const ManualDataEntry = ({ onBack }) => {
                   disabled={isSavingEdit}
                   className="flex-1 px-4 py-3 bg-gray-600 hover:bg-gray-700 text-white rounded-xl font-medium transition-all"
                 >
-                  Cancelar
+                  Cancel
                 </button>
                 <button
                   type="submit"
@@ -2978,7 +2978,7 @@ const ManualDataEntry = ({ onBack }) => {
                     isSavingEdit ? 'opacity-50 cursor-not-allowed' : ''
                   }`}
                 >
-                  {isSavingEdit ? 'Guardando...' : 'Guardar Cambios'}
+                  {isSavingEdit ? 'Saving...' : 'Save Changes'}
                 </button>
               </div>
             </form>

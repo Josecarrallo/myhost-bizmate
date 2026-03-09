@@ -71,7 +71,7 @@ const VoiceAssistant = () => {
 
       // Construir payload con datos acumulados
       const accumulatedData = {
-        assistantId: '816a7c95-bd58-489c-b6ba-d0796fb2a722',
+        squadId: '56ca0b34-a9d3-43f6-a0ec-f0f4a49cf0ee',
         startedAt: callDataRef.current.startTime,
         endedAt: callDataRef.current.endTime,
         durationMs: durationMs,
@@ -109,7 +109,7 @@ const VoiceAssistant = () => {
               call: accumulatedData,
               artifact: {
                 structuredOutputs: callDataRef.current.structuredOutputs || {
-                  '6426dbc9-8b9e-49f7-8f29-faa16683bcda': {
+                  '5d27326f-3f5b-4eb2-b30d-e63b1f15b056': {
                     name: 'callResult',
                     result: accumulatedData
                   }
@@ -210,13 +210,13 @@ const VoiceAssistant = () => {
     setError(null);
 
     try {
-      // Usar Assistant MCP configurado en VAPI Dashboard
-      // ID: Izumi Hotel Receptionist (MCP) - 816a7c95-bd58-489c-b6ba-d0796fb2a722
-      // Multilingüe (ES/EN/ID) con Claude Sonnet 4
+      // Usar KORA Squad configurado en VAPI Dashboard
+      // Squad ID: 56ca0b34-a9d3-43f6-a0ec-f0f4a49cf0ee
+      // 3 asistentes dedicados: KORA_EN / KORA_ES / KORA_ID con Claude Sonnet 4
       // Con MCP Server: https://n8n-production-bb2d.up.railway.app/mcp/izumi-hotel
       // Server URL: https://n8n-production-bb2d.up.railway.app/webhook/kora-post-call-v2
-      // NOTA: VAPI Web SDK requiere string directo, no objeto
-      await vapiRef.current.start('816a7c95-bd58-489c-b6ba-d0796fb2a722');
+      // NOTA: VAPI Web SDK requiere squadId como tercer parámetro: start(null, null, squadId)
+      await vapiRef.current.start(null, null, '56ca0b34-a9d3-43f6-a0ec-f0f4a49cf0ee');
     } catch (error) {
       console.error('Error al iniciar llamada:', error);
       setIsLoading(false);

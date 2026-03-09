@@ -3,12 +3,13 @@ import { supabase } from '../lib/supabase';
 import { onBookingCreated } from './n8n';
 
 export const dataService = {
-  // Obtener todas las properties
+  // Obtener todas las properties (villas)
   async getProperties() {
     const { data, error } = await supabase
-      .from('properties')
+      .from('villas')
       .select('*')
-      .eq('status', 'active');
+      .eq('status', 'active')
+      .order('name');
 
     if (error) {
       console.error('Error fetching properties:', error);
@@ -875,11 +876,27 @@ export const dataService = {
         return [];
       }
 
-      // Get ALL villas for this tenant (don't filter by bookings)
+      // 1. Get ALL user's property_ids from their bookings (may have multiple properties)
+      const { data: bookings } = await supabase
+        .from('bookings')
+        .select('property_id')
+        .eq('tenant_id', tenantId);
+
+      if (!bookings || bookings.length === 0) {
+        console.log('[getVillas] No bookings found for tenant, no villas to show');
+        return [];
+      }
+
+      // Get unique property_ids for this user
+      const propertyIds = [...new Set(bookings.map(b => b.property_id))];
+      console.log(`[getVillas] User has ${propertyIds.length} property_id(s):`, propertyIds);
+
+      // 2. Get villas for ALL user's property_ids
       const { data, error } = await supabase
         .from('villas')
         .select('*')
-        .eq('tenant_id', tenantId);
+        .in('property_id', propertyIds)
+        .eq('status', 'active');
 
       if (error) {
         console.error('Error fetching villas:', error);

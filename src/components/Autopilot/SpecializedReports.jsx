@@ -35,9 +35,9 @@ const SpecializedReports = () => {
   // Hardcoded villas for now (will be dynamic later)
   const villas = [
     { value: 'all', label: 'All Properties' },
-    { value: 'nismara', label: 'Nismara 2BR Villa' },
-    { value: 'uma', label: 'Uma 1BR Villa' },
-    { value: 'santai', label: 'Santai 3BR Villa' }
+    { value: 'graha-uma', label: 'Graha Uma 1 Bedroom Pool Villa' },
+    { value: 'nismara-1br', label: 'Nismara 1BR Villa' },
+    { value: 'nismara-2br', label: 'NISMARA 2 BEDROOM POOL VILLA' }
   ];
 
   const handleGenerate = async () => {

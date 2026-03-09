@@ -32,12 +32,16 @@ const TimelineView = ({
     setLoading(true);
     try {
       // Use properties as "villas" since units table doesn't exist
-      setVillas(properties.map(p => ({
-        id: p.id,
-        name: p.name,
-        property_id: p.id,
-        properties: { name: p.name }
-      })));
+      const sortedVillas = properties
+        .map(p => ({
+          id: p.id,
+          name: p.name,
+          property_id: p.property_id || p.id,
+          properties: { name: p.name }
+        }))
+        .sort((a, b) => a.name.localeCompare(b.name));
+
+      setVillas(sortedVillas);
 
       // Get first and last day of current month
       const year = currentDate.getFullYear();
@@ -66,7 +70,7 @@ const TimelineView = ({
         .lte('check_in', endRange);
 
       if (selectedProperty !== 'all') {
-        bookingsQuery = bookingsQuery.eq('property_id', selectedProperty);
+        bookingsQuery = bookingsQuery.eq('villa_id', selectedProperty);
       }
 
       if (selectedStatus !== 'all') {
@@ -93,8 +97,9 @@ const TimelineView = ({
         guest: b.guest_name,
         checkIn: b.check_in,
         checkOut: b.check_out,
-        property: b.property_id
+        villa_id: b.villa_id
       })));
+      console.log('🏠 [TIMELINE] Villas:', villas.map(v => ({ id: v.id, name: v.name })));
       setBookings(bookingsData || []);
 
     } catch (error) {
@@ -211,7 +216,7 @@ const TimelineView = ({
     const monthEnd = new Date(monthDate.getFullYear(), monthDate.getMonth() + 1, 0);
 
     return bookings.filter(b => {
-      if (b.property_id !== villa.property_id) return false;
+      if (b.villa_id !== villa.id) return false;
 
       const checkIn = parseDate(b.check_in);
       const checkOut = parseDate(b.check_out);
@@ -320,7 +325,9 @@ const TimelineView = ({
                       No villas found. Make sure you have properties configured.
                     </div>
                   ) : (
-                    villas.map((villa, villaIdx) => {
+                    villas
+                      .filter(villa => selectedProperty === 'all' || villa.id === selectedProperty)
+                      .map((villa, villaIdx) => {
                       const villaBookings = getVillaBookings(villa, monthDate);
 
               return (

@@ -4,12 +4,13 @@ import { Bot, ChevronRight, Activity, Sparkles, Zap } from 'lucide-react';
 const AiAgentsWidget = ({ onOpenAgentCenter }) => {
   const [isHovered, setIsHovered] = useState(false);
 
-  // All AI Agents (6 total)
+  // All AI Agents (7 total)
   const agents = [
     { id: 'osiris', name: 'OSIRIS', operation: 'Operations', status: 'Active' },
     { id: 'lumina', name: 'LUMINA', operation: 'Sales', status: 'Active' },
     { id: 'banyu', name: 'BANYU', operation: 'WhatsApp Assistant', status: 'Active' },
     { id: 'kora', name: 'KORA', operation: 'Voice Assistant', status: 'Active' },
+    { id: 'nusantara', name: 'NUSANTARA', operation: 'Cultural Intelligence', status: 'Active' },
     { id: 'iris', name: 'IRIS', operation: 'Marketing', status: 'Active' },
     { id: 'aura', name: 'AURA', operation: 'Proactive Context', status: 'Active' }
   ];

@@ -9,17 +9,22 @@ import {
   Home,
   User,
   Clock,
-  Wrench,
   Sparkles,
   LayoutGrid,
-  BarChart3
+  BarChart3,
+  Plus,
+  Lock,
+  Save,
+  CheckCircle,
+  AlertCircle
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
+import { supabaseService } from '../../services/supabase';
 import TimelineView from './TimelineView';
 
 const MasterCalendar = ({ onBack }) => {
-  const { user } = useAuth();
+  const { user, userData } = useAuth();
 
   // View mode
   const [viewMode, setViewMode] = useState('month'); // 'month' or 'timeline'
@@ -41,10 +46,31 @@ const MasterCalendar = ({ onBack }) => {
 
   // Data
   const [properties, setProperties] = useState([]);
+  const [uniqueProperties, setUniqueProperties] = useState([]);
   const [bookings, setBookings] = useState([]);
   const [tasks, setTasks] = useState([]);
-  const [issues, setIssues] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [userPropertyId, setUserPropertyId] = useState(null);
+
+  // Quick booking form
+  const [showQuickBookingForm, setShowQuickBookingForm] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
+  const [errorMessage, setErrorMessage] = useState('');
+  const [villas, setVillas] = useState([]);
+  const [bookingForm, setBookingForm] = useState({
+    propertyId: '',
+    villaId: '',
+    guestName: '',
+    guestPhone: '',
+    guestEmail: '',
+    checkIn: '',
+    checkOut: '',
+    guests: '2',
+    totalAmount: '',
+    status: 'hold',
+    notes: ''
+  });
 
   // Load data when filters or month changes
   useEffect(() => {
@@ -57,20 +83,51 @@ const MasterCalendar = ({ onBack }) => {
     console.log('🔄 Loading calendar data...');
     setLoading(true);
     try {
-      // Get properties
-      console.log('📍 Fetching properties for user:', user.id);
-      const { data: propsData, error: propsError } = await supabase
-        .from('properties')
-        .select('*')
-        .eq('owner_id', user.id);
+      // Get user's property_id from their bookings
+      const { data: userBooking } = await supabase
+        .from('bookings')
+        .select('property_id')
+        .eq('tenant_id', user.id)
+        .limit(1);
 
-      if (propsError) {
-        console.error('❌ Properties error:', propsError);
-        throw propsError;
+      const userPropertyId = userBooking?.[0]?.property_id;
+      console.log('📍 User property_id:', userPropertyId);
+
+      // Store user's property_id in state
+      setUserPropertyId(userPropertyId);
+
+      // Get villas for this property_id
+      let villasData = [];
+      if (userPropertyId) {
+        const { data: villas, error: villasError } = await supabase
+          .from('villas')
+          .select('*')
+          .eq('property_id', userPropertyId)
+          .eq('status', 'active')
+          .order('name');
+
+        if (villasError) {
+          console.error('❌ Villas error:', villasError);
+        } else {
+          villasData = villas || [];
+        }
       }
 
-      console.log('✅ Properties loaded:', propsData?.length || 0);
-      setProperties(propsData || []);
+      console.log('✅ Villas loaded:', villasData?.length || 0);
+      setProperties(villasData);
+
+      // Extract unique properties - show as "Owner - {user name}"
+      if (villasData && villasData.length > 0 && userData) {
+        const uniquePropertyIds = [...new Set(villasData.map(v => v.property_id).filter(Boolean))];
+
+        const uniqueProps = uniquePropertyIds.map(propId => ({
+          property_id: propId,
+          name: `Owner - ${userData.full_name || userData.email}` // Show owner name
+        }));
+
+        setUniqueProperties(uniqueProps);
+        console.log('✅ Unique properties with owner name:', uniqueProps);
+      }
 
       // Get first and last day of current month
       const year = currentDate.getFullYear();
@@ -101,9 +158,9 @@ const MasterCalendar = ({ onBack }) => {
         .gte('check_in', startRange)
         .lte('check_in', endRange);
 
-      // Apply property filter
+      // Apply property filter (using villa_id, not property_id)
       if (selectedProperty !== 'all') {
-        bookingsQuery = bookingsQuery.eq('property_id', selectedProperty);
+        bookingsQuery = bookingsQuery.eq('villa_id', selectedProperty);
       }
 
       // Apply status filter
@@ -193,7 +250,7 @@ const MasterCalendar = ({ onBack }) => {
         .lte('scheduled_date', lastDay.toISOString().split('T')[0]);
 
       if (selectedProperty !== 'all') {
-        tasksQuery = tasksQuery.eq('property_id', selectedProperty);
+        tasksQuery = tasksQuery.eq('villa_id', selectedProperty);
       }
 
       console.log('📍 Fetching tasks...');
@@ -207,34 +264,267 @@ const MasterCalendar = ({ onBack }) => {
       console.log('✅ Tasks loaded:', tasksData?.length || 0);
       setTasks(tasksData || []);
 
-      // Get maintenance issues (with property filter if applicable)
-      let issuesQuery = supabase
-        .from('maintenance_issues')
-        .select('*')
-        .gte('created_at', firstDay.toISOString())
-        .lte('created_at', lastDay.toISOString());
-
-      if (selectedProperty !== 'all') {
-        issuesQuery = issuesQuery.eq('property_id', selectedProperty);
-      }
-
-      console.log('📍 Fetching issues...');
-      const { data: issuesData, error: issuesError } = await issuesQuery.order('created_at', { ascending: true });
-
-      if (issuesError) {
-        console.error('❌ Issues error:', issuesError);
-        // No throw, issues are optional
-      }
-
-      console.log('✅ Issues loaded:', issuesData?.length || 0);
-      setIssues(issuesData || []);
-
       console.log('✅ Calendar data loaded successfully');
     } catch (error) {
       console.error('❌ Error loading calendar data:', error);
     } finally {
       console.log('✅ Setting loading to false');
       setLoading(false);
+    }
+  };
+
+  // Load villas for property
+  const loadVillasForProperty = async (propertyId) => {
+    try {
+      const { data: villasData, error } = await supabase
+        .from('villas')
+        .select('*')
+        .eq('property_id', propertyId)
+        .eq('status', 'active');
+
+      if (error) {
+        console.error('Error loading villas:', error);
+        return;
+      }
+
+      setVillas(villasData || []);
+
+      // Auto-select first villa if there's only one
+      if (villasData && villasData.length === 1) {
+        setBookingForm(prev => ({ ...prev, villaId: villasData[0].id }));
+      }
+    } catch (error) {
+      console.error('Error loading villas:', error);
+    }
+  };
+
+  // Handle property selection change
+  const handlePropertyChange = (propertyId) => {
+    setBookingForm(prev => ({ ...prev, propertyId, villaId: '', totalAmount: '' }));
+    if (propertyId) {
+      loadVillasForProperty(propertyId);
+    } else {
+      setVillas([]);
+    }
+  };
+
+  // Auto-calculate total amount when villa, check-in, or check-out changes
+  useEffect(() => {
+    const { checkIn, checkOut, villaId } = bookingForm;
+
+    if (!checkIn || !checkOut || !villaId) {
+      return;
+    }
+
+    // Calculate nights
+    const checkInDate = new Date(checkIn);
+    const checkOutDate = new Date(checkOut);
+    const nights = Math.ceil((checkOutDate - checkInDate) / (1000 * 60 * 60 * 24));
+
+    if (nights <= 0) {
+      return;
+    }
+
+    // Find selected villa
+    const selectedVilla = villas.find(v => v.id === villaId);
+
+    if (!selectedVilla || !selectedVilla.base_price) {
+      return;
+    }
+
+    // Calculate total
+    const totalAmount = selectedVilla.base_price * nights;
+    setBookingForm(prev => ({ ...prev, totalAmount: totalAmount.toString() }));
+  }, [bookingForm.villaId, bookingForm.checkIn, bookingForm.checkOut, villas]);
+
+  // Handle block date
+  const handleBlockDate = async (villa) => {
+    if (!selectedDay || !userData?.id) {
+      console.error('❌ Missing selectedDay or userData');
+      return;
+    }
+
+    if (!villa || !villa.id) {
+      console.error('❌ Missing villa or villa.id:', villa);
+      alert('No villa available to block. Please try again.');
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const checkInDate = selectedDay.toISOString().split('T')[0];
+
+      // Calculate check_out as the next day (constraint requires check_out > check_in)
+      const checkOutDate = new Date(selectedDay);
+      checkOutDate.setDate(checkOutDate.getDate() + 1);
+      const checkOutStr = checkOutDate.toISOString().split('T')[0];
+
+      console.log('🔒 Blocking date:', {
+        check_in: checkInDate,
+        check_out: checkOutStr,
+        villa: villa.name,
+        villa_id: villa.id,
+        property_id: villa.property_id
+      });
+
+      // Create blocked booking
+      const bookingData = {
+        tenant_id: userData.id,
+        property_id: villa.property_id || userPropertyId,
+        villa_id: villa.id,
+        guest_name: 'BLOCKED',
+        guest_email: null,
+        guest_phone: null,
+        check_in: checkInDate,
+        check_out: checkOutStr,
+        guests: 1,
+        nights: 1,
+        total_price: 0,
+        currency: 'USD',
+        status: 'confirmed',
+        payment_status: 'paid',
+        channel: 'direct',
+        source: 'owner_block',
+        notes: `Date blocked by user (${userData.full_name || userData.email}) on ${new Date().toLocaleDateString()}`,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
+
+      console.log('📤 Creating blocked booking:', bookingData);
+      await supabaseService.createBooking(bookingData);
+
+      console.log('✅ Date blocked successfully');
+
+      // Show success message
+      setSuccessMessage(`Date blocked successfully for ${villa.name}`);
+
+      // Reload data
+      await loadData();
+
+      // Close modal after 2 seconds (gives time for calendar to refresh)
+      setTimeout(() => {
+        setSelectedDay(null);
+        setSuccessMessage('');
+      }, 2000);
+
+    } catch (error) {
+      console.error('❌ Error blocking date:', error);
+      console.error('Error details:', error.message || error);
+      setErrorMessage(`Failed to block date: ${error.message || 'Unknown error'}. Please try again.`);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Handle create booking
+  const handleCreateBooking = () => {
+    if (!selectedDay) return;
+
+    const dateStr = selectedDay.toISOString().split('T')[0];
+    const nextDay = new Date(selectedDay);
+    nextDay.setDate(nextDay.getDate() + 1);
+    const nextDayStr = nextDay.toISOString().split('T')[0];
+
+    // Use the user's property_id (e.g., "NISMARA UMA" for Gita)
+    const propertyId = userPropertyId || '';
+
+    setBookingForm({
+      propertyId: propertyId,
+      villaId: properties.length === 1 ? properties[0].id : '',
+      guestName: '',
+      guestPhone: '',
+      guestEmail: '',
+      checkIn: dateStr,
+      checkOut: nextDayStr,
+      guests: '2',
+      totalAmount: '',
+      status: 'hold',
+      notes: ''
+    });
+
+    // Load villas for the property
+    if (propertyId) {
+      loadVillasForProperty(propertyId);
+    } else {
+      setVillas(properties);
+    }
+
+    setSuccessMessage('');
+    setErrorMessage('');
+    setShowQuickBookingForm(true);
+  };
+
+  // Handle quick booking submit
+  const handleQuickBookingSubmit = async (e) => {
+    e.preventDefault();
+
+    setSuccessMessage('');
+    setErrorMessage('');
+
+    if (!userData?.id) {
+      setErrorMessage('You must be logged in to create a booking');
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      // Calculate nights
+      const checkInDate = new Date(bookingForm.checkIn);
+      const checkOutDate = new Date(bookingForm.checkOut);
+      const nights = Math.ceil((checkOutDate - checkInDate) / (1000 * 60 * 60 * 24));
+
+      if (nights <= 0) {
+        setErrorMessage('Check-out date must be after check-in date');
+        setIsSubmitting(false);
+        return;
+      }
+
+      // Get property currency
+      const selectedProperty = properties.find(p => p.property_id === bookingForm.propertyId);
+      const currency = selectedProperty?.currency || 'IDR';
+
+      // Prepare booking data
+      const bookingData = {
+        tenant_id: userData.id,
+        property_id: bookingForm.propertyId,
+        villa_id: bookingForm.villaId,
+        guest_name: bookingForm.guestName,
+        guest_email: bookingForm.guestEmail || null,
+        guest_phone: bookingForm.guestPhone || null,
+        check_in: bookingForm.checkIn,
+        check_out: bookingForm.checkOut,
+        guests: parseInt(bookingForm.guests),
+        nights: nights,
+        total_price: parseFloat(bookingForm.totalAmount) || 0,
+        currency: currency,
+        status: bookingForm.status === 'hold' ? 'pending_payment' : 'confirmed',
+        payment_status: bookingForm.status === 'confirmed' ? 'paid' : 'pending',
+        channel: 'direct',
+        source: 'autopilot',
+        notes: bookingForm.notes || null,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
+
+      await supabaseService.createBooking(bookingData);
+
+      setSuccessMessage(`Booking created successfully! Guest: ${bookingForm.guestName}, ${nights} nights`);
+
+      // Reload data
+      await loadData();
+
+      // Close form after 2 seconds
+      setTimeout(() => {
+        setSelectedDay(null);
+        setShowQuickBookingForm(false);
+        setSuccessMessage('');
+      }, 2000);
+
+    } catch (error) {
+      console.error('Error creating booking:', error);
+      setErrorMessage(error.message || 'Failed to create booking. Please try again.');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -304,7 +594,6 @@ const MasterCalendar = ({ onBack }) => {
     const items = {
       bookings: [],
       tasks: [],
-      issues: [],
       isOccupied: false, // NEW: indicates if day is in middle of a booking
       occupiedCount: 0   // NEW: number of overlapping bookings on this day
     };
@@ -333,12 +622,6 @@ const MasterCalendar = ({ onBack }) => {
 
     // Tasks scheduled for this day
     items.tasks = tasks.filter(task => task.scheduled_date === dateStr);
-
-    // Issues created on this day
-    items.issues = issues.filter(issue => {
-      const issueDate = new Date(issue.created_at).toISOString().split('T')[0];
-      return issueDate === dateStr;
-    });
 
     return items;
   };
@@ -395,9 +678,9 @@ const MasterCalendar = ({ onBack }) => {
   }
 
   return (
-    <div className="flex-1 h-screen bg-[#2a2f3a] flex flex-col overflow-hidden">
+    <div className="flex-1 h-screen bg-[#2a2f3a] flex flex-col">
       {/* Header */}
-      <div className="bg-[#1f2937] border-b border-[#d85a2a]/20 px-3 md:px-6 py-3 md:py-4">
+      <div className="bg-[#1f2937] border-b border-[#d85a2a]/20 px-3 md:px-6 py-3 md:py-4 flex-shrink-0">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 md:gap-0 mb-4">
           <div className="flex items-center gap-3 md:gap-4">
             <button onClick={onBack} className="p-2 hover:bg-white/10 rounded-lg">
@@ -567,6 +850,17 @@ const MasterCalendar = ({ onBack }) => {
             </div>
           )}
 
+          {/* Date Range Title - Show when date filter is applied */}
+          {appliedStartDate && appliedEndDate && (
+            <div className="bg-[#1f2937]/30 border-b border-white/10 px-6 py-3 text-center">
+              <div className="text-white font-bold text-lg">
+                {new Date(appliedStartDate).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+                {' - '}
+                {new Date(appliedEndDate).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+              </div>
+            </div>
+          )}
+
           {/* Calendar Grid - Desktop Only */}
       <div className="hidden md:block flex-1 overflow-auto p-4">
         <div className="space-y-6">
@@ -673,23 +967,10 @@ const MasterCalendar = ({ onBack }) => {
                             </div>
                           ))}
 
-                          {/* Issues */}
-                          {items.issues.slice(0, 1).map((issue, iidx) => (
-                            <div
-                              key={`i-${iidx}`}
-                              className="text-xs px-2 py-1 rounded bg-[#d85a2a]/30 text-orange-200 border border-[#d85a2a]/50"
-                            >
-                              <div className="flex items-center gap-1">
-                                <Wrench className="w-3 h-3" />
-                                <span className="truncate">{issue.issue_type}</span>
-                              </div>
-                            </div>
-                          ))}
-
                           {/* Show "+X more" if there are more items */}
-                          {(items.bookings.length + items.tasks.length + items.issues.length) > 3 && (
+                          {(items.bookings.length + items.tasks.length) > 3 && (
                             <div className="text-xs text-white/60 pl-2">
-                              +{items.bookings.length + items.tasks.length + items.issues.length - 3} more
+                              +{items.bookings.length + items.tasks.length - 3} more
                             </div>
                           )}
                         </div>
@@ -703,23 +984,22 @@ const MasterCalendar = ({ onBack }) => {
         </div>
       </div>
 
-      {/* Mobile List View */}
+      {/* Mobile List View - All days */}
       <div className="md:hidden flex-1 overflow-auto p-3">
         <div className="space-y-3">
           {getMonthsToDisplay().map((monthDate, monthIdx) => {
             const calendarDays = getCalendarDaysForMonth(monthDate);
             const monthName = monthDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
 
-            // Get all items for this month
+            // Get ALL days for this month (filter only current month days)
             const monthItems = [];
             calendarDays.forEach(date => {
-              const items = getItemsForDay(date);
-              if (items.bookings.length > 0 || items.tasks.length > 0 || items.issues.length > 0) {
+              const isCurrentMonth = date.getMonth() === monthDate.getMonth();
+              if (isCurrentMonth) {
+                const items = getItemsForDay(date);
                 monthItems.push({ date, items });
               }
             });
-
-            if (monthItems.length === 0) return null;
 
             return (
               <div key={monthIdx} className="bg-white/5 rounded-lg border border-white/10 overflow-hidden">
@@ -728,48 +1008,60 @@ const MasterCalendar = ({ onBack }) => {
                   <h3 className="text-white font-bold text-base">{monthName}</h3>
                 </div>
 
-                {/* List of days with items */}
+                {/* List of ALL days */}
                 <div className="p-2 space-y-2">
-                  {monthItems.map(({ date, items }, idx) => (
-                    <div
-                      key={idx}
-                      onClick={() => handleDayClick(date)}
-                      className="bg-[#2a2f3a] rounded-lg p-3 border border-white/10 active:bg-white/10 touch-manipulation"
-                    >
-                      {/* Date header */}
-                      <div className="text-orange-400 font-bold text-sm mb-2">
-                        {date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
-                        {items.isOccupied && (
-                          <span className="ml-2 text-xs px-2 py-0.5 bg-red-500/80 text-white rounded-full">
-                            {items.occupiedCount} occupied
-                          </span>
+                  {monthItems.map(({ date, items }, idx) => {
+                    const hasItems = items.bookings.length > 0 || items.tasks.length > 0;
+                    const isToday = date.toDateString() === new Date().toDateString();
+
+                    return (
+                      <div
+                        key={idx}
+                        onClick={() => handleDayClick(date)}
+                        className={`
+                          bg-[#2a2f3a] rounded-lg p-3 border border-white/10 active:bg-white/10 touch-manipulation
+                          ${isToday ? 'border-orange-500/50 bg-orange-500/5' : ''}
+                          ${!hasItems ? 'opacity-70' : ''}
+                        `}
+                      >
+                        {/* Date header */}
+                        <div className={`font-bold text-sm mb-2 ${isToday ? 'text-orange-400' : 'text-white'}`}>
+                          {date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
+                          {items.isOccupied && (
+                            <span className="ml-2 text-xs px-2 py-0.5 bg-red-500/80 text-white rounded-full">
+                              {items.occupiedCount} occupied
+                            </span>
+                          )}
+                          {!hasItems && (
+                            <span className="ml-2 text-xs text-white/40 italic">No activities</span>
+                          )}
+                        </div>
+
+                        {/* Bookings */}
+                        {items.bookings.slice(0, 2).map((booking, bidx) => (
+                          <div key={`b-${bidx}`} className="text-xs px-2 py-1.5 mb-1 rounded border border-blue-500/50 bg-blue-500/10">
+                            <div className="font-bold text-white">{booking.guest_name}</div>
+                            <div className="text-blue-300 text-[10px]">{booking.source || booking.channel || 'Direct'}</div>
+                          </div>
+                        ))}
+
+                        {/* Tasks */}
+                        {items.tasks.slice(0, 1).map((task, tidx) => (
+                          <div key={`t-${tidx}`} className="text-xs px-2 py-1.5 mb-1 rounded border border-yellow-500/50 bg-yellow-500/10">
+                            <div className="font-bold text-white">{task.title}</div>
+                            <div className="text-yellow-300 text-[10px]">{task.task_type || task.category}</div>
+                          </div>
+                        ))}
+
+                        {/* Show count if more items */}
+                        {(items.bookings.length + items.tasks.length) > 3 && (
+                          <div className="text-xs text-white/60 pl-2 mt-1">
+                            +{items.bookings.length + items.tasks.length - 3} more items
+                          </div>
                         )}
                       </div>
-
-                      {/* Bookings */}
-                      {items.bookings.slice(0, 2).map((booking, bidx) => (
-                        <div key={`b-${bidx}`} className="text-xs px-2 py-1.5 mb-1 rounded border border-blue-500/50 bg-blue-500/10">
-                          <div className="font-bold text-white">{booking.guest_name}</div>
-                          <div className="text-blue-300 text-[10px]">{booking.source || booking.channel || 'Direct'}</div>
-                        </div>
-                      ))}
-
-                      {/* Tasks */}
-                      {items.tasks.slice(0, 1).map((task, tidx) => (
-                        <div key={`t-${tidx}`} className="text-xs px-2 py-1.5 mb-1 rounded border border-yellow-500/50 bg-yellow-500/10">
-                          <div className="font-bold text-white">{task.title}</div>
-                          <div className="text-yellow-300 text-[10px]">{task.task_type || task.category}</div>
-                        </div>
-                      ))}
-
-                      {/* Show count if more items */}
-                      {(items.bookings.length + items.tasks.length + items.issues.length) > 3 && (
-                        <div className="text-xs text-white/60 pl-2 mt-1">
-                          +{items.bookings.length + items.tasks.length + items.issues.length - 3} more items
-                        </div>
-                      )}
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             );
@@ -779,8 +1071,8 @@ const MasterCalendar = ({ onBack }) => {
 
       {/* Day Detail Modal */}
       {selectedDay && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-2 md:p-4 md:pl-[280px]">
-          <div className="bg-[#1f2937] rounded-2xl w-full max-w-3xl max-h-[92vh] md:max-h-[90vh] overflow-hidden border border-white/20 shadow-2xl">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-3 md:p-4 md:pl-[280px]">
+          <div className="bg-[#1f2937] rounded-2xl w-full max-w-3xl max-h-[80vh] md:max-h-[90vh] overflow-hidden border border-white/20 shadow-2xl">
             {/* Modal Header */}
             <div className="bg-[#d85a2a] px-6 py-4 flex items-center justify-between">
               <h3 className="text-xl font-bold text-white">
@@ -792,7 +1084,10 @@ const MasterCalendar = ({ onBack }) => {
                 })}
               </h3>
               <button
-                onClick={() => setSelectedDay(null)}
+                onClick={() => {
+                  setSelectedDay(null);
+                  setShowQuickBookingForm(false);
+                }}
                 className="p-2 hover:bg-white/20 rounded-lg transition-colors"
               >
                 <X className="w-5 h-5 text-white" />
@@ -800,15 +1095,276 @@ const MasterCalendar = ({ onBack }) => {
             </div>
 
             {/* Modal Content */}
-            <div className="p-6 overflow-y-auto max-h-[calc(90vh-80px)]">
+            <div className="p-4 md:p-6 overflow-y-auto max-h-[calc(80vh-140px)] md:max-h-[calc(90vh-80px)]">
               {(() => {
                 const items = getItemsForDay(selectedDay);
-                const hasItems = items.bookings.length > 0 || items.tasks.length > 0 || items.issues.length > 0;
+                const hasItems = items.bookings.length > 0 || items.tasks.length > 0;
 
                 if (!hasItems) {
                   return (
-                    <div className="text-center py-12 text-white/60">
-                      No bookings, tasks, or issues for this day
+                    <div>
+                      {!showQuickBookingForm ? (
+                        <div className="space-y-6 py-8">
+                          <div className="text-center text-white/60 mb-8">
+                            No bookings or tasks for this day
+                          </div>
+
+                          {/* Quick Actions */}
+                          <div className="space-y-4 max-w-md mx-auto">
+                            <button
+                              onClick={handleCreateBooking}
+                              disabled={properties.length === 0}
+                              className="w-full flex items-center justify-center gap-3 px-6 py-4 bg-[#d85a2a] hover:bg-[#c14e1e] text-white rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                              <Plus className="w-5 h-5" />
+                              <span className="font-semibold">Create New Booking</span>
+                            </button>
+
+                            {properties.length > 0 && (
+                              <button
+                                onClick={() => handleBlockDate(properties[0])}
+                                disabled={isSubmitting}
+                                className="w-full flex items-center justify-center gap-3 px-6 py-3 bg-red-500 hover:bg-red-600 text-white rounded-xl transition-all disabled:opacity-50"
+                              >
+                                <Lock className="w-4 h-4" />
+                                <span>Block the date</span>
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      ) : (
+                        <form onSubmit={handleQuickBookingSubmit} className="space-y-4">
+                          <h3 className="text-2xl font-black text-[#FF8C42] mb-4 flex items-center gap-2">
+                            <Calendar className="w-6 h-6 text-[#FF8C42]" />
+                            Add Booking / Hold
+                          </h3>
+
+                          {/* Success Message */}
+                          {successMessage && (
+                            <div className="bg-green-500/20 border-2 border-green-500 rounded-xl p-4 flex items-center gap-3">
+                              <CheckCircle className="w-6 h-6 text-green-400" />
+                              <p className="text-green-100 font-medium">{successMessage}</p>
+                            </div>
+                          )}
+
+                          {/* Error Message */}
+                          {errorMessage && (
+                            <div className="bg-red-500/20 border-2 border-red-500 rounded-xl p-4 flex items-center gap-3">
+                              <AlertCircle className="w-6 h-6 text-red-400" />
+                              <p className="text-red-100 font-medium">{errorMessage}</p>
+                            </div>
+                          )}
+
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {/* Guest Name */}
+                            <div>
+                              <label className="block text-[#FF8C42] font-medium mb-2">Guest Name *</label>
+                              <input
+                                type="text"
+                                required
+                                value={bookingForm.guestName}
+                                onChange={(e) => setBookingForm({...bookingForm, guestName: e.target.value})}
+                                className="w-full px-4 py-3 bg-[#2a2f3a] border-2 border-gray-200 rounded-xl text-[#FF8C42] placeholder-gray-400 focus:outline-none focus:border-orange-300"
+                                placeholder="Guest full name"
+                              />
+                            </div>
+
+                            {/* Guest Phone */}
+                            <div>
+                              <label className="block text-[#FF8C42] font-medium mb-2">Guest Phone</label>
+                              <input
+                                type="tel"
+                                value={bookingForm.guestPhone}
+                                onChange={(e) => setBookingForm({...bookingForm, guestPhone: e.target.value})}
+                                className="w-full px-4 py-3 bg-[#2a2f3a] border-2 border-gray-200 rounded-xl text-[#FF8C42] placeholder-gray-400 focus:outline-none focus:border-orange-300"
+                                placeholder="+62 813 1234 5678"
+                              />
+                            </div>
+
+                            {/* Guest Email */}
+                            <div>
+                              <label className="block text-[#FF8C42] font-medium mb-2">Guest Email</label>
+                              <input
+                                type="email"
+                                value={bookingForm.guestEmail}
+                                onChange={(e) => setBookingForm({...bookingForm, guestEmail: e.target.value})}
+                                className="w-full px-4 py-3 bg-[#2a2f3a] border-2 border-gray-200 rounded-xl text-[#FF8C42] placeholder-gray-400 focus:outline-none focus:border-orange-300"
+                                placeholder="guest@example.com"
+                              />
+                            </div>
+
+                            {/* Property */}
+                            <div>
+                              <label className="block text-[#FF8C42] font-medium mb-2">Property *</label>
+                              <select
+                                required
+                                value={bookingForm.propertyId}
+                                onChange={(e) => handlePropertyChange(e.target.value)}
+                                className="w-full px-4 py-3 bg-[#2a2f3a] border-2 border-gray-200 rounded-xl text-[#FF8C42] focus:outline-none focus:border-orange-300 [&>option]:bg-[#1f2937] [&>option]:text-white"
+                              >
+                                <option value="" className="bg-[#1f2937] text-gray-400">
+                                  Select a property
+                                </option>
+                                {uniqueProperties.map(property => (
+                                  <option key={property.property_id} value={property.property_id} className="bg-[#1f2937] text-white">
+                                    {property.name}
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
+
+                            {/* Villa */}
+                            <div>
+                              <label className="block text-[#FF8C42] font-medium mb-2">Villa / Unit *</label>
+                              <select
+                                required
+                                value={bookingForm.villaId}
+                                onChange={(e) => setBookingForm({...bookingForm, villaId: e.target.value})}
+                                disabled={!bookingForm.propertyId || villas.length === 0}
+                                className="w-full px-4 py-3 bg-[#2a2f3a] border-2 border-gray-200 rounded-xl text-[#FF8C42] focus:outline-none focus:border-orange-300 disabled:opacity-50 [&>option]:bg-[#1f2937] [&>option]:text-white"
+                              >
+                                <option value="" className="bg-[#1f2937] text-gray-400">
+                                  {!bookingForm.propertyId ? 'Select property first' : villas.length === 0 ? 'Loading villas...' : 'Select a villa'}
+                                </option>
+                                {villas.map(villa => (
+                                  <option key={villa.id} value={villa.id} className="bg-[#1f2937] text-white">
+                                    {villa.name}{villa.base_price ? ` - IDR ${villa.base_price.toLocaleString()}/night` : ''}
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
+
+                            {/* Check-in */}
+                            <div>
+                              <label className="block text-[#FF8C42] font-medium mb-2">Check-in Date *</label>
+                              <input
+                                type="date"
+                                required
+                                value={bookingForm.checkIn}
+                                onChange={(e) => setBookingForm({...bookingForm, checkIn: e.target.value})}
+                                className="w-full px-4 py-3 bg-white/10 border border-white/30 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-white/50"
+                              />
+                            </div>
+
+                            {/* Check-out */}
+                            <div>
+                              <label className="block text-[#FF8C42] font-medium mb-2">Check-out Date *</label>
+                              <input
+                                type="date"
+                                required
+                                value={bookingForm.checkOut}
+                                onChange={(e) => setBookingForm({...bookingForm, checkOut: e.target.value})}
+                                className="w-full px-4 py-3 bg-white/10 border border-white/30 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-white/50"
+                              />
+                            </div>
+
+                            {/* Date Validation Error Message */}
+                            {bookingForm.checkIn && bookingForm.checkOut && new Date(bookingForm.checkOut) <= new Date(bookingForm.checkIn) && (
+                              <div className="col-span-1 md:col-span-2 bg-red-500/20 border-2 border-red-500 rounded-xl p-4">
+                                <div className="flex items-start gap-3">
+                                  <svg className="w-6 h-6 text-red-500 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                  </svg>
+                                  <div>
+                                    <h4 className="text-red-500 font-bold text-lg mb-1">Invalid Dates</h4>
+                                    <p className="text-white text-sm">
+                                      Check-out date must be AFTER check-in date. Please correct the dates to continue.
+                                    </p>
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Guests */}
+                            <div>
+                              <label className="block text-[#FF8C42] font-medium mb-2">Number of Guests *</label>
+                              <select
+                                required
+                                value={bookingForm.guests}
+                                onChange={(e) => setBookingForm({...bookingForm, guests: e.target.value})}
+                                className="w-full px-4 py-3 bg-white/10 border border-white/30 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-white/50"
+                              >
+                                {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(num => (
+                                  <option key={num} value={num} className="bg-gray-800 text-white">{num}</option>
+                                ))}
+                              </select>
+                            </div>
+
+                            {/* Total Amount */}
+                            <div>
+                              <label className="block text-[#FF8C42] font-medium mb-2">Total Amount (IDR) *</label>
+                              <div className="relative">
+                                <span className="absolute left-3 top-3 text-gray-400 font-semibold">Rp</span>
+                                <input
+                                  type="number"
+                                  required
+                                  step="1"
+                                  value={bookingForm.totalAmount}
+                                  onChange={(e) => setBookingForm({...bookingForm, totalAmount: e.target.value})}
+                                  className="w-full pl-12 pr-4 py-3 bg-[#2a2f3a] border-2 border-gray-200 rounded-xl text-[#FF8C42] placeholder-gray-400 focus:outline-none focus:border-orange-300"
+                                  placeholder="0"
+                                />
+                              </div>
+                              <p className="text-xs text-gray-400 mt-1">Auto-calculated from villa rate × nights (editable)</p>
+                            </div>
+
+                            {/* Payment Status */}
+                            <div className="md:col-span-2">
+                              <label className="block text-[#FF8C42] font-medium mb-2">Payment Status *</label>
+                              <select
+                                required
+                                value={bookingForm.status}
+                                onChange={(e) => setBookingForm({...bookingForm, status: e.target.value})}
+                                className="w-full px-4 py-3 bg-[#2a2f3a] border-2 border-gray-200 rounded-xl text-[#FF8C42] focus:outline-none focus:border-orange-300 [&>option]:bg-[#1f2937] [&>option]:text-white"
+                              >
+                                <option value="hold">Hold - Pending Payment</option>
+                                <option value="confirmed">Confirmed - Fully Paid</option>
+                                <option value="partial">Partial - Deposit Received</option>
+                              </select>
+                            </div>
+
+                            {/* Booking Notes */}
+                            <div className="md:col-span-2">
+                              <label className="block text-[#FF8C42] font-medium mb-2">Booking Notes</label>
+                              <textarea
+                                rows="3"
+                                value={bookingForm.notes}
+                                onChange={(e) => setBookingForm({...bookingForm, notes: e.target.value})}
+                                className="w-full px-4 py-3 bg-[#2a2f3a] border-2 border-gray-200 rounded-xl text-[#FF8C42] placeholder-gray-400 focus:outline-none focus:border-orange-300 resize-none"
+                                placeholder="Add any special requests, dietary restrictions, or important notes about this booking..."
+                              />
+                              <p className="text-xs text-gray-400 mt-1">Optional: Add internal notes visible only to staff</p>
+                            </div>
+                          </div>
+
+                          {/* Submit Button */}
+                          <div className="flex justify-end gap-3 pt-4">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setBookingForm({
+                                  propertyId: '', villaId: '', guestName: '', guestPhone: '', guestEmail: '',
+                                  checkIn: '', checkOut: '', guests: '2', totalAmount: '', status: 'hold', notes: ''
+                                });
+                                setShowQuickBookingForm(false);
+                              }}
+                              className="px-6 py-3 bg-[#2a2f3a] hover:bg-[#374151] text-[#FF8C42] rounded-xl font-medium transition-all border-2 border-gray-200"
+                            >
+                              Clear
+                            </button>
+                            <button
+                              type="submit"
+                              disabled={isSubmitting}
+                              className={`px-6 py-3 bg-orange-500 hover:bg-orange-600 text-white rounded-xl font-medium transition-all flex items-center gap-2 ${
+                                isSubmitting ? 'opacity-50 cursor-not-allowed' : ''
+                              }`}
+                            >
+                              <Save className="w-5 h-5" />
+                              {isSubmitting ? 'Creating...' : 'Create Booking'}
+                            </button>
+                          </div>
+                        </form>
+                      )}
                     </div>
                   );
                 }
@@ -923,37 +1479,6 @@ const MasterCalendar = ({ onBack }) => {
                       </div>
                     )}
 
-                    {/* Issues Section */}
-                    {items.issues.length > 0 && (
-                      <div>
-                        <h4 className="text-lg font-bold text-white mb-3 flex items-center gap-2">
-                          <Wrench className="w-5 h-5 text-red-400" />
-                          Maintenance Issues ({items.issues.length})
-                        </h4>
-                        <div className="space-y-2">
-                          {items.issues.map((issue, idx) => (
-                            <div key={idx} className="bg-white/5 rounded-lg p-3 border border-white/10">
-                              <div className="flex items-start justify-between mb-2">
-                                <div>
-                                  <div className="text-white font-medium">{issue.title}</div>
-                                  <div className="text-white/60 text-sm">{issue.description}</div>
-                                </div>
-                                <span className={`px-2 py-1 rounded-full text-xs ${
-                                  issue.priority === 'urgent' ? 'bg-[#d85a2a] text-white' :
-                                  issue.priority === 'high' ? 'bg-[#f5a524]/20 text-[#f5a524]' :
-                                  'bg-white/10 text-white/60'
-                                }`}>
-                                  {issue.priority}
-                                </span>
-                              </div>
-                              <div className="text-xs text-white/60">
-                                Type: <span className="text-white">{issue.issue_type}</span>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
                   </div>
                 );
               })()}
@@ -962,10 +1487,13 @@ const MasterCalendar = ({ onBack }) => {
             {/* Modal Footer */}
             <div className="bg-[#1f2937]/50 border-t border-white/10 px-6 py-4">
               <button
-                onClick={() => setSelectedDay(null)}
+                onClick={() => {
+                  setSelectedDay(null);
+                  setShowQuickBookingForm(false);
+                }}
                 className="w-full px-4 py-2 bg-[#d85a2a] hover:bg-[#c14e1e] text-white rounded-lg transition-all"
               >
-                Volver al Calendario
+                Back to Calendar
               </button>
             </div>
           </div>
