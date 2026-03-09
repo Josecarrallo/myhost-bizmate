@@ -135,6 +135,18 @@ export const supabaseService = {
   },
 
   async deleteBooking(id) {
+    // First, delete any tasks associated with this booking
+    const { error: tasksError } = await supabase
+      .from('tasks')
+      .delete()
+      .eq('booking_id', id);
+
+    if (tasksError) {
+      console.warn('Warning deleting tasks:', tasksError.message);
+      // Continue anyway - maybe there were no tasks
+    }
+
+    // Then delete the booking
     const { error } = await supabase
       .from('bookings')
       .delete()
