@@ -221,14 +221,25 @@ const AISystems = ({ onBack }) => {
       gradient: 'from-rose-500 via-pink-500 to-fuchsia-500',
       glowColor: 'shadow-rose-500/50',
       quickQuestions: [
-        "What cultural events happen in March?",
-        "Tell me about Nyepi Day and guest impact",
-        "What are the best restaurants in Canggu?",
-        "Temple etiquette rules for my guests",
-        "Beach safety and sea conditions in Uluwatu",
-        "Traffic peak hours in Seminyak",
-        "Recommended wellness centers in Ubud",
-        "What should guests know about Canang Sari?"
+        // 🏖️ Beaches
+        "Best sunset beaches?",
+        "Hidden beaches away from tourists?",
+        "Diving near a shipwreck?",
+        // 🛕 Temples
+        "Tell me about the sacred temples of Bali",
+        "How do I prepare guests for a temple visit?",
+        // 📅 Events
+        "What cultural events are happening this month?",
+        "How will Nyepi affect my guests?",
+        // 📍 Zones
+        "Nearest ATMs in Canggu?",
+        "Best restaurants near Ubud?",
+        // ✉️ Guest Messages
+        "Generate a WhatsApp message about the upcoming ceremony",
+        "Create a cultural welcome message",
+        // 🙏 Etiquette
+        "What should guests know before visiting a temple?",
+        "What is canang sari?"
       ]
     },
     lumina: {
