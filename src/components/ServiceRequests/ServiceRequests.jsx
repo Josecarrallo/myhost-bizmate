@@ -54,6 +54,8 @@ const ServiceRequests = ({ onBack }) => {
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [editingNotes, setEditingNotes] = useState(false);
   const [editingAssignment, setEditingAssignment] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [requestToDelete, setRequestToDelete] = useState(null);
 
   // Villas data (for filters)
   const [villas, setVillas] = useState([]);
@@ -68,6 +70,7 @@ const ServiceRequests = ({ onBack }) => {
     guest_email: '',
     scheduled_date: '',
     scheduled_time: '',
+    duration_minutes: '',
     price: '',
     currency: 'USD',
     special_requests: ''
@@ -436,10 +439,12 @@ const ServiceRequests = ({ onBack }) => {
       const newRequest = {
         tenant_id: userData.id,
         property_id: selectedVilla.property_id,
+        villa_id: formData.villa_id,
         type: formData.type,
         title: formData.title,
         status: 'pending_confirmation',
         scheduled_at: scheduledDateTime,
+        duration_minutes: formData.duration_minutes ? parseInt(formData.duration_minutes) : null,
         guest_name: formData.guest_name,
         guest_phone: formData.guest_phone,
         guest_email: formData.guest_email || null,
@@ -478,6 +483,7 @@ const ServiceRequests = ({ onBack }) => {
         guest_email: '',
         scheduled_date: '',
         scheduled_time: '',
+        duration_minutes: '',
         price: '',
         currency: 'USD',
         special_requests: ''
@@ -528,6 +534,8 @@ const ServiceRequests = ({ onBack }) => {
         .update({
           title: editedRequest.title,
           status: editedRequest.status,
+          scheduled_at: editedRequest.scheduled_at,
+          duration_minutes: editedRequest.duration_minutes,
           guest_name: editedRequest.guest_name,
           guest_phone: editedRequest.guest_phone,
           guest_email: editedRequest.guest_email,
@@ -952,6 +960,7 @@ const ServiceRequests = ({ onBack }) => {
                 <th className="text-left py-3 px-3 text-gray-300 font-semibold text-xs">Title</th>
                 <th className="text-left py-3 px-3 text-gray-300 font-semibold text-xs">Guest</th>
                 <th className="text-left py-3 px-3 text-gray-300 font-semibold text-xs">Scheduled</th>
+                <th className="text-left py-3 px-3 text-gray-300 font-semibold text-xs">Duration</th>
                 <th className="text-left py-3 px-3 text-gray-300 font-semibold text-xs">Price</th>
                 <th className="text-left py-3 px-3 text-gray-300 font-semibold text-xs">Assigned To</th>
                 <th className="text-left py-3 px-3 text-gray-300 font-semibold text-xs">Created</th>
@@ -997,6 +1006,13 @@ const ServiceRequests = ({ onBack }) => {
                         <div className="text-white/60 text-[10px]">{request.guest_phone}</div>
                       </td>
                       <td className="py-2.5 px-3 text-white text-xs">{formatDateTime(request.scheduled_at)}</td>
+                      <td className="py-2.5 px-3 text-white text-xs">
+                        {request.duration_minutes ?
+                          request.duration_minutes >= 60 ?
+                            `${Math.floor(request.duration_minutes / 60)}h` :
+                            `${request.duration_minutes} min`
+                          : '-'}
+                      </td>
                       <td className="py-2.5 px-3 text-white font-medium text-xs">{formatPrice(request.price, request.currency)}</td>
                       <td className="py-2.5 px-3">
                         {request.assigned_to ? (
@@ -1012,9 +1028,8 @@ const ServiceRequests = ({ onBack }) => {
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
-                            if (window.confirm('Are you sure you want to delete this service request?')) {
-                              handleDeleteRequest(request.id);
-                            }
+                            setRequestToDelete(request);
+                            setShowDeleteConfirm(true);
                           }}
                           className="p-1.5 hover:bg-red-500/20 rounded-lg text-red-400 hover:text-red-300 transition-colors"
                           title="Delete"
@@ -1167,6 +1182,18 @@ const ServiceRequests = ({ onBack }) => {
                   </div>
                 </div>
 
+                {/* Duration */}
+                <div>
+                  <label className="block text-sm font-semibold text-white mb-2">Duration (minutes)</label>
+                  <input
+                    type="number"
+                    value={formData.duration_minutes || ''}
+                    onChange={(e) => setFormData({...formData, duration_minutes: e.target.value})}
+                    placeholder="60"
+                    className="w-full px-4 py-2.5 bg-[#1f2937] border border-[#d85a2a]/30 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#d85a2a]/50"
+                  />
+                </div>
+
                 {/* Price */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
@@ -1220,6 +1247,7 @@ const ServiceRequests = ({ onBack }) => {
                     guest_email: '',
                     scheduled_date: '',
                     scheduled_time: '',
+                    duration_minutes: '',
                     price: '',
                     currency: 'USD',
                     special_requests: ''
@@ -1460,6 +1488,66 @@ const ServiceRequests = ({ onBack }) => {
                 ) : (
                   'Confirm'
                 )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteConfirm && requestToDelete && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setShowDeleteConfirm(false)}>
+          <div
+            className="bg-[#2a2f3a] rounded-2xl border-2 border-red-500/50 max-w-md w-full shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="bg-gradient-to-r from-red-500 to-red-600 p-6 rounded-t-2xl">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center">
+                  <AlertCircle className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <h2 className="text-xl font-bold text-white">Eliminar Solicitud</h2>
+                  <p className="text-white/90 text-sm">Esta acción no se puede deshacer</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Content */}
+            <div className="p-6">
+              <p className="text-white text-base mb-4">
+                ¿Estás seguro que deseas eliminar esta solicitud de servicio?
+              </p>
+              <div className="bg-[#1f2937] rounded-xl p-4 border border-[#d85a2a]/20">
+                <p className="text-white font-semibold">{requestToDelete.title}</p>
+                <p className="text-gray-400 text-sm mt-1">
+                  {requestToDelete.guest_name} • {formatType(requestToDelete.type)}
+                </p>
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="bg-[#1f2937] p-6 border-t border-red-500/20 flex gap-3 rounded-b-2xl">
+              <button
+                onClick={() => {
+                  setShowDeleteConfirm(false);
+                  setRequestToDelete(null);
+                }}
+                className="flex-1 px-6 py-3 bg-[#2a2f3a] hover:bg-[#2a2f3a]/80 text-white rounded-xl font-semibold transition-all border border-gray-700"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={() => {
+                  handleDeleteRequest(requestToDelete.id);
+                  setShowDeleteConfirm(false);
+                  setRequestToDelete(null);
+                }}
+                className="flex-1 px-6 py-3 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white rounded-xl font-semibold transition-all shadow-lg flex items-center justify-center gap-2"
+              >
+                <Trash2 className="w-5 h-5" />
+                Eliminar
               </button>
             </div>
           </div>
