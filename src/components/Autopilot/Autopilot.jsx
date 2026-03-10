@@ -96,6 +96,7 @@ const Autopilot = ({ onBack }) => {
   const [taskStatusFilter, setTaskStatusFilter] = useState('all'); // all, open, assigned, in_progress, completed
   const [taskPriorityFilter, setTaskPriorityFilter] = useState('all'); // all, low, medium, high, urgent
   const [taskCategoryFilter, setTaskCategoryFilter] = useState('all'); // housekeeping, engineering, outdoor, etc.
+  const [taskAssigneeFilter, setTaskAssigneeFilter] = useState('all'); // Filter by staff member
 
   // Task modals
   const [showTaskModal, setShowTaskModal] = useState(false);
@@ -167,6 +168,7 @@ const Autopilot = ({ onBack }) => {
     taskStatusFilter,
     taskPriorityFilter,
     taskCategoryFilter,
+    taskAssigneeFilter,
     issueVillaFilter,
     issueStatusFilter,
     issuePriorityFilter,
@@ -254,6 +256,11 @@ const Autopilot = ({ onBack }) => {
               return true;
           }
         });
+      }
+
+      // Apply assignee filter (client-side)
+      if (taskAssigneeFilter !== 'all' && tasksData.length > 0) {
+        tasksData = tasksData.filter(task => task.assignee === taskAssigneeFilter);
       }
 
       console.log('✅ Tasks loaded and filtered:', tasksData.length);
@@ -3171,6 +3178,7 @@ const Autopilot = ({ onBack }) => {
       status: task?.status || 'open',
       assignee: task?.assignee || '',
       due_date: task?.due_date ? task.due_date.split('T')[0] + 'T' + task.due_date.split('T')[1].substring(0,5) : '',
+      deadline: task?.deadline ? task.deadline.split('T')[0] + 'T' + task.deadline.split('T')[1].substring(0,5) : '',
       villaId: task?.villa_id || null,
       notes: task?.notes || ''
     });
@@ -3206,6 +3214,7 @@ const Autopilot = ({ onBack }) => {
         status: formData.status,
         assignee: formData.assignee,
         dueDate: formData.due_date,    // Convert to camelCase
+        deadline: formData.deadline,   // Maximum deadline
         villaId: formData.villaId,
         notes: formData.notes
       };
@@ -3355,15 +3364,26 @@ const Autopilot = ({ onBack }) => {
               </div>
             </div>
 
-            {/* Due Date */}
-            <div>
-              <label className="block text-white font-bold mb-2">Due Date</label>
-              <input
-                type="datetime-local"
-                value={formData.due_date}
-                onChange={(e) => setFormData({ ...formData, due_date: e.target.value })}
-                className="w-full px-4 py-2 bg-[#2a2f3a] text-white rounded-lg border-2 border-gray-700 focus:border-orange-500 outline-none"
-              />
+            {/* Due Date & Deadline */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-white font-bold mb-2">Due Date (Estimated)</label>
+                <input
+                  type="datetime-local"
+                  value={formData.due_date}
+                  onChange={(e) => setFormData({ ...formData, due_date: e.target.value })}
+                  className="w-full px-4 py-2 bg-[#2a2f3a] text-white rounded-lg border-2 border-gray-700 focus:border-orange-500 outline-none"
+                />
+              </div>
+              <div>
+                <label className="block text-white font-bold mb-2">Deadline (Maximum)</label>
+                <input
+                  type="datetime-local"
+                  value={formData.deadline}
+                  onChange={(e) => setFormData({ ...formData, deadline: e.target.value })}
+                  className="w-full px-4 py-2 bg-[#2a2f3a] text-white rounded-lg border-2 border-red-700 focus:border-red-500 outline-none"
+                />
+              </div>
             </div>
 
             {/* Notes */}
@@ -3902,6 +3922,18 @@ const Autopilot = ({ onBack }) => {
                   <option value="high">High</option>
                   <option value="urgent">Urgent</option>
                 </select>
+
+                {/* Assignee Filter (Staff) */}
+                <select
+                  value={taskAssigneeFilter}
+                  onChange={(e) => setTaskAssigneeFilter(e.target.value)}
+                  className="px-1.5 py-2 bg-[#2a2f3a] text-white rounded-lg text-xs border border-gray-700 focus:border-orange-500 outline-none"
+                >
+                  <option value="all">All Staff</option>
+                  {[...new Set(tasks.map(t => t.assignee).filter(Boolean))].sort().map(assignee => (
+                    <option key={assignee} value={assignee}>{assignee}</option>
+                  ))}
+                </select>
               </div>
 
               {/* Custom Date Range (if selected) */}
@@ -3939,6 +3971,7 @@ const Autopilot = ({ onBack }) => {
                   setTaskStatusFilter('all');
                   setTaskPriorityFilter('all');
                   setTaskCategoryFilter('all');
+                  setTaskAssigneeFilter('all');
                 }}
                 className="w-full px-3 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg text-sm font-bold transition-all"
               >
@@ -3956,15 +3989,29 @@ const Autopilot = ({ onBack }) => {
             </div>
           ) : (
             tasks.map((task) => {
-              // Format due date
+              const now = new Date();
+
+              // Format due date (estimated)
               const dueDate = task.due_date ? new Date(task.due_date) : null;
               const dueDateStr = dueDate ? dueDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : 'No due date';
 
-              // Check if overdue
-              const isOverdue = dueDate && dueDate < new Date() && !['completed', 'cancelled'].includes(task.status);
+              // Format deadline (maximum)
+              const deadline = task.deadline ? new Date(task.deadline) : null;
+              const deadlineStr = deadline ? deadline.toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : null;
+
+              // Check if overdue (based on due_date)
+              const isOverdue = dueDate && dueDate < now && !['completed', 'cancelled'].includes(task.status);
+
+              // Check deadline status
+              const isDeadlinePassed = deadline && deadline < now && !['completed', 'cancelled'].includes(task.status);
+              const isDeadlinePending = deadline && !isDeadlinePassed && !['completed', 'cancelled'].includes(task.status);
 
               return (
-                <div key={task.id} className="bg-[#2a2f3a] rounded-lg p-4 border-2 border-gray-700 hover:border-orange-500/50 transition-all">
+                <div key={task.id} className={`bg-[#2a2f3a] rounded-lg p-4 border-2 transition-all ${
+                  isDeadlinePassed ? 'border-red-500 animate-pulse shadow-lg shadow-red-500/50' :
+                  isDeadlinePending ? 'border-yellow-500 animate-pulse shadow-lg shadow-yellow-500/50' :
+                  'border-gray-700 hover:border-orange-500/50'
+                }`}>
                   <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
                     <div
                       className="flex-1 cursor-pointer touch-manipulation"
@@ -3983,8 +4030,21 @@ const Autopilot = ({ onBack }) => {
                         {task.category || task.task_type}
                         {task.assignee && ` • ${task.assignee}`}
                         {task.villa?.name && ` • ${task.villa.name}`}
-                        {` • Due: ${dueDateStr}`}
                       </p>
+                      <div className="flex flex-col gap-1 mt-1">
+                        <p className="text-gray-400 text-xs">
+                          📅 Due: {dueDateStr}
+                        </p>
+                        {deadlineStr && (
+                          <p className={`text-xs font-bold ${
+                            isDeadlinePassed ? 'text-red-400' :
+                            isDeadlinePending ? 'text-yellow-400' :
+                            'text-gray-400'
+                          }`}>
+                            ⏰ Deadline: {deadlineStr} {isDeadlinePassed ? '(PASSED!)' : ''}
+                          </p>
+                        )}
+                      </div>
                       {task.source && (
                         <p className="text-gray-500 text-xs mt-1">
                           Source: {task.source === 'auto_booking' ? '🤖 Auto-created' : task.source === 'manual' ? '👤 Manual' : task.source}
