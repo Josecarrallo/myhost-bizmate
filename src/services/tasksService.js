@@ -137,6 +137,7 @@ export const tasksService = {
         status: 'open',
         source: 'manual',
         due_date: taskData.dueDate,
+        deadline: taskData.deadline || null,
         assignee: taskData.assignee || null,
         estimated_cost: taskData.estimatedCost || null,
         actual_cost: null,
@@ -234,6 +235,7 @@ export const tasksService = {
       status: updates.status,
       assignee: updates.assignee,
       due_date: updates.dueDate,
+      deadline: updates.deadline,
       villa_id: updates.villaId,
       notes: updates.notes,
       updated_at: new Date().toISOString()
