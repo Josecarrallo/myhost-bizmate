@@ -341,8 +341,7 @@ const VoiceAssistant = () => {
             <img
               src="/images/lumina-avatar.jpg"
               alt="KORA - Voice Assistant"
-              className={`w-8 h-8 md:w-10 md:h-10 rounded-full object-cover border-4 shadow-lg transition-all flex-shrink-0 ${isLoading ? 'border-yellow-300 animate-ping' : 'border-white'}`}
-              style={isLoading ? { animation: 'ping 1s cubic-bezier(0, 0, 0.2, 1) infinite' } : {}}
+              className="w-8 h-8 md:w-10 md:h-10 rounded-full object-cover border-4 border-white shadow-lg flex-shrink-0"
             />
             <div className="text-left">
               <p className="text-white font-bold text-sm md:text-base tracking-wide drop-shadow-lg">
@@ -373,42 +372,11 @@ const VoiceAssistant = () => {
       {/* Overlay oscuro durante la llamada */}
       {isCallActive && (
         <div
-          className="fixed inset-0 bg-black/20 z-30 pointer-events-none backdrop-blur-sm"
+          className="fixed inset-0 bg-black/10 z-30 pointer-events-none"
           aria-hidden="true"
         />
       )}
 
-      {/* Botón de debug flotante */}
-      <button
-        onClick={() => setShowDebug(!showDebug)}
-        className="fixed top-4 right-4 z-50 bg-gray-800 text-white px-3 py-2 rounded-lg text-xs font-mono shadow-lg"
-      >
-        {showDebug ? 'Hide Debug' : 'Show Debug'}
-      </button>
-
-      {/* Panel de debug */}
-      {showDebug && (
-        <div className="fixed top-16 right-4 z-50 bg-black/90 text-green-400 p-4 rounded-lg max-w-md max-h-96 overflow-auto font-mono text-xs shadow-2xl">
-          <div className="flex justify-between items-center mb-2 border-b border-green-400 pb-2">
-            <span className="font-bold">Debug Console</span>
-            <button
-              onClick={() => setDebugLogs([])}
-              className="bg-red-600 text-white px-2 py-1 rounded text-xs"
-            >
-              Clear
-            </button>
-          </div>
-          {debugLogs.length === 0 ? (
-            <p className="text-gray-400">No logs yet...</p>
-          ) : (
-            debugLogs.map((log, i) => (
-              <div key={i} className={`mb-1 ${log.type === 'error' ? 'text-red-400' : log.type === 'success' ? 'text-green-400' : 'text-blue-400'}`}>
-                <span className="text-gray-500">[{log.timestamp}]</span> {log.message}
-              </div>
-            ))
-          )}
-        </div>
-      )}
     </>
   );
 };
