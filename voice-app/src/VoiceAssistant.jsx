@@ -10,6 +10,8 @@ const VoiceAssistant = () => {
   const [interimTranscript, setInterimTranscript] = useState('');
   const [callStatus, setCallStatus] = useState('idle');
   const [error, setError] = useState(null);
+  const [debugLogs, setDebugLogs] = useState([]);
+  const [showDebug, setShowDebug] = useState(false);
 
   const vapiRef = useRef(null);
   const callDataRef = useRef({
@@ -19,6 +21,12 @@ const VoiceAssistant = () => {
     startTime: null,
     endTime: null
   });
+
+  // Función para añadir logs al debug
+  const addDebugLog = (type, message) => {
+    const timestamp = new Date().toLocaleTimeString();
+    setDebugLogs(prev => [...prev.slice(-20), { type, message, timestamp }]); // Máximo 20 logs
+  };
 
   useEffect(() => {
     // Inicializar Vapi con Public Key
@@ -36,6 +44,7 @@ const VoiceAssistant = () => {
     // Event listeners
     vapi.on('call-start', () => {
       console.log('✅ Llamada iniciada');
+      addDebugLog('success', 'Call started successfully');
       callDataRef.current = {
         messages: [],
         transcripts: [],
@@ -43,6 +52,7 @@ const VoiceAssistant = () => {
         startTime: new Date().toISOString(),
         endTime: null
       };
+
       setIsCallActive(true);
       setIsLoading(false);
       setCallStatus('connected');
@@ -184,6 +194,7 @@ const VoiceAssistant = () => {
       console.error('❌ Error message:', error?.message);
       console.error('❌ Error type:', error?.type);
       console.error('❌ Error details:', JSON.stringify(error, null, 2));
+      addDebugLog('error', `VAPI Error: ${error?.message || JSON.stringify(error)}`);
       setIsLoading(false);
       setIsCallActive(false);
       setCallStatus('idle');
@@ -209,6 +220,7 @@ const VoiceAssistant = () => {
 
     // Solo setear estos estados en el primer intento
     if (attempt === 1) {
+      addDebugLog('info', 'Starting VAPI call...');
       setIsLoading(true);
       setCallStatus('connecting');
       setError(null);
@@ -280,8 +292,8 @@ const VoiceAssistant = () => {
 
   return (
     <>
-      {/* Botón flotante - más abajo */}
-      <div className="fixed bottom-4 right-4 z-40 flex flex-col items-end gap-3">
+      {/* Botón flotante - centro */}
+      <div className="fixed bottom-16 left-0 right-0 px-2 md:left-1/2 md:right-auto md:-translate-x-1/2 md:px-0 z-40 flex flex-col items-center gap-3">
 
         {/* Panel de estado cuando está en llamada */}
         {isCallActive && (
@@ -318,27 +330,10 @@ const VoiceAssistant = () => {
           </div>
         )}
 
-        {/* Mensaje "Connecting to KORA..." durante isLoading */}
-        {isLoading && !isCallActive && (
-          <div className="flex items-center gap-2 md:gap-3 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl md:rounded-2xl p-3 md:p-4 shadow-2xl border-2 border-orange-400 animate-pulse">
-            <div className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-white/20 flex items-center justify-center">
-              <Loader2 className="w-4 h-4 md:w-5 md:h-5 text-white animate-spin" />
-            </div>
-            <div className="text-left flex-1">
-              <p className="text-xs md:text-sm font-bold text-white">
-                🎤 Connecting to KORA...
-              </p>
-              <p className="text-[10px] md:text-xs text-white/80">
-                Preparing your voice assistant
-              </p>
-            </div>
-          </div>
-        )}
-
         {/* Botón grande clickeable - Todo el cuadro naranja inicia la llamada */}
         {!isCallActive && (
           <button
-            onClick={handleStartCall}
+            onClick={() => handleStartCall()}
             disabled={isLoading}
             className={`flex items-center gap-2 md:gap-3 px-4 py-3 md:px-6 md:py-4 bg-gradient-to-r from-[#FF8C42] via-[#d85a2a] to-[#FF8C42] border-2 border-white shadow-2xl rounded-xl md:rounded-2xl transition-all duration-300 hover:scale-105 cursor-pointer ${isLoading ? 'animate-pulse' : 'animate-pulse-glow'}`}
             title="Click to talk with KORA"
@@ -346,18 +341,18 @@ const VoiceAssistant = () => {
             <img
               src="/images/lumina-avatar.jpg"
               alt="KORA - Voice Assistant"
-              className={`w-8 h-8 md:w-10 md:h-10 rounded-full object-cover border-4 shadow-lg transition-all ${isLoading ? 'border-yellow-300 animate-ping' : 'border-white'}`}
+              className={`w-8 h-8 md:w-10 md:h-10 rounded-full object-cover border-4 shadow-lg transition-all flex-shrink-0 ${isLoading ? 'border-yellow-300 animate-ping' : 'border-white'}`}
               style={isLoading ? { animation: 'ping 1s cubic-bezier(0, 0, 0.2, 1) infinite' } : {}}
             />
-            <div className="text-left flex-1">
+            <div className="text-left">
               <p className="text-white font-bold text-sm md:text-base tracking-wide drop-shadow-lg">
                 {isLoading ? '🔄 Connecting...' : 'KORA Voice Assistant'}
               </p>
               <p className="text-white/90 text-xs md:text-sm drop-shadow-md">
-                {isLoading ? 'Please wait / Por favor espere' : 'Click here to start talking'}
+                {isLoading ? 'Please wait...' : 'Click here to start talking'}
               </p>
             </div>
-            <Phone className={`w-6 h-6 md:w-8 md:h-8 text-white ${isLoading ? 'animate-bounce' : 'animate-pulse'}`} />
+            <Phone className={`w-6 h-6 md:w-8 md:h-8 text-white flex-shrink-0 ${isLoading ? 'animate-bounce' : 'animate-pulse'}`} style={isLoading ? { animation: 'bounce 0.5s infinite' } : {}} />
           </button>
         )}
 
@@ -381,6 +376,38 @@ const VoiceAssistant = () => {
           className="fixed inset-0 bg-black/20 z-30 pointer-events-none backdrop-blur-sm"
           aria-hidden="true"
         />
+      )}
+
+      {/* Botón de debug flotante */}
+      <button
+        onClick={() => setShowDebug(!showDebug)}
+        className="fixed top-4 right-4 z-50 bg-gray-800 text-white px-3 py-2 rounded-lg text-xs font-mono shadow-lg"
+      >
+        {showDebug ? 'Hide Debug' : 'Show Debug'}
+      </button>
+
+      {/* Panel de debug */}
+      {showDebug && (
+        <div className="fixed top-16 right-4 z-50 bg-black/90 text-green-400 p-4 rounded-lg max-w-md max-h-96 overflow-auto font-mono text-xs shadow-2xl">
+          <div className="flex justify-between items-center mb-2 border-b border-green-400 pb-2">
+            <span className="font-bold">Debug Console</span>
+            <button
+              onClick={() => setDebugLogs([])}
+              className="bg-red-600 text-white px-2 py-1 rounded text-xs"
+            >
+              Clear
+            </button>
+          </div>
+          {debugLogs.length === 0 ? (
+            <p className="text-gray-400">No logs yet...</p>
+          ) : (
+            debugLogs.map((log, i) => (
+              <div key={i} className={`mb-1 ${log.type === 'error' ? 'text-red-400' : log.type === 'success' ? 'text-green-400' : 'text-blue-400'}`}>
+                <span className="text-gray-500">[{log.timestamp}]</span> {log.message}
+              </div>
+            ))
+          )}
+        </div>
       )}
     </>
   );
