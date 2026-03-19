@@ -2513,170 +2513,427 @@ const Autopilot = ({ onBack }) => {
 
   const renderAutomatedFlowsSection = () => {
     const automatedFlows = [
+      // Capture & Bookings
+      {
+        id: 'whatsapp-concierge',
+        category: 'Capture & Bookings',
+        title: 'WhatsApp Concierge (BANYU)',
+        description: 'AI-powered guest communication responding to every WhatsApp message 24/7.',
+        icon: MessageSquare,
+        status: 'active',
+        iconColor: 'text-green-400'
+      },
       {
         id: 'lead-intake',
+        category: 'Capture & Bookings',
         title: 'Lead & Booking Intake',
-        description: 'Receives and normalizes leads from all channels.',
+        description: 'Automatic lead capture and qualification from all channels.',
         icon: Inbox,
         status: 'active',
         iconColor: 'text-blue-400'
       },
       {
         id: 'smart-decisions',
-        title: 'Smart Lead Decisions (Lumina AI)',
-        description: 'AI analyzes lead status and decides next action.',
+        category: 'Capture & Bookings',
+        title: 'Smart Lead Decisions (LUMINA)',
+        description: 'AI lead routing and prioritization - no lead falls through.',
         icon: Zap,
         status: 'active',
         iconColor: 'text-purple-400'
       },
       {
-        id: 'guest-journey',
-        title: 'Guest Journey Automation',
-        description: 'Pre-arrival, stay and post-stay automated communication.',
-        icon: MapPin,
-        status: 'active',
-        iconColor: 'text-green-400'
-      },
-      {
         id: 'follow-up',
+        category: 'Capture & Bookings',
         title: 'Follow-Up Engine',
-        description: 'Automatic sequences for non-booked leads.',
+        description: 'Automatic lead nurturing sequences at 24h, 48h and 7 days.',
         icon: Repeat,
         status: 'active',
         iconColor: 'text-orange-400'
       },
+      // Guest Communication
+      {
+        id: 'voice-concierge',
+        category: 'Guest Communication',
+        title: 'Voice Concierge (KORA)',
+        description: 'AI phone agent handling calls in English, Spanish and Indonesian.',
+        icon: Phone,
+        status: 'active',
+        iconColor: 'text-blue-500'
+      },
+      {
+        id: 'guest-journey',
+        category: 'Guest Communication',
+        title: 'Guest Journey Automation',
+        description: 'Pre-arrival to post-stay messaging at every touchpoint.',
+        icon: MapPin,
+        status: 'active',
+        iconColor: 'text-green-400'
+      },
+      // Operations Management
       {
         id: 'owner-approvals',
-        title: 'Owner Approvals',
-        description: 'Owner approval system for pricing or booking exceptions.',
+        category: 'Operations Management',
+        title: 'Owner Approvals (OCS)',
+        description: 'Decision management & execution for approvals outside policy.',
         icon: UserCheck,
         status: 'active',
         iconColor: 'text-yellow-400'
       },
       {
-        id: 'operations-tasks',
-        title: 'Operations & Tasks',
-        description: 'Automatic task creation and alerts for operations.',
-        icon: ListChecks,
-        status: 'in-development',
-        iconColor: 'text-pink-400'
+        id: 'channel-sync',
+        category: 'Operations Management',
+        title: 'Channel Sync (OTA Integration)',
+        description: 'Syncs Booking.com, Airbnb, Agoda & iCal every hour.',
+        icon: Wifi,
+        status: 'active',
+        iconColor: 'text-cyan-400'
       },
       {
-        id: 'channel-sync',
-        title: 'Channel Sync (OTA Integration)',
-        description: 'Sync with Booking, Airbnb, Agoda and other channels.',
-        icon: Wifi,
-        status: 'in-development',
-        iconColor: 'text-cyan-400'
+        id: 'payment-protection',
+        category: 'Operations Management',
+        title: 'Payment Protection',
+        description: 'Monitors unpaid bookings and alerts when payment is overdue.',
+        icon: CreditCard,
+        status: 'active',
+        iconColor: 'text-emerald-400'
+      },
+      {
+        id: 'operations-tasks',
+        category: 'Operations Management',
+        title: 'Operations & Tasks',
+        description: 'Auto-creates maintenance tasks and housekeeping schedules.',
+        icon: ListChecks,
+        status: 'active',
+        iconColor: 'text-pink-400'
+      },
+      // Intelligence & Reporting
+      {
+        id: 'business-intelligence',
+        category: 'Intelligence & Reporting',
+        title: 'Business Intelligence (OSIRIS)',
+        description: 'AI-powered analytics & daily briefing every morning at 7am.',
+        icon: BarChart3,
+        status: 'active',
+        iconColor: 'text-indigo-400'
+      },
+      {
+        id: 'cultural-intelligence',
+        category: 'Intelligence & Reporting',
+        title: 'Cultural Intelligence (NUSANTARA)',
+        description: 'Bali local knowledge engine for expert guest recommendations.',
+        icon: Globe,
+        status: 'active',
+        iconColor: 'text-teal-400'
       }
     ];
 
     return (
       <div className="space-y-6">
         <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-3xl p-6 shadow-2xl border-2 border-[#d85a2a]/20">
-          <div className="flex flex-col md:flex-row items-center justify-between mb-6 gap-3">
+          <div className="flex items-center mb-3">
             <button
               onClick={() => setActiveSection('menu')}
-              className="self-start md:self-auto p-2 bg-[#1f2937]/95 backdrop-blur-sm rounded-xl hover:bg-orange-500 transition-all border border-[#d85a2a]/20"
+              className="p-2 bg-[#1f2937]/95 backdrop-blur-sm rounded-xl hover:bg-orange-500 transition-all border border-[#d85a2a]/20"
             >
               <ArrowLeft className="w-5 h-5 text-[#FF8C42]" />
             </button>
-            <div className="text-center flex-1">
-              <h3 className="text-2xl font-black text-[#FF8C42] flex items-center justify-center gap-2">
-                <Workflow className="w-6 h-6" />
-                Automated Flows
-              </h3>
-              <p className="text-gray-400 text-sm mt-1">
-                System automation workflows managing your operations
-              </p>
-            </div>
-            <div className="w-12 hidden md:block"></div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {automatedFlows.map((flow) => (
-              <div
-                key={flow.id}
-                className={`bg-[#2a2f3a] rounded-2xl p-6 border-2 transition-all group relative overflow-hidden ${
-                  flow.status === 'in-development'
-                    ? 'border-yellow-500/50 hover:border-yellow-400 animate-pulse shadow-lg shadow-yellow-500/20'
-                    : 'border-gray-700 hover:border-[#FF8C42]/40'
-                }`}
-              >
-                {/* Glow effect for in-development */}
-                {flow.status === 'in-development' && (
-                  <div className="absolute inset-0 bg-gradient-to-br from-yellow-500/10 via-transparent to-orange-500/10 pointer-events-none"></div>
-                )}
-
-                {/* Automated Badge */}
-                <div className="absolute top-3 right-3 z-10">
-                  {flow.status === 'active' ? (
-                    <span className="px-2 py-1 bg-[#FF8C42] text-white text-xs font-bold rounded-full">
-                      Active
-                    </span>
-                  ) : flow.status === 'in-development' ? (
-                    <span className="px-3 py-1 bg-gradient-to-r from-yellow-500 to-orange-500 text-white text-xs font-bold rounded-full animate-pulse shadow-lg">
-                      🚀 In Development
-                    </span>
-                  ) : (
-                    <span className="px-2 py-1 bg-gray-600 text-gray-300 text-xs font-bold rounded-full">
-                      Coming Soon
-                    </span>
-                  )}
-                </div>
-
-                {/* Icon */}
-                <div className="mb-4 mt-2 relative z-10">
-                  <flow.icon className={`w-12 h-12 ${flow.iconColor} ${
-                    flow.status === 'in-development'
-                      ? 'animate-bounce group-hover:scale-125'
-                      : 'group-hover:scale-110'
-                  } transition-transform`} />
-                </div>
-
-                {/* Title */}
-                <h4 className={`font-bold text-lg mb-2 leading-tight relative z-10 ${
-                  flow.status === 'in-development' ? 'text-yellow-300' : 'text-white'
-                }`}>
-                  {flow.title}
-                </h4>
-
-                {/* Description */}
-                <p className="text-gray-400 text-sm leading-relaxed relative z-10">
-                  {flow.description}
-                </p>
-
-                {/* Status indicator */}
-                {flow.status === 'active' && (
-                  <div className="mt-4 flex items-center gap-2 relative z-10">
-                    <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-                    <span className="text-green-400 text-xs font-medium">Automated</span>
-                  </div>
-                )}
-
-                {flow.status === 'in-development' && (
-                  <div className="mt-4 flex items-center gap-2 relative z-10">
-                    <div className="w-2 h-2 bg-yellow-400 rounded-full animate-ping"></div>
-                    <div className="w-2 h-2 bg-yellow-400 rounded-full animate-pulse absolute"></div>
-                    <span className="text-yellow-400 text-xs font-bold ml-2">Coming Very Soon!</span>
-                  </div>
-                )}
+          {/* MY HOST BizMate Ecosystem Diagram */}
+          <div className="mb-8 bg-[#1a1a2e] rounded-xl p-5 border-2 border-[#374151]">
+            {/* Diagram Header */}
+            <div className="text-center mb-2">
+              <div className="text-xl font-black text-[#FF8C42] tracking-wider uppercase">
+                MY HOST BizMate
               </div>
-            ))}
+              <div className="text-xs text-gray-400 mt-1">
+                An AI-powered operating system for modern property owners
+              </div>
+            </div>
+
+            <svg width="100%" viewBox="0 0 680 500" className="block">
+              <defs>
+                <marker id="arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+                  <path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                </marker>
+              </defs>
+
+              {/* Zone backgrounds */}
+              <rect x="8" y="8" width="152" height="438" rx="10" fill="#111827" stroke="#374151" strokeWidth="0.8"/>
+              <rect x="172" y="8" width="336" height="438" rx="10" fill="#111827" stroke="#374151" strokeWidth="0.8"/>
+              <rect x="520" y="8" width="152" height="438" rx="10" fill="#111827" stroke="#374151" strokeWidth="0.8"/>
+
+              {/* Zone labels */}
+              <text x="84" y="28" textAnchor="middle" fontSize="10" fill="#6b7280" fontWeight="600" letterSpacing="1" fontFamily="system-ui">GUEST CHANNELS</text>
+              <text x="340" y="28" textAnchor="middle" fontSize="10" fill="#6b7280" fontWeight="600" letterSpacing="1" fontFamily="system-ui">AI AGENTS</text>
+              <text x="596" y="28" textAnchor="middle" fontSize="10" fill="#6b7280" fontWeight="600" letterSpacing="1" fontFamily="system-ui">OWNER</text>
+
+              {/* GUEST CHANNELS */}
+              <rect x="18" y="42" width="132" height="38" rx="6" fill="#1f2937" stroke="#374151" strokeWidth="0.6"/>
+              <text x="48" y="57" fontSize="11" fill="#f9fafb" fontWeight="500" fontFamily="system-ui">WhatsApp</text>
+              <text x="48" y="70" fontSize="9" fill="#6b7280" fontFamily="system-ui">Villa number</text>
+
+              <rect x="18" y="90" width="132" height="38" rx="6" fill="#1f2937" stroke="#374151" strokeWidth="0.6"/>
+              <text x="48" y="105" fontSize="11" fill="#f9fafb" fontWeight="500" fontFamily="system-ui">Phone call</text>
+              <text x="48" y="118" fontSize="9" fill="#6b7280" fontFamily="system-ui">Any language</text>
+
+              <rect x="18" y="138" width="132" height="38" rx="6" fill="#1f2937" stroke="#374151" strokeWidth="0.6"/>
+              <text x="48" y="153" fontSize="11" fill="#f9fafb" fontWeight="500" fontFamily="system-ui">OTA channels</text>
+              <text x="48" y="166" fontSize="9" fill="#6b7280" fontFamily="system-ui">Booking · Airbnb · Agoda</text>
+
+              <rect x="18" y="186" width="132" height="38" rx="6" fill="#1f2937" stroke="#374151" strokeWidth="0.6"/>
+              <text x="48" y="201" fontSize="11" fill="#f9fafb" fontWeight="500" fontFamily="system-ui">Website / form</text>
+              <text x="48" y="214" fontSize="9" fill="#6b7280" fontFamily="system-ui">Direct inquiries</text>
+
+              <rect x="18" y="234" width="132" height="38" rx="6" fill="#1f2937" stroke="#374151" strokeWidth="0.6"/>
+              <text x="48" y="249" fontSize="11" fill="#f9fafb" fontWeight="500" fontFamily="system-ui">Social media</text>
+              <text x="48" y="262" fontSize="9" fill="#6b7280" fontFamily="system-ui">Instagram · TikTok</text>
+
+              {/* BANYU */}
+              <rect x="182" y="42" width="126" height="52" rx="6" fill="#1f2937" stroke="#F97316" strokeWidth="1"/>
+              <rect x="182" y="42" width="6" height="52" rx="3" fill="#F97316"/>
+              <text x="198" y="60" fontSize="12" fill="#F97316" fontWeight="600" fontFamily="system-ui">BANYU</text>
+              <text x="198" y="74" fontSize="9" fill="#9ca3af" fontFamily="system-ui">WhatsApp AI · 24/7</text>
+              <text x="198" y="86" fontSize="9" fill="#9ca3af" fontFamily="system-ui">Bookings · services</text>
+
+              {/* KORA */}
+              <rect x="322" y="42" width="126" height="52" rx="6" fill="#1f2937" stroke="#F97316" strokeWidth="1"/>
+              <rect x="322" y="42" width="6" height="52" rx="3" fill="#F97316"/>
+              <text x="338" y="60" fontSize="12" fill="#F97316" fontWeight="600" fontFamily="system-ui">KORA</text>
+              <text x="338" y="74" fontSize="9" fill="#9ca3af" fontFamily="system-ui">Voice AI · EN / ES / ID</text>
+              <text x="338" y="86" fontSize="9" fill="#9ca3af" fontFamily="system-ui">Handles calls anytime</text>
+
+              {/* LUMINA */}
+              <rect x="182" y="110" width="266" height="44" rx="6" fill="#1f2937" stroke="#ea580c" strokeWidth="0.8"/>
+              <rect x="182" y="110" width="6" height="44" rx="3" fill="#ea580c"/>
+              <text x="198" y="129" fontSize="12" fill="#fb923c" fontWeight="600" fontFamily="system-ui">LUMINA — Lead intelligence</text>
+              <text x="198" y="144" fontSize="9" fill="#9ca3af" fontFamily="system-ui">Qualifies every lead · decides next action · routes to booking</text>
+
+              {/* Follow-up + Channel Sync */}
+              <rect x="182" y="168" width="126" height="44" rx="6" fill="#1f2937" stroke="#374151" strokeWidth="0.6"/>
+              <text x="198" y="185" fontSize="11" fill="#f9fafb" fontWeight="500" fontFamily="system-ui">Follow-up engine</text>
+              <text x="198" y="198" fontSize="9" fill="#9ca3af" fontFamily="system-ui">24h · 48h · 7d sequences</text>
+              <text x="198" y="208" fontSize="9" fill="#9ca3af" fontFamily="system-ui">Never lose a lead</text>
+
+              <rect x="322" y="168" width="126" height="44" rx="6" fill="#1f2937" stroke="#374151" strokeWidth="0.6"/>
+              <text x="338" y="185" fontSize="11" fill="#f9fafb" fontWeight="500" fontFamily="system-ui">Channel sync</text>
+              <text x="338" y="198" fontSize="9" fill="#9ca3af" fontFamily="system-ui">Booking · Airbnb · Agoda</text>
+              <text x="338" y="208" fontSize="9" fill="#9ca3af" fontFamily="system-ui">No overbooking · hourly</text>
+
+              {/* DATABASE */}
+              <rect x="182" y="228" width="266" height="36" rx="6" fill="#292524" stroke="#57534e" strokeWidth="0.8" strokeDasharray="4 3"/>
+              <text x="315" y="244" textAnchor="middle" fontSize="11" fill="#d6d3d1" fontWeight="600" fontFamily="system-ui">Central database</text>
+              <text x="315" y="257" textAnchor="middle" fontSize="9" fill="#78716c" fontFamily="system-ui">Guests · bookings · leads · decisions · tasks</text>
+
+              {/* Guest Journey + NUSANTARA */}
+              <rect x="182" y="278" width="126" height="44" rx="6" fill="#1f2937" stroke="#374151" strokeWidth="0.6"/>
+              <text x="198" y="295" fontSize="11" fill="#f9fafb" fontWeight="500" fontFamily="system-ui">Guest journey</text>
+              <text x="198" y="308" fontSize="9" fill="#9ca3af" fontFamily="system-ui">Pre-arrival · stay · post</text>
+              <text x="198" y="318" fontSize="9" fill="#9ca3af" fontFamily="system-ui">Automated messages</text>
+
+              <rect x="322" y="278" width="126" height="44" rx="6" fill="#1f2937" stroke="#374151" strokeWidth="0.6"/>
+              <text x="338" y="295" fontSize="11" fill="#f9fafb" fontWeight="500" fontFamily="system-ui">NUSANTARA</text>
+              <text x="338" y="308" fontSize="9" fill="#9ca3af" fontFamily="system-ui">Bali culture · places</text>
+              <text x="338" y="318" fontSize="9" fill="#9ca3af" fontFamily="system-ui">Events · recommendations</text>
+
+              {/* AUTOPILOT */}
+              <rect x="182" y="336" width="266" height="44" rx="6" fill="#1f2937" stroke="#F97316" strokeWidth="1"/>
+              <rect x="182" y="336" width="6" height="44" rx="3" fill="#F97316"/>
+              <text x="198" y="355" fontSize="12" fill="#F97316" fontWeight="600" fontFamily="system-ui">AUTOPILOT — Owner approvals</text>
+              <text x="198" y="370" fontSize="9" fill="#9ca3af" fontFamily="system-ui">Detects exceptions · notifies owner · executes decisions</text>
+
+              {/* OSIRIS */}
+              <rect x="182" y="394" width="266" height="44" rx="6" fill="#1f2937" stroke="#ea580c" strokeWidth="0.8"/>
+              <rect x="182" y="394" width="6" height="44" rx="3" fill="#ea580c"/>
+              <text x="198" y="413" fontSize="12" fill="#fb923c" fontWeight="600" fontFamily="system-ui">OSIRIS — Business intelligence</text>
+              <text x="198" y="428" fontSize="9" fill="#9ca3af" fontFamily="system-ui">Daily briefing 7am · revenue · occupancy · chat</text>
+
+              {/* OWNER OUTPUTS */}
+              <rect x="530" y="42" width="132" height="38" rx="6" fill="#1f2937" stroke="#374151" strokeWidth="0.6"/>
+              <rect x="530" y="42" width="3" height="38" rx="2" fill="#22c55e"/>
+              <text x="543" y="57" fontSize="11" fill="#f9fafb" fontWeight="500" fontFamily="system-ui">Booking confirmed</text>
+              <text x="543" y="70" fontSize="9" fill="#6b7280" fontFamily="system-ui">Auto-notification sent</text>
+
+              <rect x="530" y="90" width="132" height="38" rx="6" fill="#1f2937" stroke="#374151" strokeWidth="0.6"/>
+              <rect x="530" y="90" width="3" height="38" rx="2" fill="#F97316"/>
+              <text x="543" y="105" fontSize="11" fill="#f9fafb" fontWeight="500" fontFamily="system-ui">WhatsApp alerts</text>
+              <text x="543" y="118" fontSize="9" fill="#6b7280" fontFamily="system-ui">Approve · reject in 1 tap</text>
+
+              <rect x="530" y="138" width="132" height="38" rx="6" fill="#1f2937" stroke="#374151" strokeWidth="0.6"/>
+              <rect x="530" y="138" width="3" height="38" rx="2" fill="#F97316"/>
+              <text x="543" y="153" fontSize="11" fill="#f9fafb" fontWeight="500" fontFamily="system-ui">Owner dashboard</text>
+              <text x="543" y="166" fontSize="9" fill="#6b7280" fontFamily="system-ui">Decisions · KPIs · reports</text>
+
+              <rect x="530" y="186" width="132" height="38" rx="6" fill="#1f2937" stroke="#374151" strokeWidth="0.6"/>
+              <rect x="530" y="186" width="3" height="38" rx="2" fill="#ef4444"/>
+              <text x="543" y="201" fontSize="11" fill="#f9fafb" fontWeight="500" fontFamily="system-ui">Payment protection</text>
+              <text x="543" y="214" fontSize="9" fill="#6b7280" fontFamily="system-ui">Unpaid booking alerts</text>
+
+              <rect x="530" y="278" width="132" height="38" rx="6" fill="#1f2937" stroke="#374151" strokeWidth="0.6"/>
+              <rect x="530" y="278" width="3" height="38" rx="2" fill="#F97316"/>
+              <text x="543" y="293" fontSize="11" fill="#f9fafb" fontWeight="500" fontFamily="system-ui">Daily briefing</text>
+              <text x="543" y="306" fontSize="9" fill="#6b7280" fontFamily="system-ui">7am · revenue · occupancy</text>
+
+              <rect x="530" y="326" width="132" height="38" rx="6" fill="#1f2937" stroke="#374151" strokeWidth="0.6"/>
+              <rect x="530" y="326" width="3" height="38" rx="2" fill="#F97316"/>
+              <text x="543" y="341" fontSize="11" fill="#f9fafb" fontWeight="500" fontFamily="system-ui">Revenue alerts</text>
+              <text x="543" y="354" fontSize="9" fill="#6b7280" fontFamily="system-ui">Upsell · low occupancy</text>
+
+              <rect x="530" y="374" width="132" height="38" rx="6" fill="#1f2937" stroke="#374151" strokeWidth="0.6"/>
+              <rect x="530" y="374" width="3" height="38" rx="2" fill="#22c55e"/>
+              <text x="543" y="389" fontSize="11" fill="#f9fafb" fontWeight="500" fontFamily="system-ui">Guest notified</text>
+              <text x="543" y="402" fontSize="9" fill="#6b7280" fontFamily="system-ui">After owner approves</text>
+
+              {/* ARROWS: GUEST → AI */}
+              <line x1="150" y1="61" x2="180" y2="68" stroke="#F97316" strokeWidth="1.2" markerEnd="url(#arr)" opacity="0.7"/>
+              <line x1="150" y1="109" x2="320" y2="72" stroke="#F97316" strokeWidth="1.2" markerEnd="url(#arr)" opacity="0.7"/>
+              <line x1="150" y1="157" x2="180" y2="192" stroke="#6b7280" strokeWidth="1" markerEnd="url(#arr)" opacity="0.5"/>
+              <line x1="150" y1="205" x2="180" y2="130" stroke="#6b7280" strokeWidth="1" markerEnd="url(#arr)" opacity="0.5"/>
+              <line x1="150" y1="253" x2="180" y2="136" stroke="#6b7280" strokeWidth="1" markerEnd="url(#arr)" opacity="0.5"/>
+
+              {/* ARROWS: internal AI */}
+              <line x1="245" y1="94" x2="245" y2="108" stroke="#F97316" strokeWidth="1" markerEnd="url(#arr)" opacity="0.6"/>
+              <line x1="385" y1="94" x2="350" y2="108" stroke="#F97316" strokeWidth="1" markerEnd="url(#arr)" opacity="0.6"/>
+              <line x1="315" y1="154" x2="315" y2="166" stroke="#ea580c" strokeWidth="1" markerEnd="url(#arr)" opacity="0.6"/>
+              <line x1="315" y1="212" x2="315" y2="226" stroke="#57534e" strokeWidth="1" markerEnd="url(#arr)" opacity="0.8"/>
+              <line x1="315" y1="264" x2="315" y2="276" stroke="#57534e" strokeWidth="1" markerEnd="url(#arr)" opacity="0.8"/>
+              <line x1="315" y1="322" x2="315" y2="334" stroke="#F97316" strokeWidth="1" markerEnd="url(#arr)" opacity="0.6"/>
+              <line x1="315" y1="380" x2="315" y2="392" stroke="#ea580c" strokeWidth="1" markerEnd="url(#arr)" opacity="0.6"/>
+
+              {/* ARROWS: AI → OWNER */}
+              <line x1="448" y1="132" x2="528" y2="61" stroke="#22c55e" strokeWidth="1.2" markerEnd="url(#arr)" opacity="0.6"/>
+              <line x1="448" y1="354" x2="528" y2="109" stroke="#F97316" strokeWidth="1.2" markerEnd="url(#arr)" opacity="0.5"/>
+              <line x1="448" y1="360" x2="528" y2="157" stroke="#F97316" strokeWidth="1.2" markerEnd="url(#arr)" opacity="0.4"/>
+              <line x1="448" y1="246" x2="528" y2="205" stroke="#ef4444" strokeWidth="1.2" markerEnd="url(#arr)" opacity="0.5"/>
+              <line x1="448" y1="413" x2="528" y2="297" stroke="#F97316" strokeWidth="1.2" markerEnd="url(#arr)" opacity="0.5"/>
+              <line x1="448" y1="420" x2="528" y2="345" stroke="#F97316" strokeWidth="1.2" markerEnd="url(#arr)" opacity="0.4"/>
+              <line x1="448" y1="368" x2="528" y2="393" stroke="#22c55e" strokeWidth="1.2" markerEnd="url(#arr)" opacity="0.6"/>
+
+              {/* Legend */}
+              <rect x="182" y="452" width="10" height="10" rx="2" fill="#F97316"/>
+              <text x="198" y="461" fontSize="10" fill="#9ca3af" fontFamily="system-ui">Core AI agents</text>
+              <rect x="290" y="452" width="10" height="10" rx="2" fill="#374151"/>
+              <text x="306" y="461" fontSize="10" fill="#9ca3af" fontFamily="system-ui">Support flows</text>
+              <rect x="388" y="452" width="10" height="10" rx="2" fill="#22c55e" opacity="0.8"/>
+              <text x="404" y="461" fontSize="10" fill="#9ca3af" fontFamily="system-ui">Guest outcome</text>
+              <text x="340" y="478" textAnchor="middle" fontSize="10" fill="#4b5563" fontFamily="system-ui" fontStyle="italic">"The owner supervises. The system executes."</text>
+            </svg>
           </div>
 
-          {/* Info footer */}
-          <div className="mt-6 bg-[#2a2f3a]/50 rounded-xl p-4 border border-gray-700">
-            <div className="flex items-start gap-3">
-              <AlertCircle className="w-5 h-5 text-[#FF8C42] flex-shrink-0 mt-0.5" />
-              <div>
-                <p className="text-gray-300 text-sm font-medium mb-1">
-                  Automated Workflows
+          {/* Category sections */}
+          {['Capture & Bookings', 'Guest Communication', 'Operations Management', 'Intelligence & Reporting'].map((category) => {
+            const categoryFlows = automatedFlows.filter(f => f.category === category);
+            if (categoryFlows.length === 0) return null;
+
+            return (
+              <div key={category} className="mb-6">
+                {/* Category Header */}
+                <div className="mb-3 flex items-center gap-2">
+                  <div className="h-px flex-1 bg-gradient-to-r from-[#FF8C42]/50 to-transparent"></div>
+                  <h4 className="text-[#FF8C42] font-bold text-sm uppercase tracking-wide">
+                    {category}
+                  </h4>
+                  <div className="h-px flex-1 bg-gradient-to-l from-[#FF8C42]/50 to-transparent"></div>
+                </div>
+
+                {/* Category Flows Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                  {categoryFlows.map((flow) => (
+                    <div
+                      key={flow.id}
+                      className={`bg-[#2a2f3a] rounded-xl p-4 border-2 transition-all group relative overflow-hidden ${
+                        flow.status === 'coming-soon'
+                          ? 'border-yellow-500/50 hover:border-yellow-400 shadow-lg shadow-yellow-500/20'
+                          : 'border-gray-700 hover:border-[#FF8C42]/40'
+                      }`}
+                    >
+                      {/* Glow effect for coming-soon */}
+                      {flow.status === 'coming-soon' && (
+                        <div className="absolute inset-0 bg-gradient-to-br from-yellow-500/10 via-transparent to-orange-500/10 pointer-events-none"></div>
+                      )}
+
+                      {/* Status Badge */}
+                      <div className="absolute top-2 right-2 z-10">
+                        {flow.status === 'active' ? (
+                          <span className="px-2 py-0.5 bg-green-500 text-white text-[10px] font-bold rounded-full">
+                            Active
+                          </span>
+                        ) : flow.status === 'coming-soon' ? (
+                          <span className="px-2 py-0.5 bg-yellow-500 text-white text-[10px] font-bold rounded-full">
+                            Soon
+                          </span>
+                        ) : null}
+                      </div>
+
+                      {/* Icon */}
+                      <div className="mb-3 mt-1 relative z-10">
+                        <flow.icon className={`w-8 h-8 ${flow.iconColor} ${
+                          flow.status === 'coming-soon'
+                            ? 'group-hover:scale-125'
+                            : 'group-hover:scale-110'
+                        } transition-transform`} />
+                      </div>
+
+                      {/* Title */}
+                      <h4 className={`font-bold text-sm mb-1.5 leading-tight relative z-10 ${
+                        flow.status === 'coming-soon' ? 'text-yellow-300' : 'text-white'
+                      }`}>
+                        {flow.title}
+                      </h4>
+
+                      {/* Description */}
+                      <p className="text-gray-400 text-xs leading-relaxed relative z-10">
+                        {flow.description}
+                      </p>
+
+                      {/* Status indicator */}
+                      {flow.status === 'active' && (
+                        <div className="mt-3 flex items-center gap-1.5 relative z-10">
+                          <div className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse"></div>
+                          <span className="text-green-400 text-[10px] font-medium">24/7 Automated</span>
+                        </div>
+                      )}
+
+                      {flow.status === 'coming-soon' && (
+                        <div className="mt-3 flex items-center gap-1.5 relative z-10">
+                          <div className="w-1.5 h-1.5 bg-yellow-400 rounded-full animate-pulse"></div>
+                          <span className="text-yellow-400 text-[10px] font-bold">In Development</span>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+          })}
+
+          {/* System Overview */}
+          <div className="mt-6 bg-gradient-to-br from-[#2a2f3a] to-[#1f2937] rounded-xl p-5 border-2 border-[#FF8C42]/30">
+            <div className="flex items-start gap-4">
+              <Sparkles className="w-6 h-6 text-[#FF8C42] flex-shrink-0 mt-0.5" />
+              <div className="flex-1">
+                <h4 className="text-white text-base font-bold mb-2">
+                  24/7 Fully Automated System
+                </h4>
+                <p className="text-gray-300 text-sm leading-relaxed mb-3">
+                  MY HOST BizMate runs <span className="text-[#FF8C42] font-bold">12 automated workflows</span> across 4 operational areas.
+                  Each flow handles a specific part of your business — from the moment a guest first contacts you, through their stay,
+                  to post-checkout follow-up and business reporting.
                 </p>
-                <p className="text-gray-400 text-xs leading-relaxed">
-                  These flows run automatically in the background, managing your property operations 24/7.
-                  Active flows are currently processing your bookings and guests. Coming soon flows are being developed.
-                </p>
+                <div className="grid grid-cols-3 gap-4 text-center">
+                  <div className="bg-[#1f2937] rounded-lg p-3 border border-gray-700">
+                    <div className="text-3xl font-black text-[#FF8C42]">12</div>
+                    <div className="text-gray-400 text-xs mt-1">Total Flows</div>
+                  </div>
+                  <div className="bg-[#1f2937] rounded-lg p-3 border border-green-500/30">
+                    <div className="text-3xl font-black text-green-400">12</div>
+                    <div className="text-gray-400 text-xs mt-1">Active</div>
+                  </div>
+                  <div className="bg-[#1f2937] rounded-lg p-3 border border-gray-700">
+                    <div className="text-3xl font-black text-gray-500">0</div>
+                    <div className="text-gray-400 text-xs mt-1">In Development</div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
