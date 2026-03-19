@@ -147,16 +147,50 @@ const Autopilot = ({ onBack }) => {
   const [isProcessingApprove, setIsProcessingApprove] = useState(false);
   const [isProcessingReject, setIsProcessingReject] = useState(false);
 
-  // Load villas when entering Tasks section
+  // Owner Decisions filters
+  const [decisionsSearchTerm, setDecisionsSearchTerm] = useState('');
+  const [filterDecisionStatus, setFilterDecisionStatus] = useState('pending');
+  const [filterDecisionPriority, setFilterDecisionPriority] = useState('All');
+  const [filterDecisionType, setFilterDecisionType] = useState('All');
+  const [filterDecisionAgent, setFilterDecisionAgent] = useState('All');
+  const [filterDecisionProperty, setFilterDecisionProperty] = useState('All');
+  const [filterDecisionDate, setFilterDecisionDate] = useState('all');
+  const [customDecisionDateFrom, setCustomDecisionDateFrom] = useState('');
+  const [customDecisionDateTo, setCustomDecisionDateTo] = useState('');
+
+  // Owner Decisions edit/create states
+  const [showDecisionForm, setShowDecisionForm] = useState(false);
+  const [editingDecision, setEditingDecision] = useState(null);
+  const [showDeleteConfirmDecision, setShowDeleteConfirmDecision] = useState(false);
+  const [decisionToDelete, setDecisionToDelete] = useState(null);
+  const [decisionFormData, setDecisionFormData] = useState({
+    title: '',
+    summary: '',
+    description: '',
+    decision_type: 'late_checkout',
+    priority: 'medium',
+    status: 'pending',
+    property_id: '',
+    guest_name: '',
+    guest_phone: '',
+    financial_impact_estimate: 0,
+    decision_category: 'approval',
+    generated_by_agent: 'system'
+  });
+  const [isSavingDecision, setIsSavingDecision] = useState(false);
+
+  // Load villas when entering Tasks or Decisions section
   useEffect(() => {
-    if (activeSection === 'tasks' && userData?.id) {
+    if ((activeSection === 'tasks' || activeSection === 'decisions') && userData?.id) {
       const loadVillas = async () => {
         try {
           const allVillas = await dataService.getVillas();
+          console.log('🔍 [AUTOPILOT] Loaded villas:', allVillas);
           // Filter only user's villas
           const userVillas = allVillas.filter(villa =>
             villa.name.toUpperCase().includes('NISMARA') || villa.name.toUpperCase().includes('GRAHA UMA')
           );
+          console.log('🔍 [AUTOPILOT] Filtered Gita villas:', userVillas.length, 'of', allVillas.length);
           setVillas(userVillas);
         } catch (error) {
           console.error('Error loading villas:', error);
@@ -204,6 +238,42 @@ const Autopilot = ({ onBack }) => {
       loadOwnerDecisions();
     }
   }, [activeSection, userData?.id]);
+
+  // Populate form when editing a decision
+  useEffect(() => {
+    if (editingDecision) {
+      setDecisionFormData({
+        title: editingDecision.title || '',
+        summary: editingDecision.summary || '',
+        description: editingDecision.description || '',
+        decision_type: editingDecision.decision_type || 'late_checkout',
+        priority: editingDecision.priority || 'medium',
+        status: editingDecision.status || 'pending',
+        property_id: editingDecision.property_id || '',
+        guest_name: editingDecision.guest_name || '',
+        guest_phone: editingDecision.guest_phone || '',
+        financial_impact_estimate: editingDecision.financial_impact_estimate || 0,
+        decision_category: editingDecision.decision_category || 'approval',
+        generated_by_agent: editingDecision.generated_by_agent || 'system'
+      });
+    } else {
+      // Reset form for new decision
+      setDecisionFormData({
+        title: '',
+        summary: '',
+        description: '',
+        decision_type: 'late_checkout',
+        priority: 'medium',
+        status: 'pending',
+        property_id: '',
+        guest_name: '',
+        guest_phone: '',
+        financial_impact_estimate: 0,
+        decision_category: 'approval',
+        generated_by_agent: 'system'
+      });
+    }
+  }, [editingDecision]);
 
   // Load tasks from Supabase with all filters
   const loadTasksData = async () => {
@@ -1444,7 +1514,7 @@ const Autopilot = ({ onBack }) => {
 
     setLoadingDecisions(true);
     try {
-      const filters = { status: 'pending' };
+      const filters = {}; // Load ALL decisions, filter in UI
       console.log('📞 Calling ownerDecisionsService.getOwnerDecisions with tenant:', userData.id);
 
       const decisionsData = await ownerDecisionsService.getOwnerDecisions(userData.id, filters);
@@ -1532,6 +1602,142 @@ const Autopilot = ({ onBack }) => {
       console.error('❌ Error rejecting decision:', error);
       setNotification({ type: 'error', message: '❌ Failed to reject decision' });
       setIsProcessingReject(false);
+    }
+  };
+
+  const handleDeleteDecision = async () => {
+    if (!decisionToDelete) return;
+
+    try {
+      console.log('🗑️ Deleting decision:', decisionToDelete.id);
+
+      const { error } = await supabase
+        .from('owner_decisions')
+        .delete()
+        .eq('id', decisionToDelete.id);
+
+      if (error) {
+        console.error('❌ Error deleting decision:', error);
+        setNotification({ type: 'error', message: '❌ Failed to delete decision' });
+        return;
+      }
+
+      setNotification({ type: 'success', message: '✅ Decision deleted successfully!' });
+      setShowDeleteConfirmDecision(false);
+      setDecisionToDelete(null);
+
+      // Reload decisions
+      loadOwnerDecisions();
+    } catch (error) {
+      console.error('❌ Exception deleting decision:', error);
+      setNotification({ type: 'error', message: '❌ Failed to delete decision' });
+    }
+  };
+
+  const handleSaveDecision = async () => {
+    if (!userData?.id) {
+      setNotification({ type: 'error', message: 'User ID not found' });
+      return;
+    }
+
+    if (!decisionFormData.title || !decisionFormData.summary) {
+      setNotification({ type: 'error', message: 'Title and summary are required' });
+      return;
+    }
+
+    if (!decisionFormData.property_id) {
+      setNotification({ type: 'error', message: 'Property is required' });
+      return;
+    }
+
+    setIsSavingDecision(true);
+
+    try {
+      const decisionData = {
+        tenant_id: userData.id,
+        property_id: decisionFormData.property_id,
+        title: decisionFormData.title,
+        summary: decisionFormData.summary,
+        description: decisionFormData.description || null,
+        decision_type: decisionFormData.decision_type,
+        priority: decisionFormData.priority,
+        status: decisionFormData.status,
+        decision_category: decisionFormData.decision_category,
+        generated_by_agent: decisionFormData.generated_by_agent,
+        guest_name: decisionFormData.guest_name || null,
+        guest_phone: decisionFormData.guest_phone || null,
+        financial_impact_estimate: parseFloat(decisionFormData.financial_impact_estimate) || 0,
+        updated_at: new Date().toISOString()
+      };
+
+      if (editingDecision) {
+        // Update existing decision
+        const { error } = await supabase
+          .from('owner_decisions')
+          .update(decisionData)
+          .eq('id', editingDecision.id);
+
+        if (error) {
+          console.error('❌ Error updating decision:', error);
+          setNotification({ type: 'error', message: '❌ Failed to update decision' });
+          setIsSavingDecision(false);
+          return;
+        }
+
+        setNotification({ type: 'success', message: '✅ Decision updated successfully!' });
+      } else {
+        // Create new decision
+        decisionData.created_at = new Date().toISOString();
+
+        console.log('📤 Sending decision data to Supabase:', decisionData);
+
+        const { data, error } = await supabase
+          .from('owner_decisions')
+          .insert(decisionData)
+          .select();
+
+        if (error) {
+          console.error('❌ Error creating decision:', error);
+          console.error('❌ Error details:', JSON.stringify(error, null, 2));
+          console.error('❌ Error message:', error.message);
+          console.error('❌ Error hint:', error.hint);
+          console.error('❌ Error details:', error.details);
+          setNotification({ type: 'error', message: `❌ Failed to create decision: ${error.message}` });
+          setIsSavingDecision(false);
+          return;
+        }
+
+        console.log('✅ Decision created:', data);
+
+        setNotification({ type: 'success', message: '✅ Decision created successfully!' });
+      }
+
+      setIsSavingDecision(false);
+      setShowDecisionForm(false);
+      setEditingDecision(null);
+
+      // Reset form
+      setDecisionFormData({
+        title: '',
+        summary: '',
+        description: '',
+        decision_type: 'late_checkout',
+        priority: 'medium',
+        status: 'pending',
+        property_id: '',
+        guest_name: '',
+        guest_phone: '',
+        financial_impact_estimate: 0,
+        decision_category: 'approval',
+        generated_by_agent: 'system'
+      });
+
+      // Reload decisions
+      loadOwnerDecisions();
+    } catch (error) {
+      console.error('❌ Exception saving decision:', error);
+      setNotification({ type: 'error', message: '❌ Failed to save decision' });
+      setIsSavingDecision(false);
     }
   };
 
@@ -6152,37 +6358,252 @@ const Autopilot = ({ onBack }) => {
     );
   };
 
-  const renderDecisionsSection = () => (
-    <div className="space-y-6">
-      {/* OWNER DECISIONS */}
-      <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-3xl p-6 shadow-2xl border-2 border-[#d85a2a]/20">
-        <div className="flex items-center justify-between mb-4">
-          <button
-            onClick={() => setActiveSection('menu')}
-            className="p-2 bg-[#1f2937]/95 backdrop-blur-sm rounded-xl hover:bg-orange-500 transition-all border border-[#d85a2a]/20"
-          >
-            <ArrowLeft className="w-5 h-5 text-[#FF8C42]" />
-          </button>
-          <h3 className="text-2xl font-black text-[#FF8C42] flex items-center gap-2">
-            <CheckCircle className="w-6 h-6 text-[#FF8C42]" />
-            Owner Decisions ({ownerDecisions.length})
-          </h3>
-          <div className="w-10"></div>
-        </div>
+  const renderDecisionsSection = () => {
+    // Filter and search logic for Owner Decisions
+    const filteredDecisions = ownerDecisions
+      .filter(decision => {
+        const matchesSearch = decisionsSearchTerm === '' ||
+          decision.guest_name?.toLowerCase().includes(decisionsSearchTerm.toLowerCase()) ||
+          decision.title?.toLowerCase().includes(decisionsSearchTerm.toLowerCase()) ||
+          decision.summary?.toLowerCase().includes(decisionsSearchTerm.toLowerCase());
+
+        const matchesStatus = filterDecisionStatus === 'All' || decision.status === filterDecisionStatus;
+        const matchesPriority = filterDecisionPriority === 'All' || decision.priority === filterDecisionPriority;
+        const matchesType = filterDecisionType === 'All' || decision.decision_type === filterDecisionType;
+        const matchesAgent = filterDecisionAgent === 'All' || decision.generated_by_agent?.toUpperCase() === filterDecisionAgent;
+        const matchesProperty = filterDecisionProperty === 'All' || decision.property_id === filterDecisionProperty;
+
+        // Date filtering
+        let matchesDate = true;
+        if (filterDecisionDate !== 'all' && decision.created_at) {
+          const decisionDate = new Date(decision.created_at);
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+
+          switch (filterDecisionDate) {
+            case 'today':
+              const todayEnd = new Date(today);
+              todayEnd.setHours(23, 59, 59, 999);
+              matchesDate = decisionDate >= today && decisionDate <= todayEnd;
+              break;
+            case 'week':
+              const weekEnd = new Date(today);
+              weekEnd.setDate(weekEnd.getDate() + 7);
+              matchesDate = decisionDate >= today && decisionDate <= weekEnd;
+              break;
+            case 'month':
+              const monthEnd = new Date(today);
+              monthEnd.setMonth(monthEnd.getMonth() + 1);
+              matchesDate = decisionDate >= today && decisionDate <= monthEnd;
+              break;
+            case 'custom':
+              if (customDecisionDateFrom && customDecisionDateTo) {
+                const start = new Date(customDecisionDateFrom);
+                const end = new Date(customDecisionDateTo);
+                end.setHours(23, 59, 59, 999);
+                matchesDate = decisionDate >= start && decisionDate <= end;
+              }
+              break;
+          }
+        }
+
+        return matchesSearch && matchesStatus && matchesPriority && matchesType && matchesAgent && matchesProperty && matchesDate;
+      })
+      .sort((a, b) => {
+        // Sort by priority (urgent first) then by created_at (newest first)
+        const priorityOrder = { urgent: 0, high: 1, medium: 2, low: 3 };
+        const priorityDiff = (priorityOrder[a.priority] || 3) - (priorityOrder[b.priority] || 3);
+        if (priorityDiff !== 0) return priorityDiff;
+        return new Date(b.created_at) - new Date(a.created_at);
+      });
+
+    // Get unique values for filter dropdowns
+    const uniqueTypes = [...new Set(ownerDecisions.map(d => d.decision_type))];
+    const uniqueAgents = [...new Set(ownerDecisions.map(d => d.generated_by_agent?.toUpperCase()).filter(Boolean))];
+
+    return (
+      <div className="space-y-6">
+        {/* OWNER DECISIONS */}
+        <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-3xl p-6 shadow-2xl border-2 border-[#d85a2a]/20">
+          <div className="flex items-center justify-between mb-4">
+            <button
+              onClick={() => setActiveSection('menu')}
+              className="p-2 bg-[#1f2937]/95 backdrop-blur-sm rounded-xl hover:bg-orange-500 transition-all border border-[#d85a2a]/20"
+            >
+              <ArrowLeft className="w-5 h-5 text-[#FF8C42]" />
+            </button>
+            <h3 className="text-2xl font-black text-[#FF8C42] flex items-center gap-2">
+              <CheckCircle className="w-6 h-6 text-[#FF8C42]" />
+              Owner Decisions ({filteredDecisions.length})
+            </h3>
+            <button
+              onClick={() => {
+                setEditingDecision(null);
+                setShowDecisionForm(true);
+              }}
+              className="flex items-center gap-2 px-4 py-2 bg-[#d85a2a] hover:bg-[#c14e1f] text-white rounded-xl font-semibold transition-all shadow-lg"
+            >
+              <Plus className="w-4 h-4" />
+              New Decision
+            </button>
+          </div>
+
+          {/* FILTERS PANEL */}
+          <div className="bg-[#2a2f3a] rounded-xl p-4 mb-6 border border-[#d85a2a]/20">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+              {/* Status Filter */}
+              <select
+                value={filterDecisionStatus}
+                onChange={(e) => setFilterDecisionStatus(e.target.value)}
+                className="px-3 py-2.5 bg-[#1f2937] text-white rounded-xl text-sm border border-[#d85a2a]/30 focus:border-[#d85a2a] outline-none"
+              >
+                <option value="All">All Status</option>
+                <option value="pending">Pending</option>
+                <option value="approved">Approved</option>
+                <option value="rejected">Rejected</option>
+                <option value="modified">Modified</option>
+                <option value="executed">Executed</option>
+              </select>
+
+              {/* Priority Filter */}
+              <select
+                value={filterDecisionPriority}
+                onChange={(e) => setFilterDecisionPriority(e.target.value)}
+                className="px-3 py-2.5 bg-[#1f2937] text-white rounded-xl text-sm border border-[#d85a2a]/30 focus:border-[#d85a2a] outline-none"
+              >
+                <option value="All">All Priorities</option>
+                <option value="urgent">🔴 Urgent</option>
+                <option value="high">🟠 High</option>
+                <option value="medium">🟡 Medium</option>
+                <option value="low">🟢 Low</option>
+              </select>
+
+              {/* Type Filter */}
+              <select
+                value={filterDecisionType}
+                onChange={(e) => setFilterDecisionType(e.target.value)}
+                className="px-3 py-2.5 bg-[#1f2937] text-white rounded-xl text-sm border border-[#d85a2a]/30 focus:border-[#d85a2a] outline-none"
+              >
+                <option value="All">All Types</option>
+                {uniqueTypes.map(type => (
+                  <option key={type} value={type}>
+                    {type.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}
+                  </option>
+                ))}
+              </select>
+
+              {/* Agent Filter */}
+              <select
+                value={filterDecisionAgent}
+                onChange={(e) => setFilterDecisionAgent(e.target.value)}
+                className="px-3 py-2.5 bg-[#1f2937] text-white rounded-xl text-sm border border-[#d85a2a]/30 focus:border-[#d85a2a] outline-none"
+              >
+                <option value="All">AI Agents</option>
+                <option value="BANYU">BANYU</option>
+                <option value="OSIRIS">OSIRIS</option>
+                <option value="LUMINA">LUMINA</option>
+                <option value="NUSANTARA">NUSANTARA</option>
+                <option value="KORA">KORA</option>
+                <option value="SYSTEM">SYSTEM</option>
+              </select>
+
+              {/* Property Filter */}
+              <select
+                value={filterDecisionProperty}
+                onChange={(e) => setFilterDecisionProperty(e.target.value)}
+                className="px-3 py-2.5 bg-[#1f2937] text-white rounded-xl text-sm border border-[#d85a2a]/30 focus:border-[#d85a2a] outline-none"
+              >
+                <option value="All">All Properties</option>
+                {villas.map(villa => (
+                  <option key={villa.id} value={villa.id}>
+                    {villa.name}
+                  </option>
+                ))}
+              </select>
+
+              {/* Date Filter */}
+              <select
+                value={filterDecisionDate}
+                onChange={(e) => setFilterDecisionDate(e.target.value)}
+                className="px-3 py-2.5 bg-[#1f2937] text-white rounded-xl text-sm border border-[#d85a2a]/30 focus:border-[#d85a2a] outline-none"
+              >
+                <option value="all">All Dates</option>
+                <option value="today">Today</option>
+                <option value="week">This Week</option>
+                <option value="month">This Month</option>
+                <option value="custom">Custom Range</option>
+              </select>
+
+              {/* Search */}
+              <div className="relative md:col-span-2 lg:col-span-3">
+                <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="Search by guest, title, or summary..."
+                  value={decisionsSearchTerm}
+                  onChange={(e) => setDecisionsSearchTerm(e.target.value)}
+                  className="w-full pl-12 pr-4 py-2.5 bg-[#1f2937] border border-[#d85a2a]/30 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#d85a2a]/50 text-sm"
+                />
+              </div>
+            </div>
+
+            {/* Custom Date Range (if selected) */}
+            {filterDecisionDate === 'custom' && (
+              <div className="grid grid-cols-2 gap-3 mt-3">
+                <div>
+                  <label className="text-xs text-gray-400 mb-1 block">From</label>
+                  <input
+                    type="date"
+                    value={customDecisionDateFrom}
+                    onChange={(e) => setCustomDecisionDateFrom(e.target.value)}
+                    className="w-full px-3 py-2 bg-[#1f2937] text-white rounded-lg text-sm border border-gray-700 focus:border-orange-500 outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-gray-400 mb-1 block">To</label>
+                  <input
+                    type="date"
+                    value={customDecisionDateTo}
+                    onChange={(e) => setCustomDecisionDateTo(e.target.value)}
+                    className="w-full px-3 py-2 bg-[#1f2937] text-white rounded-lg text-sm border border-gray-700 focus:border-orange-500 outline-none"
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Clear Filters Button */}
+            <button
+              onClick={() => {
+                setFilterDecisionStatus('pending');
+                setFilterDecisionPriority('All');
+                setFilterDecisionType('All');
+                setFilterDecisionAgent('All');
+                setFilterDecisionProperty('All');
+                setFilterDecisionDate('all');
+                setCustomDecisionDateFrom('');
+                setCustomDecisionDateTo('');
+                setDecisionsSearchTerm('');
+              }}
+              className="w-full px-3 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg text-sm font-bold transition-all mt-3"
+            >
+              Clear Filters
+            </button>
+          </div>
+
         <div className="space-y-4">
           {loadingDecisions ? (
             <div className="text-center py-8 bg-[#2a2f3a] rounded-lg border-2 border-gray-700">
               <div className="w-12 h-12 border-4 border-orange-500/30 border-t-orange-500 rounded-full animate-spin mx-auto mb-3" />
               <p className="text-gray-300 text-lg">Loading decisions...</p>
             </div>
-          ) : ownerDecisions.length === 0 ? (
+          ) : filteredDecisions.length === 0 ? (
             <div className="text-center py-8 bg-[#2a2f3a] rounded-lg border-2 border-gray-700">
               <CheckCircle className="w-12 h-12 text-green-500 mx-auto mb-3" />
-              <p className="text-gray-300 text-lg">No pending decisions</p>
-              <p className="text-gray-500 text-sm mt-1">All caught up! 🎉</p>
+              <p className="text-gray-300 text-lg">No decisions found</p>
+              <p className="text-gray-500 text-sm mt-1">Try adjusting your filters</p>
             </div>
           ) : (
-            ownerDecisions.map((decision) => {
+            filteredDecisions.map((decision) => {
               // Priority badge colors from debug_claudecode.pdf section 7
               const priorityColors = {
                 urgent: 'bg-red-500/20 text-red-300 border-red-500',
@@ -6280,10 +6701,24 @@ const Autopilot = ({ onBack }) => {
                       Reject
                     </button>
                     <button
-                      onClick={() => setSelectedDecision(decision)}
-                      className="px-4 py-3 bg-gray-600 hover:bg-gray-700 text-white rounded-lg font-medium transition-all"
+                      onClick={() => {
+                        setEditingDecision(decision);
+                        setShowDecisionForm(true);
+                      }}
+                      className="px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-all"
+                      title="Edit"
                     >
-                      <Eye className="w-5 h-5" />
+                      <Settings className="w-5 h-5" />
+                    </button>
+                    <button
+                      onClick={() => {
+                        setDecisionToDelete(decision);
+                        setShowDeleteConfirmDecision(true);
+                      }}
+                      className="px-4 py-3 bg-red-700 hover:bg-red-800 text-white rounded-lg font-medium transition-all"
+                      title="Delete"
+                    >
+                      <Trash2 className="w-5 h-5" />
                     </button>
                   </div>
                 </div>
@@ -6402,8 +6837,224 @@ const Autopilot = ({ onBack }) => {
           </div>
         </div>
       )}
+
+      {/* DELETE CONFIRMATION MODAL */}
+      {showDeleteConfirmDecision && decisionToDelete && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-[#1f2937] rounded-2xl p-6 max-w-md w-full mx-4 border-2 border-red-500/30">
+            <h3 className="text-2xl font-bold text-white mb-4 flex items-center gap-2">
+              <Trash2 className="w-6 h-6 text-red-400" />
+              Delete Decision
+            </h3>
+            <div className="bg-[#2a2f3a] rounded-lg p-4 mb-4">
+              <p className="text-white font-semibold mb-2">{decisionToDelete.title}</p>
+              <p className="text-gray-400 text-sm">Are you sure you want to delete this decision? This action cannot be undone.</p>
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={handleDeleteDecision}
+                className="flex-1 px-4 py-3 bg-red-500 hover:bg-red-600 text-white rounded-lg font-bold transition-all"
+              >
+                Delete
+              </button>
+              <button
+                onClick={() => {
+                  setShowDeleteConfirmDecision(false);
+                  setDecisionToDelete(null);
+                }}
+                className="flex-1 px-4 py-3 bg-gray-600 hover:bg-gray-700 text-white rounded-lg font-medium transition-all"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* CREATE/EDIT DECISION FORM MODAL */}
+      {showDecisionForm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-2 md:p-4">
+          <div className="bg-[#1f2937] rounded-2xl w-[98%] sm:w-[90%] md:w-full max-w-2xl max-h-[92vh] md:max-h-[90vh] overflow-y-auto border-2 border-[#d85a2a]/30" style={{ marginLeft: '40px' }}>
+            {/* Header */}
+            <div className="flex items-center justify-between p-4 md:p-6 border-b border-gray-700">
+              <h3 className="text-xl md:text-2xl font-bold text-[#FF8C42] flex items-center gap-2">
+                <Settings className="w-6 h-6 text-[#FF8C42]" />
+                {editingDecision ? 'Edit Decision' : 'New Decision'}
+              </h3>
+              <button
+                onClick={() => {
+                  setShowDecisionForm(false);
+                  setEditingDecision(null);
+                }}
+                className="p-2 hover:bg-gray-700 rounded-lg transition-colors"
+              >
+                <X className="w-6 h-6 text-gray-400" />
+              </button>
+            </div>
+
+            {/* Form Content */}
+            <div className="p-4 md:p-6 space-y-4">
+              {/* Title */}
+              <div>
+                <label className="text-gray-300 text-sm font-medium block mb-2">Title *</label>
+                <input
+                  type="text"
+                  placeholder="e.g., Late Checkout Request - Guest Name"
+                  className="w-full px-4 py-2 bg-[#2a2f3a] text-white rounded-lg border border-gray-600 focus:border-orange-500 outline-none"
+                  value={decisionFormData.title}
+                  onChange={(e) => setDecisionFormData({...decisionFormData, title: e.target.value})}
+                />
+              </div>
+
+              {/* Summary */}
+              <div>
+                <label className="text-gray-300 text-sm font-medium block mb-2">Summary *</label>
+                <textarea
+                  placeholder="Brief summary of the decision..."
+                  className="w-full px-4 py-2 bg-[#2a2f3a] text-white rounded-lg border border-gray-600 focus:border-orange-500 outline-none resize-none"
+                  rows="2"
+                  value={decisionFormData.summary}
+                  onChange={(e) => setDecisionFormData({...decisionFormData, summary: e.target.value})}
+                />
+              </div>
+
+              {/* Description */}
+              <div>
+                <label className="text-gray-300 text-sm font-medium block mb-2">Description</label>
+                <textarea
+                  placeholder="Detailed description..."
+                  className="w-full px-4 py-2 bg-[#2a2f3a] text-white rounded-lg border border-gray-600 focus:border-orange-500 outline-none resize-none"
+                  rows="4"
+                  value={decisionFormData.description}
+                  onChange={(e) => setDecisionFormData({...decisionFormData, description: e.target.value})}
+                />
+              </div>
+
+              {/* Property Selection */}
+              <div>
+                <label className="text-gray-300 text-sm font-medium block mb-2">Property *</label>
+                <select
+                  className="w-full px-4 py-2 bg-[#2a2f3a] text-white rounded-lg border border-gray-600 focus:border-orange-500 outline-none"
+                  value={decisionFormData.property_id}
+                  onChange={(e) => setDecisionFormData({...decisionFormData, property_id: e.target.value})}
+                >
+                  <option value="">-- Select Property --</option>
+                  {villas.map(villa => (
+                    <option key={villa.id} value={villa.id}>
+                      {villa.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Row 1: Type, Priority, Status */}
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <label className="text-gray-300 text-sm font-medium block mb-2">Type *</label>
+                  <select
+                    className="w-full px-4 py-2 bg-[#2a2f3a] text-white rounded-lg border border-gray-600 focus:border-orange-500 outline-none"
+                    value={decisionFormData.decision_type}
+                    onChange={(e) => setDecisionFormData({...decisionFormData, decision_type: e.target.value})}
+                  >
+                    <option value="late_checkout">Late Checkout</option>
+                    <option value="early_checkin">Early Check-in</option>
+                    <option value="refund_request">Refund Request</option>
+                    <option value="pricing_exception">Pricing Exception</option>
+                    <option value="cancellation">Cancellation</option>
+                    <option value="complaint">Complaint</option>
+                    <option value="special_request">Special Request</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-gray-300 text-sm font-medium block mb-2">Priority *</label>
+                  <select
+                    className="w-full px-4 py-2 bg-[#2a2f3a] text-white rounded-lg border border-gray-600 focus:border-orange-500 outline-none"
+                    value={decisionFormData.priority}
+                    onChange={(e) => setDecisionFormData({...decisionFormData, priority: e.target.value})}
+                  >
+                    <option value="low">Low</option>
+                    <option value="medium">Medium</option>
+                    <option value="high">High</option>
+                    <option value="urgent">Urgent</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-gray-300 text-sm font-medium block mb-2">Status *</label>
+                  <select
+                    className="w-full px-4 py-2 bg-[#2a2f3a] text-white rounded-lg border border-gray-600 focus:border-orange-500 outline-none"
+                    value={decisionFormData.status}
+                    onChange={(e) => setDecisionFormData({...decisionFormData, status: e.target.value})}
+                  >
+                    <option value="pending">Pending</option>
+                    <option value="approved">Approved</option>
+                    <option value="rejected">Rejected</option>
+                    <option value="modified">Modified</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Row 2: Guest Info */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-gray-300 text-sm font-medium block mb-2">Guest Name</label>
+                  <input
+                    type="text"
+                    placeholder="Guest name"
+                    className="w-full px-4 py-2 bg-[#2a2f3a] text-white rounded-lg border border-gray-600 focus:border-orange-500 outline-none"
+                    value={decisionFormData.guest_name}
+                    onChange={(e) => setDecisionFormData({...decisionFormData, guest_name: e.target.value})}
+                  />
+                </div>
+                <div>
+                  <label className="text-gray-300 text-sm font-medium block mb-2">Guest Phone</label>
+                  <input
+                    type="text"
+                    placeholder="+62..."
+                    className="w-full px-4 py-2 bg-[#2a2f3a] text-white rounded-lg border border-gray-600 focus:border-orange-500 outline-none"
+                    value={decisionFormData.guest_phone}
+                    onChange={(e) => setDecisionFormData({...decisionFormData, guest_phone: e.target.value})}
+                  />
+                </div>
+              </div>
+
+              {/* Financial Impact */}
+              <div>
+                <label className="text-gray-300 text-sm font-medium block mb-2">Financial Impact (USD)</label>
+                <input
+                  type="number"
+                  placeholder="0.00 (negative for cost, positive for revenue)"
+                  className="w-full px-4 py-2 bg-[#2a2f3a] text-white rounded-lg border border-gray-600 focus:border-orange-500 outline-none"
+                  value={decisionFormData.financial_impact_estimate}
+                  onChange={(e) => setDecisionFormData({...decisionFormData, financial_impact_estimate: e.target.value})}
+                />
+              </div>
+            </div>
+
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={handleSaveDecision}
+                disabled={isSavingDecision}
+                className="flex-1 px-4 py-3 bg-orange-500 hover:bg-orange-600 text-white rounded-lg font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isSavingDecision ? 'Saving...' : (editingDecision ? 'Update Decision' : 'Create Decision')}
+              </button>
+              <button
+                onClick={() => {
+                  setShowDecisionForm(false);
+                  setEditingDecision(null);
+                }}
+                disabled={isSavingDecision}
+                className="flex-1 px-4 py-3 bg-gray-600 hover:bg-gray-700 text-white rounded-lg font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
-  );
+    );
+  };
 
   // Main render
   return (
