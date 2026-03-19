@@ -835,3 +835,185 @@ export function generateOwnerStatementHTML(reportData, ownerName, propertyName, 
     content
   );
 }
+
+// Owner Decisions Report HTML
+export function generateOwnerDecisionsHTML(reportData, ownerName, propertyName, currency) {
+  const { kpis, byVilla, byType, detailedList, alerts, dateRange, villaFilter } = reportData;
+
+  // 1. KPIs Section
+  const kpisHTML = `
+    <div class="metrics-grid" style="grid-template-columns: repeat(3, 1fr); margin-bottom: 30px;">
+      <div class="metric-box">
+        <div class="metric-label">Total Decisions</div>
+        <div class="metric-value">${kpis.total}</div>
+      </div>
+      <div class="metric-box">
+        <div class="metric-label">Pending</div>
+        <div class="metric-value">${kpis.pending}</div>
+      </div>
+      <div class="metric-box">
+        <div class="metric-label">Approved</div>
+        <div class="metric-value">${kpis.approved}</div>
+      </div>
+      <div class="metric-box">
+        <div class="metric-label">Rejected</div>
+        <div class="metric-value">${kpis.rejected}</div>
+      </div>
+      <div class="metric-box" style="background: linear-gradient(135deg, #dc2626 0%, #ef4444 100%);">
+        <div class="metric-label">Urgent Unresolved</div>
+        <div class="metric-value">${kpis.urgentUnresolved}</div>
+      </div>
+      <div class="metric-box">
+        <div class="metric-label">Avg Response Time</div>
+        <div class="metric-value">${kpis.avgResponseTimeHours}h</div>
+      </div>
+    </div>
+  `;
+
+  // 2. Alerts Section (if any)
+  let alertsHTML = '';
+  if (alerts && alerts.length > 0) {
+    alertsHTML = `
+      <div class="section">
+        <div class="section-title" style="color: #dc2626;">🚨 ALERTS</div>
+        <div style="background: #fee2e2; border-left: 4px solid #dc2626; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+          ${alerts.map(alert => `
+            <div style="margin-bottom: 10px;">
+              <strong>${alert.message}</strong>
+              ${alert.decisions && alert.decisions.length > 0 ? `
+                <ul style="margin-top: 5px; margin-left: 20px;">
+                  ${alert.decisions.slice(0, 5).map(d => `<li>${d.villa_name || 'N/A'} - ${d.title}</li>`).join('')}
+                  ${alert.decisions.length > 5 ? `<li><em>...and ${alert.decisions.length - 5} more</em></li>` : ''}
+                </ul>
+              ` : ''}
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    `;
+  }
+
+  // 3. Breakdown by Villa
+  let byVillaHTML = '';
+  if (byVilla && byVilla.length > 0) {
+    byVillaHTML = `
+      <div class="section">
+        <div class="section-title">📍 By Villa</div>
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Villa</th>
+              <th>Total</th>
+              <th>Pending</th>
+              <th>Approved</th>
+              <th>Rejected</th>
+              <th>Modified</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${byVilla.map(villa => `
+              <tr>
+                <td><strong>${villa.villaName}</strong></td>
+                <td><strong>${villa.total}</strong></td>
+                <td>${villa.pending}</td>
+                <td style="color: #16a34a;">${villa.approved}</td>
+                <td style="color: #dc2626;">${villa.rejected}</td>
+                <td style="color: #2563eb;">${villa.modified}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+    `;
+  }
+
+  // 4. Breakdown by Type
+  let byTypeHTML = '';
+  if (byType && byType.length > 0) {
+    byTypeHTML = `
+      <div class="section">
+        <div class="section-title">📊 By Decision Type</div>
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Decision Type</th>
+              <th>Count</th>
+              <th>% of Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${byType.map(type => `
+              <tr>
+                <td><strong>${type.type.replace('_', ' ').toUpperCase()}</strong></td>
+                <td>${type.count}</td>
+                <td>${type.percentage}%</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+    `;
+  }
+
+  // 5. Detailed Table
+  let detailedTableHTML = '';
+  if (detailedList && detailedList.length > 0) {
+    detailedTableHTML = `
+      <div class="section">
+        <div class="section-title">📋 Detailed List</div>
+        <table class="data-table" style="font-size: 12px;">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Villa</th>
+              <th>Guest</th>
+              <th>Type</th>
+              <th>Priority</th>
+              <th>Status</th>
+              <th>Response Time</th>
+              <th>Title</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${detailedList.map(d => {
+              const priorityColors = {
+                urgent: '#dc2626',
+                high: '#f97316',
+                medium: '#fbbf24',
+                low: '#16a34a'
+              };
+              const statusColors = {
+                pending: '#6b7280',
+                approved: '#16a34a',
+                rejected: '#dc2626',
+                modified: '#2563eb'
+              };
+
+              return `
+                <tr>
+                  <td style="white-space: nowrap;">${new Date(d.created_at).toLocaleDateString()}</td>
+                  <td>${d.villa_name}</td>
+                  <td>${d.guest_name}</td>
+                  <td>${d.decision_type.replace('_', ' ')}</td>
+                  <td style="color: ${priorityColors[d.priority] || '#000'}; font-weight: 600;">${d.priority.toUpperCase()}</td>
+                  <td style="color: ${statusColors[d.status] || '#000'}; font-weight: 600;">${d.status.toUpperCase()}</td>
+                  <td>${d.responseTimeHours ? d.responseTimeHours + 'h' : '-'}</td>
+                  <td style="max-width: 200px; overflow: hidden; text-overflow: ellipsis;">${d.title}</td>
+                </tr>
+              `;
+            }).join('')}
+          </tbody>
+        </table>
+      </div>
+    `;
+  }
+
+  // Combine all sections
+  const content = kpisHTML + alertsHTML + byVillaHTML + byTypeHTML + detailedTableHTML;
+
+  return getBaseHTML(
+    'OWNER DECISIONS REPORT',
+    `${propertyName} | ${villaFilter} | ${dateRange.startDate} to ${dateRange.endDate}`,
+    content
+  );
+}

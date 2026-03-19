@@ -5,14 +5,16 @@ import {
   generateRevenueByChannelReport,
   generateADRRevPARReport,
   generateCancellationReport,
-  generateOwnerStatementReport
+  generateOwnerStatementReport,
+  generateOwnerDecisionsReport
 } from '../../services/specializedReportsService';
 import {
   generateMonthlyOccupancyHTML,
   generateRevenueByChannelHTML,
   generateADRRevPARHTML,
   generateCancellationHTML,
-  generateOwnerStatementHTML
+  generateOwnerStatementHTML,
+  generateOwnerDecisionsHTML
 } from '../../services/specializedReportsHTML';
 
 const SpecializedReports = () => {
@@ -29,7 +31,8 @@ const SpecializedReports = () => {
     { value: 'revenue_by_channel', label: 'Revenue by Channel' },
     { value: 'adr_revpar', label: 'ADR & RevPAR Summary' },
     { value: 'cancellation', label: 'Cancellation Report' },
-    { value: 'owner_statement', label: 'Monthly Owner Statement' }
+    { value: 'owner_statement', label: 'Monthly Owner Statement' },
+    { value: 'owner_decisions', label: 'Owner Decisions Report' }
   ];
 
   // Hardcoded villas for now (will be dynamic later)
@@ -96,6 +99,16 @@ const SpecializedReports = () => {
           reportData = await generateOwnerStatementReport(ownerId, ownerName, propertyName, currency, startDate, endDate, villaId);
           if (reportData) {
             htmlContent = generateOwnerStatementHTML(reportData, ownerName, propertyName, currency);
+          }
+          break;
+
+        case 'owner_decisions':
+          // For owner decisions, use tenantId (userData.id) and villaName instead of villaId
+          const tenantId = userData?.id || ownerId;
+          const villaName = selectedVilla === 'all' ? null : selectedVilla;
+          reportData = await generateOwnerDecisionsReport(tenantId, ownerName, propertyName, currency, startDate, endDate, villaName);
+          if (reportData) {
+            htmlContent = generateOwnerDecisionsHTML(reportData, ownerName, propertyName, currency);
           }
           break;
 
@@ -232,6 +245,10 @@ const SpecializedReports = () => {
               <li className="flex items-start">
                 <span className="text-[#FF8C42] mr-2">•</span>
                 <span><strong className="text-white">Owner Statement:</strong> Gross revenue, fees, and net payout</span>
+              </li>
+              <li className="flex items-start">
+                <span className="text-[#FF8C42] mr-2">•</span>
+                <span><strong className="text-white">Owner Decisions:</strong> Decision summary by villa and type, response times, and alerts</span>
               </li>
             </ul>
           </div>

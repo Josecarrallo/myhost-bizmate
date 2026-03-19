@@ -171,6 +171,9 @@ const Autopilot = ({ onBack }) => {
     priority: 'medium',
     status: 'pending',
     property_id: '',
+    villa_id: '',
+    villa_name: '',
+    scheduled_date: '',
     guest_name: '',
     guest_phone: '',
     financial_impact_estimate: 0,
@@ -1548,6 +1551,16 @@ const Autopilot = ({ onBack }) => {
       setIsProcessingApprove(true);
       console.log('🔄 Approving decision:', selectedDecision.id);
       await ownerDecisionsService.approveDecision(selectedDecision.id, userData.id, approveNotes);
+
+      // Update resolved_at timestamp in Supabase
+      await supabase
+        .from('owner_decisions')
+        .update({
+          status: 'approved',
+          resolved_at: new Date().toISOString()
+        })
+        .eq('id', selectedDecision.id);
+
       setNotification({ type: 'success', message: '✅ Decision approved successfully!' });
 
       setShowApproveModal(false);
@@ -1587,6 +1600,16 @@ const Autopilot = ({ onBack }) => {
       setIsProcessingReject(true);
       console.log('🔄 Rejecting decision:', selectedDecision.id, 'with notes:', rejectNotes);
       await ownerDecisionsService.rejectDecision(selectedDecision.id, userData.id, rejectNotes);
+
+      // Update resolved_at timestamp in Supabase
+      await supabase
+        .from('owner_decisions')
+        .update({
+          status: 'rejected',
+          resolved_at: new Date().toISOString()
+        })
+        .eq('id', selectedDecision.id);
+
       setNotification({ type: 'success', message: '✅ Decision rejected successfully!' });
 
       setShowRejectModal(false);
@@ -1656,6 +1679,9 @@ const Autopilot = ({ onBack }) => {
       const decisionData = {
         tenant_id: userData.id,
         property_id: decisionFormData.property_id,
+        villa_id: decisionFormData.villa_id || decisionFormData.property_id,
+        villa_name: decisionFormData.villa_name || '',
+        scheduled_date: decisionFormData.scheduled_date || null,
         title: decisionFormData.title,
         summary: decisionFormData.summary,
         description: decisionFormData.description || null,
@@ -1725,6 +1751,9 @@ const Autopilot = ({ onBack }) => {
         priority: 'medium',
         status: 'pending',
         property_id: '',
+        villa_id: '',
+        villa_name: '',
+        scheduled_date: '',
         guest_name: '',
         guest_phone: '',
         financial_impact_estimate: 0,
@@ -6371,7 +6400,7 @@ const Autopilot = ({ onBack }) => {
         const matchesPriority = filterDecisionPriority === 'All' || decision.priority === filterDecisionPriority;
         const matchesType = filterDecisionType === 'All' || decision.decision_type === filterDecisionType;
         const matchesAgent = filterDecisionAgent === 'All' || decision.generated_by_agent?.toUpperCase() === filterDecisionAgent;
-        const matchesProperty = filterDecisionProperty === 'All' || decision.property_id === filterDecisionProperty;
+        const matchesProperty = filterDecisionProperty === 'All' || decision.villa_name === filterDecisionProperty;
 
         // Date filtering
         let matchesDate = true;
@@ -6410,11 +6439,8 @@ const Autopilot = ({ onBack }) => {
         return matchesSearch && matchesStatus && matchesPriority && matchesType && matchesAgent && matchesProperty && matchesDate;
       })
       .sort((a, b) => {
-        // Sort by priority (urgent first) then by created_at (newest first)
-        const priorityOrder = { urgent: 0, high: 1, medium: 2, low: 3 };
-        const priorityDiff = (priorityOrder[a.priority] || 3) - (priorityOrder[b.priority] || 3);
-        if (priorityDiff !== 0) return priorityDiff;
-        return new Date(b.created_at) - new Date(a.created_at);
+        // Sort by created_at (oldest first)
+        return new Date(a.created_at) - new Date(b.created_at);
       });
 
     // Get unique values for filter dropdowns
@@ -6515,7 +6541,7 @@ const Autopilot = ({ onBack }) => {
               >
                 <option value="All">All Properties</option>
                 {villas.map(villa => (
-                  <option key={villa.id} value={villa.id}>
+                  <option key={villa.id} value={villa.name}>
                     {villa.name}
                   </option>
                 ))}
@@ -6675,14 +6701,22 @@ const Autopilot = ({ onBack }) => {
                           <p className="text-gray-500 text-sm">📱 {decision.guest_phone}</p>
                         )}
                       </div>
+                      {decision.villa_name && (
+                        <p className="text-blue-400 font-medium text-sm mb-2">
+                          🏠 {decision.villa_name}
+                        </p>
+                      )}
                       {decision.financial_impact_estimate && decision.financial_impact_estimate !== 0 && (
                         <p className={`font-bold text-lg mb-2 ${decision.financial_impact_estimate > 0 ? 'text-green-400' : 'text-red-400'}`}>
                           💰 {decision.financial_impact_estimate > 0 ? '+' : ''}${Math.abs(decision.financial_impact_estimate).toLocaleString()}
                         </p>
                       )}
-                      <p className="text-gray-500 text-xs">
-                        ⏰ {new Date(decision.created_at).toLocaleString()}
-                      </p>
+                      <div className="flex items-center gap-4 text-gray-500 text-xs">
+                        <span>⏰ Created: {new Date(decision.created_at).toLocaleString()}</span>
+                        {decision.scheduled_date && (
+                          <span>📅 Scheduled: {new Date(decision.scheduled_date).toLocaleDateString()}</span>
+                        )}
+                      </div>
                     </div>
                   </div>
                   <div className="flex gap-3 pt-4 border-t-2 border-gray-700">
@@ -6703,6 +6737,23 @@ const Autopilot = ({ onBack }) => {
                     <button
                       onClick={() => {
                         setEditingDecision(decision);
+                        setDecisionFormData({
+                          title: decision.title || '',
+                          summary: decision.summary || '',
+                          description: decision.description || '',
+                          decision_type: decision.decision_type || 'late_checkout',
+                          priority: decision.priority || 'medium',
+                          status: decision.status || 'pending',
+                          property_id: decision.property_id || '',
+                          villa_id: decision.villa_id || decision.property_id || '',
+                          villa_name: decision.villa_name || '',
+                          scheduled_date: decision.scheduled_date || '',
+                          guest_name: decision.guest_name || '',
+                          guest_phone: decision.guest_phone || '',
+                          financial_impact_estimate: decision.financial_impact_estimate || 0,
+                          decision_category: decision.decision_category || 'approval',
+                          generated_by_agent: decision.generated_by_agent || 'system'
+                        });
                         setShowDecisionForm(true);
                       }}
                       className="px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-all"
@@ -6936,7 +6987,15 @@ const Autopilot = ({ onBack }) => {
                 <select
                   className="w-full px-4 py-2 bg-[#2a2f3a] text-white rounded-lg border border-gray-600 focus:border-orange-500 outline-none"
                   value={decisionFormData.property_id}
-                  onChange={(e) => setDecisionFormData({...decisionFormData, property_id: e.target.value})}
+                  onChange={(e) => {
+                    const selectedVilla = villas.find(v => v.id === e.target.value);
+                    setDecisionFormData({
+                      ...decisionFormData,
+                      property_id: e.target.value,
+                      villa_id: e.target.value,
+                      villa_name: selectedVilla?.name || ''
+                    });
+                  }}
                 >
                   <option value="">-- Select Property --</option>
                   {villas.map(villa => (
@@ -6945,6 +7004,17 @@ const Autopilot = ({ onBack }) => {
                     </option>
                   ))}
                 </select>
+              </div>
+
+              {/* Scheduled Date */}
+              <div>
+                <label className="text-gray-300 text-sm font-medium block mb-2">Scheduled Date</label>
+                <input
+                  type="date"
+                  className="w-full px-4 py-2 bg-[#2a2f3a] text-white rounded-lg border border-gray-600 focus:border-orange-500 outline-none"
+                  value={decisionFormData.scheduled_date}
+                  onChange={(e) => setDecisionFormData({...decisionFormData, scheduled_date: e.target.value})}
+                />
               </div>
 
               {/* Row 1: Type, Priority, Status */}
