@@ -59,6 +59,7 @@ import { generateReportHTML } from '../../services/generateReportHTML';
 import { generateEnhancedReportHTML } from '../../services/enhancedReportHTML';
 import { supabaseService as dataService } from '../../services/supabase';
 import { tasksService } from '../../services/tasksService';
+import { ownerDecisionsService } from '../../services/ownerDecisionsService';
 
 const Autopilot = ({ onBack }) => {
   const { userData } = useAuth();
@@ -127,6 +128,25 @@ const Autopilot = ({ onBack }) => {
   const [isGeneratingEnhancedReport, setIsGeneratingEnhancedReport] = useState(false);
   const [enhancedReportHTML, setEnhancedReportHTML] = useState('<html><body style="margin:0;padding:40px;font-family:sans-serif;text-align:center;color:#666;"><h2 style="color:#FF8C42;">Enhanced Global Report</h2><p>Select property and dates, then click <strong>Generate Report</strong>.</p></body></html>');
 
+  // Owner Decisions (OCS) states
+  const [ownerDecisions, setOwnerDecisions] = useState([]);
+  const [decisionsSummary, setDecisionsSummary] = useState({
+    pending: 0,
+    urgent: 0,
+    high: 0,
+    total_revenue_impact: 0,
+    total_cost_impact: 0
+  });
+  const [loadingDecisions, setLoadingDecisions] = useState(false);
+  const [selectedDecision, setSelectedDecision] = useState(null);
+  const [showDecisionModal, setShowDecisionModal] = useState(false);
+  const [showRejectModal, setShowRejectModal] = useState(false);
+  const [rejectNotes, setRejectNotes] = useState('');
+  const [showApproveModal, setShowApproveModal] = useState(false);
+  const [approveNotes, setApproveNotes] = useState('');
+  const [isProcessingApprove, setIsProcessingApprove] = useState(false);
+  const [isProcessingReject, setIsProcessingReject] = useState(false);
+
   // Load villas when entering Tasks section
   useEffect(() => {
     if (activeSection === 'tasks' && userData?.id) {
@@ -175,6 +195,15 @@ const Autopilot = ({ onBack }) => {
     userData,
     tasksActiveTab
   ]);
+
+  // Load owner decisions when entering decisions section
+  useEffect(() => {
+    console.log('🔄 Owner Decisions useEffect FIRED - activeSection:', activeSection, 'userData?.id:', userData?.id);
+    if (activeSection === 'decisions' && userData?.id) {
+      console.log('✅ Conditions met, calling loadOwnerDecisions()');
+      loadOwnerDecisions();
+    }
+  }, [activeSection, userData?.id]);
 
   // Load tasks from Supabase with all filters
   const loadTasksData = async () => {
@@ -1400,6 +1429,109 @@ const Autopilot = ({ onBack }) => {
       console.error('Error rejecting action:', error);
       alert('❌ Error connecting to server. Please try again.');
       logDbQuery('Exception in reject', { error: error.message });
+    }
+  };
+
+  // ============ OWNER DECISIONS (OCS) FUNCTIONS ============
+
+  const loadOwnerDecisions = async () => {
+    console.log('🔄 loadOwnerDecisions called, userData:', userData);
+
+    if (!userData?.id) {
+      console.error('❌ No user id found in userData');
+      return;
+    }
+
+    setLoadingDecisions(true);
+    try {
+      const filters = { status: 'pending' };
+      console.log('📞 Calling ownerDecisionsService.getOwnerDecisions with tenant:', userData.id);
+
+      const decisionsData = await ownerDecisionsService.getOwnerDecisions(userData.id, filters);
+      console.log('✅ Received decisions data:', decisionsData);
+      setOwnerDecisions(decisionsData);
+
+      const summary = await ownerDecisionsService.getDecisionsSummary(userData.id);
+      console.log('✅ Received summary:', summary);
+      setDecisionsSummary(summary);
+    } catch (error) {
+      console.error('❌ Error loading owner decisions:', error);
+      setNotification({ type: 'error', message: 'Failed to load owner decisions' });
+    } finally {
+      setLoadingDecisions(false);
+    }
+  };
+
+  const handleApproveDecision = (decision) => {
+    setSelectedDecision(decision);
+    setApproveNotes('');
+    setShowApproveModal(true);
+  };
+
+  const confirmApprove = async () => {
+    try {
+      if (!userData?.id || !selectedDecision) {
+        setNotification({ type: 'error', message: 'User ID not found' });
+        return;
+      }
+
+      setIsProcessingApprove(true);
+      console.log('🔄 Approving decision:', selectedDecision.id);
+      await ownerDecisionsService.approveDecision(selectedDecision.id, userData.id, approveNotes);
+      setNotification({ type: 'success', message: '✅ Decision approved successfully!' });
+
+      setShowApproveModal(false);
+      setSelectedDecision(null);
+      setApproveNotes('');
+      setIsProcessingApprove(false);
+
+      // Reload decisions after 1 second
+      setTimeout(() => {
+        loadOwnerDecisions();
+      }, 1000);
+    } catch (error) {
+      console.error('❌ Error approving decision:', error);
+      setNotification({ type: 'error', message: '❌ Failed to approve decision' });
+      setIsProcessingApprove(false);
+    }
+  };
+
+  const handleRejectDecision = (decision) => {
+    setSelectedDecision(decision);
+    setRejectNotes('');
+    setShowRejectModal(true);
+  };
+
+  const confirmReject = async () => {
+    if (!rejectNotes || rejectNotes.trim() === '') {
+      setNotification({ type: 'error', message: 'Rejection reason is required' });
+      return;
+    }
+
+    try {
+      if (!userData?.id || !selectedDecision) {
+        setNotification({ type: 'error', message: 'User ID not found' });
+        return;
+      }
+
+      setIsProcessingReject(true);
+      console.log('🔄 Rejecting decision:', selectedDecision.id, 'with notes:', rejectNotes);
+      await ownerDecisionsService.rejectDecision(selectedDecision.id, userData.id, rejectNotes);
+      setNotification({ type: 'success', message: '✅ Decision rejected successfully!' });
+
+      setShowRejectModal(false);
+      setSelectedDecision(null);
+      setRejectNotes('');
+      setIsProcessingReject(false);
+
+      // Reload decisions after 1 second
+      setTimeout(() => {
+        loadOwnerDecisions();
+      }, 1000);
+    } catch (error) {
+      console.error('❌ Error rejecting decision:', error);
+      setNotification({ type: 'error', message: '❌ Failed to reject decision' });
+      setIsProcessingReject(false);
     }
   };
 
@@ -6033,104 +6165,124 @@ const Autopilot = ({ onBack }) => {
           </button>
           <h3 className="text-2xl font-black text-[#FF8C42] flex items-center gap-2">
             <CheckCircle className="w-6 h-6 text-[#FF8C42]" />
-            Owner Decisions ({actionsNeedingApproval.length})
+            Owner Decisions ({ownerDecisions.length})
           </h3>
-          <div className="flex gap-2">
-            <button
-              onClick={() => setShowDBVisualization(!showDBVisualization)}
-              className="px-4 py-2 bg-orange-500/20 hover:bg-orange-500/30 text-orange-400 rounded-lg font-medium transition-all flex items-center gap-2 border border-orange-500/30"
-            >
-            <Eye className="w-4 h-4" />
-            {showDBVisualization ? 'Hide' : 'Show'} DB
-          </button>
-          </div>
+          <div className="w-10"></div>
         </div>
         <div className="space-y-4">
-          {actionsNeedingApproval.length === 0 ? (
+          {loadingDecisions ? (
+            <div className="text-center py-8 bg-[#2a2f3a] rounded-lg border-2 border-gray-700">
+              <div className="w-12 h-12 border-4 border-orange-500/30 border-t-orange-500 rounded-full animate-spin mx-auto mb-3" />
+              <p className="text-gray-300 text-lg">Loading decisions...</p>
+            </div>
+          ) : ownerDecisions.length === 0 ? (
             <div className="text-center py-8 bg-[#2a2f3a] rounded-lg border-2 border-gray-700">
               <CheckCircle className="w-12 h-12 text-green-500 mx-auto mb-3" />
-              <p className="text-gray-300 text-lg">No pending actions</p>
+              <p className="text-gray-300 text-lg">No pending decisions</p>
               <p className="text-gray-500 text-sm mt-1">All caught up! 🎉</p>
             </div>
           ) : (
-            actionsNeedingApproval.map((action) => {
+            ownerDecisions.map((decision) => {
+              // Priority badge colors from debug_claudecode.pdf section 7
               const priorityColors = {
-                urgent: 'bg-red-100 text-red-700 border-red-300',
-                high: 'bg-yellow-100 text-yellow-700 border-yellow-300',
-                normal: 'bg-blue-100 text-blue-700 border-blue-300'
+                urgent: 'bg-red-500/20 text-red-300 border-red-500',
+                high: 'bg-orange-500/20 text-orange-300 border-orange-500',
+                medium: 'bg-yellow-500/20 text-yellow-300 border-yellow-500',
+                low: 'bg-green-500/20 text-green-300 border-green-500'
               };
 
-              const typeColors = {
-                discount_request: 'bg-purple-100 text-purple-700',
-                payment_verification: 'bg-yellow-100 text-yellow-700',
-                custom_plan_request: 'bg-blue-100 text-blue-700',
-                payment_expired: 'bg-red-100 text-red-700',
-                special_request: 'bg-orange-100 text-orange-700'
+              const priorityEmojis = {
+                urgent: '🔴',
+                high: '🟠',
+                medium: '🟡',
+                low: '🟢'
               };
+
+              // Decision type labels and emojis from debug_claudecode.pdf section 8
+              const decisionTypeLabels = {
+                late_checkout: { label: 'Late Checkout Request', emoji: '🕒' },
+                early_checkin: { label: 'Early Check-in Request', emoji: '🌅' },
+                refund_request: { label: 'Refund Request', emoji: '💰' },
+                pricing_exception: { label: 'Special Rate / Payment Plan', emoji: '💲' },
+                date_change: { label: 'Booking Date Change', emoji: '📅' },
+                cancellation: { label: 'Cancellation Request', emoji: '❌' },
+                complaint: { label: 'Guest Complaint', emoji: '⚠️' },
+                transport_request: { label: 'Transport Request', emoji: '🚗' },
+                special_request: { label: 'Special Request', emoji: '⭐' }
+              };
+
+              const typeInfo = decisionTypeLabels[decision.decision_type] || { label: decision.decision_type, emoji: '📋' };
+              const agentBadge = decision.generated_by_agent?.toUpperCase() || 'SYSTEM';
 
               return (
                 <div
-                  key={action.id}
+                  key={decision.id}
                   className={`bg-[#2a2f3a] rounded-lg p-5 border-2 ${
-                    action.priority === 'urgent'
+                    decision.priority === 'urgent'
                       ? 'border-red-500/50'
-                      : action.priority === 'high'
+                      : decision.priority === 'high'
+                      ? 'border-orange-500/50'
+                      : decision.priority === 'medium'
                       ? 'border-yellow-500/50'
                       : 'border-gray-700'
                   }`}
                 >
                   <div className="flex items-start justify-between mb-3">
                     <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-3">
+                      <div className="flex items-center gap-2 mb-3 flex-wrap">
                         <span
                           className={`px-3 py-1 rounded-full text-xs font-bold uppercase ${
-                            priorityColors[action.priority] || priorityColors.normal
+                            priorityColors[decision.priority] || priorityColors.medium
                           } border-2`}
                         >
-                          🔥 {action.priority}
+                          {priorityEmojis[decision.priority]} {decision.priority}
                         </span>
-                        <span
-                          className={`px-3 py-1 rounded-full text-xs font-medium ${
-                            typeColors[action.type] || 'bg-gray-100 text-gray-700'
-                          }`}
-                        >
-                          {action.type.replace(/_/g, ' ')}
+                        <span className="px-3 py-1 rounded-full text-xs font-semibold bg-blue-500/20 text-blue-300 border-2 border-blue-500">
+                          {agentBadge}
+                        </span>
+                        <span className="px-3 py-1 rounded-full text-xs font-medium bg-purple-500/20 text-purple-300">
+                          {decision.decision_category === 'approval' ? 'Needs Approval' : 'Recommendation'}
                         </span>
                       </div>
-                      <h4 className="text-white font-bold text-xl mb-2">{action.title}</h4>
+                      <h4 className="text-white font-bold text-xl mb-2">
+                        {typeInfo.emoji} {decision.title}
+                      </h4>
+                      <p className="text-gray-400 text-sm mb-3">{decision.summary}</p>
                       <div className="flex items-center gap-3 mb-3">
-                        <p className="text-orange-400 font-medium text-lg">👤 {action.guest}</p>
-                        {action.guestPhone && (
-                          <p className="text-gray-500 text-sm">📱 {action.guestPhone}</p>
+                        <p className="text-orange-400 font-medium text-lg">👤 {decision.guest_name || 'N/A'}</p>
+                        {decision.guest_phone && (
+                          <p className="text-gray-500 text-sm">📱 {decision.guest_phone}</p>
                         )}
                       </div>
-                      {action.amount > 0 && (
-                        <p className="text-green-400 font-bold text-lg mb-2">
-                          💰 ${action.amount.toLocaleString()}
+                      {decision.financial_impact_estimate && decision.financial_impact_estimate !== 0 && (
+                        <p className={`font-bold text-lg mb-2 ${decision.financial_impact_estimate > 0 ? 'text-green-400' : 'text-red-400'}`}>
+                          💰 {decision.financial_impact_estimate > 0 ? '+' : ''}${Math.abs(decision.financial_impact_estimate).toLocaleString()}
                         </p>
                       )}
-                      <p className="text-gray-300 mb-2 leading-relaxed">{action.action}</p>
                       <p className="text-gray-500 text-xs">
-                        ⏰ {new Date(action.createdAt).toLocaleString()}
+                        ⏰ {new Date(decision.created_at).toLocaleString()}
                       </p>
                     </div>
                   </div>
                   <div className="flex gap-3 pt-4 border-t-2 border-gray-700">
                     <button
-                      onClick={() => handleApprove(action.id)}
+                      onClick={() => handleApproveDecision(decision)}
                       className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-green-500 hover:bg-green-600 text-white rounded-lg font-bold transition-all shadow-lg hover:shadow-xl transform hover:scale-105"
                     >
                       <ThumbsUp className="w-5 h-5" />
                       Approve
                     </button>
                     <button
-                      onClick={() => handleReject(action.id)}
+                      onClick={() => handleRejectDecision(decision)}
                       className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-red-500 hover:bg-red-600 text-white rounded-lg font-bold transition-all shadow-lg hover:shadow-xl transform hover:scale-105"
                     >
                       <ThumbsDown className="w-5 h-5" />
                       Reject
                     </button>
-                    <button className="px-4 py-3 bg-gray-600 hover:bg-gray-700 text-white rounded-lg font-medium transition-all">
+                    <button
+                      onClick={() => setSelectedDecision(decision)}
+                      className="px-4 py-3 bg-gray-600 hover:bg-gray-700 text-white rounded-lg font-medium transition-all"
+                    >
                       <Eye className="w-5 h-5" />
                     </button>
                   </div>
@@ -6141,45 +6293,112 @@ const Autopilot = ({ onBack }) => {
         </div>
       </div>
 
-      {/* DATABASE VISUALIZATION */}
-      {showDBVisualization && (
-        <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-3xl p-6 shadow-2xl border-2 border-orange-500/30">
-          <h3 className="text-2xl font-black text-orange-400 mb-4 flex items-center gap-2">
-            <Eye className="w-6 h-6 text-orange-400" />
-            Database Activity (Real-Time)
-          </h3>
-          <div className="bg-black/40 rounded-lg p-4 font-mono text-sm max-h-96 overflow-y-auto">
-            {dbQueryLog.length === 0 ? (
-              <p className="text-gray-500">No database activity yet...</p>
-            ) : (
-              dbQueryLog.map((log, index) => (
-                <div key={index} className="mb-4 pb-4 border-b border-gray-700 last:border-0">
-                  <p className="text-green-400 font-bold mb-1">
-                    [{log.timestamp}] {log.query}
-                  </p>
-                  <pre className="text-gray-400 text-xs whitespace-pre-wrap">
-                    {log.result}
-                  </pre>
-                </div>
-              ))
-            )}
+      {/* APPROVE MODAL */}
+      {showApproveModal && selectedDecision && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-[#1f2937] rounded-2xl p-6 max-w-lg w-full mx-4 border-2 border-green-500/30">
+            <h3 className="text-2xl font-bold text-white mb-4 flex items-center gap-2">
+              <ThumbsUp className="w-6 h-6 text-green-400" />
+              Approve Decision
+            </h3>
+            <div className="bg-[#2a2f3a] rounded-lg p-4 mb-4">
+              <p className="text-white font-semibold mb-2">{selectedDecision.title}</p>
+              <p className="text-gray-400 text-sm">{selectedDecision.summary}</p>
+            </div>
+            <div className="mb-4">
+              <label className="block text-gray-300 text-sm font-medium mb-2">
+                Notes (Optional)
+              </label>
+              <textarea
+                value={approveNotes}
+                onChange={(e) => setApproveNotes(e.target.value)}
+                placeholder="Add any additional notes..."
+                className="w-full bg-[#2a2f3a] text-white rounded-lg px-4 py-2 border border-gray-600 focus:border-green-500 focus:outline-none resize-none"
+                rows="3"
+              />
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={confirmApprove}
+                disabled={isProcessingApprove}
+                className="flex-1 px-4 py-3 bg-green-500 hover:bg-green-600 text-white rounded-lg font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              >
+                {isProcessingApprove ? (
+                  <>
+                    <div className="w-5 h-5 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                    Processing...
+                  </>
+                ) : (
+                  'Confirm Approval'
+                )}
+              </button>
+              <button
+                onClick={() => {
+                  setShowApproveModal(false);
+                  setSelectedDecision(null);
+                  setApproveNotes('');
+                }}
+                disabled={isProcessingApprove}
+                className="flex-1 px-4 py-3 bg-gray-600 hover:bg-gray-700 text-white rounded-lg font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Cancel
+              </button>
+            </div>
           </div>
-          <div className="mt-4 flex gap-2">
-            <button
-              onClick={() => setDbQueryLog([])}
-              className="px-4 py-2 bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded-lg font-medium transition-all border border-red-500/30"
-            >
-              Clear Log
-            </button>
-            <button
-              onClick={() => {
-                fetchActions();
-                fetchTodayMetrics();
-              }}
-              className="px-4 py-2 bg-green-500/20 hover:bg-green-500/30 text-green-400 rounded-lg font-medium transition-all border border-green-500/30"
-            >
-              Refresh Data
-            </button>
+        </div>
+      )}
+
+      {/* REJECT MODAL */}
+      {showRejectModal && selectedDecision && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-[#1f2937] rounded-2xl p-6 max-w-lg w-full mx-4 border-2 border-red-500/30">
+            <h3 className="text-2xl font-bold text-white mb-4 flex items-center gap-2">
+              <ThumbsDown className="w-6 h-6 text-red-400" />
+              Reject Decision
+            </h3>
+            <div className="bg-[#2a2f3a] rounded-lg p-4 mb-4">
+              <p className="text-white font-semibold mb-2">{selectedDecision.title}</p>
+              <p className="text-gray-400 text-sm">{selectedDecision.summary}</p>
+            </div>
+            <div className="mb-4">
+              <label className="block text-gray-300 text-sm font-medium mb-2">
+                Rejection Reason <span className="text-red-400">*</span>
+              </label>
+              <textarea
+                value={rejectNotes}
+                onChange={(e) => setRejectNotes(e.target.value)}
+                placeholder="Please explain why you are rejecting this decision..."
+                className="w-full bg-[#2a2f3a] text-white rounded-lg px-4 py-2 border border-gray-600 focus:border-red-500 focus:outline-none resize-none"
+                rows="4"
+              />
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={confirmReject}
+                disabled={isProcessingReject}
+                className="flex-1 px-4 py-3 bg-red-500 hover:bg-red-600 text-white rounded-lg font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              >
+                {isProcessingReject ? (
+                  <>
+                    <div className="w-5 h-5 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                    Processing...
+                  </>
+                ) : (
+                  'Confirm Rejection'
+                )}
+              </button>
+              <button
+                onClick={() => {
+                  setShowRejectModal(false);
+                  setSelectedDecision(null);
+                  setRejectNotes('');
+                }}
+                disabled={isProcessingReject}
+                className="flex-1 px-4 py-3 bg-gray-600 hover:bg-gray-700 text-white rounded-lg font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Cancel
+              </button>
+            </div>
           </div>
         </div>
       )}
