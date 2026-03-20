@@ -60,6 +60,7 @@ import { generateEnhancedReportHTML } from '../../services/enhancedReportHTML';
 import { supabaseService as dataService } from '../../services/supabase';
 import { tasksService } from '../../services/tasksService';
 import { ownerDecisionsService } from '../../services/ownerDecisionsService';
+import { ownerSummariesService } from '../../services/ownerSummariesService';
 
 const Autopilot = ({ onBack }) => {
   const { userData } = useAuth();
@@ -157,6 +158,12 @@ const Autopilot = ({ onBack }) => {
   const [filterDecisionDate, setFilterDecisionDate] = useState('all');
   const [customDecisionDateFrom, setCustomDecisionDateFrom] = useState('');
   const [customDecisionDateTo, setCustomDecisionDateTo] = useState('');
+  const [filterDecisionPeriod, setFilterDecisionPeriod] = useState('all'); // all/daily/weekly/monthly
+  const [dailyBriefing, setDailyBriefing] = useState(null);
+  const [pendingDecisions, setPendingDecisions] = useState([]);
+  const [weeklySummaries, setWeeklySummaries] = useState([]);
+  const [monthlySummaries, setMonthlySummaries] = useState([]);
+  const [loadingSummaries, setLoadingSummaries] = useState(false);
 
   // Owner Decisions edit/create states
   const [showDecisionForm, setShowDecisionForm] = useState(false);
@@ -241,6 +248,13 @@ const Autopilot = ({ onBack }) => {
       loadOwnerDecisions();
     }
   }, [activeSection, userData?.id]);
+
+  // Load summaries when period filter changes
+  useEffect(() => {
+    if (activeSection === 'decisions' && userData?.id) {
+      loadOwnerSummaries();
+    }
+  }, [filterDecisionPeriod, activeSection, userData?.id]);
 
   // Populate form when editing a decision
   useEffect(() => {
@@ -1532,6 +1546,52 @@ const Autopilot = ({ onBack }) => {
       setNotification({ type: 'error', message: 'Failed to load owner decisions' });
     } finally {
       setLoadingDecisions(false);
+    }
+  };
+
+  // Load Weekly/Monthly Summaries based on period filter
+  const loadOwnerSummaries = async () => {
+    console.log('🔄 loadOwnerSummaries called for period:', filterDecisionPeriod);
+
+    if (!userData?.id) {
+      console.error('❌ No user id found in userData');
+      return;
+    }
+
+    if (filterDecisionPeriod === 'all') {
+      // For 'all', we don't need summaries, just show decisions
+      return;
+    }
+
+    setLoadingSummaries(true);
+    try {
+      if (filterDecisionPeriod === 'daily') {
+        console.log('📞 Calling ownerSummariesService.getDailyBriefing');
+        const dailyData = await ownerSummariesService.getDailyBriefing(userData.id);
+        console.log('✅ Received daily briefing:', dailyData);
+        setDailyBriefing(dailyData);
+
+        // Also load today's pending decisions
+        console.log('📞 Calling ownerSummariesService.getTodayPendingDecisions');
+        const pendingData = await ownerSummariesService.getTodayPendingDecisions(userData.id);
+        console.log('✅ Received pending decisions:', pendingData);
+        setPendingDecisions(pendingData);
+      } else if (filterDecisionPeriod === 'weekly') {
+        console.log('📞 Calling ownerSummariesService.getWeeklySummaries');
+        const weeklyData = await ownerSummariesService.getWeeklySummaries(userData.id, 12);
+        console.log('✅ Received weekly summaries:', weeklyData);
+        setWeeklySummaries(weeklyData);
+      } else if (filterDecisionPeriod === 'monthly') {
+        console.log('📞 Calling ownerSummariesService.getMonthlySummaries');
+        const monthlyData = await ownerSummariesService.getMonthlySummaries(userData.id, 12);
+        console.log('✅ Received monthly summaries:', monthlyData);
+        setMonthlySummaries(monthlyData);
+      }
+    } catch (error) {
+      console.error('❌ Error loading summaries:', error);
+      setNotification({ type: 'error', message: 'Failed to load summaries' });
+    } finally {
+      setLoadingSummaries(false);
     }
   };
 
@@ -6817,8 +6877,20 @@ const Autopilot = ({ onBack }) => {
                 <option value="custom">Custom Range</option>
               </select>
 
+              {/* Period Filter */}
+              <select
+                value={filterDecisionPeriod}
+                onChange={(e) => setFilterDecisionPeriod(e.target.value)}
+                className="px-3 py-2.5 bg-[#1f2937] text-white rounded-xl text-sm border border-[#d85a2a]/30 focus:border-[#d85a2a] outline-none"
+              >
+                <option value="all">All Periods</option>
+                <option value="daily">Daily</option>
+                <option value="weekly">Weekly</option>
+                <option value="monthly">Monthly</option>
+              </select>
+
               {/* Search */}
-              <div className="relative md:col-span-2 lg:col-span-3">
+              <div className="relative md:col-span-2 lg:col-span-2">
                 <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
                 <input
                   type="text"
@@ -6863,6 +6935,7 @@ const Autopilot = ({ onBack }) => {
                 setFilterDecisionAgent('All');
                 setFilterDecisionProperty('All');
                 setFilterDecisionDate('all');
+                setFilterDecisionPeriod('all');
                 setCustomDecisionDateFrom('');
                 setCustomDecisionDateTo('');
                 setDecisionsSearchTerm('');
@@ -6874,19 +6947,684 @@ const Autopilot = ({ onBack }) => {
           </div>
 
         <div className="space-y-4">
-          {loadingDecisions ? (
-            <div className="text-center py-8 bg-[#2a2f3a] rounded-lg border-2 border-gray-700">
-              <div className="w-12 h-12 border-4 border-orange-500/30 border-t-orange-500 rounded-full animate-spin mx-auto mb-3" />
-              <p className="text-gray-300 text-lg">Loading decisions...</p>
-            </div>
-          ) : filteredDecisions.length === 0 ? (
-            <div className="text-center py-8 bg-[#2a2f3a] rounded-lg border-2 border-gray-700">
-              <CheckCircle className="w-12 h-12 text-green-500 mx-auto mb-3" />
-              <p className="text-gray-300 text-lg">No decisions found</p>
-              <p className="text-gray-500 text-sm mt-1">Try adjusting your filters</p>
-            </div>
+          {/* DAILY BRIEFING VIEW */}
+          {filterDecisionPeriod === 'daily' ? (
+            loadingSummaries ? (
+              <div className="text-center py-8 bg-[#2a2f3a] rounded-lg border-2 border-gray-700">
+                <div className="w-12 h-12 border-4 border-orange-500/30 border-t-orange-500 rounded-full animate-spin mx-auto mb-3" />
+                <p className="text-gray-300 text-lg">Loading daily briefing...</p>
+              </div>
+            ) : !dailyBriefing ? (
+              <div className="text-center py-8 bg-[#2a2f3a] rounded-lg border-2 border-gray-700">
+                <CheckCircle className="w-12 h-12 text-green-500 mx-auto mb-3" />
+                <p className="text-gray-300 text-lg">No daily briefing available</p>
+                <p className="text-gray-500 text-sm mt-1">Daily briefing will appear here once generated</p>
+              </div>
+            ) : (
+              <div className="bg-[#2a2f3a] rounded-lg p-6 border-2 border-[#FF8C42]/50 space-y-6">
+                {/* Header */}
+                <div className="border-b border-gray-700 pb-4">
+                  <h3 className="text-2xl font-bold text-[#FF8C42] mb-2">
+                    Daily Briefing
+                  </h3>
+                  <p className="text-gray-400">
+                    Date: {new Date(dailyBriefing.briefing_date).toLocaleDateString()}
+                  </p>
+                </div>
+
+                {/* Property Overview - if available in briefing */}
+                {dailyBriefing.property_overview_json && (
+                  <div className="bg-[#1f2937] p-5 rounded-lg border border-blue-500/30">
+                    <h4 className="text-lg font-bold text-blue-400 mb-4 flex items-center gap-2">
+                      <ClipboardList className="w-5 h-5" />
+                      Property Overview
+                    </h4>
+                    {dailyBriefing.property_overview_json.map((prop, idx) => (
+                      <div key={idx} className="mb-4 last:mb-0">
+                        <p className="text-white font-semibold mb-2">{prop.property_name || prop.villa_name}</p>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                          {prop.occupancy !== undefined && (
+                            <div className="text-center">
+                              <p className="text-gray-400 text-sm">Occupancy</p>
+                              <p className="text-green-400 font-bold">{prop.occupancy}%</p>
+                            </div>
+                          )}
+                          {prop.arrivals !== undefined && (
+                            <div className="text-center">
+                              <p className="text-gray-400 text-sm">Arrivals</p>
+                              <p className="text-blue-400 font-bold">{prop.arrivals}</p>
+                            </div>
+                          )}
+                          {prop.departures !== undefined && (
+                            <div className="text-center">
+                              <p className="text-gray-400 text-sm">Departures</p>
+                              <p className="text-purple-400 font-bold">{prop.departures}</p>
+                            </div>
+                          )}
+                          {prop.current_guests !== undefined && (
+                            <div className="text-center">
+                              <p className="text-gray-400 text-sm">Current Guests</p>
+                              <p className="text-orange-400 font-bold">{prop.current_guests}</p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Urgent Priorities - Today's Pending Decisions */}
+                {pendingDecisions && pendingDecisions.length > 0 && (
+                  <div className="bg-[#1f2937] p-5 rounded-lg border border-red-500/30">
+                    <h4 className="text-lg font-bold text-red-400 mb-4 flex items-center gap-2">
+                      <AlertCircle className="w-5 h-5" />
+                      Urgent Priorities ({pendingDecisions.length} pending decisions)
+                    </h4>
+                    <div className="space-y-3">
+                      {pendingDecisions.slice(0, 5).map((decision) => (
+                        <div key={decision.id} className="bg-[#2a2f3a] p-4 rounded-lg border-l-4 border-red-500">
+                          <div className="flex items-start justify-between mb-2">
+                            <p className="text-white font-semibold">{decision.title}</p>
+                            <span className={`px-2 py-1 rounded text-xs font-bold ${
+                              decision.priority === 'urgent' ? 'bg-red-500/20 text-red-400' :
+                              decision.priority === 'high' ? 'bg-orange-500/20 text-orange-400' :
+                              'bg-yellow-500/20 text-yellow-400'
+                            }`}>
+                              {decision.priority?.toUpperCase()}
+                            </span>
+                          </div>
+                          <p className="text-gray-300 text-sm mb-2">{decision.summary}</p>
+                          <div className="flex items-center gap-4 text-xs text-gray-400">
+                            <span>{decision.villa_name}</span>
+                            <span>•</span>
+                            <span>{decision.decision_type}</span>
+                            {decision.guest_name && (
+                              <>
+                                <span>•</span>
+                                <span>{decision.guest_name}</span>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                      {pendingDecisions.length > 5 && (
+                        <p className="text-gray-400 text-sm text-center mt-3">
+                          + {pendingDecisions.length - 5} more pending decisions
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Decisions Overview Stats */}
+                {dailyBriefing.decisions_overview_json && (
+                  <div className="bg-[#1f2937] p-5 rounded-lg border border-purple-500/30">
+                    <h4 className="text-lg font-bold text-purple-400 mb-4 flex items-center gap-2">
+                      <CheckCircle className="w-5 h-5" />
+                      Decisions Overview
+                    </h4>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      {dailyBriefing.decisions_overview_json.total !== undefined && (
+                        <div className="text-center">
+                          <p className="text-gray-400 text-sm">Total</p>
+                          <p className="text-white font-bold text-xl">{dailyBriefing.decisions_overview_json.total}</p>
+                        </div>
+                      )}
+                      {dailyBriefing.decisions_overview_json.pending !== undefined && (
+                        <div className="text-center">
+                          <p className="text-gray-400 text-sm">Pending</p>
+                          <p className="text-yellow-400 font-bold text-xl">{dailyBriefing.decisions_overview_json.pending}</p>
+                        </div>
+                      )}
+                      {dailyBriefing.decisions_overview_json.approved !== undefined && (
+                        <div className="text-center">
+                          <p className="text-gray-400 text-sm">Approved</p>
+                          <p className="text-green-400 font-bold text-xl">{dailyBriefing.decisions_overview_json.approved}</p>
+                        </div>
+                      )}
+                      {dailyBriefing.decisions_overview_json.urgent !== undefined && (
+                        <div className="text-center">
+                          <p className="text-gray-400 text-sm">Urgent</p>
+                          <p className="text-red-400 font-bold text-xl">{dailyBriefing.decisions_overview_json.urgent}</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )
+          ) : filterDecisionPeriod === 'weekly' ? (
+            loadingSummaries ? (
+              <div className="text-center py-8 bg-[#2a2f3a] rounded-lg border-2 border-gray-700">
+                <div className="w-12 h-12 border-4 border-orange-500/30 border-t-orange-500 rounded-full animate-spin mx-auto mb-3" />
+                <p className="text-gray-300 text-lg">Loading weekly summaries...</p>
+              </div>
+            ) : weeklySummaries.length === 0 ? (
+              <div className="text-center py-8 bg-[#2a2f3a] rounded-lg border-2 border-gray-700">
+                <CheckCircle className="w-12 h-12 text-green-500 mx-auto mb-3" />
+                <p className="text-gray-300 text-lg">No weekly summaries available</p>
+                <p className="text-gray-500 text-sm mt-1">Weekly summaries will appear here once generated</p>
+              </div>
+            ) : (
+              weeklySummaries.map((summary) => {
+                const guestFeedback = summary.guest_feedback_summary || {};
+                const serviceFlags = summary.service_quality_flags || {};
+                const operations = summary.operations_summary || {};
+                const marketing = summary.marketing_summary || {};
+                const recommendations = summary.recommendations_json || [];
+
+                return (
+                  <div key={summary.id} className="bg-[#2a2f3a] rounded-lg p-6 border-2 border-[#FF8C42]/50 space-y-6">
+                    {/* Header */}
+                    <div className="border-b border-gray-700 pb-4">
+                      <h3 className="text-2xl font-bold text-[#FF8C42] mb-2">
+                        Weekly Summary
+                      </h3>
+                      <p className="text-gray-400">
+                        Week: {new Date(summary.week_start).toLocaleDateString()} - {new Date(summary.week_end).toLocaleDateString()}
+                      </p>
+                    </div>
+
+                    {/* KPIs */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="bg-[#1f2937] p-4 rounded-lg border border-green-500/30 text-center">
+                        <p className="text-gray-400 text-sm mb-1">Occupancy Rate</p>
+                        <p className="text-3xl font-bold text-green-400">{summary.occupancy_rate ? summary.occupancy_rate.toFixed(1) : '0'}%</p>
+                      </div>
+                      <div className="bg-[#1f2937] p-4 rounded-lg border border-blue-500/30 text-center">
+                        <p className="text-gray-400 text-sm mb-1">Total Bookings</p>
+                        <p className="text-3xl font-bold text-blue-400">{summary.total_bookings || 0}</p>
+                      </div>
+                    </div>
+
+                    {/* Guest Feedback */}
+                    {guestFeedback && Object.keys(guestFeedback).length > 0 && (
+                      <div className="bg-[#1f2937] p-5 rounded-lg border border-orange-500/30">
+                        <h4 className="text-lg font-bold text-orange-400 mb-4 flex items-center gap-2">
+                          <MessageSquare className="w-5 h-5" />
+                          Guest Feedback
+                        </h4>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="text-center">
+                            <p className="text-gray-400 text-sm">Sentiment</p>
+                            <p className="text-white font-semibold capitalize">{guestFeedback.sentiment || 'N/A'}</p>
+                          </div>
+                          <div className="text-center">
+                            <p className="text-gray-400 text-sm">Total Complaints</p>
+                            <p className="text-white font-semibold">{guestFeedback.total_complaints || 0}</p>
+                          </div>
+                        </div>
+                        {guestFeedback.complaint_summaries && guestFeedback.complaint_summaries.length > 0 && (
+                          <div className="mt-4">
+                            <p className="text-gray-400 text-sm mb-2">Complaint Details:</p>
+                            <ul className="list-disc list-inside text-gray-300 text-sm space-y-1">
+                              {guestFeedback.complaint_summaries.map((complaint, idx) => (
+                                <li key={idx}>{complaint}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Service Quality */}
+                    {serviceFlags && Object.keys(serviceFlags).length > 0 && (
+                      <div className="bg-[#1f2937] p-5 rounded-lg border border-yellow-500/30">
+                        <h4 className="text-lg font-bold text-yellow-400 mb-4 flex items-center gap-2">
+                          <AlertCircle className="w-5 h-5" />
+                          Service Quality
+                        </h4>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                          <div className="text-center">
+                            <p className="text-gray-400 text-sm">Severity</p>
+                            <p className="text-white font-semibold capitalize">{serviceFlags.severity || 'N/A'}</p>
+                          </div>
+                          <div className="text-center">
+                            <p className="text-gray-400 text-sm">Open Issues</p>
+                            <p className="text-white font-semibold">{serviceFlags.open_issues || 0}</p>
+                          </div>
+                          <div className="text-center">
+                            <p className="text-gray-400 text-sm">Service Requests</p>
+                            <p className="text-white font-semibold">{serviceFlags.total_service_requests || 0}</p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Operations */}
+                    {operations && Object.keys(operations).length > 0 && (
+                      <div className="bg-[#1f2937] p-5 rounded-lg border border-purple-500/30">
+                        <h4 className="text-lg font-bold text-purple-400 mb-4 flex items-center gap-2">
+                          <ClipboardList className="w-5 h-5" />
+                          Operations Summary
+                        </h4>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                          <div className="text-center">
+                            <p className="text-gray-400 text-sm">Total Decisions</p>
+                            <p className="text-white font-bold text-xl">{operations.total_decisions || 0}</p>
+                          </div>
+                          <div className="text-center">
+                            <p className="text-gray-400 text-sm">Pending</p>
+                            <p className="text-yellow-400 font-bold text-xl">{operations.pending || 0}</p>
+                          </div>
+                          <div className="text-center">
+                            <p className="text-gray-400 text-sm">Approved</p>
+                            <p className="text-green-400 font-bold text-xl">{operations.approved || 0}</p>
+                          </div>
+                          <div className="text-center">
+                            <p className="text-gray-400 text-sm">Rejected</p>
+                            <p className="text-red-400 font-bold text-xl">{operations.rejected || 0}</p>
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4 mt-4">
+                          <div className="text-center">
+                            <p className="text-gray-400 text-sm">Urgent</p>
+                            <p className="text-red-400 font-bold text-xl">{operations.urgent || 0}</p>
+                          </div>
+                          <div className="text-center">
+                            <p className="text-gray-400 text-sm">High Priority</p>
+                            <p className="text-orange-400 font-bold text-xl">{operations.high_priority || 0}</p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Marketing */}
+                    {marketing && Object.keys(marketing).length > 0 && (
+                      <div className="bg-[#1f2937] p-5 rounded-lg border border-pink-500/30">
+                        <h4 className="text-lg font-bold text-pink-400 mb-4 flex items-center gap-2">
+                          <TrendingUp className="w-5 h-5" />
+                          Marketing & Bookings
+                        </h4>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                          <div className="text-center">
+                            <p className="text-gray-400 text-sm">Total Bookings</p>
+                            <p className="text-white font-bold text-xl">{marketing.total_bookings || 0}</p>
+                          </div>
+                          <div className="text-center">
+                            <p className="text-gray-400 text-sm">Confirmed</p>
+                            <p className="text-green-400 font-bold text-xl">{marketing.confirmed || 0}</p>
+                          </div>
+                          <div className="text-center">
+                            <p className="text-gray-400 text-sm">Cancelled</p>
+                            <p className="text-red-400 font-bold text-xl">{marketing.cancelled || 0}</p>
+                          </div>
+                          <div className="text-center">
+                            <p className="text-gray-400 text-sm">Nights Booked</p>
+                            <p className="text-blue-400 font-bold text-xl">{marketing.nights_booked || 0}</p>
+                          </div>
+                        </div>
+                        <div className="mt-4 text-center">
+                          <p className="text-gray-400 text-sm">Demand Status</p>
+                          <p className="text-white font-semibold capitalize">{marketing.demand || 'N/A'}</p>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Recommendations */}
+                    {recommendations && recommendations.length > 0 && (
+                      <div className="bg-[#1f2937] p-5 rounded-lg border border-green-500/30">
+                        <h4 className="text-lg font-bold text-green-400 mb-4 flex items-center gap-2">
+                          <CheckCircle className="w-5 h-5" />
+                          Recommendations
+                        </h4>
+                        <div className="space-y-3">
+                          {recommendations.map((rec, idx) => (
+                            <div key={idx} className="bg-[#2a2f3a] p-4 rounded-lg border-l-4 border-green-500">
+                              <div className="flex items-start justify-between mb-2">
+                                <p className="text-white font-semibold capitalize">{rec.area || 'General'}</p>
+                                <span className={`px-2 py-1 rounded text-xs font-bold ${
+                                  rec.priority === 'high' ? 'bg-red-500/20 text-red-400' :
+                                  rec.priority === 'medium' ? 'bg-yellow-500/20 text-yellow-400' :
+                                  'bg-green-500/20 text-green-400'
+                                }`}>
+                                  {rec.priority?.toUpperCase() || 'MEDIUM'}
+                                </span>
+                              </div>
+                              <p className="text-gray-300 text-sm">{rec.action}</p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })
+            )
+          ) : filterDecisionPeriod === 'monthly' ? (
+            /* MONTHLY SUMMARIES VIEW */
+            loadingSummaries ? (
+              <div className="text-center py-8 bg-[#2a2f3a] rounded-lg border-2 border-gray-700">
+                <div className="w-12 h-12 border-4 border-orange-500/30 border-t-orange-500 rounded-full animate-spin mx-auto mb-3" />
+                <p className="text-gray-300 text-lg">Loading monthly summaries...</p>
+              </div>
+            ) : monthlySummaries.length === 0 ? (
+              <div className="text-center py-8 bg-[#2a2f3a] rounded-lg border-2 border-gray-700">
+                <CheckCircle className="w-12 h-12 text-green-500 mx-auto mb-3" />
+                <p className="text-gray-300 text-lg">No monthly summaries available</p>
+                <p className="text-gray-500 text-sm mt-1">Monthly summaries will appear here once generated</p>
+              </div>
+            ) : (
+              monthlySummaries.map((summary) => {
+                const bookingTrends = summary.booking_trends_json || {};
+                const operationalCosts = summary.operational_costs_json || {};
+                const improvements = summary.improvements_json || [];
+                const strategicRecs = summary.strategic_recommendations_json || [];
+                const occupancySummary = typeof summary.occupancy_summary === 'string' ? summary.occupancy_summary : (summary.occupancy_summary || {});
+                const operationalIssues = typeof summary.operational_issues_summary === 'string' ? summary.operational_issues_summary : '';
+                const marketingSummary = typeof summary.marketing_summary === 'string' ? summary.marketing_summary : '';
+
+                return (
+                  <div key={summary.id} className="bg-[#2a2f3a] rounded-lg p-6 border-2 border-[#FF8C42]/50 space-y-6">
+                    {/* Header */}
+                    <div className="border-b border-gray-700 pb-4">
+                      <h3 className="text-2xl font-bold text-[#FF8C42] mb-2">
+                        Monthly Summary
+                      </h3>
+                      <p className="text-gray-400">
+                        Month: {summary.month_key}
+                      </p>
+                    </div>
+
+                    {/* Revenue KPI */}
+                    <div className="bg-[#1f2937] p-4 rounded-lg border border-green-500/30 text-center">
+                      <p className="text-gray-400 text-sm mb-1">Total Revenue</p>
+                      <p className="text-3xl font-bold text-green-400">
+                        ${summary.revenue_total ? summary.revenue_total.toLocaleString() : '0'}
+                      </p>
+                    </div>
+
+                    {/* Booking Trends */}
+                    {bookingTrends && Object.keys(bookingTrends).length > 0 && (
+                      <div className="bg-[#1f2937] p-5 rounded-lg border border-blue-500/30">
+                        <h4 className="text-lg font-bold text-blue-400 mb-4 flex items-center gap-2">
+                          <TrendingUp className="w-5 h-5" />
+                          Booking Trends
+                        </h4>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                          {bookingTrends.total_bookings !== undefined && (
+                            <div className="text-center">
+                              <p className="text-gray-400 text-sm">Total Bookings</p>
+                              <p className="text-white font-bold text-xl">{bookingTrends.total_bookings || 0}</p>
+                            </div>
+                          )}
+                          {bookingTrends.confirmed !== undefined && (
+                            <div className="text-center">
+                              <p className="text-gray-400 text-sm">Confirmed</p>
+                              <p className="text-green-400 font-bold text-xl">{bookingTrends.confirmed || 0}</p>
+                            </div>
+                          )}
+                          {bookingTrends.cancelled !== undefined && (
+                            <div className="text-center">
+                              <p className="text-gray-400 text-sm">Cancelled</p>
+                              <p className="text-red-400 font-bold text-xl">{bookingTrends.cancelled || 0}</p>
+                            </div>
+                          )}
+                          {bookingTrends.total_nights !== undefined && (
+                            <div className="text-center">
+                              <p className="text-gray-400 text-sm">Total Nights</p>
+                              <p className="text-blue-400 font-bold text-xl">{bookingTrends.total_nights || 0}</p>
+                            </div>
+                          )}
+                        </div>
+                        {bookingTrends.trend && (
+                          <div className="mt-4 text-center">
+                            <p className="text-gray-400 text-sm">Trend</p>
+                            <p className="text-white font-semibold capitalize">{bookingTrends.trend}</p>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Occupancy Summary */}
+                    {occupancySummary && typeof occupancySummary === 'object' && Object.keys(occupancySummary).length > 0 && (
+                      <div className="bg-[#1f2937] p-5 rounded-lg border border-orange-500/30">
+                        <h4 className="text-lg font-bold text-orange-400 mb-4 flex items-center gap-2">
+                          <ClipboardList className="w-5 h-5" />
+                          Occupancy Summary
+                        </h4>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                          {occupancySummary.average_occupancy_pct !== undefined && (
+                            <div className="text-center">
+                              <p className="text-gray-400 text-sm">Avg Occupancy</p>
+                              <p className="text-green-400 font-bold text-xl">{occupancySummary.average_occupancy_pct}%</p>
+                            </div>
+                          )}
+                          {occupancySummary.total_nights_booked !== undefined && (
+                            <div className="text-center">
+                              <p className="text-gray-400 text-sm">Nights Booked</p>
+                              <p className="text-blue-400 font-bold text-xl">{occupancySummary.total_nights_booked}</p>
+                            </div>
+                          )}
+                          {occupancySummary.days_in_month !== undefined && (
+                            <div className="text-center">
+                              <p className="text-gray-400 text-sm">Days in Month</p>
+                              <p className="text-gray-400 font-bold text-xl">{occupancySummary.days_in_month}</p>
+                            </div>
+                          )}
+                          {occupancySummary.gap_nights !== undefined && (
+                            <div className="text-center">
+                              <p className="text-gray-400 text-sm">Gap Nights</p>
+                              <p className="text-red-400 font-bold text-xl">{occupancySummary.gap_nights}</p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Operational Costs */}
+                    {operationalCosts && Object.keys(operationalCosts).length > 0 && (
+                      <div className="bg-[#1f2937] p-5 rounded-lg border border-yellow-500/30">
+                        <h4 className="text-lg font-bold text-yellow-400 mb-4 flex items-center gap-2">
+                          <AlertCircle className="w-5 h-5" />
+                          Operational Costs
+                        </h4>
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                          {operationalCosts.total_costs !== undefined && (
+                            <div className="text-center">
+                              <p className="text-gray-400 text-sm">Total Costs</p>
+                              <p className="text-white font-bold text-xl">${operationalCosts.total_costs?.toLocaleString() || '0'}</p>
+                            </div>
+                          )}
+                          {operationalCosts.maintenance !== undefined && (
+                            <div className="text-center">
+                              <p className="text-gray-400 text-sm">Maintenance</p>
+                              <p className="text-yellow-400 font-bold text-xl">${operationalCosts.maintenance?.toLocaleString() || '0'}</p>
+                            </div>
+                          )}
+                          {operationalCosts.utilities !== undefined && (
+                            <div className="text-center">
+                              <p className="text-gray-400 text-sm">Utilities</p>
+                              <p className="text-blue-400 font-bold text-xl">${operationalCosts.utilities?.toLocaleString() || '0'}</p>
+                            </div>
+                          )}
+                          {operationalCosts.staff !== undefined && (
+                            <div className="text-center">
+                              <p className="text-gray-400 text-sm">Staff</p>
+                              <p className="text-purple-400 font-bold text-xl">${operationalCosts.staff?.toLocaleString() || '0'}</p>
+                            </div>
+                          )}
+                          {operationalCosts.supplies !== undefined && (
+                            <div className="text-center">
+                              <p className="text-gray-400 text-sm">Supplies</p>
+                              <p className="text-pink-400 font-bold text-xl">${operationalCosts.supplies?.toLocaleString() || '0'}</p>
+                            </div>
+                          )}
+                          {operationalCosts.other !== undefined && (
+                            <div className="text-center">
+                              <p className="text-gray-400 text-sm">Other</p>
+                              <p className="text-gray-400 font-bold text-xl">${operationalCosts.other?.toLocaleString() || '0'}</p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Operational Issues */}
+                    {summary.operational_issues_summary && typeof summary.operational_issues_summary === 'object' && Object.keys(summary.operational_issues_summary).length > 0 && (
+                      <div className="bg-[#1f2937] p-5 rounded-lg border border-red-500/30">
+                        <h4 className="text-lg font-bold text-red-400 mb-4 flex items-center gap-2">
+                          <AlertCircle className="w-5 h-5" />
+                          Operational Issues
+                        </h4>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                          {summary.operational_issues_summary.total_decisions !== undefined && (
+                            <div className="text-center">
+                              <p className="text-gray-400 text-sm">Total Decisions</p>
+                              <p className="text-white font-bold text-xl">{summary.operational_issues_summary.total_decisions}</p>
+                            </div>
+                          )}
+                          {summary.operational_issues_summary.approved !== undefined && (
+                            <div className="text-center">
+                              <p className="text-gray-400 text-sm">Approved</p>
+                              <p className="text-green-400 font-bold text-xl">{summary.operational_issues_summary.approved}</p>
+                            </div>
+                          )}
+                          {summary.operational_issues_summary.rejected !== undefined && (
+                            <div className="text-center">
+                              <p className="text-gray-400 text-sm">Rejected</p>
+                              <p className="text-red-400 font-bold text-xl">{summary.operational_issues_summary.rejected}</p>
+                            </div>
+                          )}
+                          {summary.operational_issues_summary.total_complaints !== undefined && (
+                            <div className="text-center">
+                              <p className="text-gray-400 text-sm">Complaints</p>
+                              <p className="text-orange-400 font-bold text-xl">{summary.operational_issues_summary.total_complaints}</p>
+                            </div>
+                          )}
+                          {summary.operational_issues_summary.total_service_requests !== undefined && (
+                            <div className="text-center">
+                              <p className="text-gray-400 text-sm">Service Requests</p>
+                              <p className="text-blue-400 font-bold text-xl">{summary.operational_issues_summary.total_service_requests}</p>
+                            </div>
+                          )}
+                          {summary.operational_issues_summary.recurring_issues && Array.isArray(summary.operational_issues_summary.recurring_issues) && summary.operational_issues_summary.recurring_issues.length > 0 && (
+                            <div className="col-span-2 md:col-span-4">
+                              <p className="text-gray-400 text-sm mb-2">Recurring Issues:</p>
+                              <div className="space-y-1">
+                                {summary.operational_issues_summary.recurring_issues.map((issue, idx) => (
+                                  <div key={idx} className="text-sm text-yellow-400">
+                                    <span className="capitalize">{issue.type.replace(/_/g, ' ')}</span>: <span className="font-bold">{issue.count}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Marketing Summary */}
+                    {summary.marketing_summary && typeof summary.marketing_summary === 'object' && Object.keys(summary.marketing_summary).length > 0 && (
+                      <div className="bg-[#1f2937] p-5 rounded-lg border border-pink-500/30">
+                        <h4 className="text-lg font-bold text-pink-400 mb-4 flex items-center gap-2">
+                          <TrendingUp className="w-5 h-5" />
+                          Marketing Summary
+                        </h4>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                          {summary.marketing_summary.revenue_total !== undefined && (
+                            <div className="text-center">
+                              <p className="text-gray-400 text-sm">Revenue Total</p>
+                              <p className="text-green-400 font-bold text-xl">${summary.marketing_summary.revenue_total?.toLocaleString() || 0}</p>
+                            </div>
+                          )}
+                          {summary.marketing_summary.booking_volume !== undefined && (
+                            <div className="text-center">
+                              <p className="text-gray-400 text-sm">Booking Volume</p>
+                              <p className="text-blue-400 font-bold text-xl">{summary.marketing_summary.booking_volume}</p>
+                            </div>
+                          )}
+                          {summary.marketing_summary.cancellation_rate !== undefined && (
+                            <div className="text-center">
+                              <p className="text-gray-400 text-sm">Cancellation Rate</p>
+                              <p className="text-red-400 font-bold text-xl">{summary.marketing_summary.cancellation_rate}%</p>
+                            </div>
+                          )}
+                          {summary.marketing_summary.top_channel && (
+                            <div className="text-center">
+                              <p className="text-gray-400 text-sm">Top Channel</p>
+                              <p className="text-purple-400 font-bold text-lg capitalize">{summary.marketing_summary.top_channel}</p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Improvements */}
+                    {improvements && improvements.length > 0 && (
+                      <div className="bg-[#1f2937] p-5 rounded-lg border border-green-500/30">
+                        <h4 className="text-lg font-bold text-green-400 mb-4 flex items-center gap-2">
+                          <CheckCircle className="w-5 h-5" />
+                          Improvements
+                        </h4>
+                        <div className="space-y-3">
+                          {improvements.map((improvement, idx) => (
+                            <div key={idx} className="bg-[#2a2f3a] p-4 rounded-lg border-l-4 border-green-500">
+                              <div className="flex items-start justify-between mb-2">
+                                <p className="text-white font-semibold capitalize">{improvement.area || 'General'}</p>
+                                <span className={`px-2 py-1 rounded text-xs font-bold ${
+                                  improvement.status === 'completed' ? 'bg-green-500/20 text-green-400' :
+                                  improvement.status === 'in_progress' ? 'bg-yellow-500/20 text-yellow-400' :
+                                  'bg-gray-500/20 text-gray-400'
+                                }`}>
+                                  {improvement.status?.toUpperCase() || 'PENDING'}
+                                </span>
+                              </div>
+                              <p className="text-gray-300 text-sm">{improvement.description || improvement.action}</p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Strategic Recommendations */}
+                    {strategicRecs && strategicRecs.length > 0 && (
+                      <div className="bg-[#1f2937] p-5 rounded-lg border border-purple-500/30">
+                        <h4 className="text-lg font-bold text-purple-400 mb-4 flex items-center gap-2">
+                          <MessageSquare className="w-5 h-5" />
+                          Strategic Recommendations
+                        </h4>
+                        <div className="space-y-3">
+                          {strategicRecs.map((rec, idx) => (
+                            <div key={idx} className="bg-[#2a2f3a] p-4 rounded-lg border-l-4 border-purple-500">
+                              <div className="flex items-start justify-between mb-2">
+                                <p className="text-white font-semibold capitalize">{rec.category || rec.area || 'General'}</p>
+                                <span className={`px-2 py-1 rounded text-xs font-bold ${
+                                  rec.priority === 'high' ? 'bg-red-500/20 text-red-400' :
+                                  rec.priority === 'medium' ? 'bg-yellow-500/20 text-yellow-400' :
+                                  'bg-green-500/20 text-green-400'
+                                }`}>
+                                  {rec.priority?.toUpperCase() || 'MEDIUM'}
+                                </span>
+                              </div>
+                              <p className="text-gray-300 text-sm">{rec.recommendation || rec.action}</p>
+                              {rec.impact && (
+                                <p className="text-gray-400 text-xs mt-2">Impact: {rec.impact}</p>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })
+            )
           ) : (
-            filteredDecisions.map((decision) => {
+            /* DEFAULT VIEW - DECISIONS LIST */
+            loadingDecisions ? (
+              <div className="text-center py-8 bg-[#2a2f3a] rounded-lg border-2 border-gray-700">
+                <div className="w-12 h-12 border-4 border-orange-500/30 border-t-orange-500 rounded-full animate-spin mx-auto mb-3" />
+                <p className="text-gray-300 text-lg">Loading decisions...</p>
+              </div>
+            ) : filteredDecisions.length === 0 ? (
+              <div className="text-center py-8 bg-[#2a2f3a] rounded-lg border-2 border-gray-700">
+                <CheckCircle className="w-12 h-12 text-green-500 mx-auto mb-3" />
+                <p className="text-gray-300 text-lg">No decisions found</p>
+                <p className="text-gray-500 text-sm mt-1">Try adjusting your filters</p>
+              </div>
+            ) : (
+              filteredDecisions.map((decision) => {
               // Priority badge colors from debug_claudecode.pdf section 7
               const priorityColors = {
                 urgent: 'bg-red-500/20 text-red-300 border-red-500',
@@ -7031,7 +7769,7 @@ const Autopilot = ({ onBack }) => {
                   </div>
                 </div>
               );
-            })
+            }))
           )}
         </div>
       </div>
