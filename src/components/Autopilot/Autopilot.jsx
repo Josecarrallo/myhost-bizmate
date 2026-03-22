@@ -150,7 +150,7 @@ const Autopilot = ({ onBack }) => {
 
   // Owner Decisions filters
   const [decisionsSearchTerm, setDecisionsSearchTerm] = useState('');
-  const [filterDecisionStatus, setFilterDecisionStatus] = useState('pending');
+  const [filterDecisionStatus, setFilterDecisionStatus] = useState('All');
   const [filterDecisionPriority, setFilterDecisionPriority] = useState('All');
   const [filterDecisionType, setFilterDecisionType] = useState('All');
   const [filterDecisionAgent, setFilterDecisionAgent] = useState('All');
@@ -160,6 +160,7 @@ const Autopilot = ({ onBack }) => {
   const [customDecisionDateTo, setCustomDecisionDateTo] = useState('');
   const [filterDecisionPeriod, setFilterDecisionPeriod] = useState('all'); // all/daily/weekly/monthly
   const [dailyBriefing, setDailyBriefing] = useState(null);
+  const [dailySummaryAPI, setDailySummaryAPI] = useState(null); // NEW: Daily Summary API v2.4 data
   const [pendingDecisions, setPendingDecisions] = useState([]);
   const [weeklySummaries, setWeeklySummaries] = useState([]);
   const [monthlySummaries, setMonthlySummaries] = useState([]);
@@ -188,6 +189,17 @@ const Autopilot = ({ onBack }) => {
     generated_by_agent: 'system'
   });
   const [isSavingDecision, setIsSavingDecision] = useState(false);
+
+  // ===== HELPER FUNCTIONS =====
+  /**
+   * Format IDR currency according to v4.1 spec
+   * @param {number} n - Amount to format
+   * @returns {string} - Formatted string like "Rp 26.213.472"
+   */
+  const formatIDR = (n) => {
+    if (!n || isNaN(n)) return 'Rp 0';
+    return 'Rp ' + Math.round(n).toLocaleString('id-ID');
+  };
 
   // Load villas when entering Tasks or Decisions section
   useEffect(() => {
@@ -1309,7 +1321,7 @@ const Autopilot = ({ onBack }) => {
     try {
       // Fetch bookings filtered ONLY by tenant_id (no hardcoded property_id)
       const response = await fetch(
-        `${SUPABASE_URL}/rest/v1/bookings?tenant_id=eq.${TENANT_ID}&select=check_in,total_amount,status`,
+        `${SUPABASE_URL}/rest/v1/bookings?tenant_id=eq.${TENANT_ID}&select=check_in,total_price,status`,
         {
           headers: { 'apikey': SUPABASE_KEY }
         }
@@ -1329,13 +1341,13 @@ const Autopilot = ({ onBack }) => {
 
           if (year === 2025 && month === 10) {
             monthlyData.november.bookings++;
-            monthlyData.november.revenue += parseFloat(booking.total_amount || 0);
+            monthlyData.november.revenue += parseFloat(booking.total_price || 0);
           } else if (year === 2025 && month === 11) {
             monthlyData.december.bookings++;
-            monthlyData.december.revenue += parseFloat(booking.total_amount || 0);
+            monthlyData.december.revenue += parseFloat(booking.total_price || 0);
           } else if (year === 2026 && month === 0) {
             monthlyData.january.bookings++;
-            monthlyData.january.revenue += parseFloat(booking.total_amount || 0);
+            monthlyData.january.revenue += parseFloat(booking.total_price || 0);
           }
         });
 
@@ -1389,7 +1401,7 @@ const Autopilot = ({ onBack }) => {
   const fetchAlerts = async () => {
     try {
       const response = await fetch(
-        `${SUPABASE_URL}/rest/v1/autopilot_alerts?tenant_id=eq.${TENANT_ID}&status=eq.active&order=created_at.desc&limit=10`,
+        `${SUPABASE_URL}/rest/v1/autopilot_alerts?tenant_id=eq.${TENANT_ID}&is_resolved=eq.false&order=created_at.desc&limit=10`,
         {
           headers: { 'apikey': SUPABASE_KEY }
         }
@@ -1566,16 +1578,38 @@ const Autopilot = ({ onBack }) => {
     setLoadingSummaries(true);
     try {
       if (filterDecisionPeriod === 'daily') {
-        console.log('📞 Calling ownerSummariesService.getDailyBriefing');
+        // DAILY has 2 data sources (v4.0):
+        // 1. owner_briefings (Supabase) → auto_resolved_today, property_overview
+        // 2. Daily Summary API v2.4 (n8n) → pending_decisions, guest_requests, metrics
+
+        console.log('📞 [1/2] Calling ownerSummariesService.getDailyBriefing (Supabase)');
         const dailyData = await ownerSummariesService.getDailyBriefing(userData.id);
         console.log('✅ Received daily briefing:', dailyData);
         setDailyBriefing(dailyData);
 
-        // Also load today's pending decisions
-        console.log('📞 Calling ownerSummariesService.getTodayPendingDecisions');
-        const pendingData = await ownerSummariesService.getTodayPendingDecisions(userData.id);
-        console.log('✅ Received pending decisions:', pendingData);
-        setPendingDecisions(pendingData);
+        // Get property_id de Nismara Uma Villa (HARDCODED según v4.3)
+        const nismaraProperty = userProperties.find(p => p.name?.includes('Nismara Uma Villa'));
+        const propertyId = nismaraProperty?.id || '3551cd18-af6b-48c2-85ba-4c5dc0074892';
+
+        console.log('📞 [2/2] Calling ownerSummariesService.getDailySummaryAPI v2.4 (n8n)');
+        console.log('🏠 Using property_id:', propertyId, '(Nismara Uma Villa)');
+        const apiData = await ownerSummariesService.getDailySummaryAPI(userData.id, propertyId);
+        console.log('✅ Received Daily Summary API v2.4:', apiData);
+        console.log('📊 API pending_decisions:', apiData?.pending_decisions);
+        console.log('📊 API pending_decisions length:', apiData?.pending_decisions?.length);
+        setDailySummaryAPI(apiData);
+
+        // Set pending decisions from API (real-time data)
+        if (apiData && apiData.pending_decisions) {
+          console.log('✅ Setting pendingDecisions from API:', apiData.pending_decisions.length);
+          setPendingDecisions(apiData.pending_decisions);
+        } else {
+          // Fallback to old method if API fails
+          console.log('📞 Fallback: Calling ownerSummariesService.getTodayPendingDecisions');
+          const pendingData = await ownerSummariesService.getTodayPendingDecisions(userData.id);
+          console.log('✅ Received pending decisions (fallback):', pendingData);
+          setPendingDecisions(pendingData);
+        }
       } else if (filterDecisionPeriod === 'weekly') {
         console.log('📞 Calling ownerSummariesService.getWeeklySummaries');
         const weeklyData = await ownerSummariesService.getWeeklySummaries(userData.id, 12);
@@ -6756,8 +6790,8 @@ const Autopilot = ({ onBack }) => {
         return matchesSearch && matchesStatus && matchesPriority && matchesType && matchesAgent && matchesProperty && matchesDate;
       })
       .sort((a, b) => {
-        // Sort by created_at (oldest first)
-        return new Date(a.created_at) - new Date(b.created_at);
+        // Sort by created_at (newest first)
+        return new Date(b.created_at) - new Date(a.created_at);
       });
 
     // Get unique values for filter dropdowns
@@ -6954,7 +6988,7 @@ const Autopilot = ({ onBack }) => {
                 <div className="w-12 h-12 border-4 border-orange-500/30 border-t-orange-500 rounded-full animate-spin mx-auto mb-3" />
                 <p className="text-gray-300 text-lg">Loading daily briefing...</p>
               </div>
-            ) : !dailyBriefing ? (
+            ) : (!dailyBriefing && !dailySummaryAPI && (!pendingDecisions || pendingDecisions.length === 0)) ? (
               <div className="text-center py-8 bg-[#2a2f3a] rounded-lg border-2 border-gray-700">
                 <CheckCircle className="w-12 h-12 text-green-500 mx-auto mb-3" />
                 <p className="text-gray-300 text-lg">No daily briefing available</p>
@@ -6965,132 +6999,364 @@ const Autopilot = ({ onBack }) => {
                 {/* Header */}
                 <div className="border-b border-gray-700 pb-4">
                   <h3 className="text-2xl font-bold text-[#FF8C42] mb-2">
-                    Daily Briefing
+                    DAILY — {new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })} · Nismara Uma Villa
                   </h3>
-                  <p className="text-gray-400">
-                    Date: {new Date(dailyBriefing.briefing_date).toLocaleDateString()}
-                  </p>
                 </div>
 
-                {/* Property Overview - if available in briefing */}
-                {dailyBriefing.property_overview_json && (
+                {/* KPIs - v4.3 NUEVA ESTRUCTURA con kpis.* del API v2.4 */}
+                {dailySummaryAPI?.kpis && (
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    {/* KPI 1: Occupancy rate - PRE-CALCULADO del API */}
+                    {(() => {
+                      const occupancyNum = dailySummaryAPI.kpis.occupancy_rate || 0;
+
+                      // Colores dinámicos (naranja si subóptimo, rojo si crítico)
+                      const colorClass = occupancyNum >= 70 ? 'text-green-400' :
+                                        occupancyNum >= 40 ? 'text-orange-400' : 'text-red-400';
+                      const borderClass = occupancyNum >= 70 ? 'border-green-500/30' :
+                                         occupancyNum >= 40 ? 'border-orange-500/30' : 'border-red-500/30';
+
+                      return (
+                        <div className={`bg-[#1f2937] p-4 rounded-lg border ${borderClass} text-center`}>
+                          <p className="text-gray-400 text-sm mb-1">Occupancy rate</p>
+                          <p className={`text-3xl font-bold ${colorClass}`}>
+                            {occupancyNum.toFixed(1)}%
+                          </p>
+                          <p className="text-xs text-gray-500 mt-1">
+                            {dailySummaryAPI.kpis.occupancy_label || ''}
+                          </p>
+                        </div>
+                      );
+                    })()}
+
+                    {/* KPI 2: Total bookings - PRE-CALCULADO del API */}
+                    <div className="bg-[#1f2937] p-4 rounded-lg border border-blue-500/30 text-center">
+                      <p className="text-gray-400 text-sm mb-1">Total bookings</p>
+                      <p className="text-3xl font-bold text-blue-400">
+                        {dailySummaryAPI.kpis.total_bookings || 0}
+                      </p>
+                      <p className="text-xs text-gray-500 mt-1">
+                        guests in-house tonight
+                      </p>
+                    </div>
+
+                    {/* KPI 3: Revenue confirmado - PRE-CALCULADO del API */}
+                    {(() => {
+                      const inHouseGuests = dailySummaryAPI?.in_house_guests || [];
+
+                      // Extraer nombres según formato PDF v4.3
+                      const realGuests = [];
+                      let testCount = 0;
+
+                      inHouseGuests.forEach(g => {
+                        const name = g.guest || '';
+                        if (name.startsWith('[TEST]')) {
+                          testCount++;
+                        } else {
+                          // Para nombres chinos: "傅宇阳 Fu" → "Fu" (último)
+                          // Para nombres occidentales: "Johana Catharina" → "Johana" (primero)
+                          const parts = name.split(' ').filter(Boolean);
+                          if (parts.length > 1 && /[\u4e00-\u9fa5]/.test(parts[0])) {
+                            // Nombre chino: tomar último
+                            realGuests.push(parts[parts.length - 1]);
+                          } else {
+                            // Nombre occidental: tomar primero
+                            realGuests.push(parts[0]);
+                          }
+                        }
+                      });
+
+                      const guestNames = realGuests.join(' + ') + (testCount > 0 ? ` + TEST activos` : '');
+
+                      return (
+                        <div className="bg-[#1f2937] p-4 rounded-lg border border-purple-500/30 text-center">
+                          <p className="text-gray-400 text-sm mb-1">Revenue confirmado</p>
+                          <p className="text-2xl font-bold text-purple-400">
+                            {formatIDR(dailySummaryAPI.kpis.revenue_active || 0)}
+                          </p>
+                          <p className="text-xs text-gray-500 mt-1">
+                            {guestNames || 'huéspedes activos'}
+                          </p>
+                        </div>
+                      );
+                    })()}
+
+                    {/* KPI 4: Gap nights - PRE-CALCULADO del API */}
+                    {(() => {
+                      const gapNights = dailySummaryAPI.kpis.gap_nights || 0;
+
+                      // Colores: verde si 0, naranja si 1, rojo si >=2
+                      const colorClass = gapNights === 0 ? 'text-green-400' :
+                                        gapNights === 1 ? 'text-orange-400' : 'text-red-400';
+                      const borderClass = gapNights === 0 ? 'border-green-500/30' :
+                                         gapNights === 1 ? 'border-orange-500/30' : 'border-red-500/30';
+
+                      return (
+                        <div className={`bg-[#1f2937] p-4 rounded-lg border ${borderClass} text-center`}>
+                          <p className="text-gray-400 text-sm mb-1">Gap nights</p>
+                          <p className={`text-3xl font-bold ${colorClass}`}>
+                            {gapNights}
+                          </p>
+                          <p className="text-xs text-gray-500 mt-1">
+                            {dailySummaryAPI.kpis.gap_label || ''}
+                          </p>
+                        </div>
+                      );
+                    })()}
+                  </div>
+                )}
+
+                {/* In-house guests - v4.3 NUEVA ESTRUCTURA del API v2.4 */}
+                {dailySummaryAPI?.in_house_guests && dailySummaryAPI.in_house_guests.length > 0 && (
                   <div className="bg-[#1f2937] p-5 rounded-lg border border-blue-500/30">
                     <h4 className="text-lg font-bold text-blue-400 mb-4 flex items-center gap-2">
                       <ClipboardList className="w-5 h-5" />
-                      Property Overview
+                      In-house guests
                     </h4>
-                    {dailyBriefing.property_overview_json.map((prop, idx) => (
-                      <div key={idx} className="mb-4 last:mb-0">
-                        <p className="text-white font-semibold mb-2">{prop.property_name || prop.villa_name}</p>
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                          {prop.occupancy !== undefined && (
-                            <div className="text-center">
-                              <p className="text-gray-400 text-sm">Occupancy</p>
-                              <p className="text-green-400 font-bold">{prop.occupancy}%</p>
-                            </div>
-                          )}
-                          {prop.arrivals !== undefined && (
-                            <div className="text-center">
-                              <p className="text-gray-400 text-sm">Arrivals</p>
-                              <p className="text-blue-400 font-bold">{prop.arrivals}</p>
-                            </div>
-                          )}
-                          {prop.departures !== undefined && (
-                            <div className="text-center">
-                              <p className="text-gray-400 text-sm">Departures</p>
-                              <p className="text-purple-400 font-bold">{prop.departures}</p>
-                            </div>
-                          )}
-                          {prop.current_guests !== undefined && (
-                            <div className="text-center">
-                              <p className="text-gray-400 text-sm">Current Guests</p>
-                              <p className="text-orange-400 font-bold">{prop.current_guests}</p>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    ))}
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left text-sm">
+                        <thead>
+                          <tr className="border-b border-gray-700">
+                            <th className="pb-2 text-gray-400">Guest</th>
+                            <th className="pb-2 text-gray-400">Villa</th>
+                            <th className="pb-2 text-gray-400">Check-out</th>
+                            <th className="pb-2 text-gray-400">Revenue</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-700">
+                          {dailySummaryAPI.in_house_guests.map((guest, idx) => {
+                            const checkOut = guest.check_out ? new Date(guest.check_out) : null;
+                            // Formatear fecha como "24 Mar" según PDF v4.3
+                            const checkOutFormatted = checkOut ?
+                              `${checkOut.getDate()} ${checkOut.toLocaleString('en', { month: 'short' })}` :
+                              'N/A';
+
+                            return (
+                              <tr key={idx} className="text-gray-300">
+                                <td className="py-2 font-semibold text-white">{guest.guest || 'N/A'}</td>
+                                <td className="py-2">{guest.villa || 'N/A'}</td>
+                                <td className="py-2">{checkOutFormatted}</td>
+                                <td className="py-2 font-semibold text-purple-400">{formatIDR(guest.revenue || 0)}</td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
                   </div>
                 )}
 
-                {/* Urgent Priorities - Today's Pending Decisions */}
-                {pendingDecisions && pendingDecisions.length > 0 && (
-                  <div className="bg-[#1f2937] p-5 rounded-lg border border-red-500/30">
-                    <h4 className="text-lg font-bold text-red-400 mb-4 flex items-center gap-2">
-                      <AlertCircle className="w-5 h-5" />
-                      Urgent Priorities ({pendingDecisions.length} pending decisions)
-                    </h4>
-                    <div className="space-y-3">
-                      {pendingDecisions.slice(0, 5).map((decision) => (
-                        <div key={decision.id} className="bg-[#2a2f3a] p-4 rounded-lg border-l-4 border-red-500">
-                          <div className="flex items-start justify-between mb-2">
-                            <p className="text-white font-semibold">{decision.title}</p>
-                            <span className={`px-2 py-1 rounded text-xs font-bold ${
-                              decision.priority === 'urgent' ? 'bg-red-500/20 text-red-400' :
-                              decision.priority === 'high' ? 'bg-orange-500/20 text-orange-400' :
-                              'bg-yellow-500/20 text-yellow-400'
-                            }`}>
-                              {decision.priority?.toUpperCase()}
-                            </span>
+                {/* Owner decisions — por prioridad - v4.3 de DAILY API */}
+                {(() => {
+                  const todayPending = dailySummaryAPI?.pending_decisions || [];
+                  const hasPending = todayPending.length > 0;
+
+                  return (
+                    <div className={`p-5 rounded-lg border ${hasPending ? 'bg-[#1f2937] border-red-500/30' : 'bg-[#1f2937] border-gray-700'}`}>
+                      <h4 className={`text-lg font-bold mb-4 flex items-center gap-2 ${hasPending ? 'text-red-400' : 'text-gray-400'}`}>
+                        <AlertCircle className="w-5 h-5" />
+                        Owner decisions — por prioridad
+                      </h4>
+
+                      {hasPending ? (
+                        <>
+                          <div className="overflow-x-auto">
+                            <table className="w-full text-left text-sm">
+                              <thead>
+                                <tr className="border-b border-gray-700">
+                                  <th className="pb-2 text-gray-400">Prioridad</th>
+                                  <th className="pb-2 text-gray-400">Tipo</th>
+                                  <th className="pb-2 text-gray-400">Villa</th>
+                                  <th className="pb-2 text-gray-400">Decisión · Guest</th>
+                                  <th className="pb-2 text-gray-400">Agente</th>
+                                  <th className="pb-2 text-gray-400">Status</th>
+                                </tr>
+                              </thead>
+                              <tbody className="divide-y divide-gray-700">
+                                {todayPending.map((decision) => (
+                                  <tr key={decision.id} className="text-gray-300">
+                                    <td className="py-2">
+                                      <span className={`px-2 py-1 rounded text-xs font-bold ${
+                                        decision.priority === 'urgent' ? 'bg-[#FEE2E2] text-[#991B1B]' :
+                                        decision.priority === 'high' ? 'bg-[#FEF3C7] text-[#92400E]' :
+                                        decision.priority === 'medium' ? 'bg-[#DBEAFE] text-[#1E40AF]' :
+                                        'bg-[#F3F4F6] text-[#6B7280]'
+                                      }`}>
+                                        {decision.priority?.toUpperCase()}
+                                      </span>
+                                    </td>
+                                    <td className="py-2">{decision.decision_type || decision.type || '—'}</td>
+                                    <td className="py-2">{decision.villa_name || '—'}</td>
+                                    <td className="py-2">
+                                      {decision.title || decision.summary}
+                                      {decision.guest_name && ` — ${decision.guest_name}`}
+                                    </td>
+                                    <td className="py-2">
+                                      <div className="flex items-center gap-2">
+                                        {decision.generated_by_agent === 'banyu' ? (
+                                          <span className="px-2 py-1 rounded text-xs font-bold bg-[#DBEAFE] text-[#1E40AF]">
+                                            BANYU
+                                          </span>
+                                        ) : (
+                                          <span className="text-gray-400">system</span>
+                                        )}
+                                        {decision.generated_by_agent === 'banyu' && (
+                                          <span className="px-2 py-1 rounded text-xs font-bold bg-[#DBEAFE] text-[#1E40AF]">
+                                            📱 WhatsApp
+                                          </span>
+                                        )}
+                                      </div>
+                                    </td>
+                                    <td className="py-2">
+                                      <span className={`px-2 py-1 rounded text-xs font-bold ${
+                                        decision.status === 'approved' ? 'bg-[#D1FAE5] text-[#065F46]' :
+                                        decision.status === 'rejected' ? 'bg-[#FEE2E2] text-[#991B1B]' :
+                                        'bg-[#FEF3C7] text-[#92400E]'
+                                      }`}>
+                                        {decision.status === 'approved' ? 'Approved' :
+                                         decision.status === 'rejected' ? 'Rejected' : 'Pending'}
+                                      </span>
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
                           </div>
-                          <p className="text-gray-300 text-sm mb-2">{decision.summary}</p>
-                          <div className="flex items-center gap-4 text-xs text-gray-400">
-                            <span>{decision.villa_name}</span>
-                            <span>•</span>
-                            <span>{decision.decision_type}</span>
-                            {decision.guest_name && (
-                              <>
-                                <span>•</span>
-                                <span>{decision.guest_name}</span>
-                              </>
+                          <p className="text-xs text-blue-400 mt-3">
+                            ℹ️ Fuente: Daily API v2.4 → pending_decisions. Ordenar: URGENT → HIGH → MEDIUM → LOW.
+                          </p>
+                          <p className="text-xs text-orange-400 mt-1">
+                            ⚠️ NO mostrar Approve/Reject si approved_by = autopilot. Badge 📱 WhatsApp si generated_by_agent = banyu.
+                          </p>
+                        </>
+                      ) : (
+                        <div className="flex items-center gap-3 text-gray-300 p-4 bg-[#2a2f3a] rounded-lg">
+                          <span className="text-2xl">✅</span>
+                          <p className="text-lg font-semibold">No hay decisiones pendientes hoy. Todas resueltas.</p>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
+
+                {/* Auto-resolved today - NUEVO v2 */}
+                {dailyBriefing?.auto_resolved_today && dailyBriefing.auto_resolved_today.count > 0 && (
+                  <div className="bg-[#E2EFDA] border border-[#276221] rounded-lg overflow-hidden">
+                    <button
+                      onClick={() => {
+                        const elem = document.getElementById('auto-resolved-section');
+                        if (elem) elem.classList.toggle('hidden');
+                      }}
+                      className="w-full px-5 py-3 bg-[#276221] text-white font-bold text-left flex items-center justify-between hover:bg-[#1e4a19] transition-colors"
+                    >
+                      <span className="flex items-center gap-2">
+                        <CheckCircle className="w-5 h-5" />
+                        ✅ Auto-resolved today ({dailyBriefing?.auto_resolved_today?.count})
+                      </span>
+                      <span className="text-sm">Click to {dailyBriefing?.auto_resolved_today?.count <= 3 ? 'expand' : 'collapse'}</span>
+                    </button>
+                    <div
+                      id="auto-resolved-section"
+                      className={`p-5 space-y-3 ${dailyBriefing?.auto_resolved_today?.count <= 3 ? 'hidden' : ''}`}
+                    >
+                      {dailyBriefing?.auto_resolved_today?.items?.map((item, idx) => (
+                        <div key={idx} className="bg-white p-4 rounded-lg border border-[#276221]/30">
+                          <div className="flex items-start justify-between mb-2">
+                            <div>
+                              <p className="text-[#276221] font-bold">{item.type?.replace(/_/g, ' ').toUpperCase()}</p>
+                              {item.guest && <p className="text-gray-700 text-sm">{item.guest}</p>}
+                              {item.guest_phone && <p className="text-gray-500 text-xs">{item.guest_phone}</p>}
+                            </div>
+                            {item.resolved_at && (
+                              <span className="text-xs text-gray-500">
+                                {new Date(item.resolved_at).toLocaleTimeString()}
+                              </span>
                             )}
                           </div>
+                          <p className="text-gray-800 text-sm">{item.resolution}</p>
                         </div>
                       ))}
-                      {pendingDecisions.length > 5 && (
-                        <p className="text-gray-400 text-sm text-center mt-3">
-                          + {pendingDecisions.length - 5} more pending decisions
-                        </p>
-                      )}
                     </div>
                   </div>
                 )}
 
-                {/* Decisions Overview Stats */}
-                {dailyBriefing.decisions_overview_json && (
-                  <div className="bg-[#1f2937] p-5 rounded-lg border border-purple-500/30">
-                    <h4 className="text-lg font-bold text-purple-400 mb-4 flex items-center gap-2">
-                      <CheckCircle className="w-5 h-5" />
-                      Decisions Overview
-                    </h4>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                      {dailyBriefing.decisions_overview_json.total !== undefined && (
-                        <div className="text-center">
-                          <p className="text-gray-400 text-sm">Total</p>
-                          <p className="text-white font-bold text-xl">{dailyBriefing.decisions_overview_json.total}</p>
-                        </div>
-                      )}
-                      {dailyBriefing.decisions_overview_json.pending !== undefined && (
-                        <div className="text-center">
-                          <p className="text-gray-400 text-sm">Pending</p>
-                          <p className="text-yellow-400 font-bold text-xl">{dailyBriefing.decisions_overview_json.pending}</p>
-                        </div>
-                      )}
-                      {dailyBriefing.decisions_overview_json.approved !== undefined && (
-                        <div className="text-center">
-                          <p className="text-gray-400 text-sm">Approved</p>
-                          <p className="text-green-400 font-bold text-xl">{dailyBriefing.decisions_overview_json.approved}</p>
-                        </div>
-                      )}
-                      {dailyBriefing.decisions_overview_json.urgent !== undefined && (
-                        <div className="text-center">
-                          <p className="text-gray-400 text-sm">Urgent</p>
-                          <p className="text-red-400 font-bold text-xl">{dailyBriefing.decisions_overview_json.urgent}</p>
-                        </div>
-                      )}
+                {/* Guest Requests - v4.3 con formato TABLA según PDF */}
+                {(() => {
+                  // Deduplicar por ID para evitar bug del WF (22 duplicados → 11 únicos)
+                  const uniqueRequests = dailySummaryAPI?.guest_requests
+                    ? Array.from(
+                        dailySummaryAPI.guest_requests
+                          .reduce((map, request) => {
+                            if (request.id && !map.has(request.id)) {
+                              map.set(request.id, request);
+                            }
+                            return map;
+                          }, new Map())
+                          .values()
+                      )
+                    : [];
+
+                  return uniqueRequests.length > 0 && (
+                    <div className="bg-[#1f2937] p-5 rounded-lg border border-pink-500/30">
+                      <h4 className="text-lg font-bold text-pink-400 mb-4 flex items-center gap-2">
+                        <MessageSquare className="w-5 h-5" />
+                        Guest requests — {uniqueRequests.length} total
+                      </h4>
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-left text-sm">
+                          <thead>
+                            <tr className="border-b border-gray-700">
+                              <th className="pb-2 text-gray-400">Fecha</th>
+                              <th className="pb-2 text-gray-400">Villa</th>
+                              <th className="pb-2 text-gray-400">Guest</th>
+                              <th className="pb-2 text-gray-400">Request</th>
+                              <th className="pb-2 text-gray-400">Status</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-gray-700">
+                            {uniqueRequests.map((request) => {
+                              const fecha = request.created_at ? new Date(request.created_at) : null;
+                              const fechaFormatted = fecha ?
+                                `${fecha.getDate()}\n${fecha.toLocaleString('en', { month: 'short' })}` :
+                                '—';
+
+                              const isApproved = request.status === 'approved';
+                              const isRejected = request.status === 'rejected';
+                              const isAuto = request.approved_by === 'autopilot';
+
+                              return (
+                                <tr key={request.id} className="text-gray-300">
+                                  <td className="py-2 whitespace-pre-line">{fechaFormatted}</td>
+                                  <td className="py-2">{request.villa_name || '—'}</td>
+                                  <td className="py-2">{request.guest_name || '—'}</td>
+                                  <td className="py-2">{request.description || request.request || 'N/A'}</td>
+                                  <td className="py-2">
+                                    {isApproved && (
+                                      <div className="flex items-center gap-2">
+                                        <span className="text-green-400">✅ Approved</span>
+                                        {isAuto && (
+                                          <span className="px-2 py-0.5 rounded text-xs font-semibold bg-[#D1FAE5] text-[#065F46]">
+                                            Auto
+                                          </span>
+                                        )}
+                                      </div>
+                                    )}
+                                    {isRejected && (
+                                      <span className="text-red-400">❌ Rejected</span>
+                                    )}
+                                    {!isApproved && !isRejected && (
+                                      <span className="text-gray-500">—</span>
+                                    )}
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
                     </div>
-                  </div>
-                )}
+                  );
+                })()}
               </div>
             )
           ) : filterDecisionPeriod === 'weekly' ? (

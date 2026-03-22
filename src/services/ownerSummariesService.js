@@ -76,6 +76,63 @@ export const getTodayPendingDecisions = async (tenantId) => {
 };
 
 /**
+ * Get Daily Summary from n8n API v2.4
+ * ⚠️ ENDPOINT CHANGED: /dailysummary-v2 → /dailysummary-v4
+ * @param {string} tenantId - The tenant ID
+ * @param {string} propertyId - The property ID
+ * @param {string} date - Date in YYYY-MM-DD format (optional, defaults to today)
+ * @returns {Promise<object|null>} Daily summary data with pending_decisions, guest_requests, metrics, alerts
+ */
+export const getDailySummaryAPI = async (tenantId, propertyId, date = null) => {
+  try {
+    const targetDate = date || new Date().toISOString().split('T')[0];
+    console.log('🔄 getDailySummaryAPI v2.4 called for:', { tenantId, propertyId, targetDate });
+
+    const response = await fetch(
+      'https://n8n-production-bb2d.up.railway.app/webhook/autopilot/dailysummary-v4',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          tenant_id: tenantId,
+          property_id: propertyId,
+          date: targetDate
+        })
+      }
+    );
+
+    if (!response.ok) {
+      console.error('❌ Daily Summary API error:', response.status, response.statusText);
+      return null;
+    }
+
+    const data = await response.json();
+    console.log('✅ Daily Summary API v2.4 FULL RESPONSE:', data);
+    console.log('📊 Daily Summary API KPIs:', {
+      'occupancy_rate': data.kpis?.occupancy_rate,
+      'occupancy_label': data.kpis?.occupancy_label,
+      'total_bookings': data.kpis?.total_bookings,
+      'revenue_active': data.kpis?.revenue_active,
+      'gap_nights': data.kpis?.gap_nights,
+      'gap_label': data.kpis?.gap_label
+    });
+    console.log('📊 Daily Summary API arrays:', {
+      'in_house_guests': data.in_house_guests?.length || 0,
+      'pending_decisions': data.pending_decisions?.length || 0,
+      'guest_requests': data.guest_requests?.length || 0,
+      'alerts': data.alerts?.length || 0
+    });
+
+    return data;
+  } catch (error) {
+    console.error('❌ getDailySummaryAPI exception:', error);
+    return null;
+  }
+};
+
+/**
  * Get weekly summaries
  * @param {string} tenantId - The owner's tenant ID
  * @param {number} limit - Number of weeks to retrieve (default: 12)
@@ -139,6 +196,7 @@ export const getMonthlySummaries = async (tenantId, limit = 12) => {
 export const ownerSummariesService = {
   getDailyBriefing,
   getTodayPendingDecisions,
+  getDailySummaryAPI,
   getWeeklySummaries,
   getMonthlySummaries
 };
