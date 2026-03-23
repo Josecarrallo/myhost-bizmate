@@ -6998,8 +6998,11 @@ const Autopilot = ({ onBack }) => {
               <div className="bg-[#2a2f3a] rounded-lg p-6 border-2 border-[#FF8C42]/50 space-y-6">
                 {/* Header */}
                 <div className="border-b border-gray-700 pb-4">
-                  <h3 className="text-2xl font-bold text-[#FF8C42] mb-2">
-                    DAILY — {new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })} · Nismara Uma Villa
+                  <h3 className="text-xl font-bold text-[#FF8C42]">
+                    DAILY – {new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}
+                  </h3>
+                  <h3 className="text-xl font-bold text-[#FF8C42]">
+                    Nismara Uma Villa
                   </h3>
                 </div>
 
@@ -7066,16 +7069,16 @@ const Autopilot = ({ onBack }) => {
                         }
                       });
 
-                      const guestNames = realGuests.join(' + ') + (testCount > 0 ? ` + TEST activos` : '');
+                      const guestNames = realGuests.join(' + ') + (testCount > 0 ? ` + TEST active` : '');
 
                       return (
                         <div className="bg-[#1f2937] p-4 rounded-lg border border-purple-500/30 text-center">
-                          <p className="text-gray-400 text-sm mb-1">Revenue confirmado</p>
-                          <p className="text-2xl font-bold text-purple-400">
+                          <p className="text-gray-400 text-sm mb-1">Confirmed revenue</p>
+                          <p className="text-xl font-bold text-purple-400 whitespace-nowrap">
                             {formatIDR(dailySummaryAPI.kpis.revenue_active || 0)}
                           </p>
                           <p className="text-xs text-gray-500 mt-1">
-                            {guestNames || 'huéspedes activos'}
+                            {guestNames || 'active guests'}
                           </p>
                         </div>
                       );
@@ -7146,6 +7149,49 @@ const Autopilot = ({ onBack }) => {
                   </div>
                 )}
 
+                {/* Revenue por villa - v4.3 NUEVO del API */}
+                {(() => {
+                  const revenueByVilla = dailySummaryAPI?.revenue_by_villa;
+                  if (!revenueByVilla || typeof revenueByVilla !== 'object') return null;
+
+                  // Convertir objeto a array de [villa_name, revenue]
+                  const revenueArray = Object.entries(revenueByVilla);
+                  if (revenueArray.length === 0) return null;
+
+                  return (
+                    <div className="bg-[#1f2937] p-5 rounded-lg border border-purple-500/30">
+                      <h4 className="text-lg font-bold text-purple-400 mb-4 flex items-center gap-2">
+                        <TrendingUp className="w-5 h-5" />
+                        Revenue por villa
+                      </h4>
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-left text-sm">
+                          <thead>
+                            <tr className="border-b border-gray-700">
+                              <th className="pb-2 text-gray-400">Villa</th>
+                              <th className="pb-2 text-gray-400 text-right">Revenue IDR</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-gray-700">
+                            {revenueArray.map(([villaName, revenue], idx) => (
+                              <tr key={idx} className="text-gray-300">
+                                <td className="py-2 font-semibold text-white">{villaName}</td>
+                                <td className="py-2 font-bold text-purple-400 text-right">{formatIDR(revenue || 0)}</td>
+                              </tr>
+                            ))}
+                            <tr className="border-t-2 border-purple-500/50">
+                              <td className="py-2 font-bold text-white">TOTAL</td>
+                              <td className="py-2 font-bold text-purple-400 text-right">
+                                {formatIDR(revenueArray.reduce((sum, [, revenue]) => sum + (revenue || 0), 0))}
+                              </td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  );
+                })()}
+
                 {/* Owner decisions — por prioridad - v4.3 de DAILY API */}
                 {(() => {
                   const todayPending = dailySummaryAPI?.pending_decisions || [];
@@ -7155,11 +7201,539 @@ const Autopilot = ({ onBack }) => {
                     <div className={`p-5 rounded-lg border ${hasPending ? 'bg-[#1f2937] border-red-500/30' : 'bg-[#1f2937] border-gray-700'}`}>
                       <h4 className={`text-lg font-bold mb-4 flex items-center gap-2 ${hasPending ? 'text-red-400' : 'text-gray-400'}`}>
                         <AlertCircle className="w-5 h-5" />
-                        Owner decisions — por prioridad
+                        Pending decisions — {todayPending.length}
                       </h4>
 
                       {hasPending ? (
-                        <>
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-left text-sm">
+                            <thead>
+                              <tr className="border-b border-gray-700">
+                                <th className="pb-2 text-gray-400">Prioridad</th>
+                                <th className="pb-2 text-gray-400">Tipo</th>
+                                <th className="pb-2 text-gray-400">Villa</th>
+                                <th className="pb-2 text-gray-400">Decisión · Guest</th>
+                                <th className="pb-2 text-gray-400">Agente</th>
+                                <th className="pb-2 text-gray-400">Status</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-700">
+                              {todayPending.map((decision) => (
+                                <tr key={decision.id} className="text-gray-300">
+                                  <td className="py-2">
+                                    <span className={`px-2 py-1 rounded text-xs font-bold ${
+                                      decision.priority === 'urgent' ? 'bg-[#FEE2E2] text-[#991B1B]' :
+                                      decision.priority === 'high' ? 'bg-[#FEF3C7] text-[#92400E]' :
+                                      decision.priority === 'medium' ? 'bg-[#DBEAFE] text-[#1E40AF]' :
+                                      'bg-[#F3F4F6] text-[#6B7280]'
+                                    }`}>
+                                      {decision.priority?.toUpperCase()}
+                                    </span>
+                                  </td>
+                                  <td className="py-2">{decision.decision_type || decision.type || '—'}</td>
+                                  <td className="py-2">{decision.villa_name || '—'}</td>
+                                  <td className="py-2">
+                                    {decision.title || decision.summary}
+                                    {decision.guest_name && ` — ${decision.guest_name}`}
+                                  </td>
+                                  <td className="py-2">
+                                    <div className="flex items-center gap-2">
+                                      {decision.generated_by_agent === 'banyu' ? (
+                                        <span className="px-2 py-1 rounded text-xs font-bold bg-[#DBEAFE] text-[#1E40AF]">
+                                          BANYU
+                                        </span>
+                                      ) : (
+                                        <span className="text-gray-400">system</span>
+                                      )}
+                                      {decision.generated_by_agent === 'banyu' && (
+                                        <span className="px-2 py-1 rounded text-xs font-bold bg-[#DBEAFE] text-[#1E40AF]">
+                                          📱 WhatsApp
+                                        </span>
+                                      )}
+                                    </div>
+                                  </td>
+                                  <td className="py-2">
+                                    <span className={`px-2 py-1 rounded text-xs font-bold ${
+                                      decision.status === 'approved' ? 'bg-[#D1FAE5] text-[#065F46]' :
+                                      decision.status === 'rejected' ? 'bg-[#FEE2E2] text-[#991B1B]' :
+                                      'bg-[#FEF3C7] text-[#92400E]'
+                                    }`}>
+                                      {decision.status === 'approved' ? 'Approved' :
+                                       decision.status === 'rejected' ? 'Rejected' : 'Pending'}
+                                    </span>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-3 text-gray-300 p-4 bg-[#2a2f3a] rounded-lg">
+                          <span className="text-2xl">✅</span>
+                          <p className="text-lg font-semibold">No hay decisiones pendientes hoy. Todas resueltas.</p>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
+
+                {/* Auto-resolved today - ALWAYS SHOW */}
+                {(() => {
+                  const autoResolvedToday = dailyBriefing?.auto_resolved_today;
+                  const count = autoResolvedToday?.count || 0;
+                  const items = autoResolvedToday?.items || [];
+
+                  return (
+                    <div className="bg-[#1f2937] p-5 rounded-lg border border-green-500/30">
+                      <h4 className="text-lg font-bold text-green-400 mb-4">
+                        Auto-resolved today
+                      </h4>
+                      {count > 0 ? (
+                        <details className="group">
+                          <summary className="cursor-pointer list-none text-gray-300 text-sm">
+                            {count} decisiones auto-resueltas hoy
+                            <span className="text-xs text-gray-400 ml-2 group-open:hidden">Click para expandir</span>
+                            <span className="text-xs text-gray-400 ml-2 group-open:inline hidden">Click para colapsar</span>
+                          </summary>
+                          <div className="space-y-2 mt-2">
+                            {items.map((item, idx) => (
+                              <div key={idx} className="bg-[#2a2f3a] p-3 rounded-lg border-l-4 border-green-500">
+                                <p className="text-white font-semibold text-sm">{item.type?.replace(/_/g, ' ').toUpperCase()}</p>
+                                <p className="text-gray-300 text-xs mt-1">{item.resolution || 'Resolved automatically'}</p>
+                                {item.guest && <p className="text-gray-400 text-xs mt-1">Guest: {item.guest}</p>}
+                              </div>
+                            ))}
+                          </div>
+                        </details>
+                      ) : (
+                        <p className="text-gray-400 text-sm">0 decisiones auto-resueltas hoy · Fuente: owner_briefings.auto_resolved_today</p>
+                      )}
+                    </div>
+                  );
+                })()}
+
+                {/* Guest Requests - v4.3 con formato TABLA según PDF */}
+                {(() => {
+                  // Deduplicar por ID para evitar bug del WF (22 duplicados → 11 únicos)
+                  const uniqueRequests = dailySummaryAPI?.guest_requests
+                    ? Array.from(
+                        dailySummaryAPI.guest_requests
+                          .reduce((map, request) => {
+                            if (request.id && !map.has(request.id)) {
+                              map.set(request.id, request);
+                            }
+                            return map;
+                          }, new Map())
+                          .values()
+                      )
+                    : [];
+
+                  return uniqueRequests.length > 0 && (
+                    <div className="bg-[#1f2937] p-5 rounded-lg border border-pink-500/30">
+                      <h4 className="text-lg font-bold text-pink-400 mb-4 flex items-center gap-2">
+                        <MessageSquare className="w-5 h-5" />
+                        Guest Requests
+                      </h4>
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-left text-sm">
+                          <thead>
+                            <tr className="border-b border-gray-700">
+                              <th className="pb-2 text-gray-400 w-20">Date</th>
+                              <th className="pb-2 text-gray-400 w-56">Villa</th>
+                              <th className="pb-2 text-gray-400 w-40">Guest</th>
+                              <th className="pb-2 text-gray-400 w-48">Request</th>
+                              <th className="pb-2 text-gray-400 w-36">Status</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-gray-700">
+                            {uniqueRequests.map((request) => {
+                              // Try multiple date fields
+                              const dateValue = request.created_at || request.request_date || request.date || request.timestamp;
+                              const fecha = dateValue ? new Date(dateValue) : null;
+                              const fechaFormatted = fecha ?
+                                `${fecha.getDate()} ${fecha.toLocaleString('en-US', { month: 'short' })}` :
+                                '—';
+
+                              const isApproved = request.status === 'approved';
+                              const isRejected = request.status === 'rejected';
+                              const isAuto = request.approved_by === 'autopilot';
+
+                              const villaName = request.villa_name || request.villa || request.property_name || '—';
+                              const guestName = request.guest_name || request.guest || request.name || '—';
+
+                              return (
+                                <tr key={request.id} className="text-gray-300">
+                                  <td className="py-2 align-top">{fechaFormatted}</td>
+                                  <td className="py-2 align-top">
+                                    <div className="break-words">{villaName}</div>
+                                  </td>
+                                  <td className="py-2 align-top">
+                                    <div className="break-words">{guestName}</div>
+                                  </td>
+                                  <td className="py-2 align-top">
+                                    <div className="break-words">{request.description || request.request || request.title || 'N/A'}</div>
+                                  </td>
+                                  <td className="py-2">
+                                    {isApproved && (
+                                      <div className="flex items-center gap-2">
+                                        <span className="text-green-400">✅ Approved</span>
+                                        {isAuto && (
+                                          <span className="px-2 py-0.5 rounded text-xs font-semibold bg-[#D1FAE5] text-[#065F46]">
+                                            Auto
+                                          </span>
+                                        )}
+                                      </div>
+                                    )}
+                                    {isRejected && (
+                                      <span className="text-red-400">❌ Rejected</span>
+                                    )}
+                                    {!isApproved && !isRejected && (
+                                      <span className="text-gray-500">—</span>
+                                    )}
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  );
+                })()}
+              </div>
+            )
+          ) : filterDecisionPeriod === 'weekly' ? (
+            /* WEEKLY SUMMARIES VIEW v4.3 */
+            loadingSummaries ? (
+              <div className="text-center py-8 bg-[#2a2f3a] rounded-lg border-2 border-gray-700">
+                <div className="w-12 h-12 border-4 border-orange-500/30 border-t-orange-500 rounded-full animate-spin mx-auto mb-3" />
+                <p className="text-gray-300 text-lg">Loading weekly summaries...</p>
+              </div>
+            ) : weeklySummaries.length === 0 ? (
+              <div className="text-center py-8 bg-[#2a2f3a] rounded-lg border-2 border-gray-700">
+                <CheckCircle className="w-12 h-12 text-green-500 mx-auto mb-3" />
+                <p className="text-gray-300 text-lg">No weekly summaries available</p>
+                <p className="text-gray-500 text-sm mt-1">Weekly summaries will appear here once generated</p>
+              </div>
+            ) : (
+              /* Show only the most recent week */
+              (() => {
+                const summary = weeklySummaries[0]; // Most recent week only
+                if (!summary) return null;
+                const bookingsList = summary.bookings_list || [];
+                const revenueByVilla = summary.revenue_by_villa || [];
+                const decisionsList = summary.decisions_list || [];
+                const recommendations = summary.recommendations_json || [];
+                const autoResolved = summary.auto_resolved_summary || [];
+                const pendingApproval = summary.pending_approval || [];
+                const marketing = summary.marketing_summary || {};
+                const channels = marketing.channels || summary.booking_trends_json?.channels || [];
+
+                const weekStart = new Date(summary.week_start);
+                const weekEnd = new Date(summary.week_end);
+                const weekStartFormatted = weekStart.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+                const weekEndFormatted = weekEnd.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+
+                return (
+                  <div key={summary.id} className="bg-[#2a2f3a] rounded-lg p-6 border-2 border-[#FF8C42]/50 space-y-6">
+                    {/* Header */}
+                    <div className="border-b border-gray-700 pb-4">
+                      <h3 className="text-xl font-bold text-[#FF8C42]">
+                        WEEKLY MARCH {weekStart.getDate()}-{weekEnd.getDate()}
+                      </h3>
+                      <h3 className="text-xl font-bold text-[#FF8C42]">
+                        Nismara UMA · 3 villas · 7 days
+                      </h3>
+                    </div>
+
+                    {/* KPIs - Same 4 as Daily v4.3 */}
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      {/* KPI 1: Occupancy rate */}
+                      {(() => {
+                        const occupancyNum = summary.occupancy_rate || 0;
+                        const colorClass = occupancyNum >= 70 ? 'text-green-400' :
+                                          occupancyNum >= 40 ? 'text-orange-400' : 'text-red-400';
+                        const borderClass = occupancyNum >= 70 ? 'border-green-500/30' :
+                                           occupancyNum >= 40 ? 'border-orange-500/30' : 'border-red-500/30';
+                        return (
+                          <div className={`bg-[#1f2937] p-4 rounded-lg border ${borderClass} text-center`}>
+                            <p className="text-gray-400 text-sm mb-1">Occupancy rate</p>
+                            <p className={`text-3xl font-bold ${colorClass}`}>
+                              {occupancyNum.toFixed(1)}%
+                            </p>
+                            <p className="text-xs text-gray-500 mt-1">
+                              {summary.occupancy_label || ''}
+                            </p>
+                          </div>
+                        );
+                      })()}
+
+                      {/* KPI 2: Total bookings */}
+                      <div className="bg-[#1f2937] p-4 rounded-lg border border-blue-500/30 text-center">
+                        <p className="text-gray-400 text-sm mb-1">Total bookings</p>
+                        <p className="text-3xl font-bold text-blue-400">
+                          {summary.total_bookings || 0}
+                        </p>
+                        <p className="text-xs text-gray-500 mt-1">esta semana</p>
+                      </div>
+
+                      {/* KPI 3: Revenue confirmado */}
+                      <div className="bg-[#1f2937] p-4 rounded-lg border border-purple-500/30 text-center">
+                        <p className="text-gray-400 text-sm mb-1">Revenue confirmado</p>
+                        <p className="text-xl font-bold text-purple-400 whitespace-nowrap">
+                          {formatIDR(summary.revenue_total_idr || summary.revenue_total || 0)}
+                        </p>
+                        <p className="text-xs text-gray-500 mt-1">total semanal</p>
+                      </div>
+
+                      {/* KPI 4: Gap nights */}
+                      {(() => {
+                        const gapNights = summary.gap_nights || 0;
+                        const gapColorClass = gapNights === 0 ? 'text-green-400' :
+                                             gapNights <= 5 ? 'text-orange-400' : 'text-red-400';
+                        const gapBorderClass = gapNights === 0 ? 'border-green-500/30' :
+                                              gapNights <= 5 ? 'border-orange-500/30' : 'border-red-500/30';
+                        return (
+                          <div className={`bg-[#1f2937] p-4 rounded-lg border ${gapBorderClass} text-center`}>
+                            <p className="text-gray-400 text-sm mb-1">Gap nights</p>
+                            <p className={`text-3xl font-bold ${gapColorClass}`}>
+                              {gapNights}
+                            </p>
+                            <p className="text-xs text-gray-500 mt-1">
+                              {summary.gap_label || ''}
+                            </p>
+                          </div>
+                        );
+                      })()}
+                    </div>
+
+                    {/* Pending Approval section (ALWAYS show) */}
+                    <div className="bg-[#1f2937] p-5 rounded-lg border border-orange-500/30">
+                      <h4 className="text-lg font-bold text-orange-400 mb-4">
+                        Pending Approval
+                      </h4>
+                      {pendingApproval && pendingApproval.length > 0 ? (
+                        <div className="space-y-3">
+                          {pendingApproval.map((item, idx) => (
+                            <div key={idx} className="bg-[#2a2f3a] p-4 rounded-lg border-l-4 border-orange-500">
+                              <div className="flex items-start justify-between mb-2">
+                                <p className="text-white font-semibold">{item.title || item.description || 'Decision required'}</p>
+                                <span className="px-2 py-1 rounded text-xs font-bold bg-orange-500/20 text-orange-400">
+                                  {item.priority?.toUpperCase() || 'PENDING'}
+                                </span>
+                              </div>
+                              {item.details && <p className="text-gray-300 text-sm">{item.details}</p>}
+                              <div className="flex gap-2 mt-3">
+                                <button className="px-3 py-1 bg-green-500/20 text-green-400 rounded text-sm font-semibold hover:bg-green-500/30">
+                                  ✅ Approve
+                                </button>
+                                <button className="px-3 py-1 bg-red-500/20 text-red-400 rounded text-sm font-semibold hover:bg-red-500/30">
+                                  ❌ Reject
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-gray-400 text-sm">0 decisiones pendientes de aprobacion esta semana.</p>
+                      )}
+                    </div>
+
+                    {/* Auto-resolved summary section (ALWAYS show) */}
+                    <div className="bg-[#1f2937] p-5 rounded-lg border border-green-500/30">
+                      <h4 className="text-lg font-bold text-green-400 mb-4">
+                        Auto-resolved
+                      </h4>
+                      {autoResolved && autoResolved.length > 0 ? (
+                        <details className="group">
+                          <summary className="cursor-pointer list-none text-gray-300 text-sm">
+                            {autoResolved.length} decisiones auto-resueltas esta semana
+                            <span className="text-xs text-gray-400 ml-2 group-open:hidden">Click para expandir</span>
+                            <span className="text-xs text-gray-400 ml-2 group-open:inline hidden">Click para colapsar</span>
+                          </summary>
+                          <div className="space-y-2 mt-2">
+                            {autoResolved.map((item, idx) => (
+                              <div key={idx} className="bg-[#2a2f3a] p-3 rounded-lg border-l-4 border-green-500">
+                                <p className="text-white font-semibold text-sm">{item.type || item.decision_type || 'Auto-resolved'}</p>
+                                <p className="text-gray-300 text-xs mt-1">{item.description || item.title || 'Resolved automatically'}</p>
+                                {item.guest_name && <p className="text-gray-400 text-xs mt-1">Guest: {item.guest_name}</p>}
+                              </div>
+                            ))}
+                          </div>
+                        </details>
+                      ) : (
+                        <p className="text-gray-400 text-sm">0 decisiones auto-resueltas esta semana.</p>
+                      )}
+                    </div>
+
+                    {/* Bookings table - ALWAYS SHOW */}
+                    <div className="bg-[#1f2937] p-5 rounded-lg border border-blue-500/30">
+                      <h4 className="text-lg font-bold text-blue-400 mb-4 flex items-center gap-2">
+                        <ClipboardList className="w-5 h-5" />
+                        In-house Guests / Bookings
+                      </h4>
+                      {bookingsList && bookingsList.length > 0 ? (
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-left text-sm">
+                            <thead>
+                              <tr className="border-b border-gray-700">
+                                <th className="pb-2 text-gray-400">Guest</th>
+                                <th className="pb-2 text-gray-400">Villa</th>
+                                <th className="pb-2 text-gray-400">Check-in</th>
+                                <th className="pb-2 text-gray-400">Check-out</th>
+                                <th className="pb-2 text-gray-400">Noches</th>
+                                <th className="pb-2 text-gray-400">Revenue IDR</th>
+                                <th className="pb-2 text-gray-400">Canal</th>
+                                <th className="pb-2 text-gray-400">Status</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-700">
+                              {bookingsList.map((booking, idx) => {
+                                const checkIn = booking.check_in ? new Date(booking.check_in) : null;
+                                const checkOut = booking.check_out ? new Date(booking.check_out) : null;
+                                const checkInFormatted = checkIn ? `${checkIn.getDate()} ${checkIn.toLocaleString('en', { month: 'short' })}` : '—';
+                                const checkOutFormatted = checkOut ? `${checkOut.getDate()} ${checkOut.toLocaleString('en', { month: 'short' })}` : '—';
+                                const status = booking.status || 'confirmed';
+                                const statusBadge = status === 'confirmed' ? 'bg-[#D1FAE5] text-[#065F46]' :
+                                                   status === 'cancelled' ? 'bg-[#FEE2E2] text-[#991B1B]' :
+                                                   'bg-[#FEF3C7] text-[#92400E]';
+                                return (
+                                  <tr key={idx} className="text-gray-300">
+                                    <td className="py-2 font-semibold text-white">{booking.guest_name || booking.guest || '—'}</td>
+                                    <td className="py-2">{booking.villa_name || booking.villa || '—'}</td>
+                                    <td className="py-2">{checkInFormatted}</td>
+                                    <td className="py-2">{checkOutFormatted}</td>
+                                    <td className="py-2 text-center">{booking.nights || booking.total_nights || '—'}</td>
+                                    <td className="py-2 font-semibold text-purple-400">{formatIDR(booking.revenue || 0)}</td>
+                                    <td className="py-2 capitalize">{booking.channel || booking.source || '—'}</td>
+                                    <td className="py-2">
+                                      <span className={`px-2 py-1 rounded text-xs font-semibold ${statusBadge}`}>
+                                        {status}
+                                      </span>
+                                    </td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
+                      ) : (
+                        <p className="text-gray-400 text-sm">0 bookings esta semana.</p>
+                      )}
+                    </div>
+
+                    {/* Revenue por villa table - ALWAYS SHOW */}
+                    <div className="bg-[#1f2937] p-5 rounded-lg border border-purple-500/30">
+                      <h4 className="text-lg font-bold text-purple-400 mb-4 flex items-center gap-2">
+                        <TrendingUp className="w-5 h-5" />
+                        Revenue por villa
+                      </h4>
+                      {revenueByVilla && revenueByVilla.length > 0 ? (
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-left text-sm">
+                            <thead>
+                              <tr className="border-b border-gray-700">
+                                <th className="pb-2 text-gray-400">Villa</th>
+                                <th className="pb-2 text-gray-400 text-right">Revenue IDR</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-700">
+                              {revenueByVilla.map((villa, idx) => (
+                                <tr key={idx} className="text-gray-300">
+                                  <td className="py-2 font-semibold text-white">{villa.villa_name || villa.villa || '—'}</td>
+                                  <td className="py-2 font-bold text-purple-400 text-right">{formatIDR(villa.revenue || 0)}</td>
+                                </tr>
+                              ))}
+                              <tr className="border-t-2 border-purple-500/50">
+                                <td className="py-2 font-bold text-white">TOTAL</td>
+                                <td className="py-2 font-bold text-purple-400 text-right">
+                                  {formatIDR(revenueByVilla.reduce((sum, v) => sum + (v.revenue || 0), 0))}
+                                </td>
+                              </tr>
+                            </tbody>
+                          </table>
+                        </div>
+                      ) : (
+                        <p className="text-gray-400 text-sm">0 villas esta semana.</p>
+                      )}
+                    </div>
+
+                    {/* Guest Requests - ALWAYS SHOW */}
+                    <div className="bg-[#1f2937] p-5 rounded-lg border border-pink-500/30">
+                      <h4 className="text-lg font-bold text-pink-400 mb-4 flex items-center gap-2">
+                        <MessageSquare className="w-5 h-5" />
+                        Guest Requests
+                      </h4>
+                      {(() => {
+                        const guestRequests = summary.guest_requests || [];
+                        return guestRequests.length > 0 ? (
+                          <div className="overflow-x-auto">
+                            <table className="w-full text-left text-sm">
+                              <thead>
+                                <tr className="border-b border-gray-700">
+                                  <th className="pb-2 text-gray-400">Fecha</th>
+                                  <th className="pb-2 text-gray-400">Villa</th>
+                                  <th className="pb-2 text-gray-400">Guest</th>
+                                  <th className="pb-2 text-gray-400">Request</th>
+                                  <th className="pb-2 text-gray-400">Status</th>
+                                </tr>
+                              </thead>
+                              <tbody className="divide-y divide-gray-700">
+                                {guestRequests.map((request, idx) => {
+                                  const fecha = request.created_at ? new Date(request.created_at) : null;
+                                  const fechaFormatted = fecha ?
+                                    `${fecha.getDate()}\n${fecha.toLocaleString('en', { month: 'short' })}` :
+                                    '—';
+
+                                  const isApproved = request.status === 'approved';
+                                  const isRejected = request.status === 'rejected';
+                                  const isAuto = request.approved_by === 'autopilot';
+
+                                  return (
+                                    <tr key={request.id || idx} className="text-gray-300">
+                                      <td className="py-2 whitespace-pre-line">{fechaFormatted}</td>
+                                      <td className="py-2">{request.villa_name || '—'}</td>
+                                      <td className="py-2">{request.guest_name || '—'}</td>
+                                      <td className="py-2">{request.description || request.request || 'N/A'}</td>
+                                      <td className="py-2">
+                                        {isApproved && (
+                                          <div className="flex items-center gap-2">
+                                            <span className="text-green-400">✅ Approved</span>
+                                            {isAuto && (
+                                              <span className="px-2 py-0.5 rounded text-xs font-semibold bg-[#D1FAE5] text-[#065F46]">
+                                                Auto
+                                              </span>
+                                            )}
+                                          </div>
+                                        )}
+                                        {isRejected && (
+                                          <span className="text-red-400">❌ Rejected</span>
+                                        )}
+                                        {!isApproved && !isRejected && (
+                                          <span className="text-gray-500">—</span>
+                                        )}
+                                      </td>
+                                    </tr>
+                                  );
+                                })}
+                              </tbody>
+                            </table>
+                          </div>
+                        ) : (
+                          <p className="text-gray-400 text-sm">0 requests esta semana.</p>
+                        );
+                      })()}
+                    </div>
+
+                    {/* Decisions - ALWAYS SHOW */}
+                    <div className="bg-[#1f2937] p-5 rounded-lg border border-red-500/30">
+                      <h4 className="text-lg font-bold text-red-400 mb-4 flex items-center gap-2">
+                        <AlertCircle className="w-5 h-5" />
+                        Decisions
+                      </h4>
+                      {(() => {
+                        const decisions = summary.decisions_list || [];
+                        return decisions.length > 0 ? (
                           <div className="overflow-x-auto">
                             <table className="w-full text-left text-sm">
                               <thead>
@@ -7173,8 +7747,8 @@ const Autopilot = ({ onBack }) => {
                                 </tr>
                               </thead>
                               <tbody className="divide-y divide-gray-700">
-                                {todayPending.map((decision) => (
-                                  <tr key={decision.id} className="text-gray-300">
+                                {decisions.map((decision, idx) => (
+                                  <tr key={decision.id || idx} className="text-gray-300">
                                     <td className="py-2">
                                       <span className={`px-2 py-1 rounded text-xs font-bold ${
                                         decision.priority === 'urgent' ? 'bg-[#FEE2E2] text-[#991B1B]' :
@@ -7222,317 +7796,100 @@ const Autopilot = ({ onBack }) => {
                               </tbody>
                             </table>
                           </div>
-                          <p className="text-xs text-blue-400 mt-3">
-                            ℹ️ Fuente: Daily API v2.4 → pending_decisions. Ordenar: URGENT → HIGH → MEDIUM → LOW.
-                          </p>
-                          <p className="text-xs text-orange-400 mt-1">
-                            ⚠️ NO mostrar Approve/Reject si approved_by = autopilot. Badge 📱 WhatsApp si generated_by_agent = banyu.
-                          </p>
-                        </>
-                      ) : (
-                        <div className="flex items-center gap-3 text-gray-300 p-4 bg-[#2a2f3a] rounded-lg">
-                          <span className="text-2xl">✅</span>
-                          <p className="text-lg font-semibold">No hay decisiones pendientes hoy. Todas resueltas.</p>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })()}
-
-                {/* Auto-resolved today - NUEVO v2 */}
-                {dailyBriefing?.auto_resolved_today && dailyBriefing.auto_resolved_today.count > 0 && (
-                  <div className="bg-[#E2EFDA] border border-[#276221] rounded-lg overflow-hidden">
-                    <button
-                      onClick={() => {
-                        const elem = document.getElementById('auto-resolved-section');
-                        if (elem) elem.classList.toggle('hidden');
-                      }}
-                      className="w-full px-5 py-3 bg-[#276221] text-white font-bold text-left flex items-center justify-between hover:bg-[#1e4a19] transition-colors"
-                    >
-                      <span className="flex items-center gap-2">
-                        <CheckCircle className="w-5 h-5" />
-                        ✅ Auto-resolved today ({dailyBriefing?.auto_resolved_today?.count})
-                      </span>
-                      <span className="text-sm">Click to {dailyBriefing?.auto_resolved_today?.count <= 3 ? 'expand' : 'collapse'}</span>
-                    </button>
-                    <div
-                      id="auto-resolved-section"
-                      className={`p-5 space-y-3 ${dailyBriefing?.auto_resolved_today?.count <= 3 ? 'hidden' : ''}`}
-                    >
-                      {dailyBriefing?.auto_resolved_today?.items?.map((item, idx) => (
-                        <div key={idx} className="bg-white p-4 rounded-lg border border-[#276221]/30">
-                          <div className="flex items-start justify-between mb-2">
-                            <div>
-                              <p className="text-[#276221] font-bold">{item.type?.replace(/_/g, ' ').toUpperCase()}</p>
-                              {item.guest && <p className="text-gray-700 text-sm">{item.guest}</p>}
-                              {item.guest_phone && <p className="text-gray-500 text-xs">{item.guest_phone}</p>}
-                            </div>
-                            {item.resolved_at && (
-                              <span className="text-xs text-gray-500">
-                                {new Date(item.resolved_at).toLocaleTimeString()}
-                              </span>
-                            )}
-                          </div>
-                          <p className="text-gray-800 text-sm">{item.resolution}</p>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Guest Requests - v4.3 con formato TABLA según PDF */}
-                {(() => {
-                  // Deduplicar por ID para evitar bug del WF (22 duplicados → 11 únicos)
-                  const uniqueRequests = dailySummaryAPI?.guest_requests
-                    ? Array.from(
-                        dailySummaryAPI.guest_requests
-                          .reduce((map, request) => {
-                            if (request.id && !map.has(request.id)) {
-                              map.set(request.id, request);
-                            }
-                            return map;
-                          }, new Map())
-                          .values()
-                      )
-                    : [];
-
-                  return uniqueRequests.length > 0 && (
-                    <div className="bg-[#1f2937] p-5 rounded-lg border border-pink-500/30">
-                      <h4 className="text-lg font-bold text-pink-400 mb-4 flex items-center gap-2">
-                        <MessageSquare className="w-5 h-5" />
-                        Guest requests — {uniqueRequests.length} total
-                      </h4>
-                      <div className="overflow-x-auto">
-                        <table className="w-full text-left text-sm">
-                          <thead>
-                            <tr className="border-b border-gray-700">
-                              <th className="pb-2 text-gray-400">Fecha</th>
-                              <th className="pb-2 text-gray-400">Villa</th>
-                              <th className="pb-2 text-gray-400">Guest</th>
-                              <th className="pb-2 text-gray-400">Request</th>
-                              <th className="pb-2 text-gray-400">Status</th>
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-gray-700">
-                            {uniqueRequests.map((request) => {
-                              const fecha = request.created_at ? new Date(request.created_at) : null;
-                              const fechaFormatted = fecha ?
-                                `${fecha.getDate()}\n${fecha.toLocaleString('en', { month: 'short' })}` :
-                                '—';
-
-                              const isApproved = request.status === 'approved';
-                              const isRejected = request.status === 'rejected';
-                              const isAuto = request.approved_by === 'autopilot';
-
-                              return (
-                                <tr key={request.id} className="text-gray-300">
-                                  <td className="py-2 whitespace-pre-line">{fechaFormatted}</td>
-                                  <td className="py-2">{request.villa_name || '—'}</td>
-                                  <td className="py-2">{request.guest_name || '—'}</td>
-                                  <td className="py-2">{request.description || request.request || 'N/A'}</td>
-                                  <td className="py-2">
-                                    {isApproved && (
-                                      <div className="flex items-center gap-2">
-                                        <span className="text-green-400">✅ Approved</span>
-                                        {isAuto && (
-                                          <span className="px-2 py-0.5 rounded text-xs font-semibold bg-[#D1FAE5] text-[#065F46]">
-                                            Auto
-                                          </span>
-                                        )}
-                                      </div>
-                                    )}
-                                    {isRejected && (
-                                      <span className="text-red-400">❌ Rejected</span>
-                                    )}
-                                    {!isApproved && !isRejected && (
-                                      <span className="text-gray-500">—</span>
-                                    )}
-                                  </td>
-                                </tr>
-                              );
-                            })}
-                          </tbody>
-                        </table>
-                      </div>
-                    </div>
-                  );
-                })()}
-              </div>
-            )
-          ) : filterDecisionPeriod === 'weekly' ? (
-            loadingSummaries ? (
-              <div className="text-center py-8 bg-[#2a2f3a] rounded-lg border-2 border-gray-700">
-                <div className="w-12 h-12 border-4 border-orange-500/30 border-t-orange-500 rounded-full animate-spin mx-auto mb-3" />
-                <p className="text-gray-300 text-lg">Loading weekly summaries...</p>
-              </div>
-            ) : weeklySummaries.length === 0 ? (
-              <div className="text-center py-8 bg-[#2a2f3a] rounded-lg border-2 border-gray-700">
-                <CheckCircle className="w-12 h-12 text-green-500 mx-auto mb-3" />
-                <p className="text-gray-300 text-lg">No weekly summaries available</p>
-                <p className="text-gray-500 text-sm mt-1">Weekly summaries will appear here once generated</p>
-              </div>
-            ) : (
-              weeklySummaries.map((summary) => {
-                const guestFeedback = summary.guest_feedback_summary || {};
-                const serviceFlags = summary.service_quality_flags || {};
-                const operations = summary.operations_summary || {};
-                const marketing = summary.marketing_summary || {};
-                const recommendations = summary.recommendations_json || [];
-
-                return (
-                  <div key={summary.id} className="bg-[#2a2f3a] rounded-lg p-6 border-2 border-[#FF8C42]/50 space-y-6">
-                    {/* Header */}
-                    <div className="border-b border-gray-700 pb-4">
-                      <h3 className="text-2xl font-bold text-[#FF8C42] mb-2">
-                        Weekly Summary
-                      </h3>
-                      <p className="text-gray-400">
-                        Week: {new Date(summary.week_start).toLocaleDateString()} - {new Date(summary.week_end).toLocaleDateString()}
-                      </p>
+                        ) : (
+                          <p className="text-gray-400 text-sm">0 decisiones esta semana.</p>
+                        );
+                      })()}
                     </div>
 
-                    {/* KPIs */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="bg-[#1f2937] p-4 rounded-lg border border-green-500/30 text-center">
-                        <p className="text-gray-400 text-sm mb-1">Occupancy Rate</p>
-                        <p className="text-3xl font-bold text-green-400">{summary.occupancy_rate ? summary.occupancy_rate.toFixed(1) : '0'}%</p>
-                      </div>
-                      <div className="bg-[#1f2937] p-4 rounded-lg border border-blue-500/30 text-center">
-                        <p className="text-gray-400 text-sm mb-1">Total Bookings</p>
-                        <p className="text-3xl font-bold text-blue-400">{summary.total_bookings || 0}</p>
-                      </div>
-                    </div>
-
-                    {/* Guest Feedback */}
-                    {guestFeedback && Object.keys(guestFeedback).length > 0 && (
-                      <div className="bg-[#1f2937] p-5 rounded-lg border border-orange-500/30">
-                        <h4 className="text-lg font-bold text-orange-400 mb-4 flex items-center gap-2">
-                          <MessageSquare className="w-5 h-5" />
-                          Guest Feedback
-                        </h4>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <div className="text-center">
-                            <p className="text-gray-400 text-sm">Sentiment</p>
-                            <p className="text-white font-semibold capitalize">{guestFeedback.sentiment || 'N/A'}</p>
-                          </div>
-                          <div className="text-center">
-                            <p className="text-gray-400 text-sm">Total Complaints</p>
-                            <p className="text-white font-semibold">{guestFeedback.total_complaints || 0}</p>
-                          </div>
-                        </div>
-                        {guestFeedback.complaint_summaries && guestFeedback.complaint_summaries.length > 0 && (
-                          <div className="mt-4">
-                            <p className="text-gray-400 text-sm mb-2">Complaint Details:</p>
-                            <ul className="list-disc list-inside text-gray-300 text-sm space-y-1">
-                              {guestFeedback.complaint_summaries.map((complaint, idx) => (
-                                <li key={idx}>{complaint}</li>
-                              ))}
-                            </ul>
-                          </div>
-                        )}
-                      </div>
-                    )}
-
-                    {/* Service Quality */}
-                    {serviceFlags && Object.keys(serviceFlags).length > 0 && (
-                      <div className="bg-[#1f2937] p-5 rounded-lg border border-yellow-500/30">
-                        <h4 className="text-lg font-bold text-yellow-400 mb-4 flex items-center gap-2">
-                          <AlertCircle className="w-5 h-5" />
-                          Service Quality
-                        </h4>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                          <div className="text-center">
-                            <p className="text-gray-400 text-sm">Severity</p>
-                            <p className="text-white font-semibold capitalize">{serviceFlags.severity || 'N/A'}</p>
-                          </div>
-                          <div className="text-center">
-                            <p className="text-gray-400 text-sm">Open Issues</p>
-                            <p className="text-white font-semibold">{serviceFlags.open_issues || 0}</p>
-                          </div>
-                          <div className="text-center">
-                            <p className="text-gray-400 text-sm">Service Requests</p>
-                            <p className="text-white font-semibold">{serviceFlags.total_service_requests || 0}</p>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Operations */}
-                    {operations && Object.keys(operations).length > 0 && (
-                      <div className="bg-[#1f2937] p-5 rounded-lg border border-purple-500/30">
-                        <h4 className="text-lg font-bold text-purple-400 mb-4 flex items-center gap-2">
-                          <ClipboardList className="w-5 h-5" />
-                          Operations Summary
-                        </h4>
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                          <div className="text-center">
-                            <p className="text-gray-400 text-sm">Total Decisions</p>
-                            <p className="text-white font-bold text-xl">{operations.total_decisions || 0}</p>
-                          </div>
-                          <div className="text-center">
-                            <p className="text-gray-400 text-sm">Pending</p>
-                            <p className="text-yellow-400 font-bold text-xl">{operations.pending || 0}</p>
-                          </div>
-                          <div className="text-center">
-                            <p className="text-gray-400 text-sm">Approved</p>
-                            <p className="text-green-400 font-bold text-xl">{operations.approved || 0}</p>
-                          </div>
-                          <div className="text-center">
-                            <p className="text-gray-400 text-sm">Rejected</p>
-                            <p className="text-red-400 font-bold text-xl">{operations.rejected || 0}</p>
-                          </div>
-                        </div>
-                        <div className="grid grid-cols-2 gap-4 mt-4">
-                          <div className="text-center">
-                            <p className="text-gray-400 text-sm">Urgent</p>
-                            <p className="text-red-400 font-bold text-xl">{operations.urgent || 0}</p>
-                          </div>
-                          <div className="text-center">
-                            <p className="text-gray-400 text-sm">High Priority</p>
-                            <p className="text-orange-400 font-bold text-xl">{operations.high_priority || 0}</p>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Marketing */}
-                    {marketing && Object.keys(marketing).length > 0 && (
+                    {/* Canales table */}
+                    {channels && channels.length > 0 && (
                       <div className="bg-[#1f2937] p-5 rounded-lg border border-pink-500/30">
                         <h4 className="text-lg font-bold text-pink-400 mb-4 flex items-center gap-2">
-                          <TrendingUp className="w-5 h-5" />
-                          Marketing & Bookings
+                          <MessageSquare className="w-5 h-5" />
+                          Canales
                         </h4>
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                          <div className="text-center">
-                            <p className="text-gray-400 text-sm">Total Bookings</p>
-                            <p className="text-white font-bold text-xl">{marketing.total_bookings || 0}</p>
-                          </div>
-                          <div className="text-center">
-                            <p className="text-gray-400 text-sm">Confirmed</p>
-                            <p className="text-green-400 font-bold text-xl">{marketing.confirmed || 0}</p>
-                          </div>
-                          <div className="text-center">
-                            <p className="text-gray-400 text-sm">Cancelled</p>
-                            <p className="text-red-400 font-bold text-xl">{marketing.cancelled || 0}</p>
-                          </div>
-                          <div className="text-center">
-                            <p className="text-gray-400 text-sm">Nights Booked</p>
-                            <p className="text-blue-400 font-bold text-xl">{marketing.nights_booked || 0}</p>
-                          </div>
-                        </div>
-                        <div className="mt-4 text-center">
-                          <p className="text-gray-400 text-sm">Demand Status</p>
-                          <p className="text-white font-semibold capitalize">{marketing.demand || 'N/A'}</p>
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-left text-sm">
+                            <thead>
+                              <tr className="border-b border-gray-700">
+                                <th className="pb-2 text-gray-400">Canal</th>
+                                <th className="pb-2 text-gray-400 text-right">Bookings</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-700">
+                              {channels.map((channel, idx) => (
+                                <tr key={idx} className="text-gray-300">
+                                  <td className="py-2 capitalize font-semibold text-white">{channel.channel || channel.name || '—'}</td>
+                                  <td className="py-2 font-bold text-pink-400 text-right">{channel.bookings || channel.count || 0}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
                         </div>
                       </div>
                     )}
 
-                    {/* Recommendations */}
+                    {/* Owner decisions esta semana */}
+                    {decisionsList && decisionsList.length > 0 && (
+                      <div className="bg-[#1f2937] p-5 rounded-lg border border-red-500/30">
+                        <h4 className="text-lg font-bold text-red-400 mb-4 flex items-center gap-2">
+                          <AlertCircle className="w-5 h-5" />
+                          Owner decisions esta semana ({decisionsList.length})
+                        </h4>
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-left text-sm">
+                            <thead>
+                              <tr className="border-b border-gray-700">
+                                <th className="pb-2 text-gray-400">Prioridad</th>
+                                <th className="pb-2 text-gray-400">Tipo</th>
+                                <th className="pb-2 text-gray-400">Villa</th>
+                                <th className="pb-2 text-gray-400">Decisión · Guest</th>
+                                <th className="pb-2 text-gray-400">Status</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-700">
+                              {decisionsList.map((decision, idx) => (
+                                <tr key={idx} className="text-gray-300">
+                                  <td className="py-2">
+                                    <span className={`px-2 py-1 rounded text-xs font-bold ${
+                                      decision.priority === 'urgent' ? 'bg-[#FEE2E2] text-[#991B1B]' :
+                                      decision.priority === 'high' ? 'bg-[#FEF3C7] text-[#92400E]' :
+                                      decision.priority === 'medium' ? 'bg-[#DBEAFE] text-[#1E40AF]' :
+                                      'bg-[#F3F4F6] text-[#6B7280]'
+                                    }`}>
+                                      {decision.priority?.toUpperCase()}
+                                    </span>
+                                  </td>
+                                  <td className="py-2 capitalize">{decision.type || decision.decision_type || '—'}</td>
+                                  <td className="py-2">{decision.villa_name || decision.villa || '—'}</td>
+                                  <td className="py-2">
+                                    <p className="font-semibold text-white">{decision.title || decision.description || '—'}</p>
+                                    {decision.guest_name && <p className="text-xs text-gray-400">Guest: {decision.guest_name}</p>}
+                                  </td>
+                                  <td className="py-2">
+                                    <span className={`px-2 py-1 rounded text-xs font-semibold ${
+                                      decision.status === 'approved' ? 'bg-[#D1FAE5] text-[#065F46]' :
+                                      decision.status === 'rejected' ? 'bg-[#FEE2E2] text-[#991B1B]' :
+                                      'bg-[#FEF3C7] text-[#92400E]'
+                                    }`}>
+                                      {decision.status || 'pending'}
+                                    </span>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Recomendaciones */}
                     {recommendations && recommendations.length > 0 && (
                       <div className="bg-[#1f2937] p-5 rounded-lg border border-green-500/30">
                         <h4 className="text-lg font-bold text-green-400 mb-4 flex items-center gap-2">
                           <CheckCircle className="w-5 h-5" />
-                          Recommendations
+                          Recomendaciones
                         </h4>
                         <div className="space-y-3">
                           {recommendations.map((rec, idx) => (
@@ -7547,7 +7904,7 @@ const Autopilot = ({ onBack }) => {
                                   {rec.priority?.toUpperCase() || 'MEDIUM'}
                                 </span>
                               </div>
-                              <p className="text-gray-300 text-sm">{rec.action}</p>
+                              <p className="text-gray-300 text-sm">{rec.action || rec.recommendation || '—'}</p>
                             </div>
                           ))}
                         </div>
@@ -7555,10 +7912,10 @@ const Autopilot = ({ onBack }) => {
                     )}
                   </div>
                 );
-              })
+              })()
             )
           ) : filterDecisionPeriod === 'monthly' ? (
-            /* MONTHLY SUMMARIES VIEW */
+            /* MONTHLY SUMMARIES VIEW v4.3 */
             loadingSummaries ? (
               <div className="text-center py-8 bg-[#2a2f3a] rounded-lg border-2 border-gray-700">
                 <div className="w-12 h-12 border-4 border-orange-500/30 border-t-orange-500 rounded-full animate-spin mx-auto mb-3" />
@@ -7572,283 +7929,386 @@ const Autopilot = ({ onBack }) => {
               </div>
             ) : (
               monthlySummaries.map((summary) => {
-                const bookingTrends = summary.booking_trends_json || {};
-                const operationalCosts = summary.operational_costs_json || {};
-                const improvements = summary.improvements_json || [];
+                const bookingsList = summary.bookings_list || [];
+                const revenueByVilla = summary.revenue_by_villa || [];
+                const decisionsList = summary.decisions_list || [];
                 const strategicRecs = summary.strategic_recommendations_json || [];
-                const occupancySummary = typeof summary.occupancy_summary === 'string' ? summary.occupancy_summary : (summary.occupancy_summary || {});
-                const operationalIssues = typeof summary.operational_issues_summary === 'string' ? summary.operational_issues_summary : '';
-                const marketingSummary = typeof summary.marketing_summary === 'string' ? summary.marketing_summary : '';
+                const autoResolved = summary.auto_resolved_summary || [];
+                const pendingApproval = summary.pending_approval || [];
+                const occupancySummary = summary.occupancy_summary || {};
+                const bookingTrends = summary.booking_trends_json || {};
+                const channels = bookingTrends.channels || [];
+
+                // Parse month_key (e.g., "2026-03")
+                const monthKey = summary.month_key || '';
+                const [year, month] = monthKey.split('-');
+                const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+                const monthName = month ? monthNames[parseInt(month) - 1] : '';
+                const monthDisplay = monthName && year ? `${monthName} ${year}` : monthKey;
+
+                // Count villas and days
+                const villasCount = revenueByVilla.length || 3;
+                const daysInMonth = occupancySummary.days_in_month || 31;
 
                 return (
                   <div key={summary.id} className="bg-[#2a2f3a] rounded-lg p-6 border-2 border-[#FF8C42]/50 space-y-6">
                     {/* Header */}
                     <div className="border-b border-gray-700 pb-4">
                       <h3 className="text-2xl font-bold text-[#FF8C42] mb-2">
-                        Monthly Summary
+                        MONTHLY — {monthDisplay} · Nismara Uma Villa · {villasCount} villas · {daysInMonth} días
                       </h3>
-                      <p className="text-gray-400">
-                        Month: {summary.month_key}
-                      </p>
                     </div>
 
-                    {/* Revenue KPI */}
-                    <div className="bg-[#1f2937] p-4 rounded-lg border border-green-500/30 text-center">
-                      <p className="text-gray-400 text-sm mb-1">Total Revenue</p>
-                      <p className="text-3xl font-bold text-green-400">
-                        ${summary.revenue_total ? summary.revenue_total.toLocaleString() : '0'}
-                      </p>
-                    </div>
-
-                    {/* Booking Trends */}
-                    {bookingTrends && Object.keys(bookingTrends).length > 0 && (
-                      <div className="bg-[#1f2937] p-5 rounded-lg border border-blue-500/30">
-                        <h4 className="text-lg font-bold text-blue-400 mb-4 flex items-center gap-2">
-                          <TrendingUp className="w-5 h-5" />
-                          Booking Trends
-                        </h4>
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                          {bookingTrends.total_bookings !== undefined && (
-                            <div className="text-center">
-                              <p className="text-gray-400 text-sm">Total Bookings</p>
-                              <p className="text-white font-bold text-xl">{bookingTrends.total_bookings || 0}</p>
-                            </div>
-                          )}
-                          {bookingTrends.confirmed !== undefined && (
-                            <div className="text-center">
-                              <p className="text-gray-400 text-sm">Confirmed</p>
-                              <p className="text-green-400 font-bold text-xl">{bookingTrends.confirmed || 0}</p>
-                            </div>
-                          )}
-                          {bookingTrends.cancelled !== undefined && (
-                            <div className="text-center">
-                              <p className="text-gray-400 text-sm">Cancelled</p>
-                              <p className="text-red-400 font-bold text-xl">{bookingTrends.cancelled || 0}</p>
-                            </div>
-                          )}
-                          {bookingTrends.total_nights !== undefined && (
-                            <div className="text-center">
-                              <p className="text-gray-400 text-sm">Total Nights</p>
-                              <p className="text-blue-400 font-bold text-xl">{bookingTrends.total_nights || 0}</p>
-                            </div>
-                          )}
-                        </div>
-                        {bookingTrends.trend && (
-                          <div className="mt-4 text-center">
-                            <p className="text-gray-400 text-sm">Trend</p>
-                            <p className="text-white font-semibold capitalize">{bookingTrends.trend}</p>
+                    {/* KPIs - Same 4 as Daily v4.3 */}
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      {/* KPI 1: Occupancy rate */}
+                      {(() => {
+                        const occupancyNum = summary.occupancy_rate || occupancySummary.average_occupancy_pct || 0;
+                        const colorClass = occupancyNum >= 70 ? 'text-green-400' :
+                                          occupancyNum >= 40 ? 'text-orange-400' : 'text-red-400';
+                        const borderClass = occupancyNum >= 70 ? 'border-green-500/30' :
+                                           occupancyNum >= 40 ? 'border-orange-500/30' : 'border-red-500/30';
+                        return (
+                          <div className={`bg-[#1f2937] p-4 rounded-lg border ${borderClass} text-center`}>
+                            <p className="text-gray-400 text-sm mb-1">Occupancy rate</p>
+                            <p className={`text-3xl font-bold ${colorClass}`}>
+                              {occupancyNum.toFixed(1)}%
+                            </p>
+                            <p className="text-xs text-gray-500 mt-1">
+                              {summary.occupancy_label || ''}
+                            </p>
                           </div>
-                        )}
+                        );
+                      })()}
+
+                      {/* KPI 2: Total bookings */}
+                      <div className="bg-[#1f2937] p-4 rounded-lg border border-blue-500/30 text-center">
+                        <p className="text-gray-400 text-sm mb-1">Total bookings</p>
+                        <p className="text-3xl font-bold text-blue-400">
+                          {summary.total_bookings || bookingTrends.total_bookings || 0}
+                        </p>
+                        <p className="text-xs text-gray-500 mt-1">este mes</p>
+                      </div>
+
+                      {/* KPI 3: Revenue confirmado */}
+                      <div className="bg-[#1f2937] p-4 rounded-lg border border-purple-500/30 text-center">
+                        <p className="text-gray-400 text-sm mb-1">Revenue confirmado</p>
+                        <p className="text-3xl font-bold text-purple-400">
+                          {formatIDR(summary.revenue_total_idr || summary.revenue_total || 0)}
+                        </p>
+                        <p className="text-xs text-gray-500 mt-1">total mensual</p>
+                      </div>
+
+                      {/* KPI 4: Gap nights */}
+                      {(() => {
+                        const gapNights = summary.gap_nights || occupancySummary.gap_nights || 0;
+                        const gapColorClass = gapNights === 0 ? 'text-green-400' :
+                                             gapNights <= 10 ? 'text-orange-400' : 'text-red-400';
+                        const gapBorderClass = gapNights === 0 ? 'border-green-500/30' :
+                                              gapNights <= 10 ? 'border-orange-500/30' : 'border-red-500/30';
+                        return (
+                          <div className={`bg-[#1f2937] p-4 rounded-lg border ${gapBorderClass} text-center`}>
+                            <p className="text-gray-400 text-sm mb-1">Gap nights</p>
+                            <p className={`text-3xl font-bold ${gapColorClass}`}>
+                              {gapNights}
+                            </p>
+                            <p className="text-xs text-gray-500 mt-1">
+                              {summary.gap_label || ''}
+                            </p>
+                          </div>
+                        );
+                      })()}
+                    </div>
+
+                    {/* Pending Approval section (ALWAYS show) */}
+                    <div className="bg-[#1f2937] p-5 rounded-lg border border-orange-500/30">
+                      <h4 className="text-lg font-bold text-orange-400 mb-4">
+                        Pending Approval
+                      </h4>
+                      {pendingApproval && pendingApproval.length > 0 ? (
+                        <div className="space-y-3">
+                          {pendingApproval.map((item, idx) => (
+                            <div key={idx} className="bg-[#2a2f3a] p-4 rounded-lg border-l-4 border-orange-500">
+                              <div className="flex items-start justify-between mb-2">
+                                <p className="text-white font-semibold">{item.title || item.description || 'Decision required'}</p>
+                                <span className="px-2 py-1 rounded text-xs font-bold bg-orange-500/20 text-orange-400">
+                                  {item.priority?.toUpperCase() || 'PENDING'}
+                                </span>
+                              </div>
+                              {item.details && <p className="text-gray-300 text-sm">{item.details}</p>}
+                              <div className="flex gap-2 mt-3">
+                                <button className="px-3 py-1 bg-green-500/20 text-green-400 rounded text-sm font-semibold hover:bg-green-500/30">
+                                  ✅ Approve
+                                </button>
+                                <button className="px-3 py-1 bg-red-500/20 text-red-400 rounded text-sm font-semibold hover:bg-red-500/30">
+                                  ❌ Reject
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-gray-400 text-sm">0 decisiones pendientes de aprobacion esta semana.</p>
+                      )}
+                    </div>
+
+                    {/* Auto-resolved summary section (NEW in v4.3) */}
+                    {autoResolved && autoResolved.length > 0 && (
+                      <div className="bg-[#1f2937] p-5 rounded-lg border border-green-500/30">
+                        <details className="group">
+                          <summary className="cursor-pointer list-none">
+                            <h4 className="text-lg font-bold text-green-400 mb-4 flex items-center gap-2">
+                              <CheckCircle className="w-5 h-5" />
+                              ✅ Auto-resolved este mes ({autoResolved.length})
+                              <span className="text-xs text-gray-400 ml-auto group-open:hidden">Click para expandir</span>
+                              <span className="text-xs text-gray-400 ml-auto group-open:inline hidden">Click para colapsar</span>
+                            </h4>
+                          </summary>
+                          <div className="space-y-2 mt-2">
+                            {autoResolved.map((item, idx) => (
+                              <div key={idx} className="bg-[#2a2f3a] p-3 rounded-lg border-l-4 border-green-500">
+                                <p className="text-white font-semibold text-sm">{item.type || item.decision_type || 'Auto-resolved'}</p>
+                                <p className="text-gray-300 text-xs mt-1">{item.description || item.title || 'Resolved automatically'}</p>
+                                {item.guest_name && <p className="text-gray-400 text-xs mt-1">Guest: {item.guest_name}</p>}
+                              </div>
+                            ))}
+                          </div>
+                        </details>
                       </div>
                     )}
 
-                    {/* Occupancy Summary */}
+                    {/* Bookings table (with Fecha column) */}
+                    {bookingsList && bookingsList.length > 0 && (
+                      <div className="bg-[#1f2937] p-5 rounded-lg border border-blue-500/30">
+                        <h4 className="text-lg font-bold text-blue-400 mb-4 flex items-center gap-2">
+                          <ClipboardList className="w-5 h-5" />
+                          Bookings este mes ({bookingsList.length})
+                        </h4>
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-left text-sm">
+                            <thead>
+                              <tr className="border-b border-gray-700">
+                                <th className="pb-2 text-gray-400">Fecha</th>
+                                <th className="pb-2 text-gray-400">Guest</th>
+                                <th className="pb-2 text-gray-400">Villa</th>
+                                <th className="pb-2 text-gray-400">Check-in</th>
+                                <th className="pb-2 text-gray-400">Check-out</th>
+                                <th className="pb-2 text-gray-400">Noches</th>
+                                <th className="pb-2 text-gray-400">Revenue IDR</th>
+                                <th className="pb-2 text-gray-400">Canal</th>
+                                <th className="pb-2 text-gray-400">Status</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-700">
+                              {bookingsList.map((booking, idx) => {
+                                const createdAt = booking.created_at ? new Date(booking.created_at) : null;
+                                const fechaFormatted = createdAt ? `${createdAt.getDate()} ${createdAt.toLocaleString('en', { month: 'short' })}` : '—';
+                                const checkIn = booking.check_in ? new Date(booking.check_in) : null;
+                                const checkOut = booking.check_out ? new Date(booking.check_out) : null;
+                                const checkInFormatted = checkIn ? `${checkIn.getDate()} ${checkIn.toLocaleString('en', { month: 'short' })}` : '—';
+                                const checkOutFormatted = checkOut ? `${checkOut.getDate()} ${checkOut.toLocaleString('en', { month: 'short' })}` : '—';
+                                const status = booking.status || 'confirmed';
+                                const statusBadge = status === 'confirmed' ? 'bg-[#D1FAE5] text-[#065F46]' :
+                                                   status === 'cancelled' ? 'bg-[#FEE2E2] text-[#991B1B]' :
+                                                   'bg-[#FEF3C7] text-[#92400E]';
+                                return (
+                                  <tr key={idx} className="text-gray-300">
+                                    <td className="py-2 text-xs">{fechaFormatted}</td>
+                                    <td className="py-2 font-semibold text-white">{booking.guest_name || booking.guest || '—'}</td>
+                                    <td className="py-2">{booking.villa_name || booking.villa || '—'}</td>
+                                    <td className="py-2">{checkInFormatted}</td>
+                                    <td className="py-2">{checkOutFormatted}</td>
+                                    <td className="py-2 text-center">{booking.nights || booking.total_nights || '—'}</td>
+                                    <td className="py-2 font-semibold text-purple-400">{formatIDR(booking.revenue || 0)}</td>
+                                    <td className="py-2 capitalize">{booking.channel || booking.source || '—'}</td>
+                                    <td className="py-2">
+                                      <span className={`px-2 py-1 rounded text-xs font-semibold ${statusBadge}`}>
+                                        {status}
+                                      </span>
+                                    </td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Revenue por villa table */}
+                    {revenueByVilla && revenueByVilla.length > 0 && (
+                      <div className="bg-[#1f2937] p-5 rounded-lg border border-purple-500/30">
+                        <h4 className="text-lg font-bold text-purple-400 mb-4 flex items-center gap-2">
+                          <TrendingUp className="w-5 h-5" />
+                          Revenue por villa
+                        </h4>
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-left text-sm">
+                            <thead>
+                              <tr className="border-b border-gray-700">
+                                <th className="pb-2 text-gray-400">Villa</th>
+                                <th className="pb-2 text-gray-400 text-right">Revenue IDR</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-700">
+                              {revenueByVilla.map((villa, idx) => (
+                                <tr key={idx} className="text-gray-300">
+                                  <td className="py-2 font-semibold text-white">{villa.villa_name || villa.villa || '—'}</td>
+                                  <td className="py-2 font-bold text-purple-400 text-right">{formatIDR(villa.revenue || 0)}</td>
+                                </tr>
+                              ))}
+                              <tr className="border-t-2 border-purple-500/50">
+                                <td className="py-2 font-bold text-white">TOTAL</td>
+                                <td className="py-2 font-bold text-purple-400 text-right">
+                                  {formatIDR(revenueByVilla.reduce((sum, v) => sum + (v.revenue || 0), 0))}
+                                </td>
+                              </tr>
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Occupancy Detail (progress bar) */}
                     {occupancySummary && typeof occupancySummary === 'object' && Object.keys(occupancySummary).length > 0 && (
                       <div className="bg-[#1f2937] p-5 rounded-lg border border-orange-500/30">
                         <h4 className="text-lg font-bold text-orange-400 mb-4 flex items-center gap-2">
                           <ClipboardList className="w-5 h-5" />
-                          Occupancy Summary
+                          Occupancy Detail
                         </h4>
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div className="space-y-3">
                           {occupancySummary.average_occupancy_pct !== undefined && (
-                            <div className="text-center">
-                              <p className="text-gray-400 text-sm">Avg Occupancy</p>
-                              <p className="text-green-400 font-bold text-xl">{occupancySummary.average_occupancy_pct}%</p>
-                            </div>
+                            <>
+                              <div className="flex justify-between text-sm mb-1">
+                                <span className="text-gray-400">Average Occupancy</span>
+                                <span className="text-white font-bold">{occupancySummary.average_occupancy_pct}%</span>
+                              </div>
+                              <div className="w-full bg-gray-700 rounded-full h-4 overflow-hidden">
+                                <div
+                                  className="h-full bg-gradient-to-r from-orange-500 to-orange-400 transition-all duration-500"
+                                  style={{ width: `${Math.min(occupancySummary.average_occupancy_pct || 0, 100)}%` }}
+                                />
+                              </div>
+                            </>
                           )}
-                          {occupancySummary.total_nights_booked !== undefined && (
-                            <div className="text-center">
-                              <p className="text-gray-400 text-sm">Nights Booked</p>
-                              <p className="text-blue-400 font-bold text-xl">{occupancySummary.total_nights_booked}</p>
-                            </div>
-                          )}
-                          {occupancySummary.days_in_month !== undefined && (
-                            <div className="text-center">
-                              <p className="text-gray-400 text-sm">Days in Month</p>
-                              <p className="text-gray-400 font-bold text-xl">{occupancySummary.days_in_month}</p>
-                            </div>
-                          )}
-                          {occupancySummary.gap_nights !== undefined && (
-                            <div className="text-center">
-                              <p className="text-gray-400 text-sm">Gap Nights</p>
-                              <p className="text-red-400 font-bold text-xl">{occupancySummary.gap_nights}</p>
-                            </div>
-                          )}
+                          <div className="grid grid-cols-3 gap-4 mt-4">
+                            {occupancySummary.total_nights_booked !== undefined && (
+                              <div className="text-center">
+                                <p className="text-gray-400 text-xs">Nights Booked</p>
+                                <p className="text-blue-400 font-bold text-lg">{occupancySummary.total_nights_booked}</p>
+                              </div>
+                            )}
+                            {occupancySummary.days_in_month !== undefined && (
+                              <div className="text-center">
+                                <p className="text-gray-400 text-xs">Days in Month</p>
+                                <p className="text-gray-400 font-bold text-lg">{occupancySummary.days_in_month}</p>
+                              </div>
+                            )}
+                            {occupancySummary.gap_nights !== undefined && (
+                              <div className="text-center">
+                                <p className="text-gray-400 text-xs">Gap Nights</p>
+                                <p className="text-red-400 font-bold text-lg">{occupancySummary.gap_nights}</p>
+                              </div>
+                            )}
+                          </div>
                         </div>
                       </div>
                     )}
 
-                    {/* Operational Costs */}
-                    {operationalCosts && Object.keys(operationalCosts).length > 0 && (
-                      <div className="bg-[#1f2937] p-5 rounded-lg border border-yellow-500/30">
-                        <h4 className="text-lg font-bold text-yellow-400 mb-4 flex items-center gap-2">
-                          <AlertCircle className="w-5 h-5" />
-                          Operational Costs
+                    {/* Canales table */}
+                    {channels && channels.length > 0 && (
+                      <div className="bg-[#1f2937] p-5 rounded-lg border border-pink-500/30">
+                        <h4 className="text-lg font-bold text-pink-400 mb-4 flex items-center gap-2">
+                          <MessageSquare className="w-5 h-5" />
+                          Canales
                         </h4>
-                        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                          {operationalCosts.total_costs !== undefined && (
-                            <div className="text-center">
-                              <p className="text-gray-400 text-sm">Total Costs</p>
-                              <p className="text-white font-bold text-xl">${operationalCosts.total_costs?.toLocaleString() || '0'}</p>
-                            </div>
-                          )}
-                          {operationalCosts.maintenance !== undefined && (
-                            <div className="text-center">
-                              <p className="text-gray-400 text-sm">Maintenance</p>
-                              <p className="text-yellow-400 font-bold text-xl">${operationalCosts.maintenance?.toLocaleString() || '0'}</p>
-                            </div>
-                          )}
-                          {operationalCosts.utilities !== undefined && (
-                            <div className="text-center">
-                              <p className="text-gray-400 text-sm">Utilities</p>
-                              <p className="text-blue-400 font-bold text-xl">${operationalCosts.utilities?.toLocaleString() || '0'}</p>
-                            </div>
-                          )}
-                          {operationalCosts.staff !== undefined && (
-                            <div className="text-center">
-                              <p className="text-gray-400 text-sm">Staff</p>
-                              <p className="text-purple-400 font-bold text-xl">${operationalCosts.staff?.toLocaleString() || '0'}</p>
-                            </div>
-                          )}
-                          {operationalCosts.supplies !== undefined && (
-                            <div className="text-center">
-                              <p className="text-gray-400 text-sm">Supplies</p>
-                              <p className="text-pink-400 font-bold text-xl">${operationalCosts.supplies?.toLocaleString() || '0'}</p>
-                            </div>
-                          )}
-                          {operationalCosts.other !== undefined && (
-                            <div className="text-center">
-                              <p className="text-gray-400 text-sm">Other</p>
-                              <p className="text-gray-400 font-bold text-xl">${operationalCosts.other?.toLocaleString() || '0'}</p>
-                            </div>
-                          )}
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-left text-sm">
+                            <thead>
+                              <tr className="border-b border-gray-700">
+                                <th className="pb-2 text-gray-400">Canal</th>
+                                <th className="pb-2 text-gray-400 text-right">Bookings</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-700">
+                              {channels.map((channel, idx) => (
+                                <tr key={idx} className="text-gray-300">
+                                  <td className="py-2 capitalize font-semibold text-white">{channel.channel || channel.name || '—'}</td>
+                                  <td className="py-2 font-bold text-pink-400 text-right">{channel.bookings || channel.count || 0}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
                         </div>
                       </div>
                     )}
 
-                    {/* Operational Issues */}
-                    {summary.operational_issues_summary && typeof summary.operational_issues_summary === 'object' && Object.keys(summary.operational_issues_summary).length > 0 && (
+                    {/* Owner decisions este mes (with Fecha column) */}
+                    {decisionsList && decisionsList.length > 0 && (
                       <div className="bg-[#1f2937] p-5 rounded-lg border border-red-500/30">
                         <h4 className="text-lg font-bold text-red-400 mb-4 flex items-center gap-2">
                           <AlertCircle className="w-5 h-5" />
-                          Operational Issues
+                          Owner decisions este mes ({decisionsList.length})
                         </h4>
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                          {summary.operational_issues_summary.total_decisions !== undefined && (
-                            <div className="text-center">
-                              <p className="text-gray-400 text-sm">Total Decisions</p>
-                              <p className="text-white font-bold text-xl">{summary.operational_issues_summary.total_decisions}</p>
-                            </div>
-                          )}
-                          {summary.operational_issues_summary.approved !== undefined && (
-                            <div className="text-center">
-                              <p className="text-gray-400 text-sm">Approved</p>
-                              <p className="text-green-400 font-bold text-xl">{summary.operational_issues_summary.approved}</p>
-                            </div>
-                          )}
-                          {summary.operational_issues_summary.rejected !== undefined && (
-                            <div className="text-center">
-                              <p className="text-gray-400 text-sm">Rejected</p>
-                              <p className="text-red-400 font-bold text-xl">{summary.operational_issues_summary.rejected}</p>
-                            </div>
-                          )}
-                          {summary.operational_issues_summary.total_complaints !== undefined && (
-                            <div className="text-center">
-                              <p className="text-gray-400 text-sm">Complaints</p>
-                              <p className="text-orange-400 font-bold text-xl">{summary.operational_issues_summary.total_complaints}</p>
-                            </div>
-                          )}
-                          {summary.operational_issues_summary.total_service_requests !== undefined && (
-                            <div className="text-center">
-                              <p className="text-gray-400 text-sm">Service Requests</p>
-                              <p className="text-blue-400 font-bold text-xl">{summary.operational_issues_summary.total_service_requests}</p>
-                            </div>
-                          )}
-                          {summary.operational_issues_summary.recurring_issues && Array.isArray(summary.operational_issues_summary.recurring_issues) && summary.operational_issues_summary.recurring_issues.length > 0 && (
-                            <div className="col-span-2 md:col-span-4">
-                              <p className="text-gray-400 text-sm mb-2">Recurring Issues:</p>
-                              <div className="space-y-1">
-                                {summary.operational_issues_summary.recurring_issues.map((issue, idx) => (
-                                  <div key={idx} className="text-sm text-yellow-400">
-                                    <span className="capitalize">{issue.type.replace(/_/g, ' ')}</span>: <span className="font-bold">{issue.count}</span>
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          )}
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-left text-sm">
+                            <thead>
+                              <tr className="border-b border-gray-700">
+                                <th className="pb-2 text-gray-400">Fecha</th>
+                                <th className="pb-2 text-gray-400">Prioridad</th>
+                                <th className="pb-2 text-gray-400">Tipo</th>
+                                <th className="pb-2 text-gray-400">Villa</th>
+                                <th className="pb-2 text-gray-400">Decisión · Guest</th>
+                                <th className="pb-2 text-gray-400">Status</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-700">
+                              {decisionsList.map((decision, idx) => {
+                                const createdAt = decision.created_at ? new Date(decision.created_at) : null;
+                                const fechaFormatted = createdAt ? `${createdAt.getDate()} ${createdAt.toLocaleString('en', { month: 'short' })}` : '—';
+                                return (
+                                  <tr key={idx} className="text-gray-300">
+                                    <td className="py-2 text-xs">{fechaFormatted}</td>
+                                    <td className="py-2">
+                                      <span className={`px-2 py-1 rounded text-xs font-bold ${
+                                        decision.priority === 'urgent' ? 'bg-[#FEE2E2] text-[#991B1B]' :
+                                        decision.priority === 'high' ? 'bg-[#FEF3C7] text-[#92400E]' :
+                                        decision.priority === 'medium' ? 'bg-[#DBEAFE] text-[#1E40AF]' :
+                                        'bg-[#F3F4F6] text-[#6B7280]'
+                                      }`}>
+                                        {decision.priority?.toUpperCase()}
+                                      </span>
+                                    </td>
+                                    <td className="py-2 capitalize">{decision.type || decision.decision_type || '—'}</td>
+                                    <td className="py-2">{decision.villa_name || decision.villa || '—'}</td>
+                                    <td className="py-2">
+                                      <p className="font-semibold text-white">{decision.title || decision.description || '—'}</p>
+                                      {decision.guest_name && <p className="text-xs text-gray-400">Guest: {decision.guest_name}</p>}
+                                    </td>
+                                    <td className="py-2">
+                                      <span className={`px-2 py-1 rounded text-xs font-semibold ${
+                                        decision.status === 'approved' ? 'bg-[#D1FAE5] text-[#065F46]' :
+                                        decision.status === 'rejected' ? 'bg-[#FEE2E2] text-[#991B1B]' :
+                                        'bg-[#FEF3C7] text-[#92400E]'
+                                      }`}>
+                                        {decision.status || 'pending'}
+                                      </span>
+                                    </td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
                         </div>
                       </div>
                     )}
 
-                    {/* Marketing Summary */}
-                    {summary.marketing_summary && typeof summary.marketing_summary === 'object' && Object.keys(summary.marketing_summary).length > 0 && (
-                      <div className="bg-[#1f2937] p-5 rounded-lg border border-pink-500/30">
-                        <h4 className="text-lg font-bold text-pink-400 mb-4 flex items-center gap-2">
-                          <TrendingUp className="w-5 h-5" />
-                          Marketing Summary
-                        </h4>
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                          {summary.marketing_summary.revenue_total !== undefined && (
-                            <div className="text-center">
-                              <p className="text-gray-400 text-sm">Revenue Total</p>
-                              <p className="text-green-400 font-bold text-xl">${summary.marketing_summary.revenue_total?.toLocaleString() || 0}</p>
-                            </div>
-                          )}
-                          {summary.marketing_summary.booking_volume !== undefined && (
-                            <div className="text-center">
-                              <p className="text-gray-400 text-sm">Booking Volume</p>
-                              <p className="text-blue-400 font-bold text-xl">{summary.marketing_summary.booking_volume}</p>
-                            </div>
-                          )}
-                          {summary.marketing_summary.cancellation_rate !== undefined && (
-                            <div className="text-center">
-                              <p className="text-gray-400 text-sm">Cancellation Rate</p>
-                              <p className="text-red-400 font-bold text-xl">{summary.marketing_summary.cancellation_rate}%</p>
-                            </div>
-                          )}
-                          {summary.marketing_summary.top_channel && (
-                            <div className="text-center">
-                              <p className="text-gray-400 text-sm">Top Channel</p>
-                              <p className="text-purple-400 font-bold text-lg capitalize">{summary.marketing_summary.top_channel}</p>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Improvements */}
-                    {improvements && improvements.length > 0 && (
-                      <div className="bg-[#1f2937] p-5 rounded-lg border border-green-500/30">
-                        <h4 className="text-lg font-bold text-green-400 mb-4 flex items-center gap-2">
-                          <CheckCircle className="w-5 h-5" />
-                          Improvements
-                        </h4>
-                        <div className="space-y-3">
-                          {improvements.map((improvement, idx) => (
-                            <div key={idx} className="bg-[#2a2f3a] p-4 rounded-lg border-l-4 border-green-500">
-                              <div className="flex items-start justify-between mb-2">
-                                <p className="text-white font-semibold capitalize">{improvement.area || 'General'}</p>
-                                <span className={`px-2 py-1 rounded text-xs font-bold ${
-                                  improvement.status === 'completed' ? 'bg-green-500/20 text-green-400' :
-                                  improvement.status === 'in_progress' ? 'bg-yellow-500/20 text-yellow-400' :
-                                  'bg-gray-500/20 text-gray-400'
-                                }`}>
-                                  {improvement.status?.toUpperCase() || 'PENDING'}
-                                </span>
-                              </div>
-                              <p className="text-gray-300 text-sm">{improvement.description || improvement.action}</p>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Strategic Recommendations */}
+                    {/* Recomendaciones estratégicas */}
                     {strategicRecs && strategicRecs.length > 0 && (
                       <div className="bg-[#1f2937] p-5 rounded-lg border border-purple-500/30">
                         <h4 className="text-lg font-bold text-purple-400 mb-4 flex items-center gap-2">
                           <MessageSquare className="w-5 h-5" />
-                          Strategic Recommendations
+                          Recomendaciones estratégicas
                         </h4>
                         <div className="space-y-3">
                           {strategicRecs.map((rec, idx) => (
@@ -7863,10 +8323,8 @@ const Autopilot = ({ onBack }) => {
                                   {rec.priority?.toUpperCase() || 'MEDIUM'}
                                 </span>
                               </div>
-                              <p className="text-gray-300 text-sm">{rec.recommendation || rec.action}</p>
-                              {rec.impact && (
-                                <p className="text-gray-400 text-xs mt-2">Impact: {rec.impact}</p>
-                              )}
+                              <p className="text-gray-300 text-sm">{rec.recommendation || rec.action || '—'}</p>
+                              {rec.impact && <p className="text-gray-400 text-xs mt-2">Impact: {rec.impact}</p>}
                             </div>
                           ))}
                         </div>
