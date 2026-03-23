@@ -7192,6 +7192,47 @@ const Autopilot = ({ onBack }) => {
                   );
                 })()}
 
+                {/* Sales Channels - from API channels{} object */}
+                {(() => {
+                  const channels = dailySummaryAPI?.channels || {};
+
+                  // Convert channels object to array and sort by count
+                  const channelsArray = Object.entries(channels)
+                    .map(([channel, count]) => ({ channel, count }))
+                    .sort((a, b) => b.count - a.count);
+
+                  // Cancellations always 0 for daily (same-day data)
+                  const cancelledCount = 0;
+                  const cancellationPct = 0;
+
+                  return (
+                    <div className="bg-[#1f2937] p-5 rounded-lg border border-pink-500/30">
+                      <h4 className="text-lg font-bold text-pink-400 mb-4 flex items-center gap-2">
+                        <MessageSquare className="w-5 h-5" />
+                        Sales channels
+                      </h4>
+                      <div className="space-y-2">
+                        {channelsArray.length > 0 ? channelsArray.map(({ channel, count }, idx) => (
+                          <div key={idx} className="flex justify-between items-center w-full">
+                            <span className="text-gray-300 font-semibold">
+                              {channel === 'booking' ? 'Booking.com' :
+                               channel === 'airbnb' ? 'Airbnb' :
+                               channel === 'direct' ? 'Direct' : channel}
+                            </span>
+                            <span className="text-white font-bold">{count}</span>
+                          </div>
+                        )) : (
+                          <p className="text-gray-400 text-sm">No bookings today</p>
+                        )}
+                        <div className="flex justify-between items-center w-full pt-2 border-t border-gray-700">
+                          <span className="text-red-400 font-semibold">Cancellations</span>
+                          <span className="text-red-400 font-bold">{cancelledCount} ({cancellationPct.toFixed(1)}%)</span>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()}
+
                 {/* Owner decisions — por prioridad - v4.3 de DAILY API */}
                 {(() => {
                   const todayPending = dailySummaryAPI?.pending_decisions || [];
@@ -7421,10 +7462,23 @@ const Autopilot = ({ onBack }) => {
                 const summary = weeklySummaries[0]; // Most recent week only
                 if (!summary) return null;
                 const bookingsList = summary.bookings_list || [];
-                const revenueByVilla = summary.revenue_by_villa || [];
+
+                // Convert revenue_by_villa from object to array
+                const revenueByVillaObj = summary.revenue_by_villa || {};
+                const revenueByVilla = Array.isArray(revenueByVillaObj)
+                  ? revenueByVillaObj
+                  : Object.entries(revenueByVillaObj).map(([villa_name, revenue]) => ({
+                      villa_name,
+                      revenue
+                    }));
+
                 const decisionsList = summary.decisions_list || [];
                 const recommendations = summary.recommendations_json || [];
-                const autoResolved = summary.auto_resolved_summary || [];
+
+                // auto_resolved_summary is an object with {count, items, by_type}
+                const autoResolvedObj = summary.auto_resolved_summary || {};
+                const autoResolved = autoResolvedObj.items || [];
+
                 const pendingApproval = summary.pending_approval || [];
                 const marketing = summary.marketing_summary || {};
                 const channels = marketing.channels || summary.booking_trends_json?.channels || [];
@@ -7439,7 +7493,7 @@ const Autopilot = ({ onBack }) => {
                     {/* Header */}
                     <div className="border-b border-gray-700 pb-4">
                       <h3 className="text-xl font-bold text-[#FF8C42]">
-                        WEEKLY MARCH {weekStart.getDate()}-{weekEnd.getDate()}
+                        WEEKLY — March {weekStart.getDate()}-{weekEnd.getDate()}
                       </h3>
                       <h3 className="text-xl font-bold text-[#FF8C42]">
                         Nismara UMA · 3 villas · 7 days
@@ -7488,7 +7542,14 @@ const Autopilot = ({ onBack }) => {
 
                       {/* KPI 4: Gap nights */}
                       {(() => {
-                        const gapNights = summary.gap_nights || 0;
+                        // Calculate gap nights from available data
+                        const villaCount = 3;
+                        const daysInWeek = 7;
+                        const totalNightsAvailable = villaCount * daysInWeek; // 21
+                        const nightsBooked = summary.marketing_summary?.nights_booked ||
+                                           (summary.occupancy_rate ? Math.round((summary.occupancy_rate / 100) * totalNightsAvailable) : 0);
+                        const gapNights = totalNightsAvailable - nightsBooked;
+
                         const gapColorClass = gapNights === 0 ? 'text-green-400' :
                                              gapNights <= 5 ? 'text-orange-400' : 'text-red-400';
                         const gapBorderClass = gapNights === 0 ? 'border-green-500/30' :
@@ -7539,32 +7600,6 @@ const Autopilot = ({ onBack }) => {
                       )}
                     </div>
 
-                    {/* Auto-resolved summary section (ALWAYS show) */}
-                    <div className="bg-[#1f2937] p-5 rounded-lg border border-green-500/30">
-                      <h4 className="text-lg font-bold text-green-400 mb-4">
-                        Auto-resolved
-                      </h4>
-                      {autoResolved && autoResolved.length > 0 ? (
-                        <details className="group">
-                          <summary className="cursor-pointer list-none text-gray-300 text-sm">
-                            {autoResolved.length} decisiones auto-resueltas esta semana
-                            <span className="text-xs text-gray-400 ml-2 group-open:hidden">Click para expandir</span>
-                            <span className="text-xs text-gray-400 ml-2 group-open:inline hidden">Click para colapsar</span>
-                          </summary>
-                          <div className="space-y-2 mt-2">
-                            {autoResolved.map((item, idx) => (
-                              <div key={idx} className="bg-[#2a2f3a] p-3 rounded-lg border-l-4 border-green-500">
-                                <p className="text-white font-semibold text-sm">{item.type || item.decision_type || 'Auto-resolved'}</p>
-                                <p className="text-gray-300 text-xs mt-1">{item.description || item.title || 'Resolved automatically'}</p>
-                                {item.guest_name && <p className="text-gray-400 text-xs mt-1">Guest: {item.guest_name}</p>}
-                              </div>
-                            ))}
-                          </div>
-                        </details>
-                      ) : (
-                        <p className="text-gray-400 text-sm">0 decisiones auto-resueltas esta semana.</p>
-                      )}
-                    </div>
 
                     {/* Bookings table - ALWAYS SHOW */}
                     <div className="bg-[#1f2937] p-5 rounded-lg border border-blue-500/30">
@@ -7577,13 +7612,13 @@ const Autopilot = ({ onBack }) => {
                           <table className="w-full text-left text-sm">
                             <thead>
                               <tr className="border-b border-gray-700">
-                                <th className="pb-2 text-gray-400">Guest</th>
-                                <th className="pb-2 text-gray-400">Villa</th>
-                                <th className="pb-2 text-gray-400">Check-in</th>
-                                <th className="pb-2 text-gray-400">Check-out</th>
-                                <th className="pb-2 text-gray-400">Noches</th>
-                                <th className="pb-2 text-gray-400">Revenue IDR</th>
-                                <th className="pb-2 text-gray-400">Canal</th>
+                                <th className="pb-2 pr-4 text-gray-400">Guest</th>
+                                <th className="pb-2 pr-4 text-gray-400">Villa</th>
+                                <th className="pb-2 pr-3 text-gray-400">Check-in</th>
+                                <th className="pb-2 pr-3 text-gray-400">Check-out</th>
+                                <th className="pb-2 pr-3 text-gray-400 text-center">Noches</th>
+                                <th className="pb-2 pr-3 text-gray-400">Revenue IDR</th>
+                                <th className="pb-2 pr-3 text-gray-400">Canal</th>
                                 <th className="pb-2 text-gray-400">Status</th>
                               </tr>
                             </thead>
@@ -7599,14 +7634,14 @@ const Autopilot = ({ onBack }) => {
                                                    'bg-[#FEF3C7] text-[#92400E]';
                                 return (
                                   <tr key={idx} className="text-gray-300">
-                                    <td className="py-2 font-semibold text-white">{booking.guest_name || booking.guest || '—'}</td>
-                                    <td className="py-2">{booking.villa_name || booking.villa || '—'}</td>
-                                    <td className="py-2">{checkInFormatted}</td>
-                                    <td className="py-2">{checkOutFormatted}</td>
-                                    <td className="py-2 text-center">{booking.nights || booking.total_nights || '—'}</td>
-                                    <td className="py-2 font-semibold text-purple-400">{formatIDR(booking.revenue || 0)}</td>
-                                    <td className="py-2 capitalize">{booking.channel || booking.source || '—'}</td>
-                                    <td className="py-2">
+                                    <td className="py-2 pr-4 font-semibold text-white whitespace-nowrap">{booking.guest_name || booking.guest || '—'}</td>
+                                    <td className="py-2 pr-4">{booking.villa_name || booking.villa || '—'}</td>
+                                    <td className="py-2 pr-3 whitespace-nowrap">{checkInFormatted}</td>
+                                    <td className="py-2 pr-3 whitespace-nowrap">{checkOutFormatted}</td>
+                                    <td className="py-2 pr-3 text-center whitespace-nowrap">{booking.nights || booking.total_nights || '—'}</td>
+                                    <td className="py-2 pr-3 font-semibold text-purple-400 whitespace-nowrap">{formatIDR(booking.revenue || 0)}</td>
+                                    <td className="py-2 pr-3 capitalize whitespace-nowrap">{booking.channel || booking.source || '—'}</td>
+                                    <td className="py-2 whitespace-nowrap">
                                       <span className={`px-2 py-1 rounded text-xs font-semibold ${statusBadge}`}>
                                         {status}
                                       </span>
@@ -7658,31 +7693,168 @@ const Autopilot = ({ onBack }) => {
                       )}
                     </div>
 
-                    {/* Guest Requests - ALWAYS SHOW */}
+                    {/* Sales Channels + Occupancy Detail - Grid 2 columns */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {/* Sales Channels - Left */}
+                      {(() => {
+                        const bookingsListForChannels = summary.bookings_list || [];
+
+                        // Group by channel and count confirmed bookings
+                        const channelCounts = bookingsListForChannels.reduce((acc, booking) => {
+                          if (booking.status === 'confirmed') {
+                            const channel = booking.channel || 'direct';
+                            acc[channel] = (acc[channel] || 0) + 1;
+                          }
+                          return acc;
+                        }, {});
+
+                        // Count cancelled bookings
+                        const cancelledCount = bookingsListForChannels.filter(b => b.status === 'cancelled').length;
+                        const totalConfirmed = bookingsListForChannels.filter(b => b.status === 'confirmed').length;
+                        const cancellationPct = totalConfirmed > 0 ? ((cancelledCount / (totalConfirmed + cancelledCount)) * 100).toFixed(1) : 0;
+
+                        const channelsArray = Object.entries(channelCounts)
+                          .map(([channel, count]) => ({ channel, count }))
+                          .sort((a, b) => b.count - a.count);
+
+                        return (
+                          <div className="bg-[#1f2937] p-5 rounded-lg border border-pink-500/30">
+                            <h4 className="text-lg font-bold text-pink-400 mb-4 flex items-center gap-2">
+                              <MessageSquare className="w-5 h-5" />
+                              Sales channels
+                            </h4>
+                            <div className="space-y-2">
+                              {channelsArray.map(({ channel, count }, idx) => (
+                                <div key={idx} className="flex justify-between items-center">
+                                  <span className="text-gray-300 capitalize font-semibold">
+                                    {channel === 'booking' ? 'Booking.com' :
+                                     channel === 'airbnb' ? 'Airbnb' :
+                                     channel === 'direct' ? 'Direct' : channel}
+                                  </span>
+                                  <span className="text-white font-bold">{count}</span>
+                                </div>
+                              ))}
+                              <div className="flex justify-between items-center pt-2 border-t border-gray-700">
+                                <span className="text-red-400 font-semibold">Cancellations</span>
+                                <span className="text-red-400 font-bold">{cancelledCount} ({cancellationPct}%)</span>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })()}
+
+                      {/* Occupancy Detail - Right */}
+                      {(() => {
+                        const occupancyRate = summary.occupancy_rate || 0;
+                        const villaCount = 3;
+                        const daysInWeek = 7;
+                        const nochesDisponibles = villaCount * daysInWeek; // 21
+                        const nochesOcupadas = Math.round((occupancyRate / 100) * nochesDisponibles);
+                        const gapNights = nochesDisponibles - nochesOcupadas;
+
+                        return (
+                          <div className="bg-[#1f2937] p-5 rounded-lg border border-blue-500/30">
+                            <h4 className="text-lg font-bold text-blue-400 mb-4 flex items-center gap-2">
+                              <TrendingUp className="w-5 h-5" />
+                              Occupancy detail
+                            </h4>
+                            <div className="space-y-2">
+                              <div className="flex justify-between items-center">
+                                <span className="text-gray-300">Available nights</span>
+                                <span className="text-white font-bold">{nochesDisponibles} (3×7d)</span>
+                              </div>
+                              <div className="flex justify-between items-center">
+                                <span className="text-gray-300">Occupied nights</span>
+                                <span className="text-green-400 font-bold">{nochesOcupadas}</span>
+                              </div>
+                              <div className="flex justify-between items-center">
+                                <span className="text-gray-300 font-semibold">Gap nights</span>
+                                <span className="text-orange-400 font-bold">{gapNights}</span>
+                              </div>
+                              <div className="flex justify-between items-center pt-2 border-t border-gray-700">
+                                <span className="text-gray-300 font-semibold">Occupancy rate</span>
+                                <span className="text-blue-400 font-bold">{occupancyRate.toFixed(2)}%</span>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })()}
+                    </div>
+
+                    {/* Auto-resolved - ALWAYS SHOW */}
+                    <div className="bg-[#1f2937] p-5 rounded-lg border border-green-500/30">
+                      <h4 className="text-lg font-bold text-green-400 mb-4">
+                        Auto-resolved — {autoResolved.length} this week
+                      </h4>
+                      {autoResolved && autoResolved.length > 0 ? (
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-left text-sm">
+                            <thead>
+                              <tr className="border-b border-gray-700">
+                                <th className="pb-2 pr-3 text-gray-400">Date</th>
+                                <th className="pb-2 pr-3 text-gray-400">Guest</th>
+                                <th className="pb-2 pr-3 text-gray-400">Type</th>
+                                <th className="pb-2 text-gray-400">Resolution</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-700">
+                              {autoResolved.map((item, idx) => {
+                                const fecha = item.created_at || item.date || item.resolved_at || item.timestamp ?
+                                  new Date(item.created_at || item.date || item.resolved_at || item.timestamp) : null;
+                                const fechaFormatted = fecha ?
+                                  `${fecha.getDate()} ${fecha.toLocaleString('en', { month: 'short' })} ${fecha.toLocaleTimeString('en', { hour: '2-digit', minute: '2-digit', hour12: false })}` :
+                                  '—';
+
+                                return (
+                                  <tr key={idx} className="text-gray-300">
+                                    <td className="py-2 pr-3 whitespace-nowrap">{fechaFormatted}</td>
+                                    <td className="py-2 pr-3">{item.guest_name || item.guest || '—'}</td>
+                                    <td className="py-2 pr-3">{item.type || item.decision_type || '—'}</td>
+                                    <td className="py-2">{item.description || item.title || item.resolution || '—'}</td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
+                      ) : (
+                        <p className="text-gray-400 text-sm">0 decisions auto-resolved this week.</p>
+                      )}
+                    </div>
+
+                    {/* Guest Requests - ALWAYS SHOW (last 30 days) */}
                     <div className="bg-[#1f2937] p-5 rounded-lg border border-pink-500/30">
                       <h4 className="text-lg font-bold text-pink-400 mb-4 flex items-center gap-2">
                         <MessageSquare className="w-5 h-5" />
                         Guest Requests
                       </h4>
                       {(() => {
-                        const guestRequests = summary.guest_requests || [];
+                        const allGuestRequests = summary.guest_requests || [];
+                        // Filter last 30 days
+                        const thirtyDaysAgo = new Date();
+                        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+                        const guestRequests = allGuestRequests.filter(req => {
+                          const reqDate = req.created_at || req.date ? new Date(req.created_at || req.date) : null;
+                          return reqDate && reqDate >= thirtyDaysAgo;
+                        });
+
                         return guestRequests.length > 0 ? (
                           <div className="overflow-x-auto">
                             <table className="w-full text-left text-sm">
                               <thead>
                                 <tr className="border-b border-gray-700">
-                                  <th className="pb-2 text-gray-400">Fecha</th>
-                                  <th className="pb-2 text-gray-400">Villa</th>
-                                  <th className="pb-2 text-gray-400">Guest</th>
-                                  <th className="pb-2 text-gray-400">Request</th>
+                                  <th className="pb-2 pr-3 text-gray-400">Date</th>
+                                  <th className="pb-2 pr-3 text-gray-400">Villa</th>
+                                  <th className="pb-2 pr-3 text-gray-400">Guest</th>
+                                  <th className="pb-2 pr-3 text-gray-400">Request</th>
                                   <th className="pb-2 text-gray-400">Status</th>
                                 </tr>
                               </thead>
                               <tbody className="divide-y divide-gray-700">
                                 {guestRequests.map((request, idx) => {
-                                  const fecha = request.created_at ? new Date(request.created_at) : null;
+                                  const fecha = request.created_at || request.date ? new Date(request.created_at || request.date) : null;
                                   const fechaFormatted = fecha ?
-                                    `${fecha.getDate()}\n${fecha.toLocaleString('en', { month: 'short' })}` :
+                                    `${fecha.getDate()} ${fecha.toLocaleString('en', { month: 'short' })}` :
                                     '—';
 
                                   const isApproved = request.status === 'approved';
@@ -7691,10 +7863,10 @@ const Autopilot = ({ onBack }) => {
 
                                   return (
                                     <tr key={request.id || idx} className="text-gray-300">
-                                      <td className="py-2 whitespace-pre-line">{fechaFormatted}</td>
-                                      <td className="py-2">{request.villa_name || '—'}</td>
-                                      <td className="py-2">{request.guest_name || '—'}</td>
-                                      <td className="py-2">{request.description || request.request || 'N/A'}</td>
+                                      <td className="py-2 pr-3 whitespace-nowrap">{fechaFormatted}</td>
+                                      <td className="py-2 pr-3">{request.villa_name || request.villa || '—'}</td>
+                                      <td className="py-2 pr-3">{request.guest_name || request.guest || '—'}</td>
+                                      <td className="py-2 pr-3">{request.description || request.request || request.title || 'N/A'}</td>
                                       <td className="py-2">
                                         {isApproved && (
                                           <div className="flex items-center gap-2">
@@ -7720,196 +7892,72 @@ const Autopilot = ({ onBack }) => {
                             </table>
                           </div>
                         ) : (
-                          <p className="text-gray-400 text-sm">0 requests esta semana.</p>
+                          <p className="text-gray-400 text-sm">0 requests this week.</p>
                         );
                       })()}
                     </div>
 
-                    {/* Decisions - ALWAYS SHOW */}
+                    {/* Decisions - this week */}
                     <div className="bg-[#1f2937] p-5 rounded-lg border border-red-500/30">
                       <h4 className="text-lg font-bold text-red-400 mb-4 flex items-center gap-2">
                         <AlertCircle className="w-5 h-5" />
-                        Decisions
+                        Decisions — this week ({decisionsList.length})
                       </h4>
-                      {(() => {
-                        const decisions = summary.decisions_list || [];
-                        return decisions.length > 0 ? (
-                          <div className="overflow-x-auto">
-                            <table className="w-full text-left text-sm">
-                              <thead>
-                                <tr className="border-b border-gray-700">
-                                  <th className="pb-2 text-gray-400">Prioridad</th>
-                                  <th className="pb-2 text-gray-400">Tipo</th>
-                                  <th className="pb-2 text-gray-400">Villa</th>
-                                  <th className="pb-2 text-gray-400">Decisión · Guest</th>
-                                  <th className="pb-2 text-gray-400">Agente</th>
-                                  <th className="pb-2 text-gray-400">Status</th>
-                                </tr>
-                              </thead>
-                              <tbody className="divide-y divide-gray-700">
-                                {decisions.map((decision, idx) => (
+                      {decisionsList && decisionsList.length > 0 ? (
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-left text-sm">
+                            <thead>
+                              <tr className="border-b border-gray-700">
+                                <th className="pb-2 pr-3 text-gray-400">Date</th>
+                                <th className="pb-2 pr-3 text-gray-400">Priority</th>
+                                <th className="pb-2 pr-3 text-gray-400">Type</th>
+                                <th className="pb-2 pr-3 text-gray-400">Guest</th>
+                                <th className="pb-2 pr-3 text-gray-400">Villa</th>
+                                <th className="pb-2 text-gray-400">Status</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-700">
+                              {decisionsList.map((decision, idx) => {
+                                const fecha = decision.created_at || decision.date ? new Date(decision.created_at || decision.date) : null;
+                                const fechaFormatted = fecha ?
+                                  `${fecha.getDate()} ${fecha.toLocaleString('en', { month: 'short' })}` :
+                                  '—';
+
+                                return (
                                   <tr key={decision.id || idx} className="text-gray-300">
-                                    <td className="py-2">
+                                    <td className="py-2 pr-3 whitespace-nowrap">{fechaFormatted}</td>
+                                    <td className="py-2 pr-3">
                                       <span className={`px-2 py-1 rounded text-xs font-bold ${
                                         decision.priority === 'urgent' ? 'bg-[#FEE2E2] text-[#991B1B]' :
                                         decision.priority === 'high' ? 'bg-[#FEF3C7] text-[#92400E]' :
                                         decision.priority === 'medium' ? 'bg-[#DBEAFE] text-[#1E40AF]' :
                                         'bg-[#F3F4F6] text-[#6B7280]'
                                       }`}>
-                                        {decision.priority?.toUpperCase()}
+                                        {decision.priority}
                                       </span>
                                     </td>
-                                    <td className="py-2">{decision.decision_type || decision.type || '—'}</td>
-                                    <td className="py-2">{decision.villa_name || '—'}</td>
-                                    <td className="py-2">
-                                      {decision.title || decision.summary}
-                                      {decision.guest_name && ` — ${decision.guest_name}`}
-                                    </td>
-                                    <td className="py-2">
-                                      <div className="flex items-center gap-2">
-                                        {decision.generated_by_agent === 'banyu' ? (
-                                          <span className="px-2 py-1 rounded text-xs font-bold bg-[#DBEAFE] text-[#1E40AF]">
-                                            BANYU
-                                          </span>
-                                        ) : (
-                                          <span className="text-gray-400">system</span>
-                                        )}
-                                        {decision.generated_by_agent === 'banyu' && (
-                                          <span className="px-2 py-1 rounded text-xs font-bold bg-[#DBEAFE] text-[#1E40AF]">
-                                            📱 WhatsApp
-                                          </span>
-                                        )}
-                                      </div>
-                                    </td>
+                                    <td className="py-2 pr-3">{decision.decision_type || decision.type || '—'}</td>
+                                    <td className="py-2 pr-3">{decision.guest_name || decision.guest || '—'}</td>
+                                    <td className="py-2 pr-3">{decision.villa_name || decision.villa || '—'}</td>
                                     <td className="py-2">
                                       <span className={`px-2 py-1 rounded text-xs font-bold ${
                                         decision.status === 'approved' ? 'bg-[#D1FAE5] text-[#065F46]' :
                                         decision.status === 'rejected' ? 'bg-[#FEE2E2] text-[#991B1B]' :
                                         'bg-[#FEF3C7] text-[#92400E]'
                                       }`}>
-                                        {decision.status === 'approved' ? 'Approved' :
-                                         decision.status === 'rejected' ? 'Rejected' : 'Pending'}
+                                        {decision.status}
                                       </span>
                                     </td>
                                   </tr>
-                                ))}
-                              </tbody>
-                            </table>
-                          </div>
-                        ) : (
-                          <p className="text-gray-400 text-sm">0 decisiones esta semana.</p>
-                        );
-                      })()}
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
+                      ) : (
+                        <p className="text-gray-400 text-sm">0 decisions this week.</p>
+                      )}
                     </div>
-
-                    {/* Canales table */}
-                    {channels && channels.length > 0 && (
-                      <div className="bg-[#1f2937] p-5 rounded-lg border border-pink-500/30">
-                        <h4 className="text-lg font-bold text-pink-400 mb-4 flex items-center gap-2">
-                          <MessageSquare className="w-5 h-5" />
-                          Canales
-                        </h4>
-                        <div className="overflow-x-auto">
-                          <table className="w-full text-left text-sm">
-                            <thead>
-                              <tr className="border-b border-gray-700">
-                                <th className="pb-2 text-gray-400">Canal</th>
-                                <th className="pb-2 text-gray-400 text-right">Bookings</th>
-                              </tr>
-                            </thead>
-                            <tbody className="divide-y divide-gray-700">
-                              {channels.map((channel, idx) => (
-                                <tr key={idx} className="text-gray-300">
-                                  <td className="py-2 capitalize font-semibold text-white">{channel.channel || channel.name || '—'}</td>
-                                  <td className="py-2 font-bold text-pink-400 text-right">{channel.bookings || channel.count || 0}</td>
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Owner decisions esta semana */}
-                    {decisionsList && decisionsList.length > 0 && (
-                      <div className="bg-[#1f2937] p-5 rounded-lg border border-red-500/30">
-                        <h4 className="text-lg font-bold text-red-400 mb-4 flex items-center gap-2">
-                          <AlertCircle className="w-5 h-5" />
-                          Owner decisions esta semana ({decisionsList.length})
-                        </h4>
-                        <div className="overflow-x-auto">
-                          <table className="w-full text-left text-sm">
-                            <thead>
-                              <tr className="border-b border-gray-700">
-                                <th className="pb-2 text-gray-400">Prioridad</th>
-                                <th className="pb-2 text-gray-400">Tipo</th>
-                                <th className="pb-2 text-gray-400">Villa</th>
-                                <th className="pb-2 text-gray-400">Decisión · Guest</th>
-                                <th className="pb-2 text-gray-400">Status</th>
-                              </tr>
-                            </thead>
-                            <tbody className="divide-y divide-gray-700">
-                              {decisionsList.map((decision, idx) => (
-                                <tr key={idx} className="text-gray-300">
-                                  <td className="py-2">
-                                    <span className={`px-2 py-1 rounded text-xs font-bold ${
-                                      decision.priority === 'urgent' ? 'bg-[#FEE2E2] text-[#991B1B]' :
-                                      decision.priority === 'high' ? 'bg-[#FEF3C7] text-[#92400E]' :
-                                      decision.priority === 'medium' ? 'bg-[#DBEAFE] text-[#1E40AF]' :
-                                      'bg-[#F3F4F6] text-[#6B7280]'
-                                    }`}>
-                                      {decision.priority?.toUpperCase()}
-                                    </span>
-                                  </td>
-                                  <td className="py-2 capitalize">{decision.type || decision.decision_type || '—'}</td>
-                                  <td className="py-2">{decision.villa_name || decision.villa || '—'}</td>
-                                  <td className="py-2">
-                                    <p className="font-semibold text-white">{decision.title || decision.description || '—'}</p>
-                                    {decision.guest_name && <p className="text-xs text-gray-400">Guest: {decision.guest_name}</p>}
-                                  </td>
-                                  <td className="py-2">
-                                    <span className={`px-2 py-1 rounded text-xs font-semibold ${
-                                      decision.status === 'approved' ? 'bg-[#D1FAE5] text-[#065F46]' :
-                                      decision.status === 'rejected' ? 'bg-[#FEE2E2] text-[#991B1B]' :
-                                      'bg-[#FEF3C7] text-[#92400E]'
-                                    }`}>
-                                      {decision.status || 'pending'}
-                                    </span>
-                                  </td>
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Recomendaciones */}
-                    {recommendations && recommendations.length > 0 && (
-                      <div className="bg-[#1f2937] p-5 rounded-lg border border-green-500/30">
-                        <h4 className="text-lg font-bold text-green-400 mb-4 flex items-center gap-2">
-                          <CheckCircle className="w-5 h-5" />
-                          Recomendaciones
-                        </h4>
-                        <div className="space-y-3">
-                          {recommendations.map((rec, idx) => (
-                            <div key={idx} className="bg-[#2a2f3a] p-4 rounded-lg border-l-4 border-green-500">
-                              <div className="flex items-start justify-between mb-2">
-                                <p className="text-white font-semibold capitalize">{rec.area || 'General'}</p>
-                                <span className={`px-2 py-1 rounded text-xs font-bold ${
-                                  rec.priority === 'high' ? 'bg-red-500/20 text-red-400' :
-                                  rec.priority === 'medium' ? 'bg-yellow-500/20 text-yellow-400' :
-                                  'bg-green-500/20 text-green-400'
-                                }`}>
-                                  {rec.priority?.toUpperCase() || 'MEDIUM'}
-                                </span>
-                              </div>
-                              <p className="text-gray-300 text-sm">{rec.action || rec.recommendation || '—'}</p>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
                   </div>
                 );
               })()

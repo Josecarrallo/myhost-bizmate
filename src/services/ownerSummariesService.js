@@ -155,6 +155,13 @@ export const getWeeklySummaries = async (tenantId, limit = 12) => {
     }
 
     console.log(`✅ Found ${data?.length || 0} weekly summaries`);
+    if (data && data.length > 0) {
+      console.log('📊 WEEKLY SUMMARY FULL DATA:', JSON.stringify(data[0], null, 2));
+      console.log('📊 revenue_by_villa:', data[0].revenue_by_villa);
+      console.log('📊 auto_resolved_summary:', data[0].auto_resolved_summary);
+      console.log('📊 gap_nights:', data[0].gap_nights);
+      console.log('📊 gap_label:', data[0].gap_label);
+    }
     return data || [];
   } catch (error) {
     console.error('❌ getWeeklySummaries exception:', error);
