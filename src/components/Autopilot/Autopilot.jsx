@@ -1599,17 +1599,9 @@ const Autopilot = ({ onBack }) => {
         console.log('📊 API pending_decisions length:', apiData?.pending_decisions?.length);
         setDailySummaryAPI(apiData);
 
-        // Set pending decisions from API (real-time data)
-        if (apiData && apiData.pending_decisions) {
-          console.log('✅ Setting pendingDecisions from API:', apiData.pending_decisions.length);
-          setPendingDecisions(apiData.pending_decisions);
-        } else {
-          // Fallback to old method if API fails
-          console.log('📞 Fallback: Calling ownerSummariesService.getTodayPendingDecisions');
-          const pendingData = await ownerSummariesService.getTodayPendingDecisions(userData.id);
-          console.log('✅ Received pending decisions (fallback):', pendingData);
-          setPendingDecisions(pendingData);
-        }
+        // NOTE: We do NOT overwrite pendingDecisions here
+        // The ownerDecisions state loaded in loadOwnerDecisions() already contains ALL decisions
+        // The Daily API data is stored in dailySummaryAPI and used for metrics/alerts only
       } else if (filterDecisionPeriod === 'weekly') {
         console.log('📞 Calling ownerSummariesService.getWeeklySummaries');
         const weeklyData = await ownerSummariesService.getWeeklySummaries(userData.id, 12);
@@ -6740,6 +6732,15 @@ const Autopilot = ({ onBack }) => {
 
   const renderDecisionsSection = () => {
     // Filter and search logic for Owner Decisions
+    console.log('🔍 [FILTER DEBUG] ownerDecisions.length:', ownerDecisions.length);
+    console.log('🔍 [FILTER DEBUG] filterDecisionStatus:', filterDecisionStatus);
+    console.log('🔍 [FILTER DEBUG] filterDecisionPriority:', filterDecisionPriority);
+    console.log('🔍 [FILTER DEBUG] filterDecisionType:', filterDecisionType);
+    console.log('🔍 [FILTER DEBUG] filterDecisionAgent:', filterDecisionAgent);
+    console.log('🔍 [FILTER DEBUG] filterDecisionProperty:', filterDecisionProperty);
+    console.log('🔍 [FILTER DEBUG] filterDecisionDate:', filterDecisionDate);
+    console.log('🔍 [FILTER DEBUG] filterDecisionPeriod:', filterDecisionPeriod);
+
     const filteredDecisions = ownerDecisions
       .filter(decision => {
         const matchesSearch = decisionsSearchTerm === '' ||
@@ -6751,7 +6752,7 @@ const Autopilot = ({ onBack }) => {
         const matchesPriority = filterDecisionPriority === 'All' || decision.priority === filterDecisionPriority;
         const matchesType = filterDecisionType === 'All' || decision.decision_type === filterDecisionType;
         const matchesAgent = filterDecisionAgent === 'All' || decision.generated_by_agent?.toUpperCase() === filterDecisionAgent;
-        const matchesProperty = filterDecisionProperty === 'All' || decision.villa_name === filterDecisionProperty;
+        const matchesProperty = filterDecisionProperty === 'All' || !decision.villa_name || decision.villa_name === filterDecisionProperty;
 
         // Date filtering
         let matchesDate = true;
@@ -6793,6 +6794,12 @@ const Autopilot = ({ onBack }) => {
         // Sort by created_at (newest first)
         return new Date(b.created_at) - new Date(a.created_at);
       });
+
+    console.log('🔍 [FILTER DEBUG] filteredDecisions.length:', filteredDecisions.length);
+    if (filteredDecisions.length < ownerDecisions.length) {
+      console.log('⚠️ [FILTER DEBUG] Some decisions were filtered out!');
+      console.log('🔍 [FILTER DEBUG] Filtered decisions:', filteredDecisions.map(d => ({ title: d.title, status: d.status, priority: d.priority, villa_name: d.villa_name })));
+    }
 
     // Get unique values for filter dropdowns
     const uniqueTypes = [...new Set(ownerDecisions.map(d => d.decision_type))];
@@ -6963,7 +6970,7 @@ const Autopilot = ({ onBack }) => {
             {/* Clear Filters Button */}
             <button
               onClick={() => {
-                setFilterDecisionStatus('pending');
+                setFilterDecisionStatus('All');
                 setFilterDecisionPriority('All');
                 setFilterDecisionType('All');
                 setFilterDecisionAgent('All');
