@@ -206,14 +206,26 @@ const Autopilot = ({ onBack }) => {
     if ((activeSection === 'tasks' || activeSection === 'decisions') && userData?.id) {
       const loadVillas = async () => {
         try {
+          // Get user's property dynamically from properties table
+          const { data: userProperty } = await supabase
+            .from('properties')
+            .select('id, name')
+            .eq('owner_id', userData.id)
+            .single();
+
+          const userPropertyId = userProperty?.id;
+          console.log('🔍 [AUTOPILOT] User property:', userProperty?.name, 'id:', userPropertyId, 'for owner:', userData.id);
+
+          // Load all villas and filter by property_id
           const allVillas = await dataService.getVillas();
           console.log('🔍 [AUTOPILOT] Loaded villas:', allVillas);
-          // Filter only user's villas
-          const userVillas = allVillas.filter(villa =>
-            villa.name.toUpperCase().includes('NISMARA') || villa.name.toUpperCase().includes('GRAHA UMA')
-          );
-          console.log('🔍 [AUTOPILOT] Filtered Gita villas:', userVillas.length, 'of', allVillas.length);
-          setVillas(userVillas);
+
+          if (userPropertyId) {
+            // Filter villas by user's property_id
+            const userVillas = allVillas.filter(villa => villa.property_id === userPropertyId);
+            console.log('🔍 [AUTOPILOT] Filtered user villas:', userVillas.length, 'of', allVillas.length);
+            setVillas(userVillas);
+          }
         } catch (error) {
           console.error('Error loading villas:', error);
         }
@@ -845,21 +857,31 @@ const Autopilot = ({ onBack }) => {
 
       setAllBookings(bookings || []);
 
-      // Load villas (properties) - Filter only Gita's 3 villas
+      // Load villas (properties) - Filter by logged user's property_id
       try {
+        // Get user's property dynamically from properties table
+        const { data: userProperty } = await supabase
+          .from('properties')
+          .select('id, name')
+          .eq('owner_id', TENANT_ID)
+          .single();
+
+        const userPropertyId = userProperty?.id;
+        console.log('🔍 [AUTOPILOT] User property:', userProperty?.name, 'id:', userPropertyId, 'for owner:', TENANT_ID);
+
+        // Load all villas and filter by property_id
         const villas = await dataService.getVillas();
         console.log('🔍 [AUTOPILOT] Loaded villas:', villas);
 
-        if (villas && villas.length > 0) {
-          // Filter only Gita's villas (Nismara and Graha Uma)
-          const gitaVillas = villas.filter(villa =>
-            villa.name.toUpperCase().includes('NISMARA') || villa.name.toUpperCase().includes('GRAHA UMA')
-          );
-          console.log('🔍 [AUTOPILOT] Filtered Gita villas:', gitaVillas.length, 'of', villas.length);
+        if (villas && villas.length > 0 && userPropertyId) {
+          // Filter villas by user's property_id (villas.property_id → properties.id)
+          const userVillas = villas.filter(villa => villa.property_id === userPropertyId);
+          console.log('🔍 [AUTOPILOT] Filtered user villas:', userVillas.length, 'of', villas.length);
 
           // Map villas to properties format
-          properties = gitaVillas.map(villa => ({
+          properties = userVillas.map(villa => ({
             id: villa.id,
+            property_id: villa.property_id,  // IMPORTANT: This is the property_id for Daily API
             name: villa.name,
             location: villa.location || 'Ubud, Bali',
             property_type: villa.property_type || `${villa.bedrooms || 'N/A'} Bedroom Villa`,
@@ -1587,12 +1609,17 @@ const Autopilot = ({ onBack }) => {
         console.log('✅ Received daily briefing:', dailyData);
         setDailyBriefing(dailyData);
 
-        // Get property_id de Nismara Uma Villa (HARDCODED según v4.3)
-        const nismaraProperty = userProperties.find(p => p.name?.includes('Nismara Uma Villa'));
-        const propertyId = nismaraProperty?.id || '3551cd18-af6b-48c2-85ba-4c5dc0074892';
+        // Get property_id dynamically from properties table (multi-tenant support)
+        const { data: userProperty } = await supabase
+          .from('properties')
+          .select('id, name')
+          .eq('owner_id', userData.id)
+          .single();
+
+        const propertyId = userProperty?.id;
 
         console.log('📞 [2/2] Calling ownerSummariesService.getDailySummaryAPI v2.4 (n8n)');
-        console.log('🏠 Using property_id:', propertyId, '(Nismara Uma Villa)');
+        console.log('🏠 Using property:', userProperty?.name, 'id:', propertyId, 'for owner:', userData.id);
         const apiData = await ownerSummariesService.getDailySummaryAPI(userData.id, propertyId);
         console.log('✅ Received Daily Summary API v2.4:', apiData);
         console.log('📊 API pending_decisions:', apiData?.pending_decisions);
@@ -7009,7 +7036,7 @@ const Autopilot = ({ onBack }) => {
                     DAILY – {new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}
                   </h3>
                   <h3 className="text-xl font-bold text-[#FF8C42]">
-                    Nismara Uma Villa
+                    {filterDecisionProperty === 'All' ? 'All Properties' : filterDecisionProperty}
                   </h3>
                 </div>
 
@@ -7327,9 +7354,26 @@ const Autopilot = ({ onBack }) => {
 
                 {/* Auto-resolved today - ALWAYS SHOW */}
                 {(() => {
-                  const autoResolvedToday = dailyBriefing?.auto_resolved_today;
-                  const count = autoResolvedToday?.count || 0;
-                  const items = autoResolvedToday?.items || [];
+                  // WORKAROUND: n8n workflow está devolviendo solo 1 de 2 decisiones aprobadas
+                  // Extraer TODAS las decisiones aprobadas de guest_requests
+                  const today = new Date().toISOString().split('T')[0];
+                  const approvedToday = dailySummaryAPI?.guest_requests?.filter(req =>
+                    req.status === 'approved' &&
+                    req.date === today
+                  ) || [];
+
+                  const autoResolvedToday = {
+                    count: approvedToday.length,
+                    items: approvedToday.map(req => ({
+                      id: req.id,
+                      type: req.decision_type || req.type || 'guest_request',
+                      guest: req.guest_name || req.guest,
+                      resolution: req.description || req.title || req.request || 'Resolved automatically'
+                    }))
+                  };
+
+                  const count = autoResolvedToday.count;
+                  const items = autoResolvedToday.items;
 
                   return (
                     <div className="bg-[#1f2937] p-5 rounded-lg border border-green-500/30">
@@ -7337,24 +7381,50 @@ const Autopilot = ({ onBack }) => {
                         Auto-resolved today
                       </h4>
                       {count > 0 ? (
-                        <details className="group">
-                          <summary className="cursor-pointer list-none text-gray-300 text-sm">
-                            {count} decisiones auto-resueltas hoy
-                            <span className="text-xs text-gray-400 ml-2 group-open:hidden">Click para expandir</span>
-                            <span className="text-xs text-gray-400 ml-2 group-open:inline hidden">Click para colapsar</span>
-                          </summary>
-                          <div className="space-y-2 mt-2">
-                            {items.map((item, idx) => (
-                              <div key={idx} className="bg-[#2a2f3a] p-3 rounded-lg border-l-4 border-green-500">
-                                <p className="text-white font-semibold text-sm">{item.type?.replace(/_/g, ' ').toUpperCase()}</p>
-                                <p className="text-gray-300 text-xs mt-1">{item.resolution || 'Resolved automatically'}</p>
-                                {item.guest && <p className="text-gray-400 text-xs mt-1">Guest: {item.guest}</p>}
-                              </div>
-                            ))}
-                          </div>
-                        </details>
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-left text-sm">
+                            <thead>
+                              <tr className="border-b border-gray-700">
+                                <th className="pb-2 text-gray-400 w-20">Date</th>
+                                <th className="pb-2 text-gray-400 w-56">Villa</th>
+                                <th className="pb-2 text-gray-400 w-40">Guest</th>
+                                <th className="pb-2 text-gray-400 w-48">Request</th>
+                                <th className="pb-2 text-gray-400 w-36">Status</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-700">
+                              {items.map((item, idx) => {
+                                const today = new Date();
+                                const fechaFormatted = `${today.getDate()} ${today.toLocaleString('en-US', { month: 'short' })}`;
+
+                                return (
+                                  <tr key={idx} className="text-gray-300">
+                                    <td className="py-2 align-top">{fechaFormatted}</td>
+                                    <td className="py-2 align-top">
+                                      <div className="break-words">—</div>
+                                    </td>
+                                    <td className="py-2 align-top">
+                                      <div className="break-words">{item.guest || '—'}</div>
+                                    </td>
+                                    <td className="py-2 align-top">
+                                      <div className="break-words">{item.resolution || 'Resolved automatically'}</div>
+                                    </td>
+                                    <td className="py-2">
+                                      <div className="flex items-center gap-2">
+                                        <span className="text-green-400">✅ Approved</span>
+                                        <span className="px-2 py-0.5 rounded text-xs font-semibold bg-[#D1FAE5] text-[#065F46]">
+                                          Auto
+                                        </span>
+                                      </div>
+                                    </td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
                       ) : (
-                        <p className="text-gray-400 text-sm">0 decisiones auto-resueltas hoy · Fuente: owner_briefings.auto_resolved_today</p>
+                        <p className="text-gray-400 text-sm">0 decisions auto-resolved today</p>
                       )}
                     </div>
                   );
