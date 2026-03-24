@@ -7041,11 +7041,11 @@ const Autopilot = ({ onBack }) => {
                 </div>
 
                 {/* KPIs - v4.3 NUEVA ESTRUCTURA con kpis.* del API v2.4 */}
-                {dailySummaryAPI?.kpis && (
+                {filteredDaily?.kpis && (
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     {/* KPI 1: Occupancy rate - PRE-CALCULADO del API */}
                     {(() => {
-                      const occupancyNum = dailySummaryAPI.kpis.occupancy_rate || 0;
+                      const occupancyNum = filteredDaily.kpis.occupancy_rate || 0;
 
                       // Colores dinámicos (naranja si subóptimo, rojo si crítico)
                       const colorClass = occupancyNum >= 70 ? 'text-green-400' :
@@ -7060,7 +7060,7 @@ const Autopilot = ({ onBack }) => {
                             {occupancyNum.toFixed(1)}%
                           </p>
                           <p className="text-xs text-gray-500 mt-1">
-                            {dailySummaryAPI.kpis.occupancy_label || ''}
+                            {filteredDaily.kpis.occupancy_label || ''}
                           </p>
                         </div>
                       );
@@ -7070,7 +7070,7 @@ const Autopilot = ({ onBack }) => {
                     <div className="bg-[#1f2937] p-4 rounded-lg border border-blue-500/30 text-center">
                       <p className="text-gray-400 text-sm mb-1">Total bookings</p>
                       <p className="text-3xl font-bold text-blue-400">
-                        {dailySummaryAPI.kpis.total_bookings || 0}
+                        {filteredDaily.kpis.total_bookings || 0}
                       </p>
                       <p className="text-xs text-gray-500 mt-1">
                         guests in-house tonight
@@ -7109,7 +7109,7 @@ const Autopilot = ({ onBack }) => {
                         <div className="bg-[#1f2937] p-4 rounded-lg border border-purple-500/30 text-center">
                           <p className="text-gray-400 text-sm mb-1">Confirmed revenue</p>
                           <p className="text-xl font-bold text-purple-400 whitespace-nowrap">
-                            {formatIDR(dailySummaryAPI.kpis.revenue_active || 0)}
+                            {formatIDR(filteredDaily.kpis.revenue_active || 0)}
                           </p>
                           <p className="text-xs text-gray-500 mt-1">
                             {guestNames || 'active guests'}
@@ -7120,7 +7120,7 @@ const Autopilot = ({ onBack }) => {
 
                     {/* KPI 4: Gap nights - PRE-CALCULADO del API */}
                     {(() => {
-                      const gapNights = dailySummaryAPI.kpis.gap_nights || 0;
+                      const gapNights = filteredDaily.kpis.gap_nights || 0;
 
                       // Colores: verde si 0, naranja si 1, rojo si >=2
                       const colorClass = gapNights === 0 ? 'text-green-400' :
@@ -7135,7 +7135,7 @@ const Autopilot = ({ onBack }) => {
                             {gapNights}
                           </p>
                           <p className="text-xs text-gray-500 mt-1">
-                            {dailySummaryAPI.kpis.gap_label || ''}
+                            {filteredDaily.kpis.gap_label || ''}
                           </p>
                         </div>
                       );
@@ -7144,7 +7144,7 @@ const Autopilot = ({ onBack }) => {
                 )}
 
                 {/* In-house guests - v4.3 NUEVA ESTRUCTURA del API v2.4 */}
-                {dailySummaryAPI?.in_house_guests && dailySummaryAPI.in_house_guests.length > 0 && (
+                {dailySummaryAPI?.in_house_guests && filteredDaily.in_house_guests.length > 0 && (
                   <div className="bg-[#1f2937] p-5 rounded-lg border border-blue-500/30">
                     <h4 className="text-lg font-bold text-blue-400 mb-4 flex items-center gap-2">
                       <ClipboardList className="w-5 h-5" />
@@ -7161,7 +7161,7 @@ const Autopilot = ({ onBack }) => {
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-700">
-                          {dailySummaryAPI.in_house_guests.map((guest, idx) => {
+                          {filteredDaily.in_house_guests.map((guest, idx) => {
                             const checkOut = guest.check_out ? new Date(guest.check_out) : null;
                             // Formatear fecha como "24 Mar" según PDF v4.3
                             const checkOutFormatted = checkOut ?
@@ -7185,7 +7185,7 @@ const Autopilot = ({ onBack }) => {
 
                 {/* Revenue por villa - v4.3 NUEVO del API */}
                 {(() => {
-                  const revenueByVilla = dailySummaryAPI?.revenue_by_villa;
+                  const revenueByVilla = filteredDaily?.revenue_by_villa;
                   if (!revenueByVilla || typeof revenueByVilla !== 'object') return null;
 
                   // Convertir objeto a array de [villa_name, revenue]
@@ -7228,7 +7228,7 @@ const Autopilot = ({ onBack }) => {
 
                 {/* Sales Channels - from API channels{} object */}
                 {(() => {
-                  const channels = dailySummaryAPI?.channels || {};
+                  const channels = filteredDaily?.channels || {};
 
                   // Convert channels object to array and sort by count
                   const channelsArray = Object.entries(channels)
@@ -7269,7 +7269,7 @@ const Autopilot = ({ onBack }) => {
 
                 {/* Owner decisions — por prioridad - v4.3 de DAILY API */}
                 {(() => {
-                  const todayPending = dailySummaryAPI?.pending_decisions || [];
+                  const todayPending = filteredDaily?.pending_decisions || [];
                   const hasPending = todayPending.length > 0;
 
                   return (
@@ -7357,7 +7357,7 @@ const Autopilot = ({ onBack }) => {
                   // WORKAROUND: n8n workflow está devolviendo solo 1 de 2 decisiones aprobadas
                   // Extraer TODAS las decisiones aprobadas de guest_requests
                   const today = new Date().toISOString().split('T')[0];
-                  const approvedToday = dailySummaryAPI?.guest_requests?.filter(req =>
+                  const approvedToday = filteredDaily?.guest_requests?.filter(req =>
                     req.status === 'approved' &&
                     req.date === today
                   ) || [];
@@ -7433,9 +7433,9 @@ const Autopilot = ({ onBack }) => {
                 {/* Guest Requests - v4.3 con formato TABLA según PDF */}
                 {(() => {
                   // Deduplicar por ID para evitar bug del WF (22 duplicados → 11 únicos)
-                  const uniqueRequests = dailySummaryAPI?.guest_requests
+                  const uniqueRequests = filteredDaily?.guest_requests
                     ? Array.from(
-                        dailySummaryAPI.guest_requests
+                        filteredDaily.guest_requests
                           .reduce((map, request) => {
                             if (request.id && !map.has(request.id)) {
                               map.set(request.id, request);
@@ -8969,6 +8969,100 @@ const Autopilot = ({ onBack }) => {
     </div>
     );
   };
+
+  // ========================================
+  // HELPER FUNCTIONS - Villa Filtering
+  // ========================================
+
+  /**
+   * Recalculate KPIs for filtered data
+   * @param {Array} items - Array of bookings or guests
+   * @param {number} villaCount - Number of villas (1 when filtered)
+   * @param {boolean} isGuests - true if items are in_house_guests (Daily), false if bookings (Weekly/Monthly)
+   */
+  const recalcKPIs = (items, villaCount, isGuests = false) => {
+    // For Daily (guests): all guests are already confirmed (in-house)
+    // For Weekly/Monthly (bookings): filter by status === 'confirmed'
+    const confirmed = isGuests ? items : items.filter(b => b.status === 'confirmed');
+
+    const revenue = confirmed.reduce((s, item) => s + (item.revenue || item.total_price || 0), 0);
+    const occupied = confirmed.length > 0 ? 1 : 0;
+    const occupancy_rate = (occupied / villaCount * 100).toFixed(1);
+    const gap_nights = villaCount - occupied;
+
+    return {
+      occupancy_rate: parseFloat(occupancy_rate),
+      total_bookings: items.length,
+      revenue_active: revenue,  // Daily
+      revenue_total: revenue,   // Weekly/Monthly
+      gap_nights: gap_nights
+    };
+  };
+
+  /**
+   * Filter report data by villa
+   * @param {Object} data - Report data (Daily/Weekly/Monthly)
+   * @param {string} villaFilter - Villa ID (Daily) or Villa name (Weekly/Monthly)
+   * @param {string} reportType - 'daily', 'weekly', or 'monthly'
+   */
+  const filterByVilla = (data, villaFilter, reportType) => {
+    // No filtering if "All" is selected
+    if (!villaFilter || villaFilter === 'All') return data;
+
+    if (reportType === 'daily') {
+      // Daily: filter by villa name
+      const filteredGuests = (data.in_house_guests || []).filter(g => g.villa === villaFilter);
+
+      // Filter pending_decisions by villa_name
+      const filteredDecisions = (data.pending_decisions || []).filter(d => d.villa_name === villaFilter);
+
+      // Filter guest_requests by villa_name or villa
+      const filteredRequests = (data.guest_requests || []).filter(r =>
+        r.villa_name === villaFilter || r.villa === villaFilter
+      );
+
+      // Filter revenue_by_villa object (keep only selected villa)
+      const filteredRevenue = data.revenue_by_villa && typeof data.revenue_by_villa === 'object'
+        ? { [villaFilter]: data.revenue_by_villa[villaFilter] || 0 }
+        : {};
+
+      // Filter channels: When filtering by villa, channels data is not available per guest
+      // Channels represent bookings across the property, not current in-house guests
+      // So when filtering, we show empty channels
+      const filteredChannels = {};
+
+      return {
+        ...data,
+        in_house_guests: filteredGuests,
+        pending_decisions: filteredDecisions,
+        guest_requests: filteredRequests,
+        revenue_by_villa: filteredRevenue,
+        channels: filteredChannels,
+        kpis: recalcKPIs(filteredGuests, 1, true)  // isGuests = true for Daily
+      };
+    }
+
+    if (reportType === 'weekly' || reportType === 'monthly') {
+      // Weekly/Monthly: filter by villa name
+      const filtered = (data.bookings_list || []).filter(b => b.villa === villaFilter);
+      return {
+        ...data,
+        bookings_list: filtered,
+        kpis: recalcKPIs(filtered, 1, false)  // isGuests = false for Weekly/Monthly
+      };
+    }
+
+    return data;
+  };
+
+  // ========================================
+  // APPLY VILLA FILTERING (Before Render)
+  // ========================================
+
+  // Apply filtering to Daily Report data
+  const filteredDaily = dailySummaryAPI
+    ? filterByVilla(dailySummaryAPI, filterDecisionProperty, 'daily')
+    : null;
 
   // Main render
   return (
