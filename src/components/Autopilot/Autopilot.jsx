@@ -7573,7 +7573,7 @@ const Autopilot = ({ onBack }) => {
                         WEEKLY — March {weekStart.getDate()}-{weekEnd.getDate()}
                       </h3>
                       <h3 className="text-xl font-bold text-[#FF8C42]">
-                        Nismara UMA · 3 villas · 7 days
+                        {filterDecisionProperty === 'All' ? 'All Properties' : filterDecisionProperty} · {revenueByVilla.length} villas · 7 days
                       </h3>
                     </div>
 

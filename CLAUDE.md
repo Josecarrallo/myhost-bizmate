@@ -425,6 +425,28 @@ git show e149395
 
 ## Development Guidelines
 
+### 🚨 CRITICAL RULE - Code Modification Policy
+
+**⛔ NEVER modify any code files without explicit user approval.**
+
+See `REGLAS_CLAUDE.md` for complete rules. Summary:
+
+1. **STOP** before making any change
+2. **ASK** the user for permission, describing the exact change
+3. **WAIT** for explicit confirmation ("yes", "ok", "proceed")
+4. **EXECUTE** the change only after approval
+5. **VERIFY** with `git status` after the change
+
+**Tools requiring approval:**
+- Edit, Write, NotebookEdit
+- Any Bash command that modifies files
+
+**When user says "undo changes" or "restore":**
+1. Run `git status` FIRST to see ALL modified files
+2. List ALL files and ask for confirmation
+3. Use `git restore` on ALL modified files
+4. Verify with `git status` that working directory is clean
+
 **When Adding New Modules:**
 1. Create component in `src/components/ModuleName/ModuleName.jsx`
 2. Import in `App.jsx`
