@@ -7538,10 +7538,29 @@ const Autopilot = ({ onBack }) => {
               (() => {
                 const summary = weeklySummaries[0]; // Most recent week only
                 if (!summary) return null;
-                const bookingsList = summary.bookings_list || [];
+
+                // Apply villa filtering to Weekly Report
+                const filteredSummary = filterDecisionProperty && filterDecisionProperty !== 'All'
+                  ? filterByVilla(summary, filterDecisionProperty, 'weekly')
+                  : summary;
+
+                // DEBUG: Log filtered data structure
+                if (filterDecisionProperty !== 'All') {
+                  console.log('🔍 WEEKLY FILTER DEBUG:', {
+                    filterProperty: filterDecisionProperty,
+                    originalSummary: summary,
+                    filteredSummary: filteredSummary,
+                    occupancy_rate: filteredSummary?.occupancy_rate,
+                    total_bookings: filteredSummary?.total_bookings,
+                    revenue_total: filteredSummary?.revenue_total,
+                    bookings_count: filteredSummary?.bookings_list?.length
+                  });
+                }
+
+                const bookingsList = filteredSummary.bookings_list || [];
 
                 // Convert revenue_by_villa from object to array
-                const revenueByVillaObj = summary.revenue_by_villa || {};
+                const revenueByVillaObj = filteredSummary.revenue_by_villa || {};
                 const revenueByVilla = Array.isArray(revenueByVillaObj)
                   ? revenueByVillaObj
                   : Object.entries(revenueByVillaObj).map(([villa_name, revenue]) => ({
@@ -7549,14 +7568,14 @@ const Autopilot = ({ onBack }) => {
                       revenue
                     }));
 
-                const decisionsList = summary.decisions_list || [];
+                const decisionsList = filteredSummary.decisions_list || [];
                 const recommendations = summary.recommendations_json || [];
 
                 // auto_resolved_summary is an object with {count, items, by_type}
-                const autoResolvedObj = summary.auto_resolved_summary || {};
+                const autoResolvedObj = filteredSummary.auto_resolved_summary || {};
                 const autoResolved = autoResolvedObj.items || [];
 
-                const pendingApproval = summary.pending_approval || [];
+                const pendingApproval = filteredSummary.pending_approval || [];
                 const marketing = summary.marketing_summary || {};
                 const channels = marketing.channels || summary.booking_trends_json?.channels || [];
 
@@ -7581,7 +7600,7 @@ const Autopilot = ({ onBack }) => {
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                       {/* KPI 1: Occupancy rate */}
                       {(() => {
-                        const occupancyNum = summary.occupancy_rate || 0;
+                        const occupancyNum = filteredSummary.occupancy_rate || 0;
                         const colorClass = occupancyNum >= 70 ? 'text-green-400' :
                                           occupancyNum >= 40 ? 'text-orange-400' : 'text-red-400';
                         const borderClass = occupancyNum >= 70 ? 'border-green-500/30' :
@@ -7593,7 +7612,7 @@ const Autopilot = ({ onBack }) => {
                               {occupancyNum.toFixed(1)}%
                             </p>
                             <p className="text-xs text-gray-500 mt-1">
-                              {summary.occupancy_label || ''}
+                              {filteredSummary.occupancy_label || ''}
                             </p>
                           </div>
                         );
@@ -7603,7 +7622,7 @@ const Autopilot = ({ onBack }) => {
                       <div className="bg-[#1f2937] p-4 rounded-lg border border-blue-500/30 text-center">
                         <p className="text-gray-400 text-sm mb-1">Total bookings</p>
                         <p className="text-3xl font-bold text-blue-400">
-                          {summary.total_bookings || 0}
+                          {filteredSummary.total_bookings || 0}
                         </p>
                         <p className="text-xs text-gray-500 mt-1">esta semana</p>
                       </div>
@@ -7612,7 +7631,7 @@ const Autopilot = ({ onBack }) => {
                       <div className="bg-[#1f2937] p-4 rounded-lg border border-purple-500/30 text-center">
                         <p className="text-gray-400 text-sm mb-1">Revenue confirmado</p>
                         <p className="text-xl font-bold text-purple-400 whitespace-nowrap">
-                          {formatIDR(summary.revenue_total_idr || summary.revenue_total || 0)}
+                          {formatIDR(filteredSummary.revenue_total_idr || filteredSummary.revenue_total || 0)}
                         </p>
                         <p className="text-xs text-gray-500 mt-1">total semanal</p>
                       </div>
@@ -7620,11 +7639,11 @@ const Autopilot = ({ onBack }) => {
                       {/* KPI 4: Gap nights */}
                       {(() => {
                         // Calculate gap nights from available data
-                        const villaCount = 3;
+                        const villaCount = filterDecisionProperty === 'All' ? 3 : 1;
                         const daysInWeek = 7;
-                        const totalNightsAvailable = villaCount * daysInWeek; // 21
-                        const nightsBooked = summary.marketing_summary?.nights_booked ||
-                                           (summary.occupancy_rate ? Math.round((summary.occupancy_rate / 100) * totalNightsAvailable) : 0);
+                        const totalNightsAvailable = villaCount * daysInWeek;
+                        const nightsBooked = filteredSummary.marketing_summary?.nights_booked ||
+                                           (filteredSummary.occupancy_rate ? Math.round((filteredSummary.occupancy_rate / 100) * totalNightsAvailable) : 0);
                         const gapNights = totalNightsAvailable - nightsBooked;
 
                         const gapColorClass = gapNights === 0 ? 'text-green-400' :
@@ -7638,7 +7657,7 @@ const Autopilot = ({ onBack }) => {
                               {gapNights}
                             </p>
                             <p className="text-xs text-gray-500 mt-1">
-                              {summary.gap_label || ''}
+                              {filteredSummary.gap_label || ''}
                             </p>
                           </div>
                         );
@@ -7774,7 +7793,7 @@ const Autopilot = ({ onBack }) => {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       {/* Sales Channels - Left */}
                       {(() => {
-                        const bookingsListForChannels = summary.bookings_list || [];
+                        const bookingsListForChannels = filteredSummary.bookings_list || [];
 
                         // Group by channel and count confirmed bookings
                         const channelCounts = bookingsListForChannels.reduce((acc, booking) => {
@@ -7822,10 +7841,10 @@ const Autopilot = ({ onBack }) => {
 
                       {/* Occupancy Detail - Right */}
                       {(() => {
-                        const occupancyRate = summary.occupancy_rate || 0;
-                        const villaCount = 3;
+                        const occupancyRate = filteredSummary.occupancy_rate || 0;
+                        const villaCount = filterDecisionProperty === 'All' ? 3 : 1;
                         const daysInWeek = 7;
-                        const nochesDisponibles = villaCount * daysInWeek; // 21
+                        const nochesDisponibles = villaCount * daysInWeek;
                         const nochesOcupadas = Math.round((occupancyRate / 100) * nochesDisponibles);
                         const gapNights = nochesDisponibles - nochesOcupadas;
 
@@ -7838,7 +7857,7 @@ const Autopilot = ({ onBack }) => {
                             <div className="space-y-2">
                               <div className="flex justify-between items-center">
                                 <span className="text-gray-300">Available nights</span>
-                                <span className="text-white font-bold">{nochesDisponibles} (3×7d)</span>
+                                <span className="text-white font-bold">{nochesDisponibles} ({villaCount}×7d)</span>
                               </div>
                               <div className="flex justify-between items-center">
                                 <span className="text-gray-300">Occupied nights</span>
@@ -7906,7 +7925,7 @@ const Autopilot = ({ onBack }) => {
                         Guest Requests
                       </h4>
                       {(() => {
-                        const allGuestRequests = summary.guest_requests || [];
+                        const allGuestRequests = filteredSummary.guest_requests || [];
                         // Filter last 30 days
                         const thirtyDaysAgo = new Date();
                         thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
@@ -9044,11 +9063,68 @@ const Autopilot = ({ onBack }) => {
 
     if (reportType === 'weekly' || reportType === 'monthly') {
       // Weekly/Monthly: filter by villa name
-      const filtered = (data.bookings_list || []).filter(b => b.villa === villaFilter);
+      const filteredBookings = (data.bookings_list || []).filter(b =>
+        b.villa === villaFilter || b.villa_name === villaFilter
+      );
+
+      // Filter revenue_by_villa object (keep only selected villa)
+      const filteredRevenue = data.revenue_by_villa && typeof data.revenue_by_villa === 'object'
+        ? { [villaFilter]: data.revenue_by_villa[villaFilter] || 0 }
+        : {};
+
+      // Filter decisions_list by villa_name
+      const filteredDecisions = (data.decisions_list || []).filter(d =>
+        d.villa_name === villaFilter || d.villa === villaFilter
+      );
+
+      // Filter auto_resolved_summary.items by villa_name
+      const autoResolvedObj = data.auto_resolved_summary || {};
+      const filteredAutoResolved = (autoResolvedObj.items || []).filter(item =>
+        item.villa_name === villaFilter || item.villa === villaFilter
+      );
+
+      // Filter pending_approval.items by villa_name (pending_approval is an object {count, items})
+      const pendingApprovalObj = data.pending_approval || {};
+      const filteredPending = (pendingApprovalObj.items || []).filter(item =>
+        item.villa_name === villaFilter || item.villa === villaFilter
+      );
+
+      // Filter guest_requests by villa_name or villa
+      const filteredRequests = (data.guest_requests || []).filter(r =>
+        r.villa_name === villaFilter || r.villa === villaFilter
+      );
+
+      // Calculate new KPIs for filtered data
+      const newKPIs = recalcKPIs(filteredBookings, 1, false);  // isGuests = false for Weekly/Monthly
+
+      // Exclude marketing_summary since it contains totals for ALL villas
+      const { marketing_summary, ...dataWithoutMarketing } = data;
+
       return {
-        ...data,
-        bookings_list: filtered,
-        kpis: recalcKPIs(filtered, 1, false)  // isGuests = false for Weekly/Monthly
+        ...dataWithoutMarketing,
+        bookings_list: filteredBookings,
+        revenue_by_villa: filteredRevenue,
+        decisions_list: filteredDecisions,
+        auto_resolved_summary: {
+          ...autoResolvedObj,
+          items: filteredAutoResolved,
+          count: filteredAutoResolved.length
+        },
+        pending_approval: {
+          count: filteredPending.length,
+          items: filteredPending
+        },
+        guest_requests: filteredRequests,
+        // Spread KPIs at top level for Weekly/Monthly compatibility
+        occupancy_rate: newKPIs.occupancy_rate,
+        total_bookings: newKPIs.total_bookings,
+        revenue_total: newKPIs.revenue_total,
+        revenue_total_idr: newKPIs.revenue_total,
+        gap_nights: newKPIs.gap_nights,
+        gap_label: newKPIs.gap_nights === 0 ? 'Full occupancy' :
+                   newKPIs.gap_nights <= 5 ? 'Good occupancy' : 'Low occupancy',
+        occupancy_label: newKPIs.occupancy_rate >= 70 ? 'High' :
+                        newKPIs.occupancy_rate >= 40 ? 'Medium' : 'Low'
       };
     }
 
