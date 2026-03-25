@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import * as XLSX from 'xlsx';
+import MonthlyReport from './MonthlyReport';
 import {
   Zap,
   Calendar,
@@ -8047,7 +8048,16 @@ const Autopilot = ({ onBack }) => {
               })()
             )
           ) : filterDecisionPeriod === 'monthly' ? (
-            /* MONTHLY SUMMARIES VIEW v4.3 */
+            /* MONTHLY REPORT - Using MonthlyReport.jsx component */
+            <MonthlyReport
+              propertyId={selectedProperty?.id}
+              propertyName={selectedProperty?.property_name || filterDecisionProperty}
+              tenantId={userData?.tenant_id}
+              monthlySummary={monthlySummaries.length > 0 ? monthlySummaries[0] : null}
+              loading={loadingSummaries}
+            />
+          ) : filterDecisionPeriod === 'monthly_OLD_BACKUP' ? (
+            /* OLD MONTHLY SUMMARIES VIEW v4.3 - BACKUP */
             loadingSummaries ? (
               <div className="text-center py-8 bg-[#2a2f3a] rounded-lg border-2 border-gray-700">
                 <div className="w-12 h-12 border-4 border-orange-500/30 border-t-orange-500 rounded-full animate-spin mx-auto mb-3" />
