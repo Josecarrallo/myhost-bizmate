@@ -1665,14 +1665,7 @@ const Autopilot = ({ onBack }) => {
       console.log('🔄 Approving decision:', selectedDecision.id);
       await ownerDecisionsService.approveDecision(selectedDecision.id, userData.id, approveNotes);
 
-      // Update resolved_at timestamp in Supabase
-      await supabase
-        .from('owner_decisions')
-        .update({
-          status: 'approved',
-          resolved_at: new Date().toISOString()
-        })
-        .eq('id', selectedDecision.id);
+      // n8n Decision Router updates Supabase directly - no need for frontend UPDATE
 
       setNotification({ type: 'success', message: '✅ Decision approved successfully!' });
 
@@ -1681,10 +1674,10 @@ const Autopilot = ({ onBack }) => {
       setApproveNotes('');
       setIsProcessingApprove(false);
 
-      // Reload decisions after 1 second
+      // Reload decisions after 2 seconds (n8n Router needs time to process)
       setTimeout(() => {
         loadOwnerDecisions();
-      }, 1000);
+      }, 2000);
     } catch (error) {
       console.error('❌ Error approving decision:', error);
       setNotification({ type: 'error', message: '❌ Failed to approve decision' });
@@ -1714,14 +1707,7 @@ const Autopilot = ({ onBack }) => {
       console.log('🔄 Rejecting decision:', selectedDecision.id, 'with notes:', rejectNotes);
       await ownerDecisionsService.rejectDecision(selectedDecision.id, userData.id, rejectNotes);
 
-      // Update resolved_at timestamp in Supabase
-      await supabase
-        .from('owner_decisions')
-        .update({
-          status: 'rejected',
-          resolved_at: new Date().toISOString()
-        })
-        .eq('id', selectedDecision.id);
+      // n8n Decision Router updates Supabase directly - no need for frontend UPDATE
 
       setNotification({ type: 'success', message: '✅ Decision rejected successfully!' });
 
@@ -1730,10 +1716,10 @@ const Autopilot = ({ onBack }) => {
       setRejectNotes('');
       setIsProcessingReject(false);
 
-      // Reload decisions after 1 second
+      // Reload decisions after 2 seconds (n8n Router needs time to process)
       setTimeout(() => {
         loadOwnerDecisions();
-      }, 1000);
+      }, 2000);
     } catch (error) {
       console.error('❌ Error rejecting decision:', error);
       setNotification({ type: 'error', message: '❌ Failed to reject decision' });
