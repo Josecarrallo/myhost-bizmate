@@ -129,6 +129,9 @@ const Autopilot = ({ onBack }) => {
   const [isGeneratingEnhancedReport, setIsGeneratingEnhancedReport] = useState(false);
   const [enhancedReportHTML, setEnhancedReportHTML] = useState('<html><body style="margin:0;padding:40px;font-family:sans-serif;text-align:center;color:#666;"><h2 style="color:#FF8C42;">Enhanced Global Report</h2><p>Select property and dates, then click <strong>Generate Report</strong>.</p></body></html>');
 
+  // Property ID for multi-tenant support (used for creating decisions)
+  const [propertyId, setPropertyId] = useState(null);
+
   // Owner Decisions (OCS) states
   const [ownerDecisions, setOwnerDecisions] = useState([]);
   const [decisionsSummary, setDecisionsSummary] = useState({
@@ -1616,11 +1619,12 @@ const Autopilot = ({ onBack }) => {
           .eq('owner_id', userData.id)
           .single();
 
-        const propertyId = userProperty?.id;
+        const fetchedPropertyId = userProperty?.id;
+        setPropertyId(fetchedPropertyId); // Save to state for creating decisions
 
         console.log('📞 [2/2] Calling ownerSummariesService.getDailySummaryAPI v2.4 (n8n)');
-        console.log('🏠 Using property:', userProperty?.name, 'id:', propertyId, 'for owner:', userData.id);
-        const apiData = await ownerSummariesService.getDailySummaryAPI(userData.id, propertyId);
+        console.log('🏠 Using property:', userProperty?.name, 'id:', fetchedPropertyId, 'for owner:', userData.id);
+        const apiData = await ownerSummariesService.getDailySummaryAPI(userData.id, fetchedPropertyId);
         console.log('✅ Received Daily Summary API v2.4:', apiData);
         console.log('📊 API pending_decisions:', apiData?.pending_decisions);
         console.log('📊 API pending_decisions length:', apiData?.pending_decisions?.length);
@@ -1775,10 +1779,28 @@ const Autopilot = ({ onBack }) => {
     setIsSavingDecision(true);
 
     try {
+      // Get property_id if not already loaded
+      let currentPropertyId = propertyId;
+      if (!currentPropertyId) {
+        const { data: userProperty } = await supabase
+          .from('properties')
+          .select('id')
+          .eq('owner_id', userData.id)
+          .single();
+        currentPropertyId = userProperty?.id;
+        setPropertyId(currentPropertyId);
+      }
+
+      if (!currentPropertyId) {
+        setNotification({ type: 'error', message: 'Property ID not found' });
+        setIsSavingDecision(false);
+        return;
+      }
+
       const decisionData = {
         tenant_id: userData.id,
-        property_id: decisionFormData.property_id,
-        villa_id: decisionFormData.villa_id || decisionFormData.property_id,
+        property_id: currentPropertyId, // Fixed: use correct property_id from state, not villa_id
+        villa_id: decisionFormData.villa_id || null,
         villa_name: decisionFormData.villa_name || '',
         scheduled_date: decisionFormData.scheduled_date || null,
         title: decisionFormData.title,
@@ -7260,8 +7282,8 @@ const Autopilot = ({ onBack }) => {
 
                   return (
                     <div className={`p-5 rounded-lg border ${hasPending ? 'bg-[#1f2937] border-red-500/30' : 'bg-[#1f2937] border-gray-700'}`}>
-                      <h4 className={`text-lg font-bold mb-4 flex items-center gap-2 ${hasPending ? 'text-red-400' : 'text-gray-400'}`}>
-                        <AlertCircle className="w-5 h-5" />
+                      <h4 className={`text-xs font-medium mb-2 flex items-center gap-1.5 ${hasPending ? 'text-red-400' : 'text-gray-400'}`}>
+                        <AlertCircle className="w-4 h-4" />
                         Pending decisions — {todayPending.length}
                       </h4>
 
@@ -7270,18 +7292,18 @@ const Autopilot = ({ onBack }) => {
                           <table className="w-full text-left text-sm">
                             <thead>
                               <tr className="border-b border-gray-700">
-                                <th className="pb-2 text-gray-400">Prioridad</th>
-                                <th className="pb-2 text-gray-400">Tipo</th>
-                                <th className="pb-2 text-gray-400">Villa</th>
-                                <th className="pb-2 text-gray-400">Decisión · Guest</th>
-                                <th className="pb-2 text-gray-400">Agente</th>
+                                <th className="pb-2 pr-4 text-gray-400">Prioridad</th>
+                                <th className="pb-2 pr-4 text-gray-400">Tipo</th>
+                                <th className="pb-2 pr-4 text-gray-400">Villa</th>
+                                <th className="pb-2 pr-4 text-gray-400">Decisión · Guest</th>
+                                <th className="pb-2 pr-4 text-gray-400">Agente</th>
                                 <th className="pb-2 text-gray-400">Status</th>
                               </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-700">
                               {todayPending.map((decision) => (
                                 <tr key={decision.id} className="text-gray-300">
-                                  <td className="py-2">
+                                  <td className="py-2 pr-4">
                                     <span className={`px-2 py-1 rounded text-xs font-bold ${
                                       decision.priority === 'urgent' ? 'bg-[#FEE2E2] text-[#991B1B]' :
                                       decision.priority === 'high' ? 'bg-[#FEF3C7] text-[#92400E]' :
@@ -7291,13 +7313,13 @@ const Autopilot = ({ onBack }) => {
                                       {decision.priority?.toUpperCase()}
                                     </span>
                                   </td>
-                                  <td className="py-2">{decision.decision_type || decision.type || '—'}</td>
-                                  <td className="py-2">{decision.villa_name || '—'}</td>
-                                  <td className="py-2">
+                                  <td className="py-2 pr-4">{decision.decision_type || decision.type || '—'}</td>
+                                  <td className="py-2 pr-4">{decision.villa_name || '—'}</td>
+                                  <td className="py-2 pr-4">
                                     {decision.title || decision.summary}
                                     {decision.guest_name && ` — ${decision.guest_name}`}
                                   </td>
-                                  <td className="py-2">
+                                  <td className="py-2 pr-4">
                                     <div className="flex items-center gap-2">
                                       {decision.generated_by_agent === 'banyu' ? (
                                         <span className="px-2 py-1 rounded text-xs font-bold bg-[#DBEAFE] text-[#1E40AF]">
@@ -7305,11 +7327,6 @@ const Autopilot = ({ onBack }) => {
                                         </span>
                                       ) : (
                                         <span className="text-gray-400">system</span>
-                                      )}
-                                      {decision.generated_by_agent === 'banyu' && (
-                                        <span className="px-2 py-1 rounded text-xs font-bold bg-[#DBEAFE] text-[#1E40AF]">
-                                          📱 WhatsApp
-                                        </span>
                                       )}
                                     </div>
                                   </td>
@@ -7340,29 +7357,14 @@ const Autopilot = ({ onBack }) => {
 
                 {/* Auto-resolved today - ALWAYS SHOW */}
                 {(() => {
-                  // WORKAROUND: n8n workflow está devolviendo solo 1 de 2 decisiones aprobadas
-                  // Extraer TODAS las decisiones aprobadas de guest_requests
-                  const today = new Date().toISOString().split('T')[0];
-                  const approvedToday = filteredDaily?.guest_requests?.filter(req =>
-                    req.status === 'approved' &&
-                    req.date === today
-                  ) || [];
+                  // Leer de auto_resolved_today.items (ya viene filtrado desde n8n Daily API v4)
+                  const autoResolvedItems = filteredDaily?.auto_resolved_today?.items || [];
 
-                  const autoResolvedToday = {
-                    count: approvedToday.length,
-                    items: approvedToday.map(req => ({
-                      id: req.id,
-                      type: req.decision_type || req.type || 'guest_request',
-                      guest: req.guest_name || req.guest,
-                      resolution: req.description || req.title || req.request || 'Resolved automatically'
-                    }))
-                  };
-
-                  const count = autoResolvedToday.count;
-                  const items = autoResolvedToday.items;
+                  const count = autoResolvedItems.length;
+                  const items = autoResolvedItems;
 
                   return (
-                    <div className="bg-[#1f2937] p-5 rounded-lg border border-green-500/30">
+                    <div className="bg-[#1f2937] p-5 rounded-lg border border-green-500/30 mt-4">
                       <h4 className="text-lg font-bold text-green-400 mb-4">
                         Auto-resolved today
                       </h4>
@@ -7387,7 +7389,7 @@ const Autopilot = ({ onBack }) => {
                                   <tr key={idx} className="text-gray-300">
                                     <td className="py-2 align-top">{fechaFormatted}</td>
                                     <td className="py-2 align-top">
-                                      <div className="break-words">—</div>
+                                      <div className="break-words">{item.villa_name || '—'}</div>
                                     </td>
                                     <td className="py-2 align-top">
                                       <div className="break-words">{item.guest || '—'}</div>
@@ -7433,7 +7435,7 @@ const Autopilot = ({ onBack }) => {
                     : [];
 
                   return uniqueRequests.length > 0 && (
-                    <div className="bg-[#1f2937] p-5 rounded-lg border border-pink-500/30">
+                    <div className="bg-[#1f2937] p-5 rounded-lg border border-pink-500/30 mt-4">
                       <h4 className="text-lg font-bold text-pink-400 mb-4 flex items-center gap-2">
                         <MessageSquare className="w-5 h-5" />
                         Guest Requests
@@ -7981,7 +7983,7 @@ const Autopilot = ({ onBack }) => {
 
                     {/* Decisions - this week */}
                     <div className="bg-[#1f2937] p-5 rounded-lg border border-red-500/30">
-                      <h4 className="text-lg font-bold text-red-400 mb-4 flex items-center gap-2">
+                      <h4 className="text-sm font-semibold text-red-400 mb-3 flex items-center gap-2">
                         <AlertCircle className="w-5 h-5" />
                         Decisions — this week ({decisionsList.length})
                       </h4>
