@@ -7564,7 +7564,11 @@ const Autopilot = ({ onBack }) => {
                 const autoResolvedObj = filteredSummary.auto_resolved_summary || {};
                 const autoResolved = autoResolvedObj.items || [];
 
-                const pendingApproval = filteredSummary.pending_approval || [];
+                // pending_approval can be either array or object {count, items}
+                const pendingApprovalData = filteredSummary.pending_approval || [];
+                const pendingApproval = Array.isArray(pendingApprovalData)
+                  ? pendingApprovalData
+                  : (pendingApprovalData.items || []);
                 const marketing = summary.marketing_summary || {};
                 const channels = marketing.channels || summary.booking_trends_json?.channels || [];
 
@@ -7652,39 +7656,6 @@ const Autopilot = ({ onBack }) => {
                         );
                       })()}
                     </div>
-
-                    {/* Pending Approval section (ALWAYS show) */}
-                    <div className="bg-[#1f2937] p-5 rounded-lg border border-orange-500/30">
-                      <h4 className="text-lg font-bold text-orange-400 mb-4">
-                        Pending Approval
-                      </h4>
-                      {pendingApproval && pendingApproval.length > 0 ? (
-                        <div className="space-y-3">
-                          {pendingApproval.map((item, idx) => (
-                            <div key={idx} className="bg-[#2a2f3a] p-4 rounded-lg border-l-4 border-orange-500">
-                              <div className="flex items-start justify-between mb-2">
-                                <p className="text-white font-semibold">{item.title || item.description || 'Decision required'}</p>
-                                <span className="px-2 py-1 rounded text-xs font-bold bg-orange-500/20 text-orange-400">
-                                  {item.priority?.toUpperCase() || 'PENDING'}
-                                </span>
-                              </div>
-                              {item.details && <p className="text-gray-300 text-sm">{item.details}</p>}
-                              <div className="flex gap-2 mt-3">
-                                <button className="px-3 py-1 bg-green-500/20 text-green-400 rounded text-sm font-semibold hover:bg-green-500/30">
-                                  ✅ Approve
-                                </button>
-                                <button className="px-3 py-1 bg-red-500/20 text-red-400 rounded text-sm font-semibold hover:bg-red-500/30">
-                                  ❌ Reject
-                                </button>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      ) : (
-                        <p className="text-gray-400 text-sm">0 decisiones pendientes de aprobacion esta semana.</p>
-                      )}
-                    </div>
-
 
                     {/* Bookings table - ALWAYS SHOW */}
                     <div className="bg-[#1f2937] p-5 rounded-lg border border-blue-500/30">
@@ -7864,6 +7835,39 @@ const Autopilot = ({ onBack }) => {
                           </div>
                         );
                       })()}
+                    </div>
+
+                    {/* Pending Approval section (ALWAYS show) - TABLE FORMAT */}
+                    <div className="bg-[#1f2937] p-5 rounded-lg border border-orange-500/30">
+                      <h4 className="text-lg font-bold text-orange-400 mb-4">
+                        Pending Approval
+                      </h4>
+                      {pendingApproval && pendingApproval.length > 0 ? (
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-left text-sm">
+                            <thead>
+                              <tr className="border-b border-gray-700">
+                                <th className="pb-2 pr-4 text-gray-400">Prior.</th>
+                                <th className="pb-2 pr-4 text-gray-400">Tipo</th>
+                                <th className="pb-2 pr-4 text-gray-400">Villa</th>
+                                <th className="pb-2 text-gray-400">Request</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-700">
+                              {pendingApproval.map((item, idx) => (
+                                <tr key={idx} className="text-gray-300">
+                                  <td className="py-2 pr-4">{item.priority || '—'}</td>
+                                  <td className="py-2 pr-4">{item.type || '—'}</td>
+                                  <td className="py-2 pr-4">{item.villa || '—'}</td>
+                                  <td className="py-2">{item.request || '—'}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      ) : (
+                        <p className="text-gray-400 text-sm">0 decisiones pendientes de aprobacion esta semana.</p>
+                      )}
                     </div>
 
                     {/* Auto-resolved - ALWAYS SHOW */}
