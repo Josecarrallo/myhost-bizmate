@@ -8552,9 +8552,20 @@ const Autopilot = ({ onBack }) => {
                         <span className="px-3 py-1 rounded-full text-xs font-semibold bg-blue-500/20 text-blue-300 border-2 border-blue-500">
                           {agentBadge}
                         </span>
-                        <span className="px-3 py-1 rounded-full text-xs font-medium bg-purple-500/20 text-purple-300">
-                          {decision.decision_category === 'approval' ? 'Needs Approval' : 'Recommendation'}
-                        </span>
+                        {/* Status badge - conditional based on decision.status */}
+                        {decision.status === 'approved' ? (
+                          <span className="px-3 py-1 rounded-full text-xs font-medium bg-green-500/20 text-green-300 border border-green-500">
+                            ✅ Approved by {decision.approved_by || 'system'}
+                          </span>
+                        ) : decision.status === 'rejected' ? (
+                          <span className="px-3 py-1 rounded-full text-xs font-medium bg-red-500/20 text-red-300 border border-red-500">
+                            ❌ Rejected
+                          </span>
+                        ) : (
+                          <span className="px-3 py-1 rounded-full text-xs font-medium bg-purple-500/20 text-purple-300">
+                            {decision.decision_category === 'approval' ? 'Needs Approval' : 'Recommendation'}
+                          </span>
+                        )}
                       </div>
                       <h4 className="text-white font-bold text-xl mb-2">
                         {typeInfo.emoji} {decision.title}
@@ -8584,21 +8595,26 @@ const Autopilot = ({ onBack }) => {
                       </div>
                     </div>
                   </div>
+                  {/* Action buttons - only show Approve/Reject when status is 'pending' */}
                   <div className="flex gap-3 pt-4 border-t-2 border-gray-700">
-                    <button
-                      onClick={() => handleApproveDecision(decision)}
-                      className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-green-500 hover:bg-green-600 text-white rounded-lg font-bold transition-all shadow-lg hover:shadow-xl transform hover:scale-105"
-                    >
-                      <ThumbsUp className="w-5 h-5" />
-                      Approve
-                    </button>
-                    <button
-                      onClick={() => handleRejectDecision(decision)}
-                      className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-red-500 hover:bg-red-600 text-white rounded-lg font-bold transition-all shadow-lg hover:shadow-xl transform hover:scale-105"
-                    >
-                      <ThumbsDown className="w-5 h-5" />
-                      Reject
-                    </button>
+                    {decision.status === 'pending' && (
+                      <>
+                        <button
+                          onClick={() => handleApproveDecision(decision)}
+                          className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-green-500 hover:bg-green-600 text-white rounded-lg font-bold transition-all shadow-lg hover:shadow-xl transform hover:scale-105"
+                        >
+                          <ThumbsUp className="w-5 h-5" />
+                          Approve
+                        </button>
+                        <button
+                          onClick={() => handleRejectDecision(decision)}
+                          className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-red-500 hover:bg-red-600 text-white rounded-lg font-bold transition-all shadow-lg hover:shadow-xl transform hover:scale-105"
+                        >
+                          <ThumbsDown className="w-5 h-5" />
+                          Reject
+                        </button>
+                      </>
+                    )}
                     <button
                       onClick={() => {
                         setEditingDecision(decision);
