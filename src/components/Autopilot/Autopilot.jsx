@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import * as XLSX from 'xlsx';
+import MonthlyReport from './MonthlyReport';
 import {
   Zap,
   Calendar,
@@ -60,6 +61,7 @@ import { generateEnhancedReportHTML } from '../../services/enhancedReportHTML';
 import { supabaseService as dataService } from '../../services/supabase';
 import { tasksService } from '../../services/tasksService';
 import { ownerDecisionsService } from '../../services/ownerDecisionsService';
+import { ownerSummariesService } from '../../services/ownerSummariesService';
 
 const Autopilot = ({ onBack }) => {
   const { userData } = useAuth();
@@ -128,6 +130,9 @@ const Autopilot = ({ onBack }) => {
   const [isGeneratingEnhancedReport, setIsGeneratingEnhancedReport] = useState(false);
   const [enhancedReportHTML, setEnhancedReportHTML] = useState('<html><body style="margin:0;padding:40px;font-family:sans-serif;text-align:center;color:#666;"><h2 style="color:#FF8C42;">Enhanced Global Report</h2><p>Select property and dates, then click <strong>Generate Report</strong>.</p></body></html>');
 
+  // Property ID for multi-tenant support (used for creating decisions)
+  const [propertyId, setPropertyId] = useState(null);
+
   // Owner Decisions (OCS) states
   const [ownerDecisions, setOwnerDecisions] = useState([]);
   const [decisionsSummary, setDecisionsSummary] = useState({
@@ -147,17 +152,84 @@ const Autopilot = ({ onBack }) => {
   const [isProcessingApprove, setIsProcessingApprove] = useState(false);
   const [isProcessingReject, setIsProcessingReject] = useState(false);
 
-  // Load villas when entering Tasks section
+  // Owner Decisions filters
+  const [decisionsSearchTerm, setDecisionsSearchTerm] = useState('');
+  const [filterDecisionStatus, setFilterDecisionStatus] = useState('All');
+  const [filterDecisionPriority, setFilterDecisionPriority] = useState('All');
+  const [filterDecisionType, setFilterDecisionType] = useState('All');
+  const [filterDecisionAgent, setFilterDecisionAgent] = useState('All');
+  const [filterDecisionProperty, setFilterDecisionProperty] = useState('All');
+  const [filterDecisionDate, setFilterDecisionDate] = useState('all');
+  const [customDecisionDateFrom, setCustomDecisionDateFrom] = useState('');
+  const [customDecisionDateTo, setCustomDecisionDateTo] = useState('');
+  const [filterDecisionPeriod, setFilterDecisionPeriod] = useState('all'); // all/daily/weekly/monthly
+  const [dailyBriefing, setDailyBriefing] = useState(null);
+  const [dailySummaryAPI, setDailySummaryAPI] = useState(null); // NEW: Daily Summary API v2.4 data
+  const [pendingDecisions, setPendingDecisions] = useState([]);
+  const [weeklySummaries, setWeeklySummaries] = useState([]);
+  const [monthlySummaries, setMonthlySummaries] = useState([]);
+  const [loadingSummaries, setLoadingSummaries] = useState(false);
+
+  // Owner Decisions edit/create states
+  const [showDecisionForm, setShowDecisionForm] = useState(false);
+  const [editingDecision, setEditingDecision] = useState(null);
+  const [showDeleteConfirmDecision, setShowDeleteConfirmDecision] = useState(false);
+  const [decisionToDelete, setDecisionToDelete] = useState(null);
+  const [decisionFormData, setDecisionFormData] = useState({
+    title: '',
+    summary: '',
+    description: '',
+    decision_type: 'late_checkout',
+    priority: 'medium',
+    status: 'pending',
+    property_id: '',
+    villa_id: '',
+    villa_name: '',
+    scheduled_date: '',
+    guest_name: '',
+    guest_phone: '',
+    financial_impact_estimate: 0,
+    decision_category: 'approval',
+    generated_by_agent: 'system'
+  });
+  const [isSavingDecision, setIsSavingDecision] = useState(false);
+
+  // ===== HELPER FUNCTIONS =====
+  /**
+   * Format IDR currency according to v4.1 spec
+   * @param {number} n - Amount to format
+   * @returns {string} - Formatted string like "Rp 26.213.472"
+   */
+  const formatIDR = (n) => {
+    if (!n || isNaN(n)) return 'Rp 0';
+    return 'Rp ' + Math.round(n).toLocaleString('id-ID');
+  };
+
+  // Load villas when entering Tasks or Decisions section
   useEffect(() => {
-    if (activeSection === 'tasks' && userData?.id) {
+    if ((activeSection === 'tasks' || activeSection === 'decisions') && userData?.id) {
       const loadVillas = async () => {
         try {
+          // Get user's property dynamically from properties table
+          const { data: userProperty } = await supabase
+            .from('properties')
+            .select('id, name')
+            .eq('owner_id', userData.id)
+            .single();
+
+          const userPropertyId = userProperty?.id;
+          console.log('🔍 [AUTOPILOT] User property:', userProperty?.name, 'id:', userPropertyId, 'for owner:', userData.id);
+
+          // Load all villas and filter by property_id
           const allVillas = await dataService.getVillas();
-          // Filter only user's villas
-          const userVillas = allVillas.filter(villa =>
-            villa.name.toUpperCase().includes('NISMARA') || villa.name.toUpperCase().includes('GRAHA UMA')
-          );
-          setVillas(userVillas);
+          console.log('🔍 [AUTOPILOT] Loaded villas:', allVillas);
+
+          if (userPropertyId) {
+            // Filter villas by user's property_id
+            const userVillas = allVillas.filter(villa => villa.property_id === userPropertyId);
+            console.log('🔍 [AUTOPILOT] Filtered user villas:', userVillas.length, 'of', allVillas.length);
+            setVillas(userVillas);
+          }
         } catch (error) {
           console.error('Error loading villas:', error);
         }
@@ -204,6 +276,49 @@ const Autopilot = ({ onBack }) => {
       loadOwnerDecisions();
     }
   }, [activeSection, userData?.id]);
+
+  // Load summaries when period filter changes
+  useEffect(() => {
+    if (activeSection === 'decisions' && userData?.id) {
+      loadOwnerSummaries();
+    }
+  }, [filterDecisionPeriod, activeSection, userData?.id]);
+
+  // Populate form when editing a decision
+  useEffect(() => {
+    if (editingDecision) {
+      setDecisionFormData({
+        title: editingDecision.title || '',
+        summary: editingDecision.summary || '',
+        description: editingDecision.description || '',
+        decision_type: editingDecision.decision_type || 'late_checkout',
+        priority: editingDecision.priority || 'medium',
+        status: editingDecision.status || 'pending',
+        property_id: editingDecision.property_id || '',
+        guest_name: editingDecision.guest_name || '',
+        guest_phone: editingDecision.guest_phone || '',
+        financial_impact_estimate: editingDecision.financial_impact_estimate || 0,
+        decision_category: editingDecision.decision_category || 'approval',
+        generated_by_agent: editingDecision.generated_by_agent || 'system'
+      });
+    } else {
+      // Reset form for new decision
+      setDecisionFormData({
+        title: '',
+        summary: '',
+        description: '',
+        decision_type: 'late_checkout',
+        priority: 'medium',
+        status: 'pending',
+        property_id: '',
+        guest_name: '',
+        guest_phone: '',
+        financial_impact_estimate: 0,
+        decision_category: 'approval',
+        generated_by_agent: 'system'
+      });
+    }
+  }, [editingDecision]);
 
   // Load tasks from Supabase with all filters
   const loadTasksData = async () => {
@@ -746,21 +861,31 @@ const Autopilot = ({ onBack }) => {
 
       setAllBookings(bookings || []);
 
-      // Load villas (properties) - Filter only Gita's 3 villas
+      // Load villas (properties) - Filter by logged user's property_id
       try {
+        // Get user's property dynamically from properties table
+        const { data: userProperty } = await supabase
+          .from('properties')
+          .select('id, name')
+          .eq('owner_id', TENANT_ID)
+          .single();
+
+        const userPropertyId = userProperty?.id;
+        console.log('🔍 [AUTOPILOT] User property:', userProperty?.name, 'id:', userPropertyId, 'for owner:', TENANT_ID);
+
+        // Load all villas and filter by property_id
         const villas = await dataService.getVillas();
         console.log('🔍 [AUTOPILOT] Loaded villas:', villas);
 
-        if (villas && villas.length > 0) {
-          // Filter only Gita's villas (Nismara and Graha Uma)
-          const gitaVillas = villas.filter(villa =>
-            villa.name.toUpperCase().includes('NISMARA') || villa.name.toUpperCase().includes('GRAHA UMA')
-          );
-          console.log('🔍 [AUTOPILOT] Filtered Gita villas:', gitaVillas.length, 'of', villas.length);
+        if (villas && villas.length > 0 && userPropertyId) {
+          // Filter villas by user's property_id (villas.property_id → properties.id)
+          const userVillas = villas.filter(villa => villa.property_id === userPropertyId);
+          console.log('🔍 [AUTOPILOT] Filtered user villas:', userVillas.length, 'of', villas.length);
 
           // Map villas to properties format
-          properties = gitaVillas.map(villa => ({
+          properties = userVillas.map(villa => ({
             id: villa.id,
+            property_id: villa.property_id,  // IMPORTANT: This is the property_id for Daily API
             name: villa.name,
             location: villa.location || 'Ubud, Bali',
             property_type: villa.property_type || `${villa.bedrooms || 'N/A'} Bedroom Villa`,
@@ -1222,7 +1347,7 @@ const Autopilot = ({ onBack }) => {
     try {
       // Fetch bookings filtered ONLY by tenant_id (no hardcoded property_id)
       const response = await fetch(
-        `${SUPABASE_URL}/rest/v1/bookings?tenant_id=eq.${TENANT_ID}&select=check_in,total_amount,status`,
+        `${SUPABASE_URL}/rest/v1/bookings?tenant_id=eq.${TENANT_ID}&select=check_in,total_price,status`,
         {
           headers: { 'apikey': SUPABASE_KEY }
         }
@@ -1242,13 +1367,13 @@ const Autopilot = ({ onBack }) => {
 
           if (year === 2025 && month === 10) {
             monthlyData.november.bookings++;
-            monthlyData.november.revenue += parseFloat(booking.total_amount || 0);
+            monthlyData.november.revenue += parseFloat(booking.total_price || 0);
           } else if (year === 2025 && month === 11) {
             monthlyData.december.bookings++;
-            monthlyData.december.revenue += parseFloat(booking.total_amount || 0);
+            monthlyData.december.revenue += parseFloat(booking.total_price || 0);
           } else if (year === 2026 && month === 0) {
             monthlyData.january.bookings++;
-            monthlyData.january.revenue += parseFloat(booking.total_amount || 0);
+            monthlyData.january.revenue += parseFloat(booking.total_price || 0);
           }
         });
 
@@ -1302,7 +1427,7 @@ const Autopilot = ({ onBack }) => {
   const fetchAlerts = async () => {
     try {
       const response = await fetch(
-        `${SUPABASE_URL}/rest/v1/autopilot_alerts?tenant_id=eq.${TENANT_ID}&status=eq.active&order=created_at.desc&limit=10`,
+        `${SUPABASE_URL}/rest/v1/autopilot_alerts?tenant_id=eq.${TENANT_ID}&is_resolved=eq.false&order=created_at.desc&limit=10`,
         {
           headers: { 'apikey': SUPABASE_KEY }
         }
@@ -1444,7 +1569,7 @@ const Autopilot = ({ onBack }) => {
 
     setLoadingDecisions(true);
     try {
-      const filters = { status: 'pending' };
+      const filters = {}; // Load ALL decisions, filter in UI
       console.log('📞 Calling ownerDecisionsService.getOwnerDecisions with tenant:', userData.id);
 
       const decisionsData = await ownerDecisionsService.getOwnerDecisions(userData.id, filters);
@@ -1459,6 +1584,72 @@ const Autopilot = ({ onBack }) => {
       setNotification({ type: 'error', message: 'Failed to load owner decisions' });
     } finally {
       setLoadingDecisions(false);
+    }
+  };
+
+  // Load Weekly/Monthly Summaries based on period filter
+  const loadOwnerSummaries = async () => {
+    console.log('🔄 loadOwnerSummaries called for period:', filterDecisionPeriod);
+
+    if (!userData?.id) {
+      console.error('❌ No user id found in userData');
+      return;
+    }
+
+    if (filterDecisionPeriod === 'all') {
+      // For 'all', we don't need summaries, just show decisions
+      return;
+    }
+
+    setLoadingSummaries(true);
+    try {
+      if (filterDecisionPeriod === 'daily') {
+        // DAILY has 2 data sources (v4.0):
+        // 1. owner_briefings (Supabase) → auto_resolved_today, property_overview
+        // 2. Daily Summary API v2.4 (n8n) → pending_decisions, guest_requests, metrics
+
+        console.log('📞 [1/2] Calling ownerSummariesService.getDailyBriefing (Supabase)');
+        const dailyData = await ownerSummariesService.getDailyBriefing(userData.id);
+        console.log('✅ Received daily briefing:', dailyData);
+        setDailyBriefing(dailyData);
+
+        // Get property_id dynamically from properties table (multi-tenant support)
+        const { data: userProperty } = await supabase
+          .from('properties')
+          .select('id, name')
+          .eq('owner_id', userData.id)
+          .single();
+
+        const fetchedPropertyId = userProperty?.id;
+        setPropertyId(fetchedPropertyId); // Save to state for creating decisions
+
+        console.log('📞 [2/2] Calling ownerSummariesService.getDailySummaryAPI v2.4 (n8n)');
+        console.log('🏠 Using property:', userProperty?.name, 'id:', fetchedPropertyId, 'for owner:', userData.id);
+        const apiData = await ownerSummariesService.getDailySummaryAPI(userData.id, fetchedPropertyId);
+        console.log('✅ Received Daily Summary API v2.4:', apiData);
+        console.log('📊 API pending_decisions:', apiData?.pending_decisions);
+        console.log('📊 API pending_decisions length:', apiData?.pending_decisions?.length);
+        setDailySummaryAPI(apiData);
+
+        // NOTE: We do NOT overwrite pendingDecisions here
+        // The ownerDecisions state loaded in loadOwnerDecisions() already contains ALL decisions
+        // The Daily API data is stored in dailySummaryAPI and used for metrics/alerts only
+      } else if (filterDecisionPeriod === 'weekly') {
+        console.log('📞 Calling ownerSummariesService.getWeeklySummaries');
+        const weeklyData = await ownerSummariesService.getWeeklySummaries(userData.id, 12);
+        console.log('✅ Received weekly summaries:', weeklyData);
+        setWeeklySummaries(weeklyData);
+      } else if (filterDecisionPeriod === 'monthly') {
+        console.log('📞 Calling ownerSummariesService.getMonthlySummaries');
+        const monthlyData = await ownerSummariesService.getMonthlySummaries(userData.id, 12);
+        console.log('✅ Received monthly summaries:', monthlyData);
+        setMonthlySummaries(monthlyData);
+      }
+    } catch (error) {
+      console.error('❌ Error loading summaries:', error);
+      setNotification({ type: 'error', message: 'Failed to load summaries' });
+    } finally {
+      setLoadingSummaries(false);
     }
   };
 
@@ -1478,6 +1669,9 @@ const Autopilot = ({ onBack }) => {
       setIsProcessingApprove(true);
       console.log('🔄 Approving decision:', selectedDecision.id);
       await ownerDecisionsService.approveDecision(selectedDecision.id, userData.id, approveNotes);
+
+      // n8n Decision Router updates Supabase directly - no need for frontend UPDATE
+
       setNotification({ type: 'success', message: '✅ Decision approved successfully!' });
 
       setShowApproveModal(false);
@@ -1485,10 +1679,10 @@ const Autopilot = ({ onBack }) => {
       setApproveNotes('');
       setIsProcessingApprove(false);
 
-      // Reload decisions after 1 second
+      // Reload decisions after 2 seconds (n8n Router needs time to process)
       setTimeout(() => {
         loadOwnerDecisions();
-      }, 1000);
+      }, 2000);
     } catch (error) {
       console.error('❌ Error approving decision:', error);
       setNotification({ type: 'error', message: '❌ Failed to approve decision' });
@@ -1517,6 +1711,9 @@ const Autopilot = ({ onBack }) => {
       setIsProcessingReject(true);
       console.log('🔄 Rejecting decision:', selectedDecision.id, 'with notes:', rejectNotes);
       await ownerDecisionsService.rejectDecision(selectedDecision.id, userData.id, rejectNotes);
+
+      // n8n Decision Router updates Supabase directly - no need for frontend UPDATE
+
       setNotification({ type: 'success', message: '✅ Decision rejected successfully!' });
 
       setShowRejectModal(false);
@@ -1524,14 +1721,174 @@ const Autopilot = ({ onBack }) => {
       setRejectNotes('');
       setIsProcessingReject(false);
 
-      // Reload decisions after 1 second
+      // Reload decisions after 2 seconds (n8n Router needs time to process)
       setTimeout(() => {
         loadOwnerDecisions();
-      }, 1000);
+      }, 2000);
     } catch (error) {
       console.error('❌ Error rejecting decision:', error);
       setNotification({ type: 'error', message: '❌ Failed to reject decision' });
       setIsProcessingReject(false);
+    }
+  };
+
+  const handleDeleteDecision = async () => {
+    if (!decisionToDelete) return;
+
+    try {
+      console.log('🗑️ Deleting decision:', decisionToDelete.id);
+
+      const { error } = await supabase
+        .from('owner_decisions')
+        .delete()
+        .eq('id', decisionToDelete.id);
+
+      if (error) {
+        console.error('❌ Error deleting decision:', error);
+        setNotification({ type: 'error', message: '❌ Failed to delete decision' });
+        return;
+      }
+
+      setNotification({ type: 'success', message: '✅ Decision deleted successfully!' });
+      setShowDeleteConfirmDecision(false);
+      setDecisionToDelete(null);
+
+      // Reload decisions
+      loadOwnerDecisions();
+    } catch (error) {
+      console.error('❌ Exception deleting decision:', error);
+      setNotification({ type: 'error', message: '❌ Failed to delete decision' });
+    }
+  };
+
+  const handleSaveDecision = async () => {
+    if (!userData?.id) {
+      setNotification({ type: 'error', message: 'User ID not found' });
+      return;
+    }
+
+    if (!decisionFormData.title || !decisionFormData.summary) {
+      setNotification({ type: 'error', message: 'Title and summary are required' });
+      return;
+    }
+
+    if (!decisionFormData.property_id) {
+      setNotification({ type: 'error', message: 'Property is required' });
+      return;
+    }
+
+    setIsSavingDecision(true);
+
+    try {
+      // Get property_id if not already loaded
+      let currentPropertyId = propertyId;
+      if (!currentPropertyId) {
+        const { data: userProperty } = await supabase
+          .from('properties')
+          .select('id')
+          .eq('owner_id', userData.id)
+          .single();
+        currentPropertyId = userProperty?.id;
+        setPropertyId(currentPropertyId);
+      }
+
+      if (!currentPropertyId) {
+        setNotification({ type: 'error', message: 'Property ID not found' });
+        setIsSavingDecision(false);
+        return;
+      }
+
+      const decisionData = {
+        tenant_id: userData.id,
+        property_id: currentPropertyId, // Fixed: use correct property_id from state, not villa_id
+        villa_id: decisionFormData.villa_id || null,
+        villa_name: decisionFormData.villa_name || '',
+        scheduled_date: decisionFormData.scheduled_date || null,
+        title: decisionFormData.title,
+        summary: decisionFormData.summary,
+        description: decisionFormData.description || null,
+        decision_type: decisionFormData.decision_type,
+        priority: decisionFormData.priority,
+        status: decisionFormData.status,
+        decision_category: decisionFormData.decision_category,
+        generated_by_agent: decisionFormData.generated_by_agent,
+        guest_name: decisionFormData.guest_name || null,
+        guest_phone: decisionFormData.guest_phone || null,
+        financial_impact_estimate: parseFloat(decisionFormData.financial_impact_estimate) || 0,
+        updated_at: new Date().toISOString()
+      };
+
+      if (editingDecision) {
+        // Update existing decision
+        const { error } = await supabase
+          .from('owner_decisions')
+          .update(decisionData)
+          .eq('id', editingDecision.id);
+
+        if (error) {
+          console.error('❌ Error updating decision:', error);
+          setNotification({ type: 'error', message: '❌ Failed to update decision' });
+          setIsSavingDecision(false);
+          return;
+        }
+
+        setNotification({ type: 'success', message: '✅ Decision updated successfully!' });
+      } else {
+        // Create new decision
+        decisionData.created_at = new Date().toISOString();
+
+        console.log('📤 Sending decision data to Supabase:', decisionData);
+
+        const { data, error } = await supabase
+          .from('owner_decisions')
+          .insert(decisionData)
+          .select();
+
+        if (error) {
+          console.error('❌ Error creating decision:', error);
+          console.error('❌ Error details:', JSON.stringify(error, null, 2));
+          console.error('❌ Error message:', error.message);
+          console.error('❌ Error hint:', error.hint);
+          console.error('❌ Error details:', error.details);
+          setNotification({ type: 'error', message: `❌ Failed to create decision: ${error.message}` });
+          setIsSavingDecision(false);
+          return;
+        }
+
+        console.log('✅ Decision created:', data);
+
+        setNotification({ type: 'success', message: '✅ Decision created successfully!' });
+      }
+
+      setIsSavingDecision(false);
+      setShowDecisionForm(false);
+      setEditingDecision(null);
+
+      // Reset form
+      setDecisionFormData({
+        title: '',
+        summary: '',
+        description: '',
+        decision_type: 'late_checkout',
+        priority: 'medium',
+        status: 'pending',
+        property_id: '',
+        villa_id: '',
+        villa_name: '',
+        scheduled_date: '',
+        guest_name: '',
+        guest_phone: '',
+        financial_impact_estimate: 0,
+        decision_category: 'approval',
+        generated_by_agent: 'system'
+      });
+
+      // Reload decisions
+      loadOwnerDecisions();
+    } catch (error) {
+      console.error('❌ Exception saving decision:', error);
+      setNotification({ type: 'error', message: '❌ Failed to save decision' });
+      setIsSavingDecision(false);
     }
   };
 
@@ -2278,170 +2635,427 @@ const Autopilot = ({ onBack }) => {
 
   const renderAutomatedFlowsSection = () => {
     const automatedFlows = [
+      // Capture & Bookings
+      {
+        id: 'whatsapp-concierge',
+        category: 'Capture & Bookings',
+        title: 'WhatsApp Concierge (BANYU)',
+        description: 'AI-powered guest communication responding to every WhatsApp message 24/7.',
+        icon: MessageSquare,
+        status: 'active',
+        iconColor: 'text-green-400'
+      },
       {
         id: 'lead-intake',
+        category: 'Capture & Bookings',
         title: 'Lead & Booking Intake',
-        description: 'Receives and normalizes leads from all channels.',
+        description: 'Automatic lead capture and qualification from all channels.',
         icon: Inbox,
         status: 'active',
         iconColor: 'text-blue-400'
       },
       {
         id: 'smart-decisions',
-        title: 'Smart Lead Decisions (Lumina AI)',
-        description: 'AI analyzes lead status and decides next action.',
+        category: 'Capture & Bookings',
+        title: 'Smart Lead Decisions (LUMINA)',
+        description: 'AI lead routing and prioritization - no lead falls through.',
         icon: Zap,
         status: 'active',
         iconColor: 'text-purple-400'
       },
       {
-        id: 'guest-journey',
-        title: 'Guest Journey Automation',
-        description: 'Pre-arrival, stay and post-stay automated communication.',
-        icon: MapPin,
-        status: 'active',
-        iconColor: 'text-green-400'
-      },
-      {
         id: 'follow-up',
+        category: 'Capture & Bookings',
         title: 'Follow-Up Engine',
-        description: 'Automatic sequences for non-booked leads.',
+        description: 'Automatic lead nurturing sequences at 24h, 48h and 7 days.',
         icon: Repeat,
         status: 'active',
         iconColor: 'text-orange-400'
       },
+      // Guest Communication
+      {
+        id: 'voice-concierge',
+        category: 'Guest Communication',
+        title: 'Voice Concierge (KORA)',
+        description: 'AI phone agent handling calls in English, Spanish and Indonesian.',
+        icon: Phone,
+        status: 'active',
+        iconColor: 'text-blue-500'
+      },
+      {
+        id: 'guest-journey',
+        category: 'Guest Communication',
+        title: 'Guest Journey Automation',
+        description: 'Pre-arrival to post-stay messaging at every touchpoint.',
+        icon: MapPin,
+        status: 'active',
+        iconColor: 'text-green-400'
+      },
+      // Operations Management
       {
         id: 'owner-approvals',
-        title: 'Owner Approvals',
-        description: 'Owner approval system for pricing or booking exceptions.',
+        category: 'Operations Management',
+        title: 'Owner Approvals (OCS)',
+        description: 'Decision management & execution for approvals outside policy.',
         icon: UserCheck,
         status: 'active',
         iconColor: 'text-yellow-400'
       },
       {
-        id: 'operations-tasks',
-        title: 'Operations & Tasks',
-        description: 'Automatic task creation and alerts for operations.',
-        icon: ListChecks,
-        status: 'in-development',
-        iconColor: 'text-pink-400'
+        id: 'channel-sync',
+        category: 'Operations Management',
+        title: 'Channel Sync (OTA Integration)',
+        description: 'Syncs Booking.com, Airbnb, Agoda & iCal every hour.',
+        icon: Wifi,
+        status: 'active',
+        iconColor: 'text-cyan-400'
       },
       {
-        id: 'channel-sync',
-        title: 'Channel Sync (OTA Integration)',
-        description: 'Sync with Booking, Airbnb, Agoda and other channels.',
-        icon: Wifi,
-        status: 'in-development',
-        iconColor: 'text-cyan-400'
+        id: 'payment-protection',
+        category: 'Operations Management',
+        title: 'Payment Protection',
+        description: 'Monitors unpaid bookings and alerts when payment is overdue.',
+        icon: CreditCard,
+        status: 'active',
+        iconColor: 'text-emerald-400'
+      },
+      {
+        id: 'operations-tasks',
+        category: 'Operations Management',
+        title: 'Operations & Tasks',
+        description: 'Auto-creates maintenance tasks and housekeeping schedules.',
+        icon: ListChecks,
+        status: 'active',
+        iconColor: 'text-pink-400'
+      },
+      // Intelligence & Reporting
+      {
+        id: 'business-intelligence',
+        category: 'Intelligence & Reporting',
+        title: 'Business Intelligence (OSIRIS)',
+        description: 'AI-powered analytics & daily briefing every morning at 7am.',
+        icon: BarChart3,
+        status: 'active',
+        iconColor: 'text-indigo-400'
+      },
+      {
+        id: 'cultural-intelligence',
+        category: 'Intelligence & Reporting',
+        title: 'Cultural Intelligence (NUSANTARA)',
+        description: 'Bali local knowledge engine for expert guest recommendations.',
+        icon: Globe,
+        status: 'active',
+        iconColor: 'text-teal-400'
       }
     ];
 
     return (
       <div className="space-y-6">
         <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-3xl p-6 shadow-2xl border-2 border-[#d85a2a]/20">
-          <div className="flex flex-col md:flex-row items-center justify-between mb-6 gap-3">
+          <div className="flex items-center mb-3">
             <button
               onClick={() => setActiveSection('menu')}
-              className="self-start md:self-auto p-2 bg-[#1f2937]/95 backdrop-blur-sm rounded-xl hover:bg-orange-500 transition-all border border-[#d85a2a]/20"
+              className="p-2 bg-[#1f2937]/95 backdrop-blur-sm rounded-xl hover:bg-orange-500 transition-all border border-[#d85a2a]/20"
             >
               <ArrowLeft className="w-5 h-5 text-[#FF8C42]" />
             </button>
-            <div className="text-center flex-1">
-              <h3 className="text-2xl font-black text-[#FF8C42] flex items-center justify-center gap-2">
-                <Workflow className="w-6 h-6" />
-                Automated Flows
-              </h3>
-              <p className="text-gray-400 text-sm mt-1">
-                System automation workflows managing your operations
-              </p>
-            </div>
-            <div className="w-12 hidden md:block"></div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {automatedFlows.map((flow) => (
-              <div
-                key={flow.id}
-                className={`bg-[#2a2f3a] rounded-2xl p-6 border-2 transition-all group relative overflow-hidden ${
-                  flow.status === 'in-development'
-                    ? 'border-yellow-500/50 hover:border-yellow-400 animate-pulse shadow-lg shadow-yellow-500/20'
-                    : 'border-gray-700 hover:border-[#FF8C42]/40'
-                }`}
-              >
-                {/* Glow effect for in-development */}
-                {flow.status === 'in-development' && (
-                  <div className="absolute inset-0 bg-gradient-to-br from-yellow-500/10 via-transparent to-orange-500/10 pointer-events-none"></div>
-                )}
-
-                {/* Automated Badge */}
-                <div className="absolute top-3 right-3 z-10">
-                  {flow.status === 'active' ? (
-                    <span className="px-2 py-1 bg-[#FF8C42] text-white text-xs font-bold rounded-full">
-                      Active
-                    </span>
-                  ) : flow.status === 'in-development' ? (
-                    <span className="px-3 py-1 bg-gradient-to-r from-yellow-500 to-orange-500 text-white text-xs font-bold rounded-full animate-pulse shadow-lg">
-                      🚀 In Development
-                    </span>
-                  ) : (
-                    <span className="px-2 py-1 bg-gray-600 text-gray-300 text-xs font-bold rounded-full">
-                      Coming Soon
-                    </span>
-                  )}
-                </div>
-
-                {/* Icon */}
-                <div className="mb-4 mt-2 relative z-10">
-                  <flow.icon className={`w-12 h-12 ${flow.iconColor} ${
-                    flow.status === 'in-development'
-                      ? 'animate-bounce group-hover:scale-125'
-                      : 'group-hover:scale-110'
-                  } transition-transform`} />
-                </div>
-
-                {/* Title */}
-                <h4 className={`font-bold text-lg mb-2 leading-tight relative z-10 ${
-                  flow.status === 'in-development' ? 'text-yellow-300' : 'text-white'
-                }`}>
-                  {flow.title}
-                </h4>
-
-                {/* Description */}
-                <p className="text-gray-400 text-sm leading-relaxed relative z-10">
-                  {flow.description}
-                </p>
-
-                {/* Status indicator */}
-                {flow.status === 'active' && (
-                  <div className="mt-4 flex items-center gap-2 relative z-10">
-                    <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-                    <span className="text-green-400 text-xs font-medium">Automated</span>
-                  </div>
-                )}
-
-                {flow.status === 'in-development' && (
-                  <div className="mt-4 flex items-center gap-2 relative z-10">
-                    <div className="w-2 h-2 bg-yellow-400 rounded-full animate-ping"></div>
-                    <div className="w-2 h-2 bg-yellow-400 rounded-full animate-pulse absolute"></div>
-                    <span className="text-yellow-400 text-xs font-bold ml-2">Coming Very Soon!</span>
-                  </div>
-                )}
+          {/* MY HOST BizMate Ecosystem Diagram */}
+          <div className="mb-8 bg-[#1a1a2e] rounded-xl p-5 border-2 border-[#374151]">
+            {/* Diagram Header */}
+            <div className="text-center mb-2">
+              <div className="text-xl font-black text-[#FF8C42] tracking-wider uppercase">
+                MY HOST BizMate
               </div>
-            ))}
+              <div className="text-xs text-gray-400 mt-1">
+                An AI-powered operating system for modern property owners
+              </div>
+            </div>
+
+            <svg width="100%" viewBox="0 0 680 500" className="block">
+              <defs>
+                <marker id="arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+                  <path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                </marker>
+              </defs>
+
+              {/* Zone backgrounds */}
+              <rect x="8" y="8" width="152" height="438" rx="10" fill="#111827" stroke="#374151" strokeWidth="0.8"/>
+              <rect x="172" y="8" width="336" height="438" rx="10" fill="#111827" stroke="#374151" strokeWidth="0.8"/>
+              <rect x="520" y="8" width="152" height="438" rx="10" fill="#111827" stroke="#374151" strokeWidth="0.8"/>
+
+              {/* Zone labels */}
+              <text x="84" y="28" textAnchor="middle" fontSize="10" fill="#6b7280" fontWeight="600" letterSpacing="1" fontFamily="system-ui">GUEST CHANNELS</text>
+              <text x="340" y="28" textAnchor="middle" fontSize="10" fill="#6b7280" fontWeight="600" letterSpacing="1" fontFamily="system-ui">AI AGENTS</text>
+              <text x="596" y="28" textAnchor="middle" fontSize="10" fill="#6b7280" fontWeight="600" letterSpacing="1" fontFamily="system-ui">OWNER</text>
+
+              {/* GUEST CHANNELS */}
+              <rect x="18" y="42" width="132" height="38" rx="6" fill="#1f2937" stroke="#374151" strokeWidth="0.6"/>
+              <text x="48" y="57" fontSize="11" fill="#f9fafb" fontWeight="500" fontFamily="system-ui">WhatsApp</text>
+              <text x="48" y="70" fontSize="9" fill="#6b7280" fontFamily="system-ui">Villa number</text>
+
+              <rect x="18" y="90" width="132" height="38" rx="6" fill="#1f2937" stroke="#374151" strokeWidth="0.6"/>
+              <text x="48" y="105" fontSize="11" fill="#f9fafb" fontWeight="500" fontFamily="system-ui">Phone call</text>
+              <text x="48" y="118" fontSize="9" fill="#6b7280" fontFamily="system-ui">Any language</text>
+
+              <rect x="18" y="138" width="132" height="38" rx="6" fill="#1f2937" stroke="#374151" strokeWidth="0.6"/>
+              <text x="48" y="153" fontSize="11" fill="#f9fafb" fontWeight="500" fontFamily="system-ui">OTA channels</text>
+              <text x="48" y="166" fontSize="9" fill="#6b7280" fontFamily="system-ui">Booking · Airbnb · Agoda</text>
+
+              <rect x="18" y="186" width="132" height="38" rx="6" fill="#1f2937" stroke="#374151" strokeWidth="0.6"/>
+              <text x="48" y="201" fontSize="11" fill="#f9fafb" fontWeight="500" fontFamily="system-ui">Website / form</text>
+              <text x="48" y="214" fontSize="9" fill="#6b7280" fontFamily="system-ui">Direct inquiries</text>
+
+              <rect x="18" y="234" width="132" height="38" rx="6" fill="#1f2937" stroke="#374151" strokeWidth="0.6"/>
+              <text x="48" y="249" fontSize="11" fill="#f9fafb" fontWeight="500" fontFamily="system-ui">Social media</text>
+              <text x="48" y="262" fontSize="9" fill="#6b7280" fontFamily="system-ui">Instagram · TikTok</text>
+
+              {/* BANYU */}
+              <rect x="182" y="42" width="126" height="52" rx="6" fill="#1f2937" stroke="#F97316" strokeWidth="1"/>
+              <rect x="182" y="42" width="6" height="52" rx="3" fill="#F97316"/>
+              <text x="198" y="60" fontSize="12" fill="#F97316" fontWeight="600" fontFamily="system-ui">BANYU</text>
+              <text x="198" y="74" fontSize="9" fill="#9ca3af" fontFamily="system-ui">WhatsApp AI · 24/7</text>
+              <text x="198" y="86" fontSize="9" fill="#9ca3af" fontFamily="system-ui">Bookings · services</text>
+
+              {/* KORA */}
+              <rect x="322" y="42" width="126" height="52" rx="6" fill="#1f2937" stroke="#F97316" strokeWidth="1"/>
+              <rect x="322" y="42" width="6" height="52" rx="3" fill="#F97316"/>
+              <text x="338" y="60" fontSize="12" fill="#F97316" fontWeight="600" fontFamily="system-ui">KORA</text>
+              <text x="338" y="74" fontSize="9" fill="#9ca3af" fontFamily="system-ui">Voice AI · EN / ES / ID</text>
+              <text x="338" y="86" fontSize="9" fill="#9ca3af" fontFamily="system-ui">Handles calls anytime</text>
+
+              {/* LUMINA */}
+              <rect x="182" y="110" width="266" height="44" rx="6" fill="#1f2937" stroke="#ea580c" strokeWidth="0.8"/>
+              <rect x="182" y="110" width="6" height="44" rx="3" fill="#ea580c"/>
+              <text x="198" y="129" fontSize="12" fill="#fb923c" fontWeight="600" fontFamily="system-ui">LUMINA — Lead intelligence</text>
+              <text x="198" y="144" fontSize="9" fill="#9ca3af" fontFamily="system-ui">Qualifies every lead · decides next action · routes to booking</text>
+
+              {/* Follow-up + Channel Sync */}
+              <rect x="182" y="168" width="126" height="44" rx="6" fill="#1f2937" stroke="#374151" strokeWidth="0.6"/>
+              <text x="198" y="185" fontSize="11" fill="#f9fafb" fontWeight="500" fontFamily="system-ui">Follow-up engine</text>
+              <text x="198" y="198" fontSize="9" fill="#9ca3af" fontFamily="system-ui">24h · 48h · 7d sequences</text>
+              <text x="198" y="208" fontSize="9" fill="#9ca3af" fontFamily="system-ui">Never lose a lead</text>
+
+              <rect x="322" y="168" width="126" height="44" rx="6" fill="#1f2937" stroke="#374151" strokeWidth="0.6"/>
+              <text x="338" y="185" fontSize="11" fill="#f9fafb" fontWeight="500" fontFamily="system-ui">Channel sync</text>
+              <text x="338" y="198" fontSize="9" fill="#9ca3af" fontFamily="system-ui">Booking · Airbnb · Agoda</text>
+              <text x="338" y="208" fontSize="9" fill="#9ca3af" fontFamily="system-ui">No overbooking · hourly</text>
+
+              {/* DATABASE */}
+              <rect x="182" y="228" width="266" height="36" rx="6" fill="#292524" stroke="#57534e" strokeWidth="0.8" strokeDasharray="4 3"/>
+              <text x="315" y="244" textAnchor="middle" fontSize="11" fill="#d6d3d1" fontWeight="600" fontFamily="system-ui">Central database</text>
+              <text x="315" y="257" textAnchor="middle" fontSize="9" fill="#78716c" fontFamily="system-ui">Guests · bookings · leads · decisions · tasks</text>
+
+              {/* Guest Journey + NUSANTARA */}
+              <rect x="182" y="278" width="126" height="44" rx="6" fill="#1f2937" stroke="#374151" strokeWidth="0.6"/>
+              <text x="198" y="295" fontSize="11" fill="#f9fafb" fontWeight="500" fontFamily="system-ui">Guest journey</text>
+              <text x="198" y="308" fontSize="9" fill="#9ca3af" fontFamily="system-ui">Pre-arrival · stay · post</text>
+              <text x="198" y="318" fontSize="9" fill="#9ca3af" fontFamily="system-ui">Automated messages</text>
+
+              <rect x="322" y="278" width="126" height="44" rx="6" fill="#1f2937" stroke="#374151" strokeWidth="0.6"/>
+              <text x="338" y="295" fontSize="11" fill="#f9fafb" fontWeight="500" fontFamily="system-ui">NUSANTARA</text>
+              <text x="338" y="308" fontSize="9" fill="#9ca3af" fontFamily="system-ui">Bali culture · places</text>
+              <text x="338" y="318" fontSize="9" fill="#9ca3af" fontFamily="system-ui">Events · recommendations</text>
+
+              {/* AUTOPILOT */}
+              <rect x="182" y="336" width="266" height="44" rx="6" fill="#1f2937" stroke="#F97316" strokeWidth="1"/>
+              <rect x="182" y="336" width="6" height="44" rx="3" fill="#F97316"/>
+              <text x="198" y="355" fontSize="12" fill="#F97316" fontWeight="600" fontFamily="system-ui">AUTOPILOT — Owner approvals</text>
+              <text x="198" y="370" fontSize="9" fill="#9ca3af" fontFamily="system-ui">Detects exceptions · notifies owner · executes decisions</text>
+
+              {/* OSIRIS */}
+              <rect x="182" y="394" width="266" height="44" rx="6" fill="#1f2937" stroke="#ea580c" strokeWidth="0.8"/>
+              <rect x="182" y="394" width="6" height="44" rx="3" fill="#ea580c"/>
+              <text x="198" y="413" fontSize="12" fill="#fb923c" fontWeight="600" fontFamily="system-ui">OSIRIS — Business intelligence</text>
+              <text x="198" y="428" fontSize="9" fill="#9ca3af" fontFamily="system-ui">Daily briefing 7am · revenue · occupancy · chat</text>
+
+              {/* OWNER OUTPUTS */}
+              <rect x="530" y="42" width="132" height="38" rx="6" fill="#1f2937" stroke="#374151" strokeWidth="0.6"/>
+              <rect x="530" y="42" width="3" height="38" rx="2" fill="#22c55e"/>
+              <text x="543" y="57" fontSize="11" fill="#f9fafb" fontWeight="500" fontFamily="system-ui">Booking confirmed</text>
+              <text x="543" y="70" fontSize="9" fill="#6b7280" fontFamily="system-ui">Auto-notification sent</text>
+
+              <rect x="530" y="90" width="132" height="38" rx="6" fill="#1f2937" stroke="#374151" strokeWidth="0.6"/>
+              <rect x="530" y="90" width="3" height="38" rx="2" fill="#F97316"/>
+              <text x="543" y="105" fontSize="11" fill="#f9fafb" fontWeight="500" fontFamily="system-ui">WhatsApp alerts</text>
+              <text x="543" y="118" fontSize="9" fill="#6b7280" fontFamily="system-ui">Approve · reject in 1 tap</text>
+
+              <rect x="530" y="138" width="132" height="38" rx="6" fill="#1f2937" stroke="#374151" strokeWidth="0.6"/>
+              <rect x="530" y="138" width="3" height="38" rx="2" fill="#F97316"/>
+              <text x="543" y="153" fontSize="11" fill="#f9fafb" fontWeight="500" fontFamily="system-ui">Owner dashboard</text>
+              <text x="543" y="166" fontSize="9" fill="#6b7280" fontFamily="system-ui">Decisions · KPIs · reports</text>
+
+              <rect x="530" y="186" width="132" height="38" rx="6" fill="#1f2937" stroke="#374151" strokeWidth="0.6"/>
+              <rect x="530" y="186" width="3" height="38" rx="2" fill="#ef4444"/>
+              <text x="543" y="201" fontSize="11" fill="#f9fafb" fontWeight="500" fontFamily="system-ui">Payment protection</text>
+              <text x="543" y="214" fontSize="9" fill="#6b7280" fontFamily="system-ui">Unpaid booking alerts</text>
+
+              <rect x="530" y="278" width="132" height="38" rx="6" fill="#1f2937" stroke="#374151" strokeWidth="0.6"/>
+              <rect x="530" y="278" width="3" height="38" rx="2" fill="#F97316"/>
+              <text x="543" y="293" fontSize="11" fill="#f9fafb" fontWeight="500" fontFamily="system-ui">Daily briefing</text>
+              <text x="543" y="306" fontSize="9" fill="#6b7280" fontFamily="system-ui">7am · revenue · occupancy</text>
+
+              <rect x="530" y="326" width="132" height="38" rx="6" fill="#1f2937" stroke="#374151" strokeWidth="0.6"/>
+              <rect x="530" y="326" width="3" height="38" rx="2" fill="#F97316"/>
+              <text x="543" y="341" fontSize="11" fill="#f9fafb" fontWeight="500" fontFamily="system-ui">Revenue alerts</text>
+              <text x="543" y="354" fontSize="9" fill="#6b7280" fontFamily="system-ui">Upsell · low occupancy</text>
+
+              <rect x="530" y="374" width="132" height="38" rx="6" fill="#1f2937" stroke="#374151" strokeWidth="0.6"/>
+              <rect x="530" y="374" width="3" height="38" rx="2" fill="#22c55e"/>
+              <text x="543" y="389" fontSize="11" fill="#f9fafb" fontWeight="500" fontFamily="system-ui">Guest notified</text>
+              <text x="543" y="402" fontSize="9" fill="#6b7280" fontFamily="system-ui">After owner approves</text>
+
+              {/* ARROWS: GUEST → AI */}
+              <line x1="150" y1="61" x2="180" y2="68" stroke="#F97316" strokeWidth="1.2" markerEnd="url(#arr)" opacity="0.7"/>
+              <line x1="150" y1="109" x2="320" y2="72" stroke="#F97316" strokeWidth="1.2" markerEnd="url(#arr)" opacity="0.7"/>
+              <line x1="150" y1="157" x2="180" y2="192" stroke="#6b7280" strokeWidth="1" markerEnd="url(#arr)" opacity="0.5"/>
+              <line x1="150" y1="205" x2="180" y2="130" stroke="#6b7280" strokeWidth="1" markerEnd="url(#arr)" opacity="0.5"/>
+              <line x1="150" y1="253" x2="180" y2="136" stroke="#6b7280" strokeWidth="1" markerEnd="url(#arr)" opacity="0.5"/>
+
+              {/* ARROWS: internal AI */}
+              <line x1="245" y1="94" x2="245" y2="108" stroke="#F97316" strokeWidth="1" markerEnd="url(#arr)" opacity="0.6"/>
+              <line x1="385" y1="94" x2="350" y2="108" stroke="#F97316" strokeWidth="1" markerEnd="url(#arr)" opacity="0.6"/>
+              <line x1="315" y1="154" x2="315" y2="166" stroke="#ea580c" strokeWidth="1" markerEnd="url(#arr)" opacity="0.6"/>
+              <line x1="315" y1="212" x2="315" y2="226" stroke="#57534e" strokeWidth="1" markerEnd="url(#arr)" opacity="0.8"/>
+              <line x1="315" y1="264" x2="315" y2="276" stroke="#57534e" strokeWidth="1" markerEnd="url(#arr)" opacity="0.8"/>
+              <line x1="315" y1="322" x2="315" y2="334" stroke="#F97316" strokeWidth="1" markerEnd="url(#arr)" opacity="0.6"/>
+              <line x1="315" y1="380" x2="315" y2="392" stroke="#ea580c" strokeWidth="1" markerEnd="url(#arr)" opacity="0.6"/>
+
+              {/* ARROWS: AI → OWNER */}
+              <line x1="448" y1="132" x2="528" y2="61" stroke="#22c55e" strokeWidth="1.2" markerEnd="url(#arr)" opacity="0.6"/>
+              <line x1="448" y1="354" x2="528" y2="109" stroke="#F97316" strokeWidth="1.2" markerEnd="url(#arr)" opacity="0.5"/>
+              <line x1="448" y1="360" x2="528" y2="157" stroke="#F97316" strokeWidth="1.2" markerEnd="url(#arr)" opacity="0.4"/>
+              <line x1="448" y1="246" x2="528" y2="205" stroke="#ef4444" strokeWidth="1.2" markerEnd="url(#arr)" opacity="0.5"/>
+              <line x1="448" y1="413" x2="528" y2="297" stroke="#F97316" strokeWidth="1.2" markerEnd="url(#arr)" opacity="0.5"/>
+              <line x1="448" y1="420" x2="528" y2="345" stroke="#F97316" strokeWidth="1.2" markerEnd="url(#arr)" opacity="0.4"/>
+              <line x1="448" y1="368" x2="528" y2="393" stroke="#22c55e" strokeWidth="1.2" markerEnd="url(#arr)" opacity="0.6"/>
+
+              {/* Legend */}
+              <rect x="182" y="452" width="10" height="10" rx="2" fill="#F97316"/>
+              <text x="198" y="461" fontSize="10" fill="#9ca3af" fontFamily="system-ui">Core AI agents</text>
+              <rect x="290" y="452" width="10" height="10" rx="2" fill="#374151"/>
+              <text x="306" y="461" fontSize="10" fill="#9ca3af" fontFamily="system-ui">Support flows</text>
+              <rect x="388" y="452" width="10" height="10" rx="2" fill="#22c55e" opacity="0.8"/>
+              <text x="404" y="461" fontSize="10" fill="#9ca3af" fontFamily="system-ui">Guest outcome</text>
+              <text x="340" y="478" textAnchor="middle" fontSize="10" fill="#4b5563" fontFamily="system-ui" fontStyle="italic">"The owner supervises. The system executes."</text>
+            </svg>
           </div>
 
-          {/* Info footer */}
-          <div className="mt-6 bg-[#2a2f3a]/50 rounded-xl p-4 border border-gray-700">
-            <div className="flex items-start gap-3">
-              <AlertCircle className="w-5 h-5 text-[#FF8C42] flex-shrink-0 mt-0.5" />
-              <div>
-                <p className="text-gray-300 text-sm font-medium mb-1">
-                  Automated Workflows
+          {/* Category sections */}
+          {['Capture & Bookings', 'Guest Communication', 'Operations Management', 'Intelligence & Reporting'].map((category) => {
+            const categoryFlows = automatedFlows.filter(f => f.category === category);
+            if (categoryFlows.length === 0) return null;
+
+            return (
+              <div key={category} className="mb-6">
+                {/* Category Header */}
+                <div className="mb-3 flex items-center gap-2">
+                  <div className="h-px flex-1 bg-gradient-to-r from-[#FF8C42]/50 to-transparent"></div>
+                  <h4 className="text-[#FF8C42] font-bold text-sm uppercase tracking-wide">
+                    {category}
+                  </h4>
+                  <div className="h-px flex-1 bg-gradient-to-l from-[#FF8C42]/50 to-transparent"></div>
+                </div>
+
+                {/* Category Flows Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                  {categoryFlows.map((flow) => (
+                    <div
+                      key={flow.id}
+                      className={`bg-[#2a2f3a] rounded-xl p-4 border-2 transition-all group relative overflow-hidden ${
+                        flow.status === 'coming-soon'
+                          ? 'border-yellow-500/50 hover:border-yellow-400 shadow-lg shadow-yellow-500/20'
+                          : 'border-gray-700 hover:border-[#FF8C42]/40'
+                      }`}
+                    >
+                      {/* Glow effect for coming-soon */}
+                      {flow.status === 'coming-soon' && (
+                        <div className="absolute inset-0 bg-gradient-to-br from-yellow-500/10 via-transparent to-orange-500/10 pointer-events-none"></div>
+                      )}
+
+                      {/* Status Badge */}
+                      <div className="absolute top-2 right-2 z-10">
+                        {flow.status === 'active' ? (
+                          <span className="px-2 py-0.5 bg-green-500 text-white text-[10px] font-bold rounded-full">
+                            Active
+                          </span>
+                        ) : flow.status === 'coming-soon' ? (
+                          <span className="px-2 py-0.5 bg-yellow-500 text-white text-[10px] font-bold rounded-full">
+                            Soon
+                          </span>
+                        ) : null}
+                      </div>
+
+                      {/* Icon */}
+                      <div className="mb-3 mt-1 relative z-10">
+                        <flow.icon className={`w-8 h-8 ${flow.iconColor} ${
+                          flow.status === 'coming-soon'
+                            ? 'group-hover:scale-125'
+                            : 'group-hover:scale-110'
+                        } transition-transform`} />
+                      </div>
+
+                      {/* Title */}
+                      <h4 className={`font-bold text-sm mb-1.5 leading-tight relative z-10 ${
+                        flow.status === 'coming-soon' ? 'text-yellow-300' : 'text-white'
+                      }`}>
+                        {flow.title}
+                      </h4>
+
+                      {/* Description */}
+                      <p className="text-gray-400 text-xs leading-relaxed relative z-10">
+                        {flow.description}
+                      </p>
+
+                      {/* Status indicator */}
+                      {flow.status === 'active' && (
+                        <div className="mt-3 flex items-center gap-1.5 relative z-10">
+                          <div className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse"></div>
+                          <span className="text-green-400 text-[10px] font-medium">24/7 Automated</span>
+                        </div>
+                      )}
+
+                      {flow.status === 'coming-soon' && (
+                        <div className="mt-3 flex items-center gap-1.5 relative z-10">
+                          <div className="w-1.5 h-1.5 bg-yellow-400 rounded-full animate-pulse"></div>
+                          <span className="text-yellow-400 text-[10px] font-bold">In Development</span>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+          })}
+
+          {/* System Overview */}
+          <div className="mt-6 bg-gradient-to-br from-[#2a2f3a] to-[#1f2937] rounded-xl p-5 border-2 border-[#FF8C42]/30">
+            <div className="flex items-start gap-4">
+              <Sparkles className="w-6 h-6 text-[#FF8C42] flex-shrink-0 mt-0.5" />
+              <div className="flex-1">
+                <h4 className="text-white text-base font-bold mb-2">
+                  24/7 Fully Automated System
+                </h4>
+                <p className="text-gray-300 text-sm leading-relaxed mb-3">
+                  MY HOST BizMate runs <span className="text-[#FF8C42] font-bold">12 automated workflows</span> across 4 operational areas.
+                  Each flow handles a specific part of your business — from the moment a guest first contacts you, through their stay,
+                  to post-checkout follow-up and business reporting.
                 </p>
-                <p className="text-gray-400 text-xs leading-relaxed">
-                  These flows run automatically in the background, managing your property operations 24/7.
-                  Active flows are currently processing your bookings and guests. Coming soon flows are being developed.
-                </p>
+                <div className="grid grid-cols-3 gap-4 text-center">
+                  <div className="bg-[#1f2937] rounded-lg p-3 border border-gray-700">
+                    <div className="text-3xl font-black text-[#FF8C42]">12</div>
+                    <div className="text-gray-400 text-xs mt-1">Total Flows</div>
+                  </div>
+                  <div className="bg-[#1f2937] rounded-lg p-3 border border-green-500/30">
+                    <div className="text-3xl font-black text-green-400">12</div>
+                    <div className="text-gray-400 text-xs mt-1">Active</div>
+                  </div>
+                  <div className="bg-[#1f2937] rounded-lg p-3 border border-gray-700">
+                    <div className="text-3xl font-black text-gray-500">0</div>
+                    <div className="text-gray-400 text-xs mt-1">In Development</div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -6152,37 +6766,1735 @@ const Autopilot = ({ onBack }) => {
     );
   };
 
-  const renderDecisionsSection = () => (
-    <div className="space-y-6">
-      {/* OWNER DECISIONS */}
-      <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-3xl p-6 shadow-2xl border-2 border-[#d85a2a]/20">
-        <div className="flex items-center justify-between mb-4">
-          <button
-            onClick={() => setActiveSection('menu')}
-            className="p-2 bg-[#1f2937]/95 backdrop-blur-sm rounded-xl hover:bg-orange-500 transition-all border border-[#d85a2a]/20"
-          >
-            <ArrowLeft className="w-5 h-5 text-[#FF8C42]" />
-          </button>
-          <h3 className="text-2xl font-black text-[#FF8C42] flex items-center gap-2">
-            <CheckCircle className="w-6 h-6 text-[#FF8C42]" />
-            Owner Decisions ({ownerDecisions.length})
-          </h3>
-          <div className="w-10"></div>
-        </div>
+  const renderDecisionsSection = () => {
+    // Filter and search logic for Owner Decisions
+    console.log('🔍 [FILTER DEBUG] ownerDecisions.length:', ownerDecisions.length);
+    console.log('🔍 [FILTER DEBUG] filterDecisionStatus:', filterDecisionStatus);
+    console.log('🔍 [FILTER DEBUG] filterDecisionPriority:', filterDecisionPriority);
+    console.log('🔍 [FILTER DEBUG] filterDecisionType:', filterDecisionType);
+    console.log('🔍 [FILTER DEBUG] filterDecisionAgent:', filterDecisionAgent);
+    console.log('🔍 [FILTER DEBUG] filterDecisionProperty:', filterDecisionProperty);
+    console.log('🔍 [FILTER DEBUG] filterDecisionDate:', filterDecisionDate);
+    console.log('🔍 [FILTER DEBUG] filterDecisionPeriod:', filterDecisionPeriod);
+
+    const filteredDecisions = ownerDecisions
+      .filter(decision => {
+        const matchesSearch = decisionsSearchTerm === '' ||
+          decision.guest_name?.toLowerCase().includes(decisionsSearchTerm.toLowerCase()) ||
+          decision.title?.toLowerCase().includes(decisionsSearchTerm.toLowerCase()) ||
+          decision.summary?.toLowerCase().includes(decisionsSearchTerm.toLowerCase());
+
+        const matchesStatus = filterDecisionStatus === 'All' || decision.status === filterDecisionStatus;
+        const matchesPriority = filterDecisionPriority === 'All' || decision.priority === filterDecisionPriority;
+        const matchesType = filterDecisionType === 'All' || decision.decision_type === filterDecisionType;
+        const matchesAgent = filterDecisionAgent === 'All' || decision.generated_by_agent?.toUpperCase() === filterDecisionAgent;
+        const matchesProperty = filterDecisionProperty === 'All' || !decision.villa_name || decision.villa_name === filterDecisionProperty;
+
+        // Date filtering
+        let matchesDate = true;
+        if (filterDecisionDate !== 'all' && decision.created_at) {
+          const decisionDate = new Date(decision.created_at);
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+
+          switch (filterDecisionDate) {
+            case 'today':
+              const todayEnd = new Date(today);
+              todayEnd.setHours(23, 59, 59, 999);
+              matchesDate = decisionDate >= today && decisionDate <= todayEnd;
+              break;
+            case 'week':
+              const weekEnd = new Date(today);
+              weekEnd.setDate(weekEnd.getDate() + 7);
+              matchesDate = decisionDate >= today && decisionDate <= weekEnd;
+              break;
+            case 'month':
+              const monthEnd = new Date(today);
+              monthEnd.setMonth(monthEnd.getMonth() + 1);
+              matchesDate = decisionDate >= today && decisionDate <= monthEnd;
+              break;
+            case 'custom':
+              if (customDecisionDateFrom && customDecisionDateTo) {
+                const start = new Date(customDecisionDateFrom);
+                const end = new Date(customDecisionDateTo);
+                end.setHours(23, 59, 59, 999);
+                matchesDate = decisionDate >= start && decisionDate <= end;
+              }
+              break;
+          }
+        }
+
+        return matchesSearch && matchesStatus && matchesPriority && matchesType && matchesAgent && matchesProperty && matchesDate;
+      })
+      .sort((a, b) => {
+        // Sort by created_at (newest first)
+        return new Date(b.created_at) - new Date(a.created_at);
+      });
+
+    console.log('🔍 [FILTER DEBUG] filteredDecisions.length:', filteredDecisions.length);
+    if (filteredDecisions.length < ownerDecisions.length) {
+      console.log('⚠️ [FILTER DEBUG] Some decisions were filtered out!');
+      console.log('🔍 [FILTER DEBUG] Filtered decisions:', filteredDecisions.map(d => ({ title: d.title, status: d.status, priority: d.priority, villa_name: d.villa_name })));
+    }
+
+    // Get unique values for filter dropdowns
+    const uniqueTypes = [...new Set(ownerDecisions.map(d => d.decision_type))];
+    const uniqueAgents = [...new Set(ownerDecisions.map(d => d.generated_by_agent?.toUpperCase()).filter(Boolean))];
+
+    return (
+      <div className="space-y-6">
+        {/* OWNER DECISIONS */}
+        <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-3xl p-6 shadow-2xl border-2 border-[#d85a2a]/20">
+          <div className="flex items-center justify-between mb-4">
+            <button
+              onClick={() => setActiveSection('menu')}
+              className="p-2 bg-[#1f2937]/95 backdrop-blur-sm rounded-xl hover:bg-orange-500 transition-all border border-[#d85a2a]/20"
+            >
+              <ArrowLeft className="w-5 h-5 text-[#FF8C42]" />
+            </button>
+            <h3 className="text-2xl font-black text-[#FF8C42] flex items-center gap-2">
+              <CheckCircle className="w-6 h-6 text-[#FF8C42]" />
+              Owner Decisions ({filteredDecisions.length})
+            </h3>
+            <button
+              onClick={() => {
+                setEditingDecision(null);
+                setShowDecisionForm(true);
+              }}
+              className="flex items-center gap-2 px-4 py-2 bg-[#d85a2a] hover:bg-[#c14e1f] text-white rounded-xl font-semibold transition-all shadow-lg"
+            >
+              <Plus className="w-4 h-4" />
+              New Decision
+            </button>
+          </div>
+
+          {/* FILTERS PANEL */}
+          <div className="bg-[#2a2f3a] rounded-xl p-4 mb-6 border border-[#d85a2a]/20">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+              {/* Status Filter */}
+              <select
+                value={filterDecisionStatus}
+                onChange={(e) => setFilterDecisionStatus(e.target.value)}
+                className="px-3 py-2.5 bg-[#1f2937] text-white rounded-xl text-sm border border-[#d85a2a]/30 focus:border-[#d85a2a] outline-none"
+              >
+                <option value="All">All Status</option>
+                <option value="pending">Pending</option>
+                <option value="approved">Approved</option>
+                <option value="rejected">Rejected</option>
+                <option value="modified">Modified</option>
+                <option value="executed">Executed</option>
+              </select>
+
+              {/* Priority Filter */}
+              <select
+                value={filterDecisionPriority}
+                onChange={(e) => setFilterDecisionPriority(e.target.value)}
+                className="px-3 py-2.5 bg-[#1f2937] text-white rounded-xl text-sm border border-[#d85a2a]/30 focus:border-[#d85a2a] outline-none"
+              >
+                <option value="All">All Priorities</option>
+                <option value="urgent">🔴 Urgent</option>
+                <option value="high">🟠 High</option>
+                <option value="medium">🟡 Medium</option>
+                <option value="low">🟢 Low</option>
+              </select>
+
+              {/* Type Filter */}
+              <select
+                value={filterDecisionType}
+                onChange={(e) => setFilterDecisionType(e.target.value)}
+                className="px-3 py-2.5 bg-[#1f2937] text-white rounded-xl text-sm border border-[#d85a2a]/30 focus:border-[#d85a2a] outline-none"
+              >
+                <option value="All">All Types</option>
+                {uniqueTypes.map(type => (
+                  <option key={type} value={type}>
+                    {type.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}
+                  </option>
+                ))}
+              </select>
+
+              {/* Agent Filter */}
+              <select
+                value={filterDecisionAgent}
+                onChange={(e) => setFilterDecisionAgent(e.target.value)}
+                className="px-3 py-2.5 bg-[#1f2937] text-white rounded-xl text-sm border border-[#d85a2a]/30 focus:border-[#d85a2a] outline-none"
+              >
+                <option value="All">AI Agents</option>
+                <option value="BANYU">BANYU</option>
+                <option value="OSIRIS">OSIRIS</option>
+                <option value="LUMINA">LUMINA</option>
+                <option value="NUSANTARA">NUSANTARA</option>
+                <option value="KORA">KORA</option>
+                <option value="SYSTEM">SYSTEM</option>
+              </select>
+
+              {/* Property Filter */}
+              <select
+                value={filterDecisionProperty}
+                onChange={(e) => setFilterDecisionProperty(e.target.value)}
+                className="px-3 py-2.5 bg-[#1f2937] text-white rounded-xl text-sm border border-[#d85a2a]/30 focus:border-[#d85a2a] outline-none"
+              >
+                <option value="All">All Properties</option>
+                {villas.map(villa => (
+                  <option key={villa.id} value={villa.name}>
+                    {villa.name}
+                  </option>
+                ))}
+              </select>
+
+              {/* Date Filter */}
+              <select
+                value={filterDecisionDate}
+                onChange={(e) => setFilterDecisionDate(e.target.value)}
+                className="px-3 py-2.5 bg-[#1f2937] text-white rounded-xl text-sm border border-[#d85a2a]/30 focus:border-[#d85a2a] outline-none"
+              >
+                <option value="all">All Dates</option>
+                <option value="today">Today</option>
+                <option value="week">This Week</option>
+                <option value="month">This Month</option>
+                <option value="custom">Custom Range</option>
+              </select>
+
+              {/* Period Filter */}
+              <select
+                value={filterDecisionPeriod}
+                onChange={(e) => setFilterDecisionPeriod(e.target.value)}
+                className="px-3 py-2.5 bg-[#1f2937] text-white rounded-xl text-sm border border-[#d85a2a]/30 focus:border-[#d85a2a] outline-none"
+              >
+                <option value="all">All Periods</option>
+                <option value="daily">Daily</option>
+                <option value="weekly">Weekly</option>
+                <option value="monthly">Monthly</option>
+              </select>
+
+              {/* Search */}
+              <div className="relative md:col-span-2 lg:col-span-2">
+                <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="Search by guest, title, or summary..."
+                  value={decisionsSearchTerm}
+                  onChange={(e) => setDecisionsSearchTerm(e.target.value)}
+                  className="w-full pl-12 pr-4 py-2.5 bg-[#1f2937] border border-[#d85a2a]/30 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#d85a2a]/50 text-sm"
+                />
+              </div>
+            </div>
+
+            {/* Custom Date Range (if selected) */}
+            {filterDecisionDate === 'custom' && (
+              <div className="grid grid-cols-2 gap-3 mt-3">
+                <div>
+                  <label className="text-xs text-gray-400 mb-1 block">From</label>
+                  <input
+                    type="date"
+                    value={customDecisionDateFrom}
+                    onChange={(e) => setCustomDecisionDateFrom(e.target.value)}
+                    className="w-full px-3 py-2 bg-[#1f2937] text-white rounded-lg text-sm border border-gray-700 focus:border-orange-500 outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-gray-400 mb-1 block">To</label>
+                  <input
+                    type="date"
+                    value={customDecisionDateTo}
+                    onChange={(e) => setCustomDecisionDateTo(e.target.value)}
+                    className="w-full px-3 py-2 bg-[#1f2937] text-white rounded-lg text-sm border border-gray-700 focus:border-orange-500 outline-none"
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Clear Filters Button */}
+            <button
+              onClick={() => {
+                setFilterDecisionStatus('All');
+                setFilterDecisionPriority('All');
+                setFilterDecisionType('All');
+                setFilterDecisionAgent('All');
+                setFilterDecisionProperty('All');
+                setFilterDecisionDate('all');
+                setFilterDecisionPeriod('all');
+                setCustomDecisionDateFrom('');
+                setCustomDecisionDateTo('');
+                setDecisionsSearchTerm('');
+              }}
+              className="w-full px-3 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg text-sm font-bold transition-all mt-3"
+            >
+              Clear Filters
+            </button>
+          </div>
+
         <div className="space-y-4">
-          {loadingDecisions ? (
-            <div className="text-center py-8 bg-[#2a2f3a] rounded-lg border-2 border-gray-700">
-              <div className="w-12 h-12 border-4 border-orange-500/30 border-t-orange-500 rounded-full animate-spin mx-auto mb-3" />
-              <p className="text-gray-300 text-lg">Loading decisions...</p>
-            </div>
-          ) : ownerDecisions.length === 0 ? (
-            <div className="text-center py-8 bg-[#2a2f3a] rounded-lg border-2 border-gray-700">
-              <CheckCircle className="w-12 h-12 text-green-500 mx-auto mb-3" />
-              <p className="text-gray-300 text-lg">No pending decisions</p>
-              <p className="text-gray-500 text-sm mt-1">All caught up! 🎉</p>
-            </div>
+          {/* DAILY BRIEFING VIEW */}
+          {filterDecisionPeriod === 'daily' ? (
+            loadingSummaries ? (
+              <div className="text-center py-8 bg-[#2a2f3a] rounded-lg border-2 border-gray-700">
+                <div className="w-12 h-12 border-4 border-orange-500/30 border-t-orange-500 rounded-full animate-spin mx-auto mb-3" />
+                <p className="text-gray-300 text-lg">Loading daily briefing...</p>
+              </div>
+            ) : (!dailyBriefing && !dailySummaryAPI && (!pendingDecisions || pendingDecisions.length === 0)) ? (
+              <div className="text-center py-8 bg-[#2a2f3a] rounded-lg border-2 border-gray-700">
+                <CheckCircle className="w-12 h-12 text-green-500 mx-auto mb-3" />
+                <p className="text-gray-300 text-lg">No daily briefing available</p>
+                <p className="text-gray-500 text-sm mt-1">Daily briefing will appear here once generated</p>
+              </div>
+            ) : (
+              <div className="bg-[#2a2f3a] rounded-lg p-6 border-2 border-[#FF8C42]/50 space-y-6">
+                {/* Header */}
+                <div className="border-b border-gray-700 pb-4">
+                  <h3 className="text-xl font-bold text-[#FF8C42]">
+                    DAILY – {new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}
+                  </h3>
+                  <h3 className="text-xl font-bold text-[#FF8C42]">
+                    {filterDecisionProperty === 'All' ? 'All Properties' : filterDecisionProperty}
+                  </h3>
+                </div>
+
+                {/* KPIs - v4.3 NUEVA ESTRUCTURA con kpis.* del API v2.4 */}
+                {filteredDaily?.kpis && (
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    {/* KPI 1: Occupancy rate - PRE-CALCULADO del API */}
+                    {(() => {
+                      const occupancyNum = filteredDaily.kpis.occupancy_rate || 0;
+
+                      // Colores dinámicos (naranja si subóptimo, rojo si crítico)
+                      const colorClass = occupancyNum >= 70 ? 'text-green-400' :
+                                        occupancyNum >= 40 ? 'text-orange-400' : 'text-red-400';
+                      const borderClass = occupancyNum >= 70 ? 'border-green-500/30' :
+                                         occupancyNum >= 40 ? 'border-orange-500/30' : 'border-red-500/30';
+
+                      return (
+                        <div className={`bg-[#1f2937] p-4 rounded-lg border ${borderClass} text-center`}>
+                          <p className="text-gray-400 text-sm mb-1">Occupancy rate</p>
+                          <p className={`text-xl md:text-3xl font-bold ${colorClass}`}>
+                            {occupancyNum.toFixed(1)}%
+                          </p>
+                          <p className="text-xs text-gray-500 mt-1">
+                            {filteredDaily.kpis.occupancy_label || ''}
+                          </p>
+                        </div>
+                      );
+                    })()}
+
+                    {/* KPI 2: Total bookings - PRE-CALCULADO del API */}
+                    <div className="bg-[#1f2937] p-4 rounded-lg border border-blue-500/30 text-center">
+                      <p className="text-gray-400 text-sm mb-1">Total bookings</p>
+                      <p className="text-xl md:text-3xl font-bold text-blue-400">
+                        {filteredDaily.kpis.total_bookings || 0}
+                      </p>
+                      <p className="text-xs text-gray-500 mt-1">
+                        guests in-house tonight
+                      </p>
+                    </div>
+
+                    {/* KPI 3: Revenue confirmado - PRE-CALCULADO del API */}
+                    {(() => {
+                      const inHouseGuests = dailySummaryAPI?.in_house_guests || [];
+
+                      // Extraer nombres según formato PDF v4.3
+                      const realGuests = [];
+                      let testCount = 0;
+
+                      inHouseGuests.forEach(g => {
+                        const name = g.guest || '';
+                        if (name.startsWith('[TEST]')) {
+                          testCount++;
+                        } else {
+                          // Para nombres chinos: "傅宇阳 Fu" → "Fu" (último)
+                          // Para nombres occidentales: "Johana Catharina" → "Johana" (primero)
+                          const parts = name.split(' ').filter(Boolean);
+                          if (parts.length > 1 && /[\u4e00-\u9fa5]/.test(parts[0])) {
+                            // Nombre chino: tomar último
+                            realGuests.push(parts[parts.length - 1]);
+                          } else {
+                            // Nombre occidental: tomar primero
+                            realGuests.push(parts[0]);
+                          }
+                        }
+                      });
+
+                      const guestNames = realGuests.join(' + ') + (testCount > 0 ? ` + TEST active` : '');
+
+                      return (
+                        <div className="bg-[#1f2937] p-4 rounded-lg border border-purple-500/30 text-center">
+                          <p className="text-gray-400 text-sm mb-1">Confirmed revenue</p>
+                          <p className="text-sm md:text-xl font-bold text-purple-400 whitespace-nowrap">
+                            {formatIDR(filteredDaily.kpis.revenue_active || 0)}
+                          </p>
+                          <p className="text-xs text-gray-500 mt-1">
+                            {guestNames || 'active guests'}
+                          </p>
+                        </div>
+                      );
+                    })()}
+
+                    {/* KPI 4: Gap nights - PRE-CALCULADO del API */}
+                    {(() => {
+                      const gapNights = filteredDaily.kpis.gap_nights || 0;
+
+                      // Colores: verde si 0, naranja si 1, rojo si >=2
+                      const colorClass = gapNights === 0 ? 'text-green-400' :
+                                        gapNights === 1 ? 'text-orange-400' : 'text-red-400';
+                      const borderClass = gapNights === 0 ? 'border-green-500/30' :
+                                         gapNights === 1 ? 'border-orange-500/30' : 'border-red-500/30';
+
+                      return (
+                        <div className={`bg-[#1f2937] p-4 rounded-lg border ${borderClass} text-center`}>
+                          <p className="text-gray-400 text-sm mb-1">Gap nights</p>
+                          <p className={`text-xl md:text-3xl font-bold ${colorClass}`}>
+                            {gapNights}
+                          </p>
+                          <p className="text-xs text-gray-500 mt-1">
+                            {filteredDaily.kpis.gap_label || ''}
+                          </p>
+                        </div>
+                      );
+                    })()}
+                  </div>
+                )}
+
+                {/* Bookings - v4.3 NUEVA ESTRUCTURA del API v2.4 */}
+                {dailySummaryAPI?.in_house_guests && filteredDaily.in_house_guests.length > 0 && (
+                  <div className="bg-[#1f2937] p-5 rounded-lg border border-blue-500/30">
+                    <h4 className="text-lg font-bold text-blue-400 mb-4 flex items-center gap-2">
+                      <ClipboardList className="w-5 h-5" />
+                      Bookings
+                    </h4>
+                    <div className="overflow-x-auto">
+                      <table className="w-full min-w-[500px] text-left text-xs md:text-sm">
+                        <thead>
+                          <tr className="border-b border-gray-700">
+                            <th className="pb-2 pr-2 md:pr-3 text-gray-400">Guest</th>
+                            <th className="pb-2 pr-2 md:pr-3 text-gray-400">Villa</th>
+                            <th className="pb-2 pr-2 md:pr-3 text-gray-400">Check-out</th>
+                            <th className="pb-2 text-gray-400">Revenue</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-700">
+                          {filteredDaily.in_house_guests.map((guest, idx) => {
+                            const checkOut = guest.check_out ? new Date(guest.check_out) : null;
+                            // Formatear fecha como "24 Mar" según PDF v4.3
+                            const checkOutFormatted = checkOut ?
+                              `${checkOut.getDate()} ${checkOut.toLocaleString('en', { month: 'short' })}` :
+                              'N/A';
+
+                            return (
+                              <tr key={idx} className="text-gray-300">
+                                <td className="py-1 pr-2 md:py-2 md:pr-3 font-semibold text-white">{guest.guest || 'N/A'}</td>
+                                <td className="py-1 pr-2 md:py-2 md:pr-3">{guest.villa || 'N/A'}</td>
+                                <td className="py-1 pr-2 md:py-2 md:pr-3 whitespace-nowrap">{checkOutFormatted}</td>
+                                <td className="py-1 md:py-2 font-semibold text-purple-400 whitespace-nowrap">{formatIDR(guest.revenue || 0)}</td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+
+                {/* Revenue por villa - v4.3 NUEVO del API */}
+                {(() => {
+                  const revenueByVilla = filteredDaily?.revenue_by_villa;
+                  if (!revenueByVilla || typeof revenueByVilla !== 'object') return null;
+
+                  // Convertir objeto a array de [villa_name, revenue]
+                  const revenueArray = Object.entries(revenueByVilla);
+                  if (revenueArray.length === 0) return null;
+
+                  return (
+                    <div className="bg-[#1f2937] p-5 rounded-lg border border-purple-500/30">
+                      <h4 className="text-lg font-bold text-purple-400 mb-4 flex items-center gap-2">
+                        <TrendingUp className="w-5 h-5" />
+                        Revenue por villa
+                      </h4>
+                      <div className="overflow-x-auto">
+                        <table className="w-full min-w-[300px] text-left text-xs md:text-sm">
+                          <thead>
+                            <tr className="border-b border-gray-700">
+                              <th className="pb-2 text-gray-400">Villa</th>
+                              <th className="pb-2 text-gray-400 text-right">Revenue IDR</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-gray-700">
+                            {revenueArray.map(([villaName, revenue], idx) => (
+                              <tr key={idx} className="text-gray-300">
+                                <td className="py-1 md:py-2 font-semibold text-white">{villaName}</td>
+                                <td className="py-1 md:py-2 font-bold text-purple-400 text-right whitespace-nowrap">{formatIDR(revenue || 0)}</td>
+                              </tr>
+                            ))}
+                            <tr className="border-t-2 border-purple-500/50">
+                              <td className="py-1 md:py-2 font-bold text-white">TOTAL</td>
+                              <td className="py-1 md:py-2 font-bold text-purple-400 text-right whitespace-nowrap">
+                                {formatIDR(revenueArray.reduce((sum, [, revenue]) => sum + (revenue || 0), 0))}
+                              </td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  );
+                })()}
+
+                {/* Sales Channels - from API channels{} object */}
+                {(() => {
+                  const channels = filteredDaily?.channels || {};
+
+                  // Convert channels object to array and sort by count
+                  const channelsArray = Object.entries(channels)
+                    .map(([channel, count]) => ({ channel, count }))
+                    .sort((a, b) => b.count - a.count);
+
+                  // Cancellations always 0 for daily (same-day data)
+                  const cancelledCount = 0;
+                  const cancellationPct = 0;
+
+                  return (
+                    <div className="bg-[#1f2937] p-5 rounded-lg border border-pink-500/30">
+                      <h4 className="text-lg font-bold text-pink-400 mb-4 flex items-center gap-2">
+                        <MessageSquare className="w-5 h-5" />
+                        Sales channels
+                      </h4>
+                      <div className="space-y-2">
+                        {channelsArray.length > 0 ? channelsArray.map(({ channel, count }, idx) => (
+                          <div key={idx} className="flex justify-between items-center w-full">
+                            <span className="text-gray-300 font-semibold">
+                              {channel === 'booking' ? 'Booking.com' :
+                               channel === 'airbnb' ? 'Airbnb' :
+                               channel === 'direct' ? 'Direct' : channel}
+                            </span>
+                            <span className="text-white font-bold">{count}</span>
+                          </div>
+                        )) : (
+                          <p className="text-gray-400 text-sm">No bookings today</p>
+                        )}
+                        <div className="flex justify-between items-center w-full pt-2 border-t border-gray-700">
+                          <span className="text-red-400 font-semibold">Cancellations</span>
+                          <span className="text-red-400 font-bold">{cancelledCount} ({cancellationPct.toFixed(1)}%)</span>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()}
+
+                {/* Owner decisions — por prioridad - v4.3 de DAILY API */}
+                {(() => {
+                  const todayPending = filteredDaily?.pending_decisions || [];
+                  const hasPending = todayPending.length > 0;
+
+                  return (
+                    <div className={`p-5 rounded-lg border ${hasPending ? 'bg-[#1f2937] border-red-500/30' : 'bg-[#1f2937] border-gray-700'}`}>
+                      <h4 className={`text-xs font-medium mb-2 flex items-center gap-1.5 ${hasPending ? 'text-red-400' : 'text-gray-400'}`}>
+                        <AlertCircle className="w-4 h-4" />
+                        Pending decisions — {todayPending.length}
+                      </h4>
+
+                      {hasPending ? (
+                        <div className="overflow-x-auto">
+                          <table className="w-full min-w-[800px] text-left text-xs md:text-sm">
+                            <thead>
+                              <tr className="border-b border-gray-700">
+                                <th className="pb-2 pr-2 md:pr-4 text-gray-400">Prioridad</th>
+                                <th className="pb-2 pr-2 md:pr-4 text-gray-400">Tipo</th>
+                                <th className="pb-2 pr-2 md:pr-4 text-gray-400">Villa</th>
+                                <th className="pb-2 pr-2 md:pr-4 text-gray-400">Decisión · Guest</th>
+                                <th className="pb-2 pr-2 md:pr-4 text-gray-400">Agente</th>
+                                <th className="pb-2 text-gray-400">Status</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-700">
+                              {todayPending.map((decision) => (
+                                <tr key={decision.id} className="text-gray-300">
+                                  <td className="py-1 pr-2 md:py-2 md:pr-4">
+                                    <span className={`px-2 py-1 rounded text-xs font-bold ${
+                                      decision.priority === 'urgent' ? 'bg-[#FEE2E2] text-[#991B1B]' :
+                                      decision.priority === 'high' ? 'bg-[#FEF3C7] text-[#92400E]' :
+                                      decision.priority === 'medium' ? 'bg-[#DBEAFE] text-[#1E40AF]' :
+                                      'bg-[#F3F4F6] text-[#6B7280]'
+                                    }`}>
+                                      {decision.priority?.toUpperCase()}
+                                    </span>
+                                  </td>
+                                  <td className="py-1 pr-2 md:py-2 md:pr-4">{decision.decision_type || decision.type || '—'}</td>
+                                  <td className="py-1 pr-2 md:py-2 md:pr-4">{decision.villa_name || '—'}</td>
+                                  <td className="py-1 pr-2 md:py-2 md:pr-4">
+                                    {decision.title || decision.summary}
+                                    {decision.guest_name && ` — ${decision.guest_name}`}
+                                  </td>
+                                  <td className="py-1 pr-2 md:py-2 md:pr-4">
+                                    <div className="flex items-center gap-2">
+                                      {decision.generated_by_agent === 'banyu' ? (
+                                        <span className="px-2 py-1 rounded text-xs font-bold bg-[#DBEAFE] text-[#1E40AF]">
+                                          BANYU
+                                        </span>
+                                      ) : (
+                                        <span className="text-gray-400">system</span>
+                                      )}
+                                    </div>
+                                  </td>
+                                  <td className="py-1 md:py-2">
+                                    <span className={`px-2 py-1 rounded text-xs font-bold ${
+                                      decision.status === 'approved' ? 'bg-[#D1FAE5] text-[#065F46]' :
+                                      decision.status === 'rejected' ? 'bg-[#FEE2E2] text-[#991B1B]' :
+                                      'bg-[#FEF3C7] text-[#92400E]'
+                                    }`}>
+                                      {decision.status === 'approved' ? 'Approved' :
+                                       decision.status === 'rejected' ? 'Rejected' : 'Pending'}
+                                    </span>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-3 text-gray-300 p-4 bg-[#2a2f3a] rounded-lg">
+                          <span className="text-2xl">✅</span>
+                          <p className="text-lg font-semibold">No hay decisiones pendientes hoy. Todas resueltas.</p>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
+
+                {/* Auto-resolved today - ALWAYS SHOW */}
+                {(() => {
+                  // Leer de auto_resolved_today.items (ya viene filtrado desde n8n Daily API v4)
+                  const autoResolvedItems = filteredDaily?.auto_resolved_today?.items || [];
+
+                  const count = autoResolvedItems.length;
+                  const items = autoResolvedItems;
+
+                  return (
+                    <div className="bg-[#1f2937] p-5 rounded-lg border border-green-500/30 mt-4">
+                      <h4 className="text-lg font-bold text-green-400 mb-4">
+                        Auto-resolved today
+                      </h4>
+                      {count > 0 ? (
+                        <div className="overflow-x-auto">
+                          <table className="w-full min-w-[700px] text-left text-xs md:text-sm">
+                            <thead>
+                              <tr className="border-b border-gray-700">
+                                <th className="pb-2 pr-2 md:pr-3 text-gray-400">Date</th>
+                                <th className="pb-2 pr-2 md:pr-3 text-gray-400">Villa</th>
+                                <th className="pb-2 pr-2 md:pr-3 text-gray-400">Guest</th>
+                                <th className="pb-2 pr-2 md:pr-3 text-gray-400">Request</th>
+                                <th className="pb-2 text-gray-400">Status</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-700">
+                              {items.map((item, idx) => {
+                                const today = new Date();
+                                const fechaFormatted = `${today.getDate()} ${today.toLocaleString('en-US', { month: 'short' })}`;
+
+                                return (
+                                  <tr key={idx} className="text-gray-300">
+                                    <td className="py-1 pr-2 md:py-2 md:pr-3 align-top whitespace-nowrap">{fechaFormatted}</td>
+                                    <td className="py-1 pr-2 md:py-2 md:pr-3 align-top">
+                                      <div className="break-words">{item.villa_name || '—'}</div>
+                                    </td>
+                                    <td className="py-1 pr-2 md:py-2 md:pr-3 align-top">
+                                      <div className="break-words">{item.guest || '—'}</div>
+                                    </td>
+                                    <td className="py-1 pr-2 md:py-2 md:pr-3 align-top">
+                                      <div className="break-words">{item.resolution || 'Resolved automatically'}</div>
+                                    </td>
+                                    <td className="py-1 md:py-2">
+                                      <div className="flex items-center gap-2">
+                                        <span className="text-green-400">✅ Approved</span>
+                                        <span className="px-2 py-0.5 rounded text-xs font-semibold bg-[#D1FAE5] text-[#065F46]">
+                                          Auto
+                                        </span>
+                                      </div>
+                                    </td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
+                      ) : (
+                        <p className="text-gray-400 text-sm">0 decisions auto-resolved today</p>
+                      )}
+                    </div>
+                  );
+                })()}
+
+                {/* Guest Requests - v4.3 con formato TABLA según PDF */}
+                {(() => {
+                  // Deduplicar por ID para evitar bug del WF (22 duplicados → 11 únicos)
+                  const uniqueRequests = filteredDaily?.guest_requests
+                    ? Array.from(
+                        filteredDaily.guest_requests
+                          .reduce((map, request) => {
+                            if (request.id && !map.has(request.id)) {
+                              map.set(request.id, request);
+                            }
+                            return map;
+                          }, new Map())
+                          .values()
+                      )
+                    : [];
+
+                  return uniqueRequests.length > 0 && (
+                    <div className="bg-[#1f2937] p-5 rounded-lg border border-pink-500/30 mt-4">
+                      <h4 className="text-lg font-bold text-pink-400 mb-4 flex items-center gap-2">
+                        <MessageSquare className="w-5 h-5" />
+                        Guest Requests
+                      </h4>
+                      <div className="overflow-x-auto">
+                        <table className="w-full min-w-[700px] text-left text-xs md:text-sm">
+                          <thead>
+                            <tr className="border-b border-gray-700">
+                              <th className="pb-2 pr-2 md:pr-3 text-gray-400">Date</th>
+                              <th className="pb-2 pr-2 md:pr-3 text-gray-400">Villa</th>
+                              <th className="pb-2 pr-2 md:pr-3 text-gray-400">Guest</th>
+                              <th className="pb-2 pr-2 md:pr-3 text-gray-400">Request</th>
+                              <th className="pb-2 text-gray-400">Status</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-gray-700">
+                            {uniqueRequests.map((request) => {
+                              // Try multiple date fields
+                              const dateValue = request.created_at || request.request_date || request.date || request.timestamp;
+                              const fecha = dateValue ? new Date(dateValue) : null;
+                              const fechaFormatted = fecha ?
+                                `${fecha.getDate()} ${fecha.toLocaleString('en-US', { month: 'short' })}` :
+                                '—';
+
+                              const isApproved = request.status === 'approved';
+                              const isRejected = request.status === 'rejected';
+                              const isAuto = request.approved_by === 'autopilot';
+
+                              const villaName = request.villa_name || request.villa || request.property_name || '—';
+                              const guestName = request.guest_name || request.guest || request.name || '—';
+
+                              return (
+                                <tr key={request.id} className="text-gray-300">
+                                  <td className="py-1 pr-2 md:py-2 md:pr-3 align-top whitespace-nowrap">{fechaFormatted}</td>
+                                  <td className="py-1 pr-2 md:py-2 md:pr-3 align-top">
+                                    <div className="break-words">{villaName}</div>
+                                  </td>
+                                  <td className="py-1 pr-2 md:py-2 md:pr-3 align-top">
+                                    <div className="break-words">{guestName}</div>
+                                  </td>
+                                  <td className="py-1 pr-2 md:py-2 md:pr-3 align-top">
+                                    <div className="break-words">{request.description || request.request || request.title || 'N/A'}</div>
+                                  </td>
+                                  <td className="py-1 md:py-2">
+                                    {isApproved && (
+                                      <div className="flex items-center gap-2">
+                                        <span className="text-green-400">✅ Approved</span>
+                                        {isAuto && (
+                                          <span className="px-2 py-0.5 rounded text-xs font-semibold bg-[#D1FAE5] text-[#065F46]">
+                                            Auto
+                                          </span>
+                                        )}
+                                      </div>
+                                    )}
+                                    {isRejected && (
+                                      <span className="text-red-400">❌ Rejected</span>
+                                    )}
+                                    {!isApproved && !isRejected && (
+                                      <span className="text-gray-500">—</span>
+                                    )}
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  );
+                })()}
+              </div>
+            )
+          ) : filterDecisionPeriod === 'weekly' ? (
+            /* WEEKLY SUMMARIES VIEW v4.3 */
+            loadingSummaries ? (
+              <div className="text-center py-8 bg-[#2a2f3a] rounded-lg border-2 border-gray-700">
+                <div className="w-12 h-12 border-4 border-orange-500/30 border-t-orange-500 rounded-full animate-spin mx-auto mb-3" />
+                <p className="text-gray-300 text-lg">Loading weekly summaries...</p>
+              </div>
+            ) : weeklySummaries.length === 0 ? (
+              <div className="text-center py-8 bg-[#2a2f3a] rounded-lg border-2 border-gray-700">
+                <CheckCircle className="w-12 h-12 text-green-500 mx-auto mb-3" />
+                <p className="text-gray-300 text-lg">No weekly summaries available</p>
+                <p className="text-gray-500 text-sm mt-1">Weekly summaries will appear here once generated</p>
+              </div>
+            ) : (
+              /* Show only the most recent week */
+              (() => {
+                const summary = weeklySummaries[0]; // Most recent week only
+                if (!summary) return null;
+
+                // Apply villa filtering to Weekly Report
+                const filteredSummary = filterDecisionProperty && filterDecisionProperty !== 'All'
+                  ? filterByVilla(summary, filterDecisionProperty, 'weekly')
+                  : summary;
+
+                // DEBUG: Log filtered data structure
+                if (filterDecisionProperty !== 'All') {
+                  console.log('🔍 WEEKLY FILTER DEBUG:', {
+                    filterProperty: filterDecisionProperty,
+                    originalSummary: summary,
+                    filteredSummary: filteredSummary,
+                    occupancy_rate: filteredSummary?.occupancy_rate,
+                    total_bookings: filteredSummary?.total_bookings,
+                    revenue_total: filteredSummary?.revenue_total,
+                    bookings_count: filteredSummary?.bookings_list?.length
+                  });
+                }
+
+                const bookingsList = filteredSummary.bookings_list || [];
+
+                // Convert revenue_by_villa from object to array
+                const revenueByVillaObj = filteredSummary.revenue_by_villa || {};
+                const revenueByVilla = Array.isArray(revenueByVillaObj)
+                  ? revenueByVillaObj
+                  : Object.entries(revenueByVillaObj).map(([villa_name, revenue]) => ({
+                      villa_name,
+                      revenue
+                    }));
+
+                const decisionsList = filteredSummary.decisions_list || [];
+                const recommendations = summary.recommendations_json || [];
+
+                // auto_resolved_summary is an object with {count, items, by_type}
+                const autoResolvedObj = filteredSummary.auto_resolved_summary || {};
+                const autoResolved = autoResolvedObj.items || [];
+
+                // pending_approval can be either array or object {count, items}
+                const pendingApprovalData = filteredSummary.pending_approval || [];
+                const pendingApproval = Array.isArray(pendingApprovalData)
+                  ? pendingApprovalData
+                  : (pendingApprovalData.items || []);
+                const marketing = summary.marketing_summary || {};
+                const channels = marketing.channels || summary.booking_trends_json?.channels || [];
+
+                const weekStart = new Date(summary.week_start);
+                const weekEnd = new Date(summary.week_end);
+                const weekStartFormatted = weekStart.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+                const weekEndFormatted = weekEnd.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+
+                return (
+                  <div key={summary.id} className="bg-[#2a2f3a] rounded-lg p-6 border-2 border-[#FF8C42]/50 space-y-6">
+                    {/* Header */}
+                    <div className="border-b border-gray-700 pb-4">
+                      <h3 className="text-xl font-bold text-[#FF8C42]">
+                        WEEKLY — March {weekStart.getDate()}-{weekEnd.getDate()}
+                      </h3>
+                      <h3 className="text-xl font-bold text-[#FF8C42]">
+                        {filterDecisionProperty === 'All' ? 'All Properties' : filterDecisionProperty} · {revenueByVilla.length} villas · 7 days
+                      </h3>
+                    </div>
+
+                    {/* KPIs - Same 4 as Daily v4.3 */}
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      {/* KPI 1: Occupancy rate */}
+                      {(() => {
+                        const occupancyNum = filteredSummary.occupancy_rate || 0;
+                        const colorClass = occupancyNum >= 70 ? 'text-green-400' :
+                                          occupancyNum >= 40 ? 'text-orange-400' : 'text-red-400';
+                        const borderClass = occupancyNum >= 70 ? 'border-green-500/30' :
+                                           occupancyNum >= 40 ? 'border-orange-500/30' : 'border-red-500/30';
+                        return (
+                          <div className={`bg-[#1f2937] p-4 rounded-lg border ${borderClass} text-center`}>
+                            <p className="text-gray-400 text-sm mb-1">Occupancy rate</p>
+                            <p className={`text-xl md:text-3xl font-bold ${colorClass}`}>
+                              {occupancyNum.toFixed(1)}%
+                            </p>
+                            <p className="text-xs text-gray-500 mt-1">
+                              {filteredSummary.occupancy_label || ''}
+                            </p>
+                          </div>
+                        );
+                      })()}
+
+                      {/* KPI 2: Total bookings */}
+                      <div className="bg-[#1f2937] p-4 rounded-lg border border-blue-500/30 text-center">
+                        <p className="text-gray-400 text-sm mb-1">Total bookings</p>
+                        <p className="text-xl md:text-3xl font-bold text-blue-400">
+                          {filteredSummary.total_bookings || 0}
+                        </p>
+                        <p className="text-xs text-gray-500 mt-1">esta semana</p>
+                      </div>
+
+                      {/* KPI 3: Revenue confirmado */}
+                      <div className="bg-[#1f2937] p-4 rounded-lg border border-purple-500/30 text-center">
+                        <p className="text-gray-400 text-sm mb-1">Revenue confirmado</p>
+                        <p className="text-sm md:text-xl font-bold text-purple-400 whitespace-nowrap">
+                          {formatIDR(filteredSummary.revenue_total_idr || filteredSummary.revenue_total || 0)}
+                        </p>
+                        <p className="text-xs text-gray-500 mt-1">total semanal</p>
+                      </div>
+
+                      {/* KPI 4: Gap nights */}
+                      {(() => {
+                        // Calculate gap nights from available data
+                        const villaCount = filterDecisionProperty === 'All' ? 3 : 1;
+                        const daysInWeek = 7;
+                        const totalNightsAvailable = villaCount * daysInWeek;
+                        const nightsBooked = filteredSummary.marketing_summary?.nights_booked ||
+                                           (filteredSummary.occupancy_rate ? Math.round((filteredSummary.occupancy_rate / 100) * totalNightsAvailable) : 0);
+                        const gapNights = totalNightsAvailable - nightsBooked;
+
+                        const gapColorClass = gapNights === 0 ? 'text-green-400' :
+                                             gapNights <= 5 ? 'text-orange-400' : 'text-red-400';
+                        const gapBorderClass = gapNights === 0 ? 'border-green-500/30' :
+                                              gapNights <= 5 ? 'border-orange-500/30' : 'border-red-500/30';
+                        return (
+                          <div className={`bg-[#1f2937] p-4 rounded-lg border ${gapBorderClass} text-center`}>
+                            <p className="text-gray-400 text-sm mb-1">Gap nights</p>
+                            <p className={`text-xl md:text-3xl font-bold ${gapColorClass}`}>
+                              {gapNights}
+                            </p>
+                            <p className="text-xs text-gray-500 mt-1">
+                              {filteredSummary.gap_label || ''}
+                            </p>
+                          </div>
+                        );
+                      })()}
+                    </div>
+
+                    {/* Bookings table - ALWAYS SHOW */}
+                    <div className="bg-[#1f2937] p-5 rounded-lg border border-blue-500/30">
+                      <h4 className="text-lg font-bold text-blue-400 mb-4 flex items-center gap-2">
+                        <ClipboardList className="w-5 h-5" />
+                        Bookings
+                      </h4>
+                      {bookingsList && bookingsList.length > 0 ? (
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-left text-sm">
+                            <thead>
+                              <tr className="border-b border-gray-700">
+                                <th className="pb-2 pr-4 text-gray-400">Guest</th>
+                                <th className="pb-2 pr-4 text-gray-400">Villa</th>
+                                <th className="pb-2 pr-3 text-gray-400">Check-in</th>
+                                <th className="pb-2 pr-3 text-gray-400">Check-out</th>
+                                <th className="pb-2 pr-3 text-gray-400 text-center">Noches</th>
+                                <th className="pb-2 pr-3 text-gray-400">Revenue IDR</th>
+                                <th className="pb-2 pr-3 text-gray-400">Canal</th>
+                                <th className="pb-2 text-gray-400">Status</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-700">
+                              {bookingsList.map((booking, idx) => {
+                                const checkIn = booking.check_in ? new Date(booking.check_in) : null;
+                                const checkOut = booking.check_out ? new Date(booking.check_out) : null;
+                                const checkInFormatted = checkIn ? `${checkIn.getDate()} ${checkIn.toLocaleString('en', { month: 'short' })}` : '—';
+                                const checkOutFormatted = checkOut ? `${checkOut.getDate()} ${checkOut.toLocaleString('en', { month: 'short' })}` : '—';
+                                const status = booking.status || 'confirmed';
+                                const statusBadge = status === 'confirmed' ? 'bg-[#D1FAE5] text-[#065F46]' :
+                                                   status === 'cancelled' ? 'bg-[#FEE2E2] text-[#991B1B]' :
+                                                   'bg-[#FEF3C7] text-[#92400E]';
+                                return (
+                                  <tr key={idx} className="text-gray-300">
+                                    <td className="py-2 pr-4 font-semibold text-white whitespace-nowrap">{booking.guest_name || booking.guest || '—'}</td>
+                                    <td className="py-2 pr-4">{booking.villa_name || booking.villa || '—'}</td>
+                                    <td className="py-2 pr-3 whitespace-nowrap">{checkInFormatted}</td>
+                                    <td className="py-2 pr-3 whitespace-nowrap">{checkOutFormatted}</td>
+                                    <td className="py-2 pr-3 text-center whitespace-nowrap">{booking.nights || booking.total_nights || '—'}</td>
+                                    <td className="py-2 pr-3 font-semibold text-purple-400 whitespace-nowrap">{formatIDR(booking.revenue || 0)}</td>
+                                    <td className="py-2 pr-3 capitalize whitespace-nowrap">{booking.channel || booking.source || '—'}</td>
+                                    <td className="py-2 whitespace-nowrap">
+                                      <span className={`px-2 py-1 rounded text-xs font-semibold ${statusBadge}`}>
+                                        {status}
+                                      </span>
+                                    </td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
+                      ) : (
+                        <p className="text-gray-400 text-sm">0 bookings esta semana.</p>
+                      )}
+                    </div>
+
+                    {/* Revenue por villa table - ALWAYS SHOW */}
+                    <div className="bg-[#1f2937] p-5 rounded-lg border border-purple-500/30">
+                      <h4 className="text-lg font-bold text-purple-400 mb-4 flex items-center gap-2">
+                        <TrendingUp className="w-5 h-5" />
+                        Revenue por villa
+                      </h4>
+                      {revenueByVilla && revenueByVilla.length > 0 ? (
+                        <div className="overflow-x-auto">
+                          <table className="w-full min-w-[300px] text-left text-xs md:text-sm">
+                            <thead>
+                              <tr className="border-b border-gray-700">
+                                <th className="pb-2 text-gray-400">Villa</th>
+                                <th className="pb-2 text-gray-400 text-right">Revenue IDR</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-700">
+                              {revenueByVilla.map((villa, idx) => (
+                                <tr key={idx} className="text-gray-300">
+                                  <td className="py-1 md:py-2 font-semibold text-white">{villa.villa_name || villa.villa || '—'}</td>
+                                  <td className="py-1 md:py-2 font-bold text-purple-400 text-right whitespace-nowrap">{formatIDR(villa.revenue || 0)}</td>
+                                </tr>
+                              ))}
+                              <tr className="border-t-2 border-purple-500/50">
+                                <td className="py-2 font-bold text-white">TOTAL</td>
+                                <td className="py-2 font-bold text-purple-400 text-right">
+                                  {formatIDR(revenueByVilla.reduce((sum, v) => sum + (v.revenue || 0), 0))}
+                                </td>
+                              </tr>
+                            </tbody>
+                          </table>
+                        </div>
+                      ) : (
+                        <p className="text-gray-400 text-sm">0 villas esta semana.</p>
+                      )}
+                    </div>
+
+                    {/* Sales Channels + Occupancy Detail - Grid 2 columns */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {/* Sales Channels - Left */}
+                      {(() => {
+                        const bookingsListForChannels = filteredSummary.bookings_list || [];
+
+                        // Group by channel and count confirmed bookings
+                        const channelCounts = bookingsListForChannels.reduce((acc, booking) => {
+                          if (booking.status === 'confirmed') {
+                            const channel = booking.channel || 'direct';
+                            acc[channel] = (acc[channel] || 0) + 1;
+                          }
+                          return acc;
+                        }, {});
+
+                        // Count cancelled bookings
+                        const cancelledCount = bookingsListForChannels.filter(b => b.status === 'cancelled').length;
+                        const totalConfirmed = bookingsListForChannels.filter(b => b.status === 'confirmed').length;
+                        const cancellationPct = totalConfirmed > 0 ? ((cancelledCount / (totalConfirmed + cancelledCount)) * 100).toFixed(1) : 0;
+
+                        const channelsArray = Object.entries(channelCounts)
+                          .map(([channel, count]) => ({ channel, count }))
+                          .sort((a, b) => b.count - a.count);
+
+                        return (
+                          <div className="bg-[#1f2937] p-5 rounded-lg border border-pink-500/30">
+                            <h4 className="text-lg font-bold text-pink-400 mb-4 flex items-center gap-2">
+                              <MessageSquare className="w-5 h-5" />
+                              Sales channels
+                            </h4>
+                            <div className="space-y-2">
+                              {channelsArray.map(({ channel, count }, idx) => (
+                                <div key={idx} className="flex justify-between items-center">
+                                  <span className="text-gray-300 capitalize font-semibold">
+                                    {channel === 'booking' ? 'Booking.com' :
+                                     channel === 'airbnb' ? 'Airbnb' :
+                                     channel === 'direct' ? 'Direct' : channel}
+                                  </span>
+                                  <span className="text-white font-bold">{count}</span>
+                                </div>
+                              ))}
+                              <div className="flex justify-between items-center pt-2 border-t border-gray-700">
+                                <span className="text-red-400 font-semibold">Cancellations</span>
+                                <span className="text-red-400 font-bold">{cancelledCount} ({cancellationPct}%)</span>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })()}
+
+                      {/* Occupancy Detail - Right */}
+                      {(() => {
+                        const occupancyRate = filteredSummary.occupancy_rate || 0;
+                        const villaCount = filterDecisionProperty === 'All' ? 3 : 1;
+                        const daysInWeek = 7;
+                        const nochesDisponibles = villaCount * daysInWeek;
+                        const nochesOcupadas = Math.round((occupancyRate / 100) * nochesDisponibles);
+                        const gapNights = nochesDisponibles - nochesOcupadas;
+
+                        return (
+                          <div className="bg-[#1f2937] p-5 rounded-lg border border-blue-500/30">
+                            <h4 className="text-lg font-bold text-blue-400 mb-4 flex items-center gap-2">
+                              <TrendingUp className="w-5 h-5" />
+                              Occupancy detail
+                            </h4>
+                            <div className="space-y-2">
+                              <div className="flex justify-between items-center">
+                                <span className="text-gray-300">Available nights</span>
+                                <span className="text-white font-bold">{nochesDisponibles} ({villaCount}×7d)</span>
+                              </div>
+                              <div className="flex justify-between items-center">
+                                <span className="text-gray-300">Occupied nights</span>
+                                <span className="text-green-400 font-bold">{nochesOcupadas}</span>
+                              </div>
+                              <div className="flex justify-between items-center">
+                                <span className="text-gray-300 font-semibold">Gap nights</span>
+                                <span className="text-orange-400 font-bold">{gapNights}</span>
+                              </div>
+                              <div className="flex justify-between items-center pt-2 border-t border-gray-700">
+                                <span className="text-gray-300 font-semibold">Occupancy rate</span>
+                                <span className="text-blue-400 font-bold">{occupancyRate.toFixed(2)}%</span>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })()}
+                    </div>
+
+                    {/* Pending Approval section (ALWAYS show) - TABLE FORMAT */}
+                    <div className="bg-[#1f2937] p-5 rounded-lg border border-orange-500/30">
+                      <h4 className="text-lg font-bold text-orange-400 mb-4">
+                        Pending Approval
+                      </h4>
+                      {pendingApproval && pendingApproval.length > 0 ? (
+                        <div className="overflow-x-auto">
+                          <table className="w-full min-w-[600px] text-left text-xs md:text-sm">
+                            <thead>
+                              <tr className="border-b border-gray-700">
+                                <th className="pb-2 pr-2 md:pr-4 text-gray-400">Prior.</th>
+                                <th className="pb-2 pr-2 md:pr-4 text-gray-400">Tipo</th>
+                                <th className="pb-2 pr-2 md:pr-4 text-gray-400">Villa</th>
+                                <th className="pb-2 text-gray-400">Request</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-700">
+                              {pendingApproval.map((item, idx) => (
+                                <tr key={idx} className="text-gray-300">
+                                  <td className="py-1 pr-2 md:py-2 md:pr-4">{item.priority || '—'}</td>
+                                  <td className="py-1 pr-2 md:py-2 md:pr-4">{item.type || '—'}</td>
+                                  <td className="py-1 pr-2 md:py-2 md:pr-4">{item.villa || '—'}</td>
+                                  <td className="py-1 md:py-2">{item.request || '—'}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      ) : (
+                        <p className="text-gray-400 text-sm">0 decisiones pendientes de aprobacion esta semana.</p>
+                      )}
+                    </div>
+
+                    {/* Auto-resolved - ALWAYS SHOW */}
+                    <div className="bg-[#1f2937] p-5 rounded-lg border border-green-500/30">
+                      <h4 className="text-lg font-bold text-green-400 mb-4">
+                        Auto-resolved — {autoResolved.length} this week
+                      </h4>
+                      {autoResolved && autoResolved.length > 0 ? (
+                        <div className="overflow-x-auto">
+                          <table className="w-full min-w-[600px] text-left text-xs md:text-sm">
+                            <thead>
+                              <tr className="border-b border-gray-700">
+                                <th className="pb-2 pr-2 md:pr-3 text-gray-400">Date</th>
+                                <th className="pb-2 pr-2 md:pr-3 text-gray-400">Guest</th>
+                                <th className="pb-2 pr-2 md:pr-3 text-gray-400">Type</th>
+                                <th className="pb-2 text-gray-400">Resolution</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-700">
+                              {autoResolved.map((item, idx) => {
+                                const fecha = item.created_at || item.date || item.resolved_at || item.timestamp ?
+                                  new Date(item.created_at || item.date || item.resolved_at || item.timestamp) : null;
+                                const fechaFormatted = fecha ?
+                                  `${fecha.getDate()} ${fecha.toLocaleString('en', { month: 'short' })} ${fecha.toLocaleTimeString('en', { hour: '2-digit', minute: '2-digit', hour12: false })}` :
+                                  '—';
+
+                                return (
+                                  <tr key={idx} className="text-gray-300">
+                                    <td className="py-1 pr-2 md:py-2 md:pr-3 whitespace-nowrap">{fechaFormatted}</td>
+                                    <td className="py-1 pr-2 md:py-2 md:pr-3">{item.guest_name || item.guest || '—'}</td>
+                                    <td className="py-1 pr-2 md:py-2 md:pr-3">{item.type || item.decision_type || '—'}</td>
+                                    <td className="py-1 md:py-2">{item.description || item.title || item.resolution || '—'}</td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
+                      ) : (
+                        <p className="text-gray-400 text-sm">0 decisions auto-resolved this week.</p>
+                      )}
+                    </div>
+
+                    {/* Guest Requests - ALWAYS SHOW (last 30 days) */}
+                    <div className="bg-[#1f2937] p-5 rounded-lg border border-pink-500/30">
+                      <h4 className="text-lg font-bold text-pink-400 mb-4 flex items-center gap-2">
+                        <MessageSquare className="w-5 h-5" />
+                        Guest Requests
+                      </h4>
+                      {(() => {
+                        const allGuestRequests = filteredSummary.guest_requests || [];
+                        // Filter last 30 days
+                        const thirtyDaysAgo = new Date();
+                        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+                        const guestRequests = allGuestRequests.filter(req => {
+                          const reqDate = req.created_at || req.date ? new Date(req.created_at || req.date) : null;
+                          return reqDate && reqDate >= thirtyDaysAgo;
+                        });
+
+                        return guestRequests.length > 0 ? (
+                          <div className="overflow-x-auto">
+                            <table className="w-full text-left text-sm">
+                              <thead>
+                                <tr className="border-b border-gray-700">
+                                  <th className="pb-2 pr-3 text-gray-400">Date</th>
+                                  <th className="pb-2 pr-3 text-gray-400">Villa</th>
+                                  <th className="pb-2 pr-3 text-gray-400">Guest</th>
+                                  <th className="pb-2 pr-3 text-gray-400">Request</th>
+                                  <th className="pb-2 text-gray-400">Status</th>
+                                </tr>
+                              </thead>
+                              <tbody className="divide-y divide-gray-700">
+                                {guestRequests.map((request, idx) => {
+                                  const fecha = request.created_at || request.date ? new Date(request.created_at || request.date) : null;
+                                  const fechaFormatted = fecha ?
+                                    `${fecha.getDate()} ${fecha.toLocaleString('en', { month: 'short' })}` :
+                                    '—';
+
+                                  const isApproved = request.status === 'approved';
+                                  const isRejected = request.status === 'rejected';
+                                  const isAuto = request.approved_by === 'autopilot';
+
+                                  return (
+                                    <tr key={request.id || idx} className="text-gray-300">
+                                      <td className="py-2 pr-3 whitespace-nowrap">{fechaFormatted}</td>
+                                      <td className="py-2 pr-3">{request.villa_name || request.villa || '—'}</td>
+                                      <td className="py-2 pr-3">{request.guest_name || request.guest || '—'}</td>
+                                      <td className="py-2 pr-3">{request.description || request.request || request.title || 'N/A'}</td>
+                                      <td className="py-2">
+                                        {isApproved && (
+                                          <div className="flex items-center gap-2">
+                                            <span className="text-green-400">✅ Approved</span>
+                                            {isAuto && (
+                                              <span className="px-2 py-0.5 rounded text-xs font-semibold bg-[#D1FAE5] text-[#065F46]">
+                                                Auto
+                                              </span>
+                                            )}
+                                          </div>
+                                        )}
+                                        {isRejected && (
+                                          <span className="text-red-400">❌ Rejected</span>
+                                        )}
+                                        {!isApproved && !isRejected && (
+                                          <span className="text-gray-500">—</span>
+                                        )}
+                                      </td>
+                                    </tr>
+                                  );
+                                })}
+                              </tbody>
+                            </table>
+                          </div>
+                        ) : (
+                          <p className="text-gray-400 text-sm">0 requests this week.</p>
+                        );
+                      })()}
+                    </div>
+
+                    {/* Decisions - this week */}
+                    <div className="bg-[#1f2937] p-5 rounded-lg border border-red-500/30">
+                      <h4 className="text-sm font-semibold text-red-400 mb-3 flex items-center gap-2">
+                        <AlertCircle className="w-5 h-5" />
+                        Decisions — this week ({decisionsList.length})
+                      </h4>
+                      {decisionsList && decisionsList.length > 0 ? (
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-left text-sm">
+                            <thead>
+                              <tr className="border-b border-gray-700">
+                                <th className="pb-2 pr-3 text-gray-400">Date</th>
+                                <th className="pb-2 pr-3 text-gray-400">Priority</th>
+                                <th className="pb-2 pr-3 text-gray-400">Type</th>
+                                <th className="pb-2 pr-3 text-gray-400">Guest</th>
+                                <th className="pb-2 pr-3 text-gray-400">Villa</th>
+                                <th className="pb-2 text-gray-400">Status</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-700">
+                              {decisionsList.map((decision, idx) => {
+                                const fecha = decision.created_at || decision.date ? new Date(decision.created_at || decision.date) : null;
+                                const fechaFormatted = fecha ?
+                                  `${fecha.getDate()} ${fecha.toLocaleString('en', { month: 'short' })}` :
+                                  '—';
+
+                                return (
+                                  <tr key={decision.id || idx} className="text-gray-300">
+                                    <td className="py-2 pr-3 whitespace-nowrap">{fechaFormatted}</td>
+                                    <td className="py-2 pr-3">
+                                      <span className={`px-2 py-1 rounded text-xs font-bold ${
+                                        decision.priority === 'urgent' ? 'bg-[#FEE2E2] text-[#991B1B]' :
+                                        decision.priority === 'high' ? 'bg-[#FEF3C7] text-[#92400E]' :
+                                        decision.priority === 'medium' ? 'bg-[#DBEAFE] text-[#1E40AF]' :
+                                        'bg-[#F3F4F6] text-[#6B7280]'
+                                      }`}>
+                                        {decision.priority}
+                                      </span>
+                                    </td>
+                                    <td className="py-2 pr-3">{decision.decision_type || decision.type || '—'}</td>
+                                    <td className="py-2 pr-3">{decision.guest_name || decision.guest || '—'}</td>
+                                    <td className="py-2 pr-3">{decision.villa_name || decision.villa || '—'}</td>
+                                    <td className="py-2">
+                                      <span className={`px-2 py-1 rounded text-xs font-bold ${
+                                        decision.status === 'approved' ? 'bg-[#D1FAE5] text-[#065F46]' :
+                                        decision.status === 'rejected' ? 'bg-[#FEE2E2] text-[#991B1B]' :
+                                        'bg-[#FEF3C7] text-[#92400E]'
+                                      }`}>
+                                        {decision.status}
+                                      </span>
+                                    </td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
+                      ) : (
+                        <p className="text-gray-400 text-sm">0 decisions this week.</p>
+                      )}
+                    </div>
+                  </div>
+                );
+              })()
+            )
+          ) : filterDecisionPeriod === 'monthly' ? (
+            /* MONTHLY REPORT - Using MonthlyReport.jsx component */
+            <MonthlyReport
+              propertyId={selectedProperty?.id}
+              propertyName={selectedProperty?.property_name || filterDecisionProperty}
+              tenantId={userData?.tenant_id}
+              monthlySummary={monthlySummaries.length > 0 ? monthlySummaries[0] : null}
+              loading={loadingSummaries}
+            />
+          ) : filterDecisionPeriod === 'monthly_OLD_BACKUP' ? (
+            /* OLD MONTHLY SUMMARIES VIEW v4.3 - BACKUP */
+            loadingSummaries ? (
+              <div className="text-center py-8 bg-[#2a2f3a] rounded-lg border-2 border-gray-700">
+                <div className="w-12 h-12 border-4 border-orange-500/30 border-t-orange-500 rounded-full animate-spin mx-auto mb-3" />
+                <p className="text-gray-300 text-lg">Loading monthly summaries...</p>
+              </div>
+            ) : monthlySummaries.length === 0 ? (
+              <div className="text-center py-8 bg-[#2a2f3a] rounded-lg border-2 border-gray-700">
+                <CheckCircle className="w-12 h-12 text-green-500 mx-auto mb-3" />
+                <p className="text-gray-300 text-lg">No monthly summaries available</p>
+                <p className="text-gray-500 text-sm mt-1">Monthly summaries will appear here once generated</p>
+              </div>
+            ) : (
+              monthlySummaries.map((summary) => {
+                const bookingsList = summary.bookings_list || [];
+                const revenueByVilla = summary.revenue_by_villa || [];
+                const decisionsList = summary.decisions_list || [];
+                const strategicRecs = summary.strategic_recommendations_json || [];
+                const autoResolved = summary.auto_resolved_summary || [];
+                const pendingApproval = summary.pending_approval || [];
+                const occupancySummary = summary.occupancy_summary || {};
+                const bookingTrends = summary.booking_trends_json || {};
+                const channels = bookingTrends.channels || [];
+
+                // Parse month_key (e.g., "2026-03")
+                const monthKey = summary.month_key || '';
+                const [year, month] = monthKey.split('-');
+                const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+                const monthName = month ? monthNames[parseInt(month) - 1] : '';
+                const monthDisplay = monthName && year ? `${monthName} ${year}` : monthKey;
+
+                // Count villas and days
+                const villasCount = revenueByVilla.length || 3;
+                const daysInMonth = occupancySummary.days_in_month || 31;
+
+                return (
+                  <div key={summary.id} className="bg-[#2a2f3a] rounded-lg p-6 border-2 border-[#FF8C42]/50 space-y-6">
+                    {/* Header */}
+                    <div className="border-b border-gray-700 pb-4">
+                      <h3 className="text-2xl font-bold text-[#FF8C42] mb-2">
+                        MONTHLY — {monthDisplay} · Nismara Uma Villa · {villasCount} villas · {daysInMonth} días
+                      </h3>
+                    </div>
+
+                    {/* KPIs - Same 4 as Daily v4.3 */}
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      {/* KPI 1: Occupancy rate */}
+                      {(() => {
+                        const occupancyNum = summary.occupancy_rate || occupancySummary.average_occupancy_pct || 0;
+                        const colorClass = occupancyNum >= 70 ? 'text-green-400' :
+                                          occupancyNum >= 40 ? 'text-orange-400' : 'text-red-400';
+                        const borderClass = occupancyNum >= 70 ? 'border-green-500/30' :
+                                           occupancyNum >= 40 ? 'border-orange-500/30' : 'border-red-500/30';
+                        return (
+                          <div className={`bg-[#1f2937] p-4 rounded-lg border ${borderClass} text-center`}>
+                            <p className="text-gray-400 text-sm mb-1">Occupancy rate</p>
+                            <p className={`text-3xl font-bold ${colorClass}`}>
+                              {occupancyNum.toFixed(1)}%
+                            </p>
+                            <p className="text-xs text-gray-500 mt-1">
+                              {summary.occupancy_label || ''}
+                            </p>
+                          </div>
+                        );
+                      })()}
+
+                      {/* KPI 2: Total bookings */}
+                      <div className="bg-[#1f2937] p-4 rounded-lg border border-blue-500/30 text-center">
+                        <p className="text-gray-400 text-sm mb-1">Total bookings</p>
+                        <p className="text-3xl font-bold text-blue-400">
+                          {summary.total_bookings || bookingTrends.total_bookings || 0}
+                        </p>
+                        <p className="text-xs text-gray-500 mt-1">este mes</p>
+                      </div>
+
+                      {/* KPI 3: Revenue confirmado */}
+                      <div className="bg-[#1f2937] p-4 rounded-lg border border-purple-500/30 text-center">
+                        <p className="text-gray-400 text-sm mb-1">Revenue confirmado</p>
+                        <p className="text-3xl font-bold text-purple-400">
+                          {formatIDR(summary.revenue_total_idr || summary.revenue_total || 0)}
+                        </p>
+                        <p className="text-xs text-gray-500 mt-1">total mensual</p>
+                      </div>
+
+                      {/* KPI 4: Gap nights */}
+                      {(() => {
+                        const gapNights = summary.gap_nights || occupancySummary.gap_nights || 0;
+                        const gapColorClass = gapNights === 0 ? 'text-green-400' :
+                                             gapNights <= 10 ? 'text-orange-400' : 'text-red-400';
+                        const gapBorderClass = gapNights === 0 ? 'border-green-500/30' :
+                                              gapNights <= 10 ? 'border-orange-500/30' : 'border-red-500/30';
+                        return (
+                          <div className={`bg-[#1f2937] p-4 rounded-lg border ${gapBorderClass} text-center`}>
+                            <p className="text-gray-400 text-sm mb-1">Gap nights</p>
+                            <p className={`text-3xl font-bold ${gapColorClass}`}>
+                              {gapNights}
+                            </p>
+                            <p className="text-xs text-gray-500 mt-1">
+                              {summary.gap_label || ''}
+                            </p>
+                          </div>
+                        );
+                      })()}
+                    </div>
+
+                    {/* Pending Approval section (ALWAYS show) */}
+                    <div className="bg-[#1f2937] p-5 rounded-lg border border-orange-500/30">
+                      <h4 className="text-lg font-bold text-orange-400 mb-4">
+                        Pending Approval
+                      </h4>
+                      {pendingApproval && pendingApproval.length > 0 ? (
+                        <div className="space-y-3">
+                          {pendingApproval.map((item, idx) => (
+                            <div key={idx} className="bg-[#2a2f3a] p-4 rounded-lg border-l-4 border-orange-500">
+                              <div className="flex items-start justify-between mb-2">
+                                <p className="text-white font-semibold">{item.title || item.description || 'Decision required'}</p>
+                                <span className="px-2 py-1 rounded text-xs font-bold bg-orange-500/20 text-orange-400">
+                                  {item.priority?.toUpperCase() || 'PENDING'}
+                                </span>
+                              </div>
+                              {item.details && <p className="text-gray-300 text-sm">{item.details}</p>}
+                              <div className="flex gap-2 mt-3">
+                                <button className="px-3 py-1 bg-green-500/20 text-green-400 rounded text-sm font-semibold hover:bg-green-500/30">
+                                  ✅ Approve
+                                </button>
+                                <button className="px-3 py-1 bg-red-500/20 text-red-400 rounded text-sm font-semibold hover:bg-red-500/30">
+                                  ❌ Reject
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-gray-400 text-sm">0 decisiones pendientes de aprobacion esta semana.</p>
+                      )}
+                    </div>
+
+                    {/* Auto-resolved summary section (NEW in v4.3) */}
+                    {autoResolved && autoResolved.length > 0 && (
+                      <div className="bg-[#1f2937] p-5 rounded-lg border border-green-500/30">
+                        <details className="group">
+                          <summary className="cursor-pointer list-none">
+                            <h4 className="text-lg font-bold text-green-400 mb-4 flex items-center gap-2">
+                              <CheckCircle className="w-5 h-5" />
+                              ✅ Auto-resolved este mes ({autoResolved.length})
+                              <span className="text-xs text-gray-400 ml-auto group-open:hidden">Click para expandir</span>
+                              <span className="text-xs text-gray-400 ml-auto group-open:inline hidden">Click para colapsar</span>
+                            </h4>
+                          </summary>
+                          <div className="space-y-2 mt-2">
+                            {autoResolved.map((item, idx) => (
+                              <div key={idx} className="bg-[#2a2f3a] p-3 rounded-lg border-l-4 border-green-500">
+                                <p className="text-white font-semibold text-sm">{item.type || item.decision_type || 'Auto-resolved'}</p>
+                                <p className="text-gray-300 text-xs mt-1">{item.description || item.title || 'Resolved automatically'}</p>
+                                {item.guest_name && <p className="text-gray-400 text-xs mt-1">Guest: {item.guest_name}</p>}
+                              </div>
+                            ))}
+                          </div>
+                        </details>
+                      </div>
+                    )}
+
+                    {/* Bookings table (with Fecha column) */}
+                    {bookingsList && bookingsList.length > 0 && (
+                      <div className="bg-[#1f2937] p-5 rounded-lg border border-blue-500/30">
+                        <h4 className="text-lg font-bold text-blue-400 mb-4 flex items-center gap-2">
+                          <ClipboardList className="w-5 h-5" />
+                          Bookings este mes ({bookingsList.length})
+                        </h4>
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-left text-sm">
+                            <thead>
+                              <tr className="border-b border-gray-700">
+                                <th className="pb-2 text-gray-400">Fecha</th>
+                                <th className="pb-2 text-gray-400">Guest</th>
+                                <th className="pb-2 text-gray-400">Villa</th>
+                                <th className="pb-2 text-gray-400">Check-in</th>
+                                <th className="pb-2 text-gray-400">Check-out</th>
+                                <th className="pb-2 text-gray-400">Noches</th>
+                                <th className="pb-2 text-gray-400">Revenue IDR</th>
+                                <th className="pb-2 text-gray-400">Canal</th>
+                                <th className="pb-2 text-gray-400">Status</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-700">
+                              {bookingsList.map((booking, idx) => {
+                                const createdAt = booking.created_at ? new Date(booking.created_at) : null;
+                                const fechaFormatted = createdAt ? `${createdAt.getDate()} ${createdAt.toLocaleString('en', { month: 'short' })}` : '—';
+                                const checkIn = booking.check_in ? new Date(booking.check_in) : null;
+                                const checkOut = booking.check_out ? new Date(booking.check_out) : null;
+                                const checkInFormatted = checkIn ? `${checkIn.getDate()} ${checkIn.toLocaleString('en', { month: 'short' })}` : '—';
+                                const checkOutFormatted = checkOut ? `${checkOut.getDate()} ${checkOut.toLocaleString('en', { month: 'short' })}` : '—';
+                                const status = booking.status || 'confirmed';
+                                const statusBadge = status === 'confirmed' ? 'bg-[#D1FAE5] text-[#065F46]' :
+                                                   status === 'cancelled' ? 'bg-[#FEE2E2] text-[#991B1B]' :
+                                                   'bg-[#FEF3C7] text-[#92400E]';
+                                return (
+                                  <tr key={idx} className="text-gray-300">
+                                    <td className="py-2 text-xs">{fechaFormatted}</td>
+                                    <td className="py-2 font-semibold text-white">{booking.guest_name || booking.guest || '—'}</td>
+                                    <td className="py-2">{booking.villa_name || booking.villa || '—'}</td>
+                                    <td className="py-2">{checkInFormatted}</td>
+                                    <td className="py-2">{checkOutFormatted}</td>
+                                    <td className="py-2 text-center">{booking.nights || booking.total_nights || '—'}</td>
+                                    <td className="py-2 font-semibold text-purple-400">{formatIDR(booking.revenue || 0)}</td>
+                                    <td className="py-2 capitalize">{booking.channel || booking.source || '—'}</td>
+                                    <td className="py-2">
+                                      <span className={`px-2 py-1 rounded text-xs font-semibold ${statusBadge}`}>
+                                        {status}
+                                      </span>
+                                    </td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Revenue por villa table */}
+                    {revenueByVilla && revenueByVilla.length > 0 && (
+                      <div className="bg-[#1f2937] p-5 rounded-lg border border-purple-500/30">
+                        <h4 className="text-lg font-bold text-purple-400 mb-4 flex items-center gap-2">
+                          <TrendingUp className="w-5 h-5" />
+                          Revenue por villa
+                        </h4>
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-left text-sm">
+                            <thead>
+                              <tr className="border-b border-gray-700">
+                                <th className="pb-2 text-gray-400">Villa</th>
+                                <th className="pb-2 text-gray-400 text-right">Revenue IDR</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-700">
+                              {revenueByVilla.map((villa, idx) => (
+                                <tr key={idx} className="text-gray-300">
+                                  <td className="py-2 font-semibold text-white">{villa.villa_name || villa.villa || '—'}</td>
+                                  <td className="py-2 font-bold text-purple-400 text-right">{formatIDR(villa.revenue || 0)}</td>
+                                </tr>
+                              ))}
+                              <tr className="border-t-2 border-purple-500/50">
+                                <td className="py-2 font-bold text-white">TOTAL</td>
+                                <td className="py-2 font-bold text-purple-400 text-right">
+                                  {formatIDR(revenueByVilla.reduce((sum, v) => sum + (v.revenue || 0), 0))}
+                                </td>
+                              </tr>
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Occupancy Detail (progress bar) */}
+                    {occupancySummary && typeof occupancySummary === 'object' && Object.keys(occupancySummary).length > 0 && (
+                      <div className="bg-[#1f2937] p-5 rounded-lg border border-orange-500/30">
+                        <h4 className="text-lg font-bold text-orange-400 mb-4 flex items-center gap-2">
+                          <ClipboardList className="w-5 h-5" />
+                          Occupancy Detail
+                        </h4>
+                        <div className="space-y-3">
+                          {occupancySummary.average_occupancy_pct !== undefined && (
+                            <>
+                              <div className="flex justify-between text-sm mb-1">
+                                <span className="text-gray-400">Average Occupancy</span>
+                                <span className="text-white font-bold">{occupancySummary.average_occupancy_pct}%</span>
+                              </div>
+                              <div className="w-full bg-gray-700 rounded-full h-4 overflow-hidden">
+                                <div
+                                  className="h-full bg-gradient-to-r from-orange-500 to-orange-400 transition-all duration-500"
+                                  style={{ width: `${Math.min(occupancySummary.average_occupancy_pct || 0, 100)}%` }}
+                                />
+                              </div>
+                            </>
+                          )}
+                          <div className="grid grid-cols-3 gap-4 mt-4">
+                            {occupancySummary.total_nights_booked !== undefined && (
+                              <div className="text-center">
+                                <p className="text-gray-400 text-xs">Nights Booked</p>
+                                <p className="text-blue-400 font-bold text-lg">{occupancySummary.total_nights_booked}</p>
+                              </div>
+                            )}
+                            {occupancySummary.days_in_month !== undefined && (
+                              <div className="text-center">
+                                <p className="text-gray-400 text-xs">Days in Month</p>
+                                <p className="text-gray-400 font-bold text-lg">{occupancySummary.days_in_month}</p>
+                              </div>
+                            )}
+                            {occupancySummary.gap_nights !== undefined && (
+                              <div className="text-center">
+                                <p className="text-gray-400 text-xs">Gap Nights</p>
+                                <p className="text-red-400 font-bold text-lg">{occupancySummary.gap_nights}</p>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Canales table */}
+                    {channels && channels.length > 0 && (
+                      <div className="bg-[#1f2937] p-5 rounded-lg border border-pink-500/30">
+                        <h4 className="text-lg font-bold text-pink-400 mb-4 flex items-center gap-2">
+                          <MessageSquare className="w-5 h-5" />
+                          Canales
+                        </h4>
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-left text-sm">
+                            <thead>
+                              <tr className="border-b border-gray-700">
+                                <th className="pb-2 text-gray-400">Canal</th>
+                                <th className="pb-2 text-gray-400 text-right">Bookings</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-700">
+                              {channels.map((channel, idx) => (
+                                <tr key={idx} className="text-gray-300">
+                                  <td className="py-2 capitalize font-semibold text-white">{channel.channel || channel.name || '—'}</td>
+                                  <td className="py-2 font-bold text-pink-400 text-right">{channel.bookings || channel.count || 0}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Owner decisions este mes (with Fecha column) */}
+                    {decisionsList && decisionsList.length > 0 && (
+                      <div className="bg-[#1f2937] p-5 rounded-lg border border-red-500/30">
+                        <h4 className="text-lg font-bold text-red-400 mb-4 flex items-center gap-2">
+                          <AlertCircle className="w-5 h-5" />
+                          Owner decisions este mes ({decisionsList.length})
+                        </h4>
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-left text-sm">
+                            <thead>
+                              <tr className="border-b border-gray-700">
+                                <th className="pb-2 text-gray-400">Fecha</th>
+                                <th className="pb-2 text-gray-400">Prioridad</th>
+                                <th className="pb-2 text-gray-400">Tipo</th>
+                                <th className="pb-2 text-gray-400">Villa</th>
+                                <th className="pb-2 text-gray-400">Decisión · Guest</th>
+                                <th className="pb-2 text-gray-400">Status</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-700">
+                              {decisionsList.map((decision, idx) => {
+                                const createdAt = decision.created_at ? new Date(decision.created_at) : null;
+                                const fechaFormatted = createdAt ? `${createdAt.getDate()} ${createdAt.toLocaleString('en', { month: 'short' })}` : '—';
+                                return (
+                                  <tr key={idx} className="text-gray-300">
+                                    <td className="py-2 text-xs">{fechaFormatted}</td>
+                                    <td className="py-2">
+                                      <span className={`px-2 py-1 rounded text-xs font-bold ${
+                                        decision.priority === 'urgent' ? 'bg-[#FEE2E2] text-[#991B1B]' :
+                                        decision.priority === 'high' ? 'bg-[#FEF3C7] text-[#92400E]' :
+                                        decision.priority === 'medium' ? 'bg-[#DBEAFE] text-[#1E40AF]' :
+                                        'bg-[#F3F4F6] text-[#6B7280]'
+                                      }`}>
+                                        {decision.priority?.toUpperCase()}
+                                      </span>
+                                    </td>
+                                    <td className="py-2 capitalize">{decision.type || decision.decision_type || '—'}</td>
+                                    <td className="py-2">{decision.villa_name || decision.villa || '—'}</td>
+                                    <td className="py-2">
+                                      <p className="font-semibold text-white">{decision.title || decision.description || '—'}</p>
+                                      {decision.guest_name && <p className="text-xs text-gray-400">Guest: {decision.guest_name}</p>}
+                                    </td>
+                                    <td className="py-2">
+                                      <span className={`px-2 py-1 rounded text-xs font-semibold ${
+                                        decision.status === 'approved' ? 'bg-[#D1FAE5] text-[#065F46]' :
+                                        decision.status === 'rejected' ? 'bg-[#FEE2E2] text-[#991B1B]' :
+                                        'bg-[#FEF3C7] text-[#92400E]'
+                                      }`}>
+                                        {decision.status || 'pending'}
+                                      </span>
+                                    </td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Recomendaciones estratégicas */}
+                    {strategicRecs && strategicRecs.length > 0 && (
+                      <div className="bg-[#1f2937] p-5 rounded-lg border border-purple-500/30">
+                        <h4 className="text-lg font-bold text-purple-400 mb-4 flex items-center gap-2">
+                          <MessageSquare className="w-5 h-5" />
+                          Recomendaciones estratégicas
+                        </h4>
+                        <div className="space-y-3">
+                          {strategicRecs.map((rec, idx) => (
+                            <div key={idx} className="bg-[#2a2f3a] p-4 rounded-lg border-l-4 border-purple-500">
+                              <div className="flex items-start justify-between mb-2">
+                                <p className="text-white font-semibold capitalize">{rec.category || rec.area || 'General'}</p>
+                                <span className={`px-2 py-1 rounded text-xs font-bold ${
+                                  rec.priority === 'high' ? 'bg-red-500/20 text-red-400' :
+                                  rec.priority === 'medium' ? 'bg-yellow-500/20 text-yellow-400' :
+                                  'bg-green-500/20 text-green-400'
+                                }`}>
+                                  {rec.priority?.toUpperCase() || 'MEDIUM'}
+                                </span>
+                              </div>
+                              <p className="text-gray-300 text-sm">{rec.recommendation || rec.action || '—'}</p>
+                              {rec.impact && <p className="text-gray-400 text-xs mt-2">Impact: {rec.impact}</p>}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })
+            )
           ) : (
-            ownerDecisions.map((decision) => {
+            /* DEFAULT VIEW - DECISIONS LIST */
+            loadingDecisions ? (
+              <div className="text-center py-8 bg-[#2a2f3a] rounded-lg border-2 border-gray-700">
+                <div className="w-12 h-12 border-4 border-orange-500/30 border-t-orange-500 rounded-full animate-spin mx-auto mb-3" />
+                <p className="text-gray-300 text-lg">Loading decisions...</p>
+              </div>
+            ) : filteredDecisions.length === 0 ? (
+              <div className="text-center py-8 bg-[#2a2f3a] rounded-lg border-2 border-gray-700">
+                <CheckCircle className="w-12 h-12 text-green-500 mx-auto mb-3" />
+                <p className="text-gray-300 text-lg">No decisions found</p>
+                <p className="text-gray-500 text-sm mt-1">Try adjusting your filters</p>
+              </div>
+            ) : (
+              filteredDecisions.map((decision) => {
               // Priority badge colors from debug_claudecode.pdf section 7
               const priorityColors = {
                 urgent: 'bg-red-500/20 text-red-300 border-red-500',
@@ -6240,9 +8552,20 @@ const Autopilot = ({ onBack }) => {
                         <span className="px-3 py-1 rounded-full text-xs font-semibold bg-blue-500/20 text-blue-300 border-2 border-blue-500">
                           {agentBadge}
                         </span>
-                        <span className="px-3 py-1 rounded-full text-xs font-medium bg-purple-500/20 text-purple-300">
-                          {decision.decision_category === 'approval' ? 'Needs Approval' : 'Recommendation'}
-                        </span>
+                        {/* Status badge - conditional based on decision.status */}
+                        {decision.status === 'approved' ? (
+                          <span className="px-3 py-1 rounded-full text-xs font-medium bg-green-500/20 text-green-300 border border-green-500">
+                            ✅ Approved by {decision.approved_by || 'system'}
+                          </span>
+                        ) : decision.status === 'rejected' ? (
+                          <span className="px-3 py-1 rounded-full text-xs font-medium bg-red-500/20 text-red-300 border border-red-500">
+                            ❌ Rejected
+                          </span>
+                        ) : (
+                          <span className="px-3 py-1 rounded-full text-xs font-medium bg-purple-500/20 text-purple-300">
+                            {decision.decision_category === 'approval' ? 'Needs Approval' : 'Recommendation'}
+                          </span>
+                        )}
                       </div>
                       <h4 className="text-white font-bold text-xl mb-2">
                         {typeInfo.emoji} {decision.title}
@@ -6254,41 +8577,85 @@ const Autopilot = ({ onBack }) => {
                           <p className="text-gray-500 text-sm">📱 {decision.guest_phone}</p>
                         )}
                       </div>
+                      {decision.villa_name && (
+                        <p className="text-blue-400 font-medium text-sm mb-2">
+                          🏠 {decision.villa_name}
+                        </p>
+                      )}
                       {decision.financial_impact_estimate && decision.financial_impact_estimate !== 0 && (
                         <p className={`font-bold text-lg mb-2 ${decision.financial_impact_estimate > 0 ? 'text-green-400' : 'text-red-400'}`}>
                           💰 {decision.financial_impact_estimate > 0 ? '+' : ''}${Math.abs(decision.financial_impact_estimate).toLocaleString()}
                         </p>
                       )}
-                      <p className="text-gray-500 text-xs">
-                        ⏰ {new Date(decision.created_at).toLocaleString()}
-                      </p>
+                      <div className="flex items-center gap-4 text-gray-500 text-xs">
+                        <span>⏰ Created: {new Date(decision.created_at).toLocaleString()}</span>
+                        {decision.scheduled_date && (
+                          <span>📅 Scheduled: {new Date(decision.scheduled_date).toLocaleDateString()}</span>
+                        )}
+                      </div>
                     </div>
                   </div>
+                  {/* Action buttons - only show Approve/Reject when status is 'pending' */}
                   <div className="flex gap-3 pt-4 border-t-2 border-gray-700">
+                    {decision.status === 'pending' && (
+                      <>
+                        <button
+                          onClick={() => handleApproveDecision(decision)}
+                          className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-green-500 hover:bg-green-600 text-white rounded-lg font-bold transition-all shadow-lg hover:shadow-xl transform hover:scale-105"
+                        >
+                          <ThumbsUp className="w-5 h-5" />
+                          Approve
+                        </button>
+                        <button
+                          onClick={() => handleRejectDecision(decision)}
+                          className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-red-500 hover:bg-red-600 text-white rounded-lg font-bold transition-all shadow-lg hover:shadow-xl transform hover:scale-105"
+                        >
+                          <ThumbsDown className="w-5 h-5" />
+                          Reject
+                        </button>
+                      </>
+                    )}
                     <button
-                      onClick={() => handleApproveDecision(decision)}
-                      className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-green-500 hover:bg-green-600 text-white rounded-lg font-bold transition-all shadow-lg hover:shadow-xl transform hover:scale-105"
+                      onClick={() => {
+                        setEditingDecision(decision);
+                        setDecisionFormData({
+                          title: decision.title || '',
+                          summary: decision.summary || '',
+                          description: decision.description || '',
+                          decision_type: decision.decision_type || 'late_checkout',
+                          priority: decision.priority || 'medium',
+                          status: decision.status || 'pending',
+                          property_id: decision.property_id || '',
+                          villa_id: decision.villa_id || decision.property_id || '',
+                          villa_name: decision.villa_name || '',
+                          scheduled_date: decision.scheduled_date || '',
+                          guest_name: decision.guest_name || '',
+                          guest_phone: decision.guest_phone || '',
+                          financial_impact_estimate: decision.financial_impact_estimate || 0,
+                          decision_category: decision.decision_category || 'approval',
+                          generated_by_agent: decision.generated_by_agent || 'system'
+                        });
+                        setShowDecisionForm(true);
+                      }}
+                      className="px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-all"
+                      title="Edit"
                     >
-                      <ThumbsUp className="w-5 h-5" />
-                      Approve
+                      <Settings className="w-5 h-5" />
                     </button>
                     <button
-                      onClick={() => handleRejectDecision(decision)}
-                      className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-red-500 hover:bg-red-600 text-white rounded-lg font-bold transition-all shadow-lg hover:shadow-xl transform hover:scale-105"
+                      onClick={() => {
+                        setDecisionToDelete(decision);
+                        setShowDeleteConfirmDecision(true);
+                      }}
+                      className="px-4 py-3 bg-red-700 hover:bg-red-800 text-white rounded-lg font-medium transition-all"
+                      title="Delete"
                     >
-                      <ThumbsDown className="w-5 h-5" />
-                      Reject
-                    </button>
-                    <button
-                      onClick={() => setSelectedDecision(decision)}
-                      className="px-4 py-3 bg-gray-600 hover:bg-gray-700 text-white rounded-lg font-medium transition-all"
-                    >
-                      <Eye className="w-5 h-5" />
+                      <Trash2 className="w-5 h-5" />
                     </button>
                   </div>
                 </div>
               );
-            })
+            }))
           )}
         </div>
       </div>
@@ -6402,8 +8769,394 @@ const Autopilot = ({ onBack }) => {
           </div>
         </div>
       )}
+
+      {/* DELETE CONFIRMATION MODAL */}
+      {showDeleteConfirmDecision && decisionToDelete && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-[#1f2937] rounded-2xl p-6 max-w-md w-full mx-4 border-2 border-red-500/30">
+            <h3 className="text-2xl font-bold text-white mb-4 flex items-center gap-2">
+              <Trash2 className="w-6 h-6 text-red-400" />
+              Delete Decision
+            </h3>
+            <div className="bg-[#2a2f3a] rounded-lg p-4 mb-4">
+              <p className="text-white font-semibold mb-2">{decisionToDelete.title}</p>
+              <p className="text-gray-400 text-sm">Are you sure you want to delete this decision? This action cannot be undone.</p>
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={handleDeleteDecision}
+                className="flex-1 px-4 py-3 bg-red-500 hover:bg-red-600 text-white rounded-lg font-bold transition-all"
+              >
+                Delete
+              </button>
+              <button
+                onClick={() => {
+                  setShowDeleteConfirmDecision(false);
+                  setDecisionToDelete(null);
+                }}
+                className="flex-1 px-4 py-3 bg-gray-600 hover:bg-gray-700 text-white rounded-lg font-medium transition-all"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* CREATE/EDIT DECISION FORM MODAL */}
+      {showDecisionForm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-2 md:p-4">
+          <div className="bg-[#1f2937] rounded-2xl w-[98%] sm:w-[90%] md:w-full max-w-2xl max-h-[92vh] md:max-h-[90vh] overflow-y-auto border-2 border-[#d85a2a]/30" style={{ marginLeft: '40px' }}>
+            {/* Header */}
+            <div className="flex items-center justify-between p-4 md:p-6 border-b border-gray-700">
+              <h3 className="text-xl md:text-2xl font-bold text-[#FF8C42] flex items-center gap-2">
+                <Settings className="w-6 h-6 text-[#FF8C42]" />
+                {editingDecision ? 'Edit Decision' : 'New Decision'}
+              </h3>
+              <button
+                onClick={() => {
+                  setShowDecisionForm(false);
+                  setEditingDecision(null);
+                }}
+                className="p-2 hover:bg-gray-700 rounded-lg transition-colors"
+              >
+                <X className="w-6 h-6 text-gray-400" />
+              </button>
+            </div>
+
+            {/* Form Content */}
+            <div className="p-4 md:p-6 space-y-4">
+              {/* Title */}
+              <div>
+                <label className="text-gray-300 text-sm font-medium block mb-2">Title *</label>
+                <input
+                  type="text"
+                  placeholder="e.g., Late Checkout Request - Guest Name"
+                  className="w-full px-4 py-2 bg-[#2a2f3a] text-white rounded-lg border border-gray-600 focus:border-orange-500 outline-none"
+                  value={decisionFormData.title}
+                  onChange={(e) => setDecisionFormData({...decisionFormData, title: e.target.value})}
+                />
+              </div>
+
+              {/* Summary */}
+              <div>
+                <label className="text-gray-300 text-sm font-medium block mb-2">Summary *</label>
+                <textarea
+                  placeholder="Brief summary of the decision..."
+                  className="w-full px-4 py-2 bg-[#2a2f3a] text-white rounded-lg border border-gray-600 focus:border-orange-500 outline-none resize-none"
+                  rows="2"
+                  value={decisionFormData.summary}
+                  onChange={(e) => setDecisionFormData({...decisionFormData, summary: e.target.value})}
+                />
+              </div>
+
+              {/* Description */}
+              <div>
+                <label className="text-gray-300 text-sm font-medium block mb-2">Description</label>
+                <textarea
+                  placeholder="Detailed description..."
+                  className="w-full px-4 py-2 bg-[#2a2f3a] text-white rounded-lg border border-gray-600 focus:border-orange-500 outline-none resize-none"
+                  rows="4"
+                  value={decisionFormData.description}
+                  onChange={(e) => setDecisionFormData({...decisionFormData, description: e.target.value})}
+                />
+              </div>
+
+              {/* Property Selection */}
+              <div>
+                <label className="text-gray-300 text-sm font-medium block mb-2">Property *</label>
+                <select
+                  className="w-full px-4 py-2 bg-[#2a2f3a] text-white rounded-lg border border-gray-600 focus:border-orange-500 outline-none"
+                  value={decisionFormData.property_id}
+                  onChange={(e) => {
+                    const selectedVilla = villas.find(v => v.id === e.target.value);
+                    setDecisionFormData({
+                      ...decisionFormData,
+                      property_id: e.target.value,
+                      villa_id: e.target.value,
+                      villa_name: selectedVilla?.name || ''
+                    });
+                  }}
+                >
+                  <option value="">-- Select Property --</option>
+                  {villas.map(villa => (
+                    <option key={villa.id} value={villa.id}>
+                      {villa.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Scheduled Date */}
+              <div>
+                <label className="text-gray-300 text-sm font-medium block mb-2">Scheduled Date</label>
+                <input
+                  type="date"
+                  className="w-full px-4 py-2 bg-[#2a2f3a] text-white rounded-lg border border-gray-600 focus:border-orange-500 outline-none"
+                  value={decisionFormData.scheduled_date}
+                  onChange={(e) => setDecisionFormData({...decisionFormData, scheduled_date: e.target.value})}
+                />
+              </div>
+
+              {/* Row 1: Type, Priority, Status */}
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <label className="text-gray-300 text-sm font-medium block mb-2">Type *</label>
+                  <select
+                    className="w-full px-4 py-2 bg-[#2a2f3a] text-white rounded-lg border border-gray-600 focus:border-orange-500 outline-none"
+                    value={decisionFormData.decision_type}
+                    onChange={(e) => setDecisionFormData({...decisionFormData, decision_type: e.target.value})}
+                  >
+                    <option value="late_checkout">Late Checkout</option>
+                    <option value="early_checkin">Early Check-in</option>
+                    <option value="refund_request">Refund Request</option>
+                    <option value="pricing_exception">Pricing Exception</option>
+                    <option value="cancellation">Cancellation</option>
+                    <option value="complaint">Complaint</option>
+                    <option value="special_request">Special Request</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-gray-300 text-sm font-medium block mb-2">Priority *</label>
+                  <select
+                    className="w-full px-4 py-2 bg-[#2a2f3a] text-white rounded-lg border border-gray-600 focus:border-orange-500 outline-none"
+                    value={decisionFormData.priority}
+                    onChange={(e) => setDecisionFormData({...decisionFormData, priority: e.target.value})}
+                  >
+                    <option value="low">Low</option>
+                    <option value="medium">Medium</option>
+                    <option value="high">High</option>
+                    <option value="urgent">Urgent</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-gray-300 text-sm font-medium block mb-2">Status *</label>
+                  <select
+                    className="w-full px-4 py-2 bg-[#2a2f3a] text-white rounded-lg border border-gray-600 focus:border-orange-500 outline-none"
+                    value={decisionFormData.status}
+                    onChange={(e) => setDecisionFormData({...decisionFormData, status: e.target.value})}
+                  >
+                    <option value="pending">Pending</option>
+                    <option value="approved">Approved</option>
+                    <option value="rejected">Rejected</option>
+                    <option value="modified">Modified</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Row 2: Guest Info */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-gray-300 text-sm font-medium block mb-2">Guest Name</label>
+                  <input
+                    type="text"
+                    placeholder="Guest name"
+                    className="w-full px-4 py-2 bg-[#2a2f3a] text-white rounded-lg border border-gray-600 focus:border-orange-500 outline-none"
+                    value={decisionFormData.guest_name}
+                    onChange={(e) => setDecisionFormData({...decisionFormData, guest_name: e.target.value})}
+                  />
+                </div>
+                <div>
+                  <label className="text-gray-300 text-sm font-medium block mb-2">Guest Phone</label>
+                  <input
+                    type="text"
+                    placeholder="+62..."
+                    className="w-full px-4 py-2 bg-[#2a2f3a] text-white rounded-lg border border-gray-600 focus:border-orange-500 outline-none"
+                    value={decisionFormData.guest_phone}
+                    onChange={(e) => setDecisionFormData({...decisionFormData, guest_phone: e.target.value})}
+                  />
+                </div>
+              </div>
+
+              {/* Financial Impact */}
+              <div>
+                <label className="text-gray-300 text-sm font-medium block mb-2">Financial Impact (USD)</label>
+                <input
+                  type="number"
+                  placeholder="0.00 (negative for cost, positive for revenue)"
+                  className="w-full px-4 py-2 bg-[#2a2f3a] text-white rounded-lg border border-gray-600 focus:border-orange-500 outline-none"
+                  value={decisionFormData.financial_impact_estimate}
+                  onChange={(e) => setDecisionFormData({...decisionFormData, financial_impact_estimate: e.target.value})}
+                />
+              </div>
+            </div>
+
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={handleSaveDecision}
+                disabled={isSavingDecision}
+                className="flex-1 px-4 py-3 bg-orange-500 hover:bg-orange-600 text-white rounded-lg font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isSavingDecision ? 'Saving...' : (editingDecision ? 'Update Decision' : 'Create Decision')}
+              </button>
+              <button
+                onClick={() => {
+                  setShowDecisionForm(false);
+                  setEditingDecision(null);
+                }}
+                disabled={isSavingDecision}
+                className="flex-1 px-4 py-3 bg-gray-600 hover:bg-gray-700 text-white rounded-lg font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
-  );
+    );
+  };
+
+  // ========================================
+  // HELPER FUNCTIONS - Villa Filtering
+  // ========================================
+
+  /**
+   * Recalculate KPIs for filtered data
+   * @param {Array} items - Array of bookings or guests
+   * @param {number} villaCount - Number of villas (1 when filtered)
+   * @param {boolean} isGuests - true if items are in_house_guests (Daily), false if bookings (Weekly/Monthly)
+   */
+  const recalcKPIs = (items, villaCount, isGuests = false) => {
+    // For Daily (guests): all guests are already confirmed (in-house)
+    // For Weekly/Monthly (bookings): filter by status === 'confirmed'
+    const confirmed = isGuests ? items : items.filter(b => b.status === 'confirmed');
+
+    const revenue = confirmed.reduce((s, item) => s + (item.revenue || item.total_price || 0), 0);
+    const occupied = confirmed.length > 0 ? 1 : 0;
+    const occupancy_rate = (occupied / villaCount * 100).toFixed(1);
+    const gap_nights = villaCount - occupied;
+
+    return {
+      occupancy_rate: parseFloat(occupancy_rate),
+      total_bookings: items.length,
+      revenue_active: revenue,  // Daily
+      revenue_total: revenue,   // Weekly/Monthly
+      gap_nights: gap_nights
+    };
+  };
+
+  /**
+   * Filter report data by villa
+   * @param {Object} data - Report data (Daily/Weekly/Monthly)
+   * @param {string} villaFilter - Villa ID (Daily) or Villa name (Weekly/Monthly)
+   * @param {string} reportType - 'daily', 'weekly', or 'monthly'
+   */
+  const filterByVilla = (data, villaFilter, reportType) => {
+    // No filtering if "All" is selected
+    if (!villaFilter || villaFilter === 'All') return data;
+
+    if (reportType === 'daily') {
+      // Daily: filter by villa name
+      const filteredGuests = (data.in_house_guests || []).filter(g => g.villa === villaFilter);
+
+      // Filter pending_decisions by villa_name
+      const filteredDecisions = (data.pending_decisions || []).filter(d => d.villa_name === villaFilter);
+
+      // Filter guest_requests by villa_name or villa
+      const filteredRequests = (data.guest_requests || []).filter(r =>
+        r.villa_name === villaFilter || r.villa === villaFilter
+      );
+
+      // Filter revenue_by_villa object (keep only selected villa)
+      const filteredRevenue = data.revenue_by_villa && typeof data.revenue_by_villa === 'object'
+        ? { [villaFilter]: data.revenue_by_villa[villaFilter] || 0 }
+        : {};
+
+      // Filter channels: When filtering by villa, channels data is not available per guest
+      // Channels represent bookings across the property, not current in-house guests
+      // So when filtering, we show empty channels
+      const filteredChannels = {};
+
+      return {
+        ...data,
+        in_house_guests: filteredGuests,
+        pending_decisions: filteredDecisions,
+        guest_requests: filteredRequests,
+        revenue_by_villa: filteredRevenue,
+        channels: filteredChannels,
+        kpis: recalcKPIs(filteredGuests, 1, true)  // isGuests = true for Daily
+      };
+    }
+
+    if (reportType === 'weekly' || reportType === 'monthly') {
+      // Weekly/Monthly: filter by villa name
+      const filteredBookings = (data.bookings_list || []).filter(b =>
+        b.villa === villaFilter || b.villa_name === villaFilter
+      );
+
+      // Filter revenue_by_villa object (keep only selected villa)
+      const filteredRevenue = data.revenue_by_villa && typeof data.revenue_by_villa === 'object'
+        ? { [villaFilter]: data.revenue_by_villa[villaFilter] || 0 }
+        : {};
+
+      // Filter decisions_list by villa_name
+      const filteredDecisions = (data.decisions_list || []).filter(d =>
+        d.villa_name === villaFilter || d.villa === villaFilter
+      );
+
+      // Filter auto_resolved_summary.items by villa_name
+      const autoResolvedObj = data.auto_resolved_summary || {};
+      const filteredAutoResolved = (autoResolvedObj.items || []).filter(item =>
+        item.villa_name === villaFilter || item.villa === villaFilter
+      );
+
+      // Filter pending_approval.items by villa_name (pending_approval is an object {count, items})
+      const pendingApprovalObj = data.pending_approval || {};
+      const filteredPending = (pendingApprovalObj.items || []).filter(item =>
+        item.villa_name === villaFilter || item.villa === villaFilter
+      );
+
+      // Filter guest_requests by villa_name or villa
+      const filteredRequests = (data.guest_requests || []).filter(r =>
+        r.villa_name === villaFilter || r.villa === villaFilter
+      );
+
+      // Calculate new KPIs for filtered data
+      const newKPIs = recalcKPIs(filteredBookings, 1, false);  // isGuests = false for Weekly/Monthly
+
+      // Exclude marketing_summary since it contains totals for ALL villas
+      const { marketing_summary, ...dataWithoutMarketing } = data;
+
+      return {
+        ...dataWithoutMarketing,
+        bookings_list: filteredBookings,
+        revenue_by_villa: filteredRevenue,
+        decisions_list: filteredDecisions,
+        auto_resolved_summary: {
+          ...autoResolvedObj,
+          items: filteredAutoResolved,
+          count: filteredAutoResolved.length
+        },
+        pending_approval: {
+          count: filteredPending.length,
+          items: filteredPending
+        },
+        guest_requests: filteredRequests,
+        // Spread KPIs at top level for Weekly/Monthly compatibility
+        occupancy_rate: newKPIs.occupancy_rate,
+        total_bookings: newKPIs.total_bookings,
+        revenue_total: newKPIs.revenue_total,
+        revenue_total_idr: newKPIs.revenue_total,
+        gap_nights: newKPIs.gap_nights,
+        gap_label: newKPIs.gap_nights === 0 ? 'Full occupancy' :
+                   newKPIs.gap_nights <= 5 ? 'Good occupancy' : 'Low occupancy',
+        occupancy_label: newKPIs.occupancy_rate >= 70 ? 'High' :
+                        newKPIs.occupancy_rate >= 40 ? 'Medium' : 'Low'
+      };
+    }
+
+    return data;
+  };
+
+  // ========================================
+  // APPLY VILLA FILTERING (Before Render)
+  // ========================================
+
+  // Apply filtering to Daily Report data
+  const filteredDaily = dailySummaryAPI
+    ? filterByVilla(dailySummaryAPI, filterDecisionProperty, 'daily')
+    : null;
 
   // Main render
   return (
