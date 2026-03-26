@@ -1,0 +1,24 @@
+# Large documentation folders
+Claude AI and Code Update*/
+Cluade AI and Code Update*/
+MYHOST Bizmate_Documentos_Estrategicos 2025_2026/
+NISMARA UMA PLAN MYHOST BIZMATE/
+Trabajo Pendiente/
+GITA_USER_GUIDE/
+
+# Database scripts
+*.cjs
+*.sql
+database/
+
+# Lambda packages
+lambda-ltx2-package/
+lambda-ltx2.zip
+lambda-render-package/
+lambda-render.zip
+kora-voice-new/
+
+# Backup files
+*.backup*
+*.old
+uploads/
