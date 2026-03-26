@@ -132,7 +132,7 @@ const MonthlyReport = ({
           return (
             <div className={`bg-[#1f2937] p-4 rounded-lg border ${borderClass} text-center`}>
               <p className="text-gray-400 text-sm mb-1">Occupancy rate</p>
-              <p className={`text-3xl font-bold ${colorClass}`}>
+              <p className={`text-xl md:text-3xl font-bold ${colorClass}`}>
                 {occupancyNum.toFixed(1)}%
               </p>
               <p className="text-xs text-gray-500 mt-1">
@@ -145,7 +145,7 @@ const MonthlyReport = ({
         {/* KPI 2: Total bookings - CAMBIO 4: Read from booking_trends_json */}
         <div className="bg-[#1f2937] p-4 rounded-lg border border-blue-500/30 text-center">
           <p className="text-gray-400 text-sm mb-1">Total bookings</p>
-          <p className="text-3xl font-bold text-blue-400">
+          <p className="text-xl md:text-3xl font-bold text-blue-400">
             {bookingTrends.total_bookings || 0}
           </p>
           <p className="text-xs text-gray-500 mt-1">este mes</p>
@@ -154,7 +154,7 @@ const MonthlyReport = ({
         {/* KPI 3: Revenue confirmado */}
         <div className="bg-[#1f2937] p-4 rounded-lg border border-purple-500/30 text-center">
           <p className="text-gray-400 text-sm mb-1">Revenue confirmado</p>
-          <p className="text-xl font-bold text-purple-400 whitespace-nowrap">
+          <p className="text-sm md:text-xl font-bold text-purple-400 whitespace-nowrap">
             {formatIDR(summary.revenue_total_idr || summary.revenue_total || 0)}
           </p>
           <p className="text-xs text-gray-500 mt-1">total mensual</p>
@@ -189,16 +189,16 @@ const MonthlyReport = ({
         </h4>
         {bookingsList && bookingsList.length > 0 ? (
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
+            <table className="w-full min-w-[800px] text-left text-xs md:text-sm">
               <thead>
                 <tr className="border-b border-gray-700">
-                  <th className="pb-2 pr-4 text-gray-400">Guest</th>
-                  <th className="pb-2 pr-4 text-gray-400">Villa</th>
-                  <th className="pb-2 pr-3 text-gray-400 whitespace-nowrap">Check-in</th>
-                  <th className="pb-2 pr-3 text-gray-400 whitespace-nowrap">Check-out</th>
-                  <th className="pb-2 pr-3 text-gray-400 text-center">Noches</th>
-                  <th className="pb-2 pr-3 text-gray-400 whitespace-nowrap">Revenue IDR</th>
-                  <th className="pb-2 pr-3 text-gray-400">Canal</th>
+                  <th className="pb-2 pr-2 md:pr-4 text-gray-400">Guest</th>
+                  <th className="pb-2 pr-2 md:pr-4 text-gray-400">Villa</th>
+                  <th className="pb-2 pr-2 md:pr-3 text-gray-400 whitespace-nowrap">Check-in</th>
+                  <th className="pb-2 pr-2 md:pr-3 text-gray-400 whitespace-nowrap">Check-out</th>
+                  <th className="pb-2 pr-2 md:pr-3 text-gray-400 text-center">Noches</th>
+                  <th className="pb-2 pr-2 md:pr-3 text-gray-400 whitespace-nowrap">Revenue IDR</th>
+                  <th className="pb-2 pr-2 md:pr-3 text-gray-400">Canal</th>
                   <th className="pb-2 text-gray-400">Status</th>
                 </tr>
               </thead>
@@ -214,14 +214,14 @@ const MonthlyReport = ({
                                      'bg-[#FEF3C7] text-[#92400E]';
                   return (
                     <tr key={idx} className="text-gray-300">
-                      <td className="py-2 pr-4 font-semibold text-white whitespace-nowrap">{booking.guest_name || booking.guest || '—'}</td>
-                      <td className="py-2 pr-4">{booking.villa_name || booking.villa || '—'}</td>
-                      <td className="py-2 pr-3 whitespace-nowrap">{checkInFormatted}</td>
-                      <td className="py-2 pr-3 whitespace-nowrap">{checkOutFormatted}</td>
-                      <td className="py-2 pr-3 text-center whitespace-nowrap">{booking.nights || booking.total_nights || '—'}</td>
-                      <td className="py-2 pr-3 font-semibold text-purple-400 whitespace-nowrap">{formatIDR(booking.revenue || 0)}</td>
-                      <td className="py-2 pr-3 capitalize whitespace-nowrap">{booking.channel || booking.source || '—'}</td>
-                      <td className="py-2 whitespace-nowrap">
+                      <td className="py-1 pr-2 md:py-2 md:pr-4 font-semibold text-white whitespace-nowrap">{booking.guest_name || booking.guest || '—'}</td>
+                      <td className="py-1 pr-2 md:py-2 md:pr-4">{booking.villa_name || booking.villa || '—'}</td>
+                      <td className="py-1 pr-2 md:py-2 md:pr-3 whitespace-nowrap">{checkInFormatted}</td>
+                      <td className="py-1 pr-2 md:py-2 md:pr-3 whitespace-nowrap">{checkOutFormatted}</td>
+                      <td className="py-1 pr-2 md:py-2 md:pr-3 text-center whitespace-nowrap">{booking.nights || booking.total_nights || '—'}</td>
+                      <td className="py-1 pr-2 md:py-2 md:pr-3 font-semibold text-purple-400 whitespace-nowrap">{formatIDR(booking.revenue || 0)}</td>
+                      <td className="py-1 pr-2 md:py-2 md:pr-3 capitalize whitespace-nowrap">{booking.channel || booking.source || '—'}</td>
+                      <td className="py-1 md:py-2 whitespace-nowrap">
                         <span className={`px-2 py-1 rounded text-xs font-semibold ${statusBadge}`}>
                           {status}
                         </span>
@@ -245,7 +245,7 @@ const MonthlyReport = ({
         </h4>
         {revenueByVilla && revenueByVilla.length > 0 ? (
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
+            <table className="w-full min-w-[300px] text-left text-xs md:text-sm">
               <thead>
                 <tr className="border-b border-gray-700">
                   <th className="pb-2 text-gray-400">Villa</th>
@@ -255,13 +255,13 @@ const MonthlyReport = ({
               <tbody className="divide-y divide-gray-700">
                 {revenueByVilla.map((villa, idx) => (
                   <tr key={idx} className="text-gray-300">
-                    <td className="py-2 font-semibold text-white">{villa.villa_name || villa.villa || '—'}</td>
-                    <td className="py-2 font-bold text-purple-400 text-right">{formatIDR(villa.revenue || 0)}</td>
+                    <td className="py-1 md:py-2 font-semibold text-white">{villa.villa_name || villa.villa || '—'}</td>
+                    <td className="py-1 md:py-2 font-bold text-purple-400 text-right whitespace-nowrap">{formatIDR(villa.revenue || 0)}</td>
                   </tr>
                 ))}
                 <tr className="border-t-2 border-purple-500/50">
-                  <td className="py-2 font-bold text-white">TOTAL</td>
-                  <td className="py-2 font-bold text-purple-400 text-right">
+                  <td className="py-1 md:py-2 font-bold text-white">TOTAL</td>
+                  <td className="py-1 md:py-2 font-bold text-purple-400 text-right whitespace-nowrap">
                     {formatIDR(revenueByVilla.reduce((sum, v) => sum + (v.revenue || 0), 0))}
                   </td>
                 </tr>
@@ -338,22 +338,22 @@ const MonthlyReport = ({
         </h4>
         {pendingApproval && pendingApproval.length > 0 ? (
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
+            <table className="w-full min-w-[600px] text-left text-xs md:text-sm">
               <thead>
                 <tr className="border-b border-gray-700">
-                  <th className="pb-2 pr-4 text-gray-400">Prior.</th>
-                  <th className="pb-2 pr-4 text-gray-400">Tipo</th>
-                  <th className="pb-2 pr-4 text-gray-400">Villa</th>
+                  <th className="pb-2 pr-2 md:pr-4 text-gray-400">Prior.</th>
+                  <th className="pb-2 pr-2 md:pr-4 text-gray-400">Tipo</th>
+                  <th className="pb-2 pr-2 md:pr-4 text-gray-400">Villa</th>
                   <th className="pb-2 text-gray-400">Request</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-700">
                 {pendingApproval.map((item, idx) => (
                   <tr key={idx} className="text-gray-300">
-                    <td className="py-2 pr-4">{item.priority || '—'}</td>
-                    <td className="py-2 pr-4">{item.type || '—'}</td>
-                    <td className="py-2 pr-4">{item.villa || '—'}</td>
-                    <td className="py-2">{item.request || '—'}</td>
+                    <td className="py-1 pr-2 md:py-2 md:pr-4">{item.priority || '—'}</td>
+                    <td className="py-1 pr-2 md:py-2 md:pr-4">{item.type || '—'}</td>
+                    <td className="py-1 pr-2 md:py-2 md:pr-4">{item.villa || '—'}</td>
+                    <td className="py-1 md:py-2">{item.request || '—'}</td>
                   </tr>
                 ))}
               </tbody>
@@ -372,12 +372,12 @@ const MonthlyReport = ({
         </h4>
         {autoResolved && autoResolved.length > 0 ? (
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
+            <table className="w-full min-w-[600px] text-left text-xs md:text-sm">
               <thead>
                 <tr className="border-b border-gray-700">
-                  <th className="pb-2 pr-3 text-gray-400">Date</th>
-                  <th className="pb-2 pr-3 text-gray-400">Guest</th>
-                  <th className="pb-2 pr-3 text-gray-400">Type</th>
+                  <th className="pb-2 pr-2 md:pr-3 text-gray-400">Date</th>
+                  <th className="pb-2 pr-2 md:pr-3 text-gray-400">Guest</th>
+                  <th className="pb-2 pr-2 md:pr-3 text-gray-400">Type</th>
                   <th className="pb-2 text-gray-400">Resolution</th>
                 </tr>
               </thead>
@@ -391,10 +391,10 @@ const MonthlyReport = ({
 
                   return (
                     <tr key={idx} className="text-gray-300">
-                      <td className="py-2 pr-3 whitespace-nowrap">{fechaFormatted}</td>
-                      <td className="py-2 pr-3">{item.guest_name || item.guest || '—'}</td>
-                      <td className="py-2 pr-3">{item.type || item.decision_type || '—'}</td>
-                      <td className="py-2">{item.description || item.title || item.resolution || '—'}</td>
+                      <td className="py-1 pr-2 md:py-2 md:pr-3 whitespace-nowrap">{fechaFormatted}</td>
+                      <td className="py-1 pr-2 md:py-2 md:pr-3">{item.guest_name || item.guest || '—'}</td>
+                      <td className="py-1 pr-2 md:py-2 md:pr-3">{item.type || item.decision_type || '—'}</td>
+                      <td className="py-1 md:py-2">{item.description || item.title || item.resolution || '—'}</td>
                     </tr>
                   );
                 })}
@@ -424,13 +424,13 @@ const MonthlyReport = ({
 
           return guestRequests.length > 0 ? (
             <div className="overflow-x-auto">
-              <table className="w-full text-left text-sm">
+              <table className="w-full min-w-[700px] text-left text-xs md:text-sm">
                 <thead>
                   <tr className="border-b border-gray-700">
-                    <th className="pb-2 pr-3 text-gray-400">Date</th>
-                    <th className="pb-2 pr-3 text-gray-400">Villa</th>
-                    <th className="pb-2 pr-3 text-gray-400">Guest</th>
-                    <th className="pb-2 pr-3 text-gray-400">Request</th>
+                    <th className="pb-2 pr-2 md:pr-3 text-gray-400">Date</th>
+                    <th className="pb-2 pr-2 md:pr-3 text-gray-400">Villa</th>
+                    <th className="pb-2 pr-2 md:pr-3 text-gray-400">Guest</th>
+                    <th className="pb-2 pr-2 md:pr-3 text-gray-400">Request</th>
                     <th className="pb-2 text-gray-400">Status</th>
                   </tr>
                 </thead>
@@ -447,11 +447,11 @@ const MonthlyReport = ({
 
                     return (
                       <tr key={request.id || idx} className="text-gray-300">
-                        <td className="py-2 pr-3 whitespace-nowrap">{fechaFormatted}</td>
-                        <td className="py-2 pr-3">{request.villa_name || request.villa || '—'}</td>
-                        <td className="py-2 pr-3">{request.guest_name || request.guest || '—'}</td>
-                        <td className="py-2 pr-3">{request.description || request.request || request.title || 'N/A'}</td>
-                        <td className="py-2">
+                        <td className="py-1 pr-2 md:py-2 md:pr-3 whitespace-nowrap">{fechaFormatted}</td>
+                        <td className="py-1 pr-2 md:py-2 md:pr-3">{request.villa_name || request.villa || '—'}</td>
+                        <td className="py-1 pr-2 md:py-2 md:pr-3">{request.guest_name || request.guest || '—'}</td>
+                        <td className="py-1 pr-2 md:py-2 md:pr-3">{request.description || request.request || request.title || 'N/A'}</td>
+                        <td className="py-1 md:py-2">
                           {isApproved && (
                             <div className="flex items-center gap-2">
                               <span className="text-green-400">✅ Approved</span>
@@ -489,14 +489,14 @@ const MonthlyReport = ({
         </h4>
         {decisionsList && decisionsList.length > 0 ? (
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
+            <table className="w-full min-w-[700px] text-left text-xs md:text-sm">
               <thead>
                 <tr className="border-b border-gray-700">
-                  <th className="pb-2 pr-3 text-gray-400">Date</th>
-                  <th className="pb-2 pr-3 text-gray-400">Priority</th>
-                  <th className="pb-2 pr-3 text-gray-400">Type</th>
-                  <th className="pb-2 pr-3 text-gray-400">Guest</th>
-                  <th className="pb-2 pr-3 text-gray-400">Villa</th>
+                  <th className="pb-2 pr-2 md:pr-3 text-gray-400">Date</th>
+                  <th className="pb-2 pr-2 md:pr-3 text-gray-400">Priority</th>
+                  <th className="pb-2 pr-2 md:pr-3 text-gray-400">Type</th>
+                  <th className="pb-2 pr-2 md:pr-3 text-gray-400">Guest</th>
+                  <th className="pb-2 pr-2 md:pr-3 text-gray-400">Villa</th>
                   <th className="pb-2 text-gray-400">Status</th>
                 </tr>
               </thead>
@@ -509,8 +509,8 @@ const MonthlyReport = ({
 
                   return (
                     <tr key={decision.id || idx} className="text-gray-300">
-                      <td className="py-2 pr-3 whitespace-nowrap">{fechaFormatted}</td>
-                      <td className="py-2 pr-3">
+                      <td className="py-1 pr-2 md:py-2 md:pr-3 whitespace-nowrap">{fechaFormatted}</td>
+                      <td className="py-1 pr-2 md:py-2 md:pr-3">
                         <span className={`px-2 py-1 rounded text-xs font-bold ${
                           decision.priority === 'urgent' ? 'bg-[#FEE2E2] text-[#991B1B]' :
                           decision.priority === 'high' ? 'bg-[#FEF3C7] text-[#92400E]' :
@@ -520,10 +520,10 @@ const MonthlyReport = ({
                           {decision.priority}
                         </span>
                       </td>
-                      <td className="py-2 pr-3">{decision.decision_type || decision.type || '—'}</td>
-                      <td className="py-2 pr-3">{decision.guest_name || decision.guest || '—'}</td>
-                      <td className="py-2 pr-3">{decision.villa_name || decision.villa || '—'}</td>
-                      <td className="py-2">
+                      <td className="py-1 pr-2 md:py-2 md:pr-3">{decision.decision_type || decision.type || '—'}</td>
+                      <td className="py-1 pr-2 md:py-2 md:pr-3">{decision.guest_name || decision.guest || '—'}</td>
+                      <td className="py-1 pr-2 md:py-2 md:pr-3">{decision.villa_name || decision.villa || '—'}</td>
+                      <td className="py-1 md:py-2">
                         <span className={`px-2 py-1 rounded text-xs font-bold ${
                           decision.status === 'approved' ? 'bg-[#D1FAE5] text-[#065F46]' :
                           decision.status === 'rejected' ? 'bg-[#FEE2E2] text-[#991B1B]' :
