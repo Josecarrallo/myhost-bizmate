@@ -58,6 +58,13 @@ const MonthlyReport = ({
   const summary = monthlySummary;
   const bookingsList = summary.bookings_list || [];
 
+  // BUG C FIX: Villa ID to name mapping
+  const villaIdToName = {
+    'b1000001': 'Nismara 1BR Villa',
+    'b2000002': 'Graha Uma 1 Bedroom Pool Villa',
+    'b3000003': 'NISMARA 2 BEDROOM POOL VILLA'
+  };
+
   // Convert revenue_by_villa from object to array (same as Weekly)
   const revenueByVillaObj = summary.revenue_by_villa || {};
   const revenueByVilla = Array.isArray(revenueByVillaObj)
@@ -124,7 +131,8 @@ const MonthlyReport = ({
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {/* KPI 1: Occupancy rate - CAMBIO 4: Read from occupancy_summary */}
         {(() => {
-          const occupancyNum = occupancySummary.average_occupancy_pct || 0;
+          // BUG A FIX: Read from occupancy_summary.occupancy_rate (not average_occupancy_pct)
+          const occupancyNum = occupancySummary.occupancy_rate || 0;
           const colorClass = occupancyNum >= 70 ? 'text-green-400' :
                             occupancyNum >= 40 ? 'text-orange-400' : 'text-red-400';
           const borderClass = occupancyNum >= 70 ? 'border-green-500/30' :
@@ -136,17 +144,17 @@ const MonthlyReport = ({
                 {occupancyNum.toFixed(1)}%
               </p>
               <p className="text-xs text-gray-500 mt-1">
-                {summary.occupancy_label || ''}
+                {occupancySummary.total_nights_occupied || 0} of {occupancySummary.total_nights_possible || 0} nights
               </p>
             </div>
           );
         })()}
 
-        {/* KPI 2: Total bookings - CAMBIO 4: Read from booking_trends_json */}
+        {/* KPI 2: Total bookings - BUG B FIX: Use bookingsList.length */}
         <div className="bg-[#1f2937] p-4 rounded-lg border border-blue-500/30 text-center">
           <p className="text-gray-400 text-sm mb-1">Total bookings</p>
           <p className="text-xl md:text-3xl font-bold text-blue-400">
-            {bookingTrends.total_bookings || 0}
+            {bookingsList.length}
           </p>
           <p className="text-xs text-gray-500 mt-1">este mes</p>
         </div>
@@ -208,6 +216,15 @@ const MonthlyReport = ({
                   const checkOut = booking.check_out ? new Date(booking.check_out) : null;
                   const checkInFormatted = checkIn ? `${checkIn.getDate()} ${checkIn.toLocaleString('en', { month: 'short' })}` : '—';
                   const checkOutFormatted = checkOut ? `${checkOut.getDate()} ${checkOut.toLocaleString('en', { month: 'short' })}` : '—';
+
+                  // BUG C FIX: Calculate nights from check_in/check_out
+                  const nights = (checkIn && checkOut) ?
+                    Math.ceil((checkOut - checkIn) / (1000 * 60 * 60 * 24)) :
+                    (booking.nights || booking.total_nights || 0);
+
+                  // BUG C FIX: Map villa_id to villa_name
+                  const villaName = booking.villa_name || booking.villa || villaIdToName[booking.villa_id] || booking.villa_id || '—';
+
                   const status = booking.status || 'confirmed';
                   const statusBadge = status === 'confirmed' ? 'bg-[#D1FAE5] text-[#065F46]' :
                                      status === 'cancelled' ? 'bg-[#FEE2E2] text-[#991B1B]' :
@@ -215,11 +232,11 @@ const MonthlyReport = ({
                   return (
                     <tr key={idx} className="text-gray-300">
                       <td className="py-1 pr-2 md:py-2 md:pr-4 font-semibold text-white whitespace-nowrap">{booking.guest_name || booking.guest || '—'}</td>
-                      <td className="py-1 pr-2 md:py-2 md:pr-4">{booking.villa_name || booking.villa || '—'}</td>
+                      <td className="py-1 pr-2 md:py-2 md:pr-4">{villaName}</td>
                       <td className="py-1 pr-2 md:py-2 md:pr-3 whitespace-nowrap">{checkInFormatted}</td>
                       <td className="py-1 pr-2 md:py-2 md:pr-3 whitespace-nowrap">{checkOutFormatted}</td>
-                      <td className="py-1 pr-2 md:py-2 md:pr-3 text-center whitespace-nowrap">{booking.nights || booking.total_nights || '—'}</td>
-                      <td className="py-1 pr-2 md:py-2 md:pr-3 font-semibold text-purple-400 whitespace-nowrap">{formatIDR(booking.revenue || 0)}</td>
+                      <td className="py-1 pr-2 md:py-2 md:pr-3 text-center whitespace-nowrap">{nights}</td>
+                      <td className="py-1 pr-2 md:py-2 md:pr-3 font-semibold text-purple-400 whitespace-nowrap">{formatIDR(booking.total_price || booking.revenue || 0)}</td>
                       <td className="py-1 pr-2 md:py-2 md:pr-3 capitalize whitespace-nowrap">{booking.channel || booking.source || '—'}</td>
                       <td className="py-1 md:py-2 whitespace-nowrap">
                         <span className={`px-2 py-1 rounded text-xs font-semibold ${statusBadge}`}>
@@ -317,7 +334,7 @@ const MonthlyReport = ({
             </div>
             <div className="flex justify-between items-center">
               <span className="text-gray-300">Occupied nights</span>
-              <span className="text-green-400 font-bold">{occupancySummary.total_nights_booked || 0}</span>
+              <span className="text-green-400 font-bold">{occupancySummary.total_nights_occupied || 0}</span>
             </div>
             <div className="flex justify-between items-center">
               <span className="text-gray-300 font-semibold">Gap nights</span>
@@ -325,7 +342,7 @@ const MonthlyReport = ({
             </div>
             <div className="flex justify-between items-center pt-2 border-t border-gray-700">
               <span className="text-gray-300 font-semibold">Occupancy rate</span>
-              <span className="text-blue-400 font-bold">{(occupancySummary.average_occupancy_pct || 0).toFixed(2)}%</span>
+              <span className="text-blue-400 font-bold">{(occupancySummary.occupancy_rate || 0).toFixed(2)}%</span>
             </div>
           </div>
         </div>
@@ -413,14 +430,8 @@ const MonthlyReport = ({
           Guest Requests
         </h4>
         {(() => {
-          const allGuestRequests = summary.guest_requests || [];
-          // Filter last 30 days
-          const thirtyDaysAgo = new Date();
-          thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-          const guestRequests = allGuestRequests.filter(req => {
-            const reqDate = req.created_at || req.date ? new Date(req.created_at || req.date) : null;
-            return reqDate && reqDate >= thirtyDaysAgo;
-          });
+          // BUG D FIX: Show ALL guest_requests for the month (no 30-day filter)
+          const guestRequests = summary.guest_requests || [];
 
           return guestRequests.length > 0 ? (
             <div className="overflow-x-auto">
@@ -445,12 +456,15 @@ const MonthlyReport = ({
                     const isRejected = request.status === 'rejected';
                     const isAuto = request.approved_by === 'autopilot';
 
+                    // BUG 2 FIX: Use request field (already clean, no guest name)
+                    const requestTitle = request.request || request.description || request.title || 'N/A';
+
                     return (
                       <tr key={request.id || idx} className="text-gray-300">
                         <td className="py-1 pr-2 md:py-2 md:pr-3 whitespace-nowrap">{fechaFormatted}</td>
                         <td className="py-1 pr-2 md:py-2 md:pr-3">{request.villa_name || request.villa || '—'}</td>
                         <td className="py-1 pr-2 md:py-2 md:pr-3">{request.guest_name || request.guest || '—'}</td>
-                        <td className="py-1 pr-2 md:py-2 md:pr-3">{request.description || request.request || request.title || 'N/A'}</td>
+                        <td className="py-1 pr-2 md:py-2 md:pr-3">{requestTitle}</td>
                         <td className="py-1 md:py-2">
                           {isApproved && (
                             <div className="flex items-center gap-2">

@@ -761,7 +761,7 @@ const Autopilot = ({ onBack }) => {
     },
     {
       id: 'decisions',
-      name: 'Owner Decisions',
+      name: 'Owner Control System',
       icon: ClipboardCheck,
       description: 'Needs approval',
       badge: '3'
@@ -6790,37 +6790,54 @@ const Autopilot = ({ onBack }) => {
         const matchesAgent = filterDecisionAgent === 'All' || decision.generated_by_agent?.toUpperCase() === filterDecisionAgent;
         const matchesProperty = filterDecisionProperty === 'All' || !decision.villa_name || decision.villa_name === filterDecisionProperty;
 
-        // Date filtering
+        // Date filtering based on period (Daily/Weekly/Monthly) with Bali timezone (UTC+8)
         let matchesDate = true;
-        if (filterDecisionDate !== 'all' && decision.created_at) {
+        if (decision.created_at && filterDecisionPeriod !== 'all') {
           const decisionDate = new Date(decision.created_at);
-          const today = new Date();
-          today.setHours(0, 0, 0, 0);
 
-          switch (filterDecisionDate) {
-            case 'today':
-              const todayEnd = new Date(today);
-              todayEnd.setHours(23, 59, 59, 999);
-              matchesDate = decisionDate >= today && decisionDate <= todayEnd;
-              break;
-            case 'week':
-              const weekEnd = new Date(today);
-              weekEnd.setDate(weekEnd.getDate() + 7);
-              matchesDate = decisionDate >= today && decisionDate <= weekEnd;
-              break;
-            case 'month':
-              const monthEnd = new Date(today);
-              monthEnd.setMonth(monthEnd.getMonth() + 1);
-              matchesDate = decisionDate >= today && decisionDate <= monthEnd;
-              break;
-            case 'custom':
-              if (customDecisionDateFrom && customDecisionDateTo) {
-                const start = new Date(customDecisionDateFrom);
-                const end = new Date(customDecisionDateTo);
-                end.setHours(23, 59, 59, 999);
-                matchesDate = decisionDate >= start && decisionDate <= end;
-              }
-              break;
+          // Get current time in Bali (UTC+8)
+          const now = new Date();
+          const baliTime = new Date(now.getTime() + (8 * 60 * 60 * 1000));
+
+          if (filterDecisionPeriod === 'daily') {
+            // Today in Bali = midnight to 23:59:59
+            const startOfDayBali = new Date(baliTime);
+            startOfDayBali.setHours(0, 0, 0, 0);
+            const startOfDayUTC = new Date(startOfDayBali.getTime() - (8 * 60 * 60 * 1000));
+
+            const endOfDayBali = new Date(baliTime);
+            endOfDayBali.setHours(23, 59, 59, 999);
+            const endOfDayUTC = new Date(endOfDayBali.getTime() - (8 * 60 * 60 * 1000));
+
+            matchesDate = decisionDate >= startOfDayUTC && decisionDate <= endOfDayUTC;
+          } else if (filterDecisionPeriod === 'weekly') {
+            // Current week in Bali (Sunday to Saturday)
+            const dayOfWeek = baliTime.getDay();
+
+            const startOfWeekBali = new Date(baliTime);
+            startOfWeekBali.setDate(startOfWeekBali.getDate() - dayOfWeek);
+            startOfWeekBali.setHours(0, 0, 0, 0);
+            const startOfWeekUTC = new Date(startOfWeekBali.getTime() - (8 * 60 * 60 * 1000));
+
+            const endOfWeekBali = new Date(startOfWeekBali);
+            endOfWeekBali.setDate(endOfWeekBali.getDate() + 6);
+            endOfWeekBali.setHours(23, 59, 59, 999);
+            const endOfWeekUTC = new Date(endOfWeekBali.getTime() - (8 * 60 * 60 * 1000));
+
+            matchesDate = decisionDate >= startOfWeekUTC && decisionDate <= endOfWeekUTC;
+          } else if (filterDecisionPeriod === 'monthly') {
+            // Current month in Bali (1st to last day)
+            const startOfMonthBali = new Date(baliTime);
+            startOfMonthBali.setDate(1);
+            startOfMonthBali.setHours(0, 0, 0, 0);
+            const startOfMonthUTC = new Date(startOfMonthBali.getTime() - (8 * 60 * 60 * 1000));
+
+            const endOfMonthBali = new Date(baliTime);
+            endOfMonthBali.setMonth(endOfMonthBali.getMonth() + 1, 0); // Last day of current month
+            endOfMonthBali.setHours(23, 59, 59, 999);
+            const endOfMonthUTC = new Date(endOfMonthBali.getTime() - (8 * 60 * 60 * 1000));
+
+            matchesDate = decisionDate >= startOfMonthUTC && decisionDate <= endOfMonthUTC;
           }
         }
 
@@ -7160,29 +7177,57 @@ const Autopilot = ({ onBack }) => {
                       Bookings
                     </h4>
                     <div className="overflow-x-auto">
-                      <table className="w-full min-w-[500px] text-left text-xs md:text-sm">
+                      <table className="w-full min-w-[700px] text-left text-xs md:text-sm">
                         <thead>
                           <tr className="border-b border-gray-700">
                             <th className="pb-2 pr-2 md:pr-3 text-gray-400">Guest</th>
                             <th className="pb-2 pr-2 md:pr-3 text-gray-400">Villa</th>
+                            <th className="pb-2 pr-2 md:pr-3 text-gray-400">Check-in</th>
                             <th className="pb-2 pr-2 md:pr-3 text-gray-400">Check-out</th>
-                            <th className="pb-2 text-gray-400">Revenue</th>
+                            <th className="pb-2 pr-2 md:pr-3 text-gray-400">Noches</th>
+                            <th className="pb-2 pr-2 md:pr-3 text-gray-400">Revenue IDR</th>
+                            <th className="pb-2 pr-2 md:pr-3 text-gray-400">Canal</th>
+                            <th className="pb-2 text-gray-400">Status</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-700">
                           {filteredDaily.in_house_guests.map((guest, idx) => {
+                            const checkIn = guest.check_in ? new Date(guest.check_in) : null;
                             const checkOut = guest.check_out ? new Date(guest.check_out) : null;
-                            // Formatear fecha como "24 Mar" según PDF v4.3
+                            // Formatear fechas como "20 Mar" según PDF v4.3
+                            const checkInFormatted = checkIn ?
+                              `${checkIn.getDate()} ${checkIn.toLocaleString('en', { month: 'short' })}` :
+                              'N/A';
                             const checkOutFormatted = checkOut ?
                               `${checkOut.getDate()} ${checkOut.toLocaleString('en', { month: 'short' })}` :
                               'N/A';
+
+                            // Calcular noches
+                            const nights = (checkIn && checkOut) ?
+                              Math.ceil((checkOut - checkIn) / (1000 * 60 * 60 * 24)) :
+                              '--';
+
+                            // BUG 1 FIX: Status badge
+                            const status = guest.status || 'confirmed';
+                            const statusBadge = status === 'confirmed' ? 'bg-[#D1FAE5] text-[#065F46]' :
+                                               status === 'checked_out' ? 'bg-[#F3F4F6] text-[#6B7280]' :
+                                               status === 'cancelled' ? 'bg-[#FEE2E2] text-[#991B1B]' :
+                                               'bg-[#FEF3C7] text-[#92400E]';
 
                             return (
                               <tr key={idx} className="text-gray-300">
                                 <td className="py-1 pr-2 md:py-2 md:pr-3 font-semibold text-white">{guest.guest || 'N/A'}</td>
                                 <td className="py-1 pr-2 md:py-2 md:pr-3">{guest.villa || 'N/A'}</td>
+                                <td className="py-1 pr-2 md:py-2 md:pr-3 whitespace-nowrap">{checkInFormatted}</td>
                                 <td className="py-1 pr-2 md:py-2 md:pr-3 whitespace-nowrap">{checkOutFormatted}</td>
-                                <td className="py-1 md:py-2 font-semibold text-purple-400 whitespace-nowrap">{formatIDR(guest.revenue || 0)}</td>
+                                <td className="py-1 pr-2 md:py-2 md:pr-3">{nights}</td>
+                                <td className="py-1 pr-2 md:py-2 md:pr-3 font-semibold text-purple-400 whitespace-nowrap">{formatIDR(guest.revenue || 0)}</td>
+                                <td className="py-1 pr-2 md:py-2 md:pr-3 capitalize">{guest.channel || 'N/A'}</td>
+                                <td className="py-1 md:py-2 whitespace-nowrap">
+                                  <span className={`px-2 py-1 rounded text-xs font-semibold ${statusBadge}`}>
+                                    {status}
+                                  </span>
+                                </td>
                               </tr>
                             );
                           })}
@@ -7435,7 +7480,27 @@ const Autopilot = ({ onBack }) => {
                       )
                     : [];
 
-                  return uniqueRequests.length > 0 && (
+                  // BUG 5 FIX: Filtrar Guest Requests solo por hoy en Bali (mismo filtro que Owner Decisions counter)
+                  const now = new Date();
+                  const baliTime = new Date(now.getTime() + (8 * 60 * 60 * 1000));
+
+                  const startOfDayBali = new Date(baliTime);
+                  startOfDayBali.setHours(0, 0, 0, 0);
+                  const startOfDayUTC = new Date(startOfDayBali.getTime() - (8 * 60 * 60 * 1000));
+
+                  const endOfDayBali = new Date(baliTime);
+                  endOfDayBali.setHours(23, 59, 59, 999);
+                  const endOfDayUTC = new Date(endOfDayBali.getTime() - (8 * 60 * 60 * 1000));
+
+                  const todayRequests = uniqueRequests.filter(request => {
+                    const dateValue = request.created_at || request.request_date || request.date || request.timestamp;
+                    if (!dateValue) return false;
+
+                    const requestDate = new Date(dateValue);
+                    return requestDate >= startOfDayUTC && requestDate <= endOfDayUTC;
+                  });
+
+                  return todayRequests.length > 0 && (
                     <div className="bg-[#1f2937] p-5 rounded-lg border border-pink-500/30 mt-4">
                       <h4 className="text-lg font-bold text-pink-400 mb-4 flex items-center gap-2">
                         <MessageSquare className="w-5 h-5" />
@@ -7453,7 +7518,7 @@ const Autopilot = ({ onBack }) => {
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-gray-700">
-                            {uniqueRequests.map((request) => {
+                            {todayRequests.map((request) => {
                               // Try multiple date fields
                               const dateValue = request.created_at || request.request_date || request.date || request.timestamp;
                               const fecha = dateValue ? new Date(dateValue) : null;
@@ -7682,8 +7747,18 @@ const Autopilot = ({ onBack }) => {
                               {bookingsList.map((booking, idx) => {
                                 const checkIn = booking.check_in ? new Date(booking.check_in) : null;
                                 const checkOut = booking.check_out ? new Date(booking.check_out) : null;
-                                const checkInFormatted = checkIn ? `${checkIn.getDate()} ${checkIn.toLocaleString('en', { month: 'short' })}` : '—';
-                                const checkOutFormatted = checkOut ? `${checkOut.getDate()} ${checkOut.toLocaleString('en', { month: 'short' })}` : '—';
+                                // Formatear fechas como "20 Mar"
+                                const checkInFormatted = checkIn ?
+                                  `${checkIn.getDate()} ${checkIn.toLocaleString('en', { month: 'short' })}` :
+                                  'N/A';
+                                const checkOutFormatted = checkOut ?
+                                  `${checkOut.getDate()} ${checkOut.toLocaleString('en', { month: 'short' })}` :
+                                  'N/A';
+
+                                // Usar nights del backend, o calcular si no existe
+                                const nights = booking.nights ||
+                                  (checkIn && checkOut ? Math.ceil((checkOut - checkIn) / (1000 * 60 * 60 * 24)) : '--');
+
                                 const status = booking.status || 'confirmed';
                                 const statusBadge = status === 'confirmed' ? 'bg-[#D1FAE5] text-[#065F46]' :
                                                    status === 'cancelled' ? 'bg-[#FEE2E2] text-[#991B1B]' :
@@ -7694,9 +7769,9 @@ const Autopilot = ({ onBack }) => {
                                     <td className="py-2 pr-4">{booking.villa_name || booking.villa || '—'}</td>
                                     <td className="py-2 pr-3 whitespace-nowrap">{checkInFormatted}</td>
                                     <td className="py-2 pr-3 whitespace-nowrap">{checkOutFormatted}</td>
-                                    <td className="py-2 pr-3 text-center whitespace-nowrap">{booking.nights || booking.total_nights || '—'}</td>
-                                    <td className="py-2 pr-3 font-semibold text-purple-400 whitespace-nowrap">{formatIDR(booking.revenue || 0)}</td>
-                                    <td className="py-2 pr-3 capitalize whitespace-nowrap">{booking.channel || booking.source || '—'}</td>
+                                    <td className="py-2 pr-3 text-center whitespace-nowrap">{nights}</td>
+                                    <td className="py-2 pr-3 font-semibold text-purple-400 whitespace-nowrap">{formatIDR(booking.total_price || booking.revenue || 0)}</td>
+                                    <td className="py-2 pr-3 capitalize whitespace-nowrap">{booking.channel || 'N/A'}</td>
                                     <td className="py-2 whitespace-nowrap">
                                       <span className={`px-2 py-1 rounded text-xs font-semibold ${statusBadge}`}>
                                         {status}
@@ -7950,12 +8025,15 @@ const Autopilot = ({ onBack }) => {
                                   const isRejected = request.status === 'rejected';
                                   const isAuto = request.approved_by === 'autopilot';
 
+                                  // BUG 2 FIX: Use request field (already clean, no guest name)
+                                  const requestTitle = request.request || request.description || request.title || 'N/A';
+
                                   return (
                                     <tr key={request.id || idx} className="text-gray-300">
                                       <td className="py-2 pr-3 whitespace-nowrap">{fechaFormatted}</td>
                                       <td className="py-2 pr-3">{request.villa_name || request.villa || '—'}</td>
                                       <td className="py-2 pr-3">{request.guest_name || request.guest || '—'}</td>
-                                      <td className="py-2 pr-3">{request.description || request.request || request.title || 'N/A'}</td>
+                                      <td className="py-2 pr-3">{requestTitle}</td>
                                       <td className="py-2">
                                         {isApproved && (
                                           <div className="flex items-center gap-2">
@@ -8555,7 +8633,7 @@ const Autopilot = ({ onBack }) => {
                         {/* Status badge - conditional based on decision.status */}
                         {decision.status === 'approved' ? (
                           <span className="px-3 py-1 rounded-full text-xs font-medium bg-green-500/20 text-green-300 border border-green-500">
-                            ✅ Approved by {decision.approved_by || 'system'}
+                            ✅ {decision.approved_by === 'autopilot' ? 'Auto-approved' : 'Approved'}
                           </span>
                         ) : decision.status === 'rejected' ? (
                           <span className="px-3 py-1 rounded-full text-xs font-medium bg-red-500/20 text-red-300 border border-red-500">
