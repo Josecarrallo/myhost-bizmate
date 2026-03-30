@@ -475,90 +475,64 @@ const OwnerHome = ({ onBack, propertyId: propPropertyId, tenantId: propTenantId 
   const totalAttention = getTotalAttentionItems();
 
   return (
-    <div className="p-6 space-y-6 bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 min-h-screen">
+    <div className="p-4 md:p-6 space-y-4 md:space-y-6 bg-gray-900 min-h-screen">
       {/* ========== 1. HEADER ========== */}
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-4">
-          <button onClick={onBack} className="p-2 rounded-xl hover:bg-white/10 text-gray-400 hover:text-white transition-colors">
-            <ArrowLeft className="w-5 h-5" />
-          </button>
-          <div>
-            <h2 className="text-2xl font-bold text-white">Owner Home</h2>
-            <p className="text-gray-400 text-sm">{new Date().toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <button onClick={onBack} className="p-2 rounded-xl hover:bg-white/10 text-gray-400 hover:text-white transition-colors">
+              <ArrowLeft className="w-5 h-5" />
+            </button>
+            <div>
+              <h2 className="text-xl md:text-2xl font-bold text-white">Owner Home</h2>
+              <p className="text-gray-400 text-xs md:text-sm">{new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
+            </div>
           </div>
-        </div>
 
-        <div className="flex items-center gap-3">
-          {totalAttention > 0 && (
-            <span className="px-4 py-2 bg-orange-500/20 text-orange-300 rounded-xl font-bold border border-orange-500/40">
-              {totalAttention} {totalAttention === 1 ? 'item' : 'items'} require attention
-            </span>
-          )}
-          {refreshing && (
-            <span className="px-3 py-2 bg-blue-500/20 text-blue-300 rounded-xl text-sm font-medium border border-blue-500/40 flex items-center gap-2">
-              <div className="w-3 h-3 border-2 border-blue-300/40 border-t-blue-300 rounded-full animate-spin" />
-              Updating...
-            </span>
-          )}
           <button
             onClick={() => loadData(false)}
             disabled={loading || refreshing}
-            className="p-3 bg-[#1f2937] hover:bg-orange-500 text-gray-300 hover:text-white rounded-xl transition-colors disabled:opacity-50"
+            className="p-2 md:p-3 bg-[#1f2937] hover:bg-orange-500 text-gray-300 hover:text-white rounded-xl transition-colors disabled:opacity-50"
             title={refreshing ? 'Updating...' : 'Refresh data'}
           >
-            <RefreshCw className={`w-5 h-5 ${(loading || refreshing) ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`w-4 h-4 md:w-5 md:h-5 ${(loading || refreshing) ? 'animate-spin' : ''}`} />
           </button>
         </div>
+
+        {totalAttention > 0 && (
+          <div className="px-3 py-2 bg-orange-500/20 text-orange-300 rounded-xl font-bold border border-orange-500/40 text-center text-sm">
+            {totalAttention} {totalAttention === 1 ? 'item' : 'items'} require attention
+          </div>
+        )}
+
+        {refreshing && (
+          <div className="px-3 py-2 bg-blue-500/20 text-blue-300 rounded-xl text-sm font-medium border border-blue-500/40 flex items-center justify-center gap-2">
+            <div className="w-3 h-3 border-2 border-blue-300/40 border-t-blue-300 rounded-full animate-spin" />
+            Updating...
+          </div>
+        )}
       </div>
 
       {/* ========== 2. QUICK STATS ========== */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="bg-[#1f2937] rounded-2xl p-4 border border-blue-500/40">
-          <div className="flex items-center justify-between">
-            <div className="flex-1">
-              <p className="text-gray-400 text-xs mb-1">Guests In-House</p>
-              <p className="text-2xl font-bold text-blue-400">{data.quick_stats?.guests_in_house || 0}</p>
-            </div>
-            <div className="p-2 bg-blue-500/20 rounded-xl">
-              <Users className="w-5 h-5 text-blue-400" />
-            </div>
-          </div>
+      <div className="grid grid-cols-2 gap-3">
+        <div className="bg-[#1f2937] rounded-xl p-3 border border-blue-500/40">
+          <p className="text-gray-400 text-xs mb-1">Occupancy</p>
+          <p className="text-xl font-bold text-blue-400">{data.quick_stats?.occupancy_percentage || 0}%</p>
         </div>
 
-        <div className="bg-[#1f2937] rounded-2xl p-4 border border-green-500/40">
-          <div className="flex items-center justify-between">
-            <div className="flex-1">
-              <p className="text-gray-400 text-xs mb-1">Arrivals Today</p>
-              <p className="text-2xl font-bold text-green-400">{data.today_operations?.arrivals || 0}</p>
-            </div>
-            <div className="p-2 bg-green-500/20 rounded-xl">
-              <TrendingUp className="w-5 h-5 text-green-400" />
-            </div>
-          </div>
+        <div className="bg-[#1f2937] rounded-xl p-3 border border-yellow-500/40">
+          <p className="text-gray-400 text-xs mb-1">Revenue</p>
+          <p className="text-xl font-bold text-yellow-400">{formatIDR(data.quick_stats?.revenue_inhouse_idr || 0)}</p>
         </div>
 
-        <div className="bg-[#1f2937] rounded-2xl p-4 border border-purple-500/40">
-          <div className="flex items-center justify-between">
-            <div className="flex-1">
-              <p className="text-gray-400 text-xs mb-1">Departures Today</p>
-              <p className="text-2xl font-bold text-purple-400">{data.today_operations?.departures || 0}</p>
-            </div>
-            <div className="p-2 bg-purple-500/20 rounded-xl">
-              <Home className="w-5 h-5 text-purple-400" />
-            </div>
-          </div>
+        <div className="bg-[#1f2937] rounded-xl p-3 border border-orange-500/40">
+          <p className="text-gray-400 text-xs mb-1">Pending Tasks</p>
+          <p className="text-xl font-bold text-orange-400">{data.quick_stats?.pending_tasks || 0}</p>
         </div>
 
-        <div className="bg-[#1f2937] rounded-2xl p-4 border border-yellow-500/40">
-          <div className="flex items-center justify-between">
-            <div className="flex-1">
-              <p className="text-gray-400 text-xs mb-1 whitespace-nowrap overflow-hidden text-ellipsis">Revenue In-House</p>
-              <p className="text-2xl font-bold text-yellow-400">{formatIDR(data.quick_stats?.revenue_inhouse_idr || 0)}</p>
-            </div>
-            <div className="p-2 bg-yellow-500/20 rounded-xl">
-              <TrendingUp className="w-5 h-5 text-yellow-400" />
-            </div>
-          </div>
+        <div className="bg-[#1f2937] rounded-xl p-3 border border-green-500/40">
+          <p className="text-gray-400 text-xs mb-1">Active Guests</p>
+          <p className="text-xl font-bold text-green-400">{data.quick_stats?.active_guests || 0}</p>
         </div>
       </div>
 
@@ -777,8 +751,8 @@ const PriorityCard = ({ item, onApprove, onReject, actionLoading, formatTimeAgo,
   const isPending = item.status === 'pending';
 
   return (
-    <div className="bg-[#1f2937] rounded-2xl p-5 border border-gray-700/50 hover:border-orange-500/40 transition-colors">
-      <div className="flex items-start justify-between gap-4">
+    <div className="bg-[#1f2937] rounded-2xl p-4 border border-gray-700/50 hover:border-orange-500/40 transition-colors">
+      <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
         <div className="flex-1">
           <div className="flex items-center gap-2 mb-2">
             <span className={`px-2 py-1 rounded-lg text-xs font-bold border ${getPriorityColor(item.priority)}`}>
@@ -800,8 +774,8 @@ const PriorityCard = ({ item, onApprove, onReject, actionLoading, formatTimeAgo,
             )}
           </div>
 
-          <h4 className="text-white font-bold text-lg mb-2">{item.title}</h4>
-          <p className="text-gray-400 text-sm mb-3">{item.summary}</p>
+          <h4 className="text-white font-bold text-base md:text-lg mb-2 break-words">{item.title}</h4>
+          <p className="text-gray-400 text-sm mb-3 break-words">{item.summary}</p>
 
           {item.guest_name && (
             <div className="text-sm text-gray-400 mb-2">
@@ -824,11 +798,11 @@ const PriorityCard = ({ item, onApprove, onReject, actionLoading, formatTimeAgo,
 
         {/* Action Buttons - Only for pending decisions */}
         {isDecision && isPending && (
-          <div className="flex flex-col gap-2">
+          <div className="flex flex-row md:flex-col gap-2 w-full md:w-auto">
             <button
               onClick={onApprove}
               disabled={!!actionLoading}
-              className="px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-xl font-semibold transition-colors disabled:opacity-50 flex items-center gap-2"
+              className="flex-1 md:flex-none px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-xl font-semibold transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
             >
               {actionLoading === 'approve' ? (
                 <div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
@@ -840,7 +814,7 @@ const PriorityCard = ({ item, onApprove, onReject, actionLoading, formatTimeAgo,
             <button
               onClick={onReject}
               disabled={!!actionLoading}
-              className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-xl font-semibold transition-colors disabled:opacity-50 flex items-center gap-2"
+              className="flex-1 md:flex-none px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-xl font-semibold transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
             >
               {actionLoading === 'reject' ? (
                 <div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
