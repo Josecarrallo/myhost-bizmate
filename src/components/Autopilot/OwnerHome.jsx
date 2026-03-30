@@ -516,8 +516,8 @@ const OwnerHome = ({ onBack, propertyId: propPropertyId, tenantId: propTenantId 
       {/* ========== 2. QUICK STATS ========== */}
       <div className="grid grid-cols-2 gap-3">
         <div className="bg-[#1f2937] rounded-xl p-3 border border-blue-500/40">
-          <p className="text-gray-400 text-xs mb-1">Occupancy</p>
-          <p className="text-xl font-bold text-blue-400">{data.quick_stats?.occupancy_percentage || 0}%</p>
+          <p className="text-gray-400 text-xs mb-1">Villas Occupied</p>
+          <p className="text-xl font-bold text-blue-400">{data.quick_stats?.guests_in_house || 0}/3</p>
         </div>
 
         <div className="bg-[#1f2937] rounded-xl p-3 border border-yellow-500/40">
@@ -526,13 +526,13 @@ const OwnerHome = ({ onBack, propertyId: propPropertyId, tenantId: propTenantId 
         </div>
 
         <div className="bg-[#1f2937] rounded-xl p-3 border border-orange-500/40">
-          <p className="text-gray-400 text-xs mb-1">Pending Tasks</p>
-          <p className="text-xl font-bold text-orange-400">{data.quick_stats?.pending_tasks || 0}</p>
+          <p className="text-gray-400 text-xs mb-1">Overdue Tasks</p>
+          <p className="text-xl font-bold text-orange-400">{data.today_operations?.overdue_tasks || 0}</p>
         </div>
 
         <div className="bg-[#1f2937] rounded-xl p-3 border border-green-500/40">
           <p className="text-gray-400 text-xs mb-1">Active Guests</p>
-          <p className="text-xl font-bold text-green-400">{data.quick_stats?.active_guests || 0}</p>
+          <p className="text-xl font-bold text-green-400">{data.quick_stats?.guests_in_house || 0}</p>
         </div>
       </div>
 
