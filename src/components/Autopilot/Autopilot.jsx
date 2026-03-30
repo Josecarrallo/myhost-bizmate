@@ -54,6 +54,7 @@ import ManualDataEntry from '../ManualDataEntry/ManualDataEntry';
 import MasterCalendar from '../MasterCalendar/MasterCalendar';
 import ServiceRequests from '../ServiceRequests/ServiceRequests';
 import SpecializedReports from './SpecializedReports';
+import OwnerHome from './OwnerHome';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
 import { generateReportHTML } from '../../services/generateReportHTML';
@@ -132,6 +133,9 @@ const Autopilot = ({ onBack }) => {
 
   // Property ID for multi-tenant support (used for creating decisions)
   const [propertyId, setPropertyId] = useState(null);
+
+  // OCS sub-navigation: null = show menu, 'owner-home' = Owner Home, 'owner-decisions' = Owner Decisions
+  const [ocsView, setOcsView] = useState(null);
 
   // Owner Decisions (OCS) states
   const [ownerDecisions, setOwnerDecisions] = useState([]);
@@ -276,6 +280,13 @@ const Autopilot = ({ onBack }) => {
       loadOwnerDecisions();
     }
   }, [activeSection, userData?.id]);
+
+  // Reset OCS view when leaving decisions section
+  useEffect(() => {
+    if (activeSection !== 'decisions') {
+      setOcsView(null);
+    }
+  }, [activeSection]);
 
   // Load summaries when period filter changes
   useEffect(() => {
@@ -6766,6 +6777,72 @@ const Autopilot = ({ onBack }) => {
     );
   };
 
+  const renderOCSMenu = () => {
+    return (
+      <div className="space-y-6">
+        {/* Back Button */}
+        <div className="flex items-center gap-3 mb-4">
+          <button
+            onClick={() => setActiveSection('menu')}
+            className="p-2 bg-[#1f2937]/95 backdrop-blur-sm rounded-xl hover:bg-orange-500 transition-all border border-[#d85a2a]/20"
+          >
+            <ArrowLeft className="w-5 h-5 text-white" />
+          </button>
+          <h2 className="text-3xl font-bold text-white">Owner Control System</h2>
+        </div>
+
+        {/* Two Options: Owner Home & Owner Decisions */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Option 1: Owner Home */}
+          <button
+            onClick={() => setOcsView('owner-home')}
+            className="group bg-gradient-to-br from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 rounded-3xl p-8 shadow-2xl border-2 border-orange-400/30 transition-all transform hover:scale-105 text-left"
+          >
+            <div className="flex items-center gap-4 mb-4">
+              <div className="p-4 bg-white/20 rounded-2xl">
+                <Home className="w-12 h-12 text-white" />
+              </div>
+              <div>
+                <h3 className="text-2xl font-bold text-white">Owner Home</h3>
+                <p className="text-orange-100 text-sm">Priority Dashboard</p>
+              </div>
+            </div>
+            <p className="text-white/90 mb-4">
+              See what needs your attention right now. Critical items, pending decisions, today's operations, and system activity in one place.
+            </p>
+            <div className="flex items-center gap-2 text-white font-semibold">
+              <span>Open Dashboard</span>
+              <ChevronRight className="w-5 h-5 group-hover:translate-x-2 transition-transform" />
+            </div>
+          </button>
+
+          {/* Option 2: Owner Decisions */}
+          <button
+            onClick={() => setOcsView('owner-decisions')}
+            className="group bg-gradient-to-br from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 rounded-3xl p-8 shadow-2xl border-2 border-blue-400/30 transition-all transform hover:scale-105 text-left"
+          >
+            <div className="flex items-center gap-4 mb-4">
+              <div className="p-4 bg-white/20 rounded-2xl">
+                <ClipboardCheck className="w-12 h-12 text-white" />
+              </div>
+              <div>
+                <h3 className="text-2xl font-bold text-white">Owner Decisions</h3>
+                <p className="text-blue-100 text-sm">Full Decision Management</p>
+              </div>
+            </div>
+            <p className="text-white/90 mb-4">
+              Complete decision management interface. View all decisions, filter by status, priority, type, and property. Approve or reject with detailed notes.
+            </p>
+            <div className="flex items-center gap-2 text-white font-semibold">
+              <span>Manage Decisions</span>
+              <ChevronRight className="w-5 h-5 group-hover:translate-x-2 transition-transform" />
+            </div>
+          </button>
+        </div>
+      </div>
+    );
+  };
+
   const renderDecisionsSection = () => {
     // Filter and search logic for Owner Decisions
     console.log('🔍 [FILTER DEBUG] ownerDecisions.length:', ownerDecisions.length);
@@ -6864,7 +6941,7 @@ const Autopilot = ({ onBack }) => {
         <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-3xl p-6 shadow-2xl border-2 border-[#d85a2a]/20">
           <div className="flex items-center justify-between mb-4">
             <button
-              onClick={() => setActiveSection('menu')}
+              onClick={() => setOcsView(null)}
               className="p-2 bg-[#1f2937]/95 backdrop-blur-sm rounded-xl hover:bg-orange-500 transition-all border border-[#d85a2a]/20"
             >
               <ArrowLeft className="w-5 h-5 text-[#FF8C42]" />
@@ -9312,7 +9389,17 @@ const Autopilot = ({ onBack }) => {
           {activeSection === 'website' && renderWebsiteSection()}
           {activeSection === 'tasks' && renderTasksSection()}
           {activeSection === 'service-requests' && <ServiceRequests onBack={() => setActiveSection('menu')} />}
-          {activeSection === 'decisions' && renderDecisionsSection()}
+          {activeSection === 'decisions' && (
+            ocsView === null ? renderOCSMenu() :
+            ocsView === 'owner-home' ? (
+              <OwnerHome
+                onBack={() => setOcsView(null)}
+                propertyId={propertyId}
+                tenantId={userData?.id}
+              />
+            ) :
+            ocsView === 'owner-decisions' ? renderDecisionsSection() : null
+          )}
           {activeSection === 'data-export' && renderDataExportSection()}
         </div>
       </div>
