@@ -1,0 +1,1340 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MY HOST BizMate — How It Works</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #12121a;
+    --surface2: #1a1a26;
+    --border: rgba(255,255,255,0.07);
+    --text: #f0ede8;
+    --muted: #8a8799;
+    --accent: #ff6b35;
+    --accent2: #ffd166;
+    --green: #06d6a0;
+    --blue: #4cc9f0;
+    --purple: #b185db;
+    --red: #ef233c;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 16px;
+    line-height: 1.6;
+    overflow-x: hidden;
+  }
+
+  /* HERO */
+  .hero {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    padding: 60px 40px;
+    text-align: center;
+    overflow: hidden;
+  }
+
+  .hero-bg {
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(ellipse 80% 60% at 50% 0%, rgba(255,107,53,0.12) 0%, transparent 70%),
+      radial-gradient(ellipse 60% 40% at 20% 80%, rgba(76,201,240,0.08) 0%, transparent 60%),
+      radial-gradient(ellipse 50% 50% at 80% 60%, rgba(177,133,219,0.07) 0%, transparent 60%);
+  }
+
+  .hero-grid {
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px);
+    background-size: 60px 60px;
+    mask-image: radial-gradient(ellipse at center, black 30%, transparent 80%);
+  }
+
+  .hero-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(255,107,53,0.15);
+    border: 1px solid rgba(255,107,53,0.3);
+    border-radius: 100px;
+    padding: 6px 16px;
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 32px;
+    position: relative;
+  }
+
+  .hero-badge::before {
+    content: '';
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--accent);
+    animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(1.4); }
+  }
+
+  .hero h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(52px, 8vw, 96px);
+    font-weight: 900;
+    line-height: 1;
+    letter-spacing: -0.02em;
+    position: relative;
+    margin-bottom: 8px;
+  }
+
+  .hero h1 span {
+    background: linear-gradient(135deg, var(--accent) 0%, var(--accent2) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .hero-sub {
+    font-size: clamp(16px, 2vw, 20px);
+    color: var(--muted);
+    max-width: 580px;
+    margin: 24px auto 48px;
+    font-weight: 300;
+  }
+
+  .hero-stats {
+    display: flex;
+    gap: 48px;
+    justify-content: center;
+    flex-wrap: wrap;
+    position: relative;
+  }
+
+  .hero-stat {
+    text-align: center;
+  }
+
+  .hero-stat-num {
+    font-family: 'Playfair Display', serif;
+    font-size: 36px;
+    font-weight: 700;
+    color: var(--text);
+    line-height: 1;
+  }
+
+  .hero-stat-num span { color: var(--accent); }
+
+  .hero-stat-label {
+    font-size: 12px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-top: 4px;
+  }
+
+  .scroll-hint {
+    position: absolute;
+    bottom: 40px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    color: var(--muted);
+    font-size: 12px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    animation: float 3s ease-in-out infinite;
+  }
+
+  @keyframes float {
+    0%, 100% { transform: translateX(-50%) translateY(0); }
+    50% { transform: translateX(-50%) translateY(-8px); }
+  }
+
+  .scroll-hint-line {
+    width: 1px;
+    height: 40px;
+    background: linear-gradient(to bottom, var(--muted), transparent);
+  }
+
+  /* SECTION */
+  section {
+    padding: 100px 40px;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+
+  .section-label {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 16px;
+  }
+
+  .section-title {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(36px, 5vw, 56px);
+    font-weight: 700;
+    line-height: 1.1;
+    margin-bottom: 20px;
+  }
+
+  .section-desc {
+    font-size: 18px;
+    color: var(--muted);
+    max-width: 560px;
+    font-weight: 300;
+    line-height: 1.7;
+  }
+
+  /* JOURNEY — 3 MOMENTS */
+  .journey {
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    padding: 100px 40px;
+  }
+
+  .journey-inner {
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+
+  .journey-header {
+    text-align: center;
+    margin-bottom: 80px;
+  }
+
+  .moments-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2px;
+    background: var(--border);
+    border-radius: 20px;
+    overflow: hidden;
+  }
+
+  .moment {
+    background: var(--surface2);
+    padding: 48px 36px;
+    position: relative;
+    cursor: pointer;
+    transition: background 0.3s;
+  }
+
+  .moment:hover { background: #1e1e2e; }
+
+  .moment-num {
+    font-family: 'Playfair Display', serif;
+    font-size: 80px;
+    font-weight: 900;
+    line-height: 1;
+    opacity: 0.06;
+    position: absolute;
+    top: 24px;
+    right: 28px;
+    color: var(--text);
+  }
+
+  .moment-icon {
+    font-size: 32px;
+    margin-bottom: 20px;
+    display: block;
+  }
+
+  .moment-phase {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+  }
+
+  .moment-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 28px;
+    font-weight: 700;
+    margin-bottom: 14px;
+    line-height: 1.2;
+  }
+
+  .moment-desc {
+    font-size: 14px;
+    color: var(--muted);
+    line-height: 1.7;
+    margin-bottom: 28px;
+  }
+
+  .moment-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .tag {
+    font-size: 11px;
+    font-weight: 500;
+    padding: 4px 10px;
+    border-radius: 100px;
+    border: 1px solid;
+    font-family: 'DM Mono', monospace;
+    letter-spacing: 0.03em;
+  }
+
+  .tag-blue { color: var(--blue); border-color: rgba(76,201,240,0.3); background: rgba(76,201,240,0.07); }
+  .tag-green { color: var(--green); border-color: rgba(6,214,160,0.3); background: rgba(6,214,160,0.07); }
+  .tag-orange { color: var(--accent); border-color: rgba(255,107,53,0.3); background: rgba(255,107,53,0.07); }
+  .tag-purple { color: var(--purple); border-color: rgba(177,133,219,0.3); background: rgba(177,133,219,0.07); }
+  .tag-yellow { color: var(--accent2); border-color: rgba(255,209,102,0.3); background: rgba(255,209,102,0.07); }
+
+  .m1 .moment-phase { color: var(--blue); }
+  .m2 .moment-phase { color: var(--green); }
+  .m3 .moment-phase { color: var(--purple); }
+
+  /* CHANNELS */
+  .channels-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 24px;
+    margin-top: 60px;
+  }
+
+  .channel-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 32px;
+    position: relative;
+    overflow: hidden;
+    transition: border-color 0.3s, transform 0.2s;
+  }
+
+  .channel-card:hover {
+    border-color: rgba(255,255,255,0.15);
+    transform: translateY(-2px);
+  }
+
+  .channel-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+  }
+
+  .channel-card.wa::before { background: linear-gradient(90deg, #25d366, #128c7e); }
+  .channel-card.voice::before { background: linear-gradient(90deg, var(--blue), var(--purple)); }
+  .channel-card.web::before { background: linear-gradient(90deg, var(--accent), var(--accent2)); }
+  .channel-card.ota::before { background: linear-gradient(90deg, #ff385c, #ff6b35); }
+  .channel-card.email::before { background: linear-gradient(90deg, var(--purple), var(--blue)); }
+  .channel-card.content::before { background: linear-gradient(90deg, var(--accent2), var(--green)); }
+
+  .channel-header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 16px;
+  }
+
+  .channel-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    flex-shrink: 0;
+  }
+
+  .channel-name {
+    font-family: 'Playfair Display', serif;
+    font-size: 20px;
+    font-weight: 700;
+  }
+
+  .channel-agent {
+    font-size: 11px;
+    color: var(--muted);
+    font-family: 'DM Mono', monospace;
+    letter-spacing: 0.05em;
+  }
+
+  .channel-desc {
+    font-size: 14px;
+    color: var(--muted);
+    line-height: 1.6;
+    margin-bottom: 16px;
+  }
+
+  .soon-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(255,209,102,0.1);
+    border: 1px solid rgba(255,209,102,0.25);
+    color: var(--accent2);
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 3px 10px;
+    border-radius: 100px;
+  }
+
+  .live-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(6,214,160,0.1);
+    border: 1px solid rgba(6,214,160,0.25);
+    color: var(--green);
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 3px 10px;
+    border-radius: 100px;
+  }
+
+  .live-badge::before {
+    content: '';
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: var(--green);
+    animation: pulse 2s infinite;
+  }
+
+  /* AGENTS */
+  .agents-section {
+    background: linear-gradient(180deg, var(--bg) 0%, var(--surface) 50%, var(--bg) 100%);
+    padding: 100px 40px;
+  }
+
+  .agents-inner { max-width: 1200px; margin: 0 auto; }
+
+  .agents-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-top: 60px;
+  }
+
+  .agent-card {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 28px;
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.2s, border-color 0.3s;
+  }
+
+  .agent-card:hover {
+    transform: translateY(-3px);
+    border-color: rgba(255,255,255,0.12);
+  }
+
+  .agent-emoji { font-size: 28px; margin-bottom: 14px; display: block; }
+
+  .agent-name {
+    font-family: 'Playfair Display', serif;
+    font-size: 22px;
+    font-weight: 700;
+    margin-bottom: 6px;
+  }
+
+  .agent-role {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+
+  .agent-desc {
+    font-size: 13px;
+    color: var(--muted);
+    line-height: 1.6;
+  }
+
+  .agent-glow {
+    position: absolute;
+    top: -40px;
+    right: -40px;
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    opacity: 0.08;
+    filter: blur(40px);
+  }
+
+  /* OCS FLOW */
+  .ocs-section { padding: 100px 40px; }
+  .ocs-inner { max-width: 1200px; margin: 0 auto; }
+
+  .flow-container {
+    margin-top: 60px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 24px;
+    padding: 48px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .flow-container::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse 60% 60% at 50% 50%, rgba(255,107,53,0.04), transparent);
+    pointer-events: none;
+  }
+
+  .flow-steps {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 0;
+    position: relative;
+  }
+
+  .flow-connector {
+    position: absolute;
+    top: 36px;
+    left: calc(10% + 36px);
+    right: calc(10% + 36px);
+    height: 2px;
+    background: linear-gradient(90deg, var(--accent), var(--blue), var(--green));
+    opacity: 0.4;
+    z-index: 0;
+  }
+
+  .flow-step {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    position: relative;
+    z-index: 1;
+    padding: 0 8px;
+  }
+
+  .flow-circle {
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 26px;
+    margin-bottom: 16px;
+    border: 2px solid;
+    background: var(--surface2);
+  }
+
+  .flow-step-title {
+    font-weight: 600;
+    font-size: 13px;
+    margin-bottom: 6px;
+    line-height: 1.3;
+  }
+
+  .flow-step-desc {
+    font-size: 11px;
+    color: var(--muted);
+    line-height: 1.5;
+  }
+
+  /* GITA RULES */
+  .rules-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-top: 48px;
+  }
+
+  .rule-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+  }
+
+  .rule-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    flex-shrink: 0;
+  }
+
+  .rule-auto { background: rgba(6,214,160,0.1); border: 1px solid rgba(6,214,160,0.2); }
+  .rule-escalate { background: rgba(255,107,53,0.1); border: 1px solid rgba(255,107,53,0.2); }
+
+  .rule-text strong {
+    font-size: 14px;
+    font-weight: 600;
+    display: block;
+    margin-bottom: 3px;
+  }
+
+  .rule-text span {
+    font-size: 12px;
+    color: var(--muted);
+  }
+
+  /* ROADMAP */
+  .roadmap-section {
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    padding: 100px 40px;
+  }
+
+  .roadmap-inner { max-width: 1200px; margin: 0 auto; }
+
+  .roadmap-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 24px;
+    margin-top: 60px;
+  }
+
+  .roadmap-col {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 28px;
+  }
+
+  .roadmap-col-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 24px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .roadmap-col-title {
+    font-weight: 600;
+    font-size: 14px;
+  }
+
+  .roadmap-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+
+  .roadmap-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    margin-top: 6px;
+  }
+
+  .roadmap-item-text {
+    font-size: 13px;
+    color: var(--muted);
+    line-height: 1.5;
+  }
+
+  .roadmap-item-text strong {
+    color: var(--text);
+    font-weight: 500;
+  }
+
+  /* CTA */
+  .cta-section {
+    padding: 120px 40px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .cta-section::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse 80% 80% at 50% 50%, rgba(255,107,53,0.06), transparent);
+  }
+
+  .cta-title {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(40px, 6vw, 72px);
+    font-weight: 900;
+    line-height: 1.1;
+    margin-bottom: 24px;
+    position: relative;
+  }
+
+  .cta-title em {
+    font-style: normal;
+    color: var(--accent);
+  }
+
+  .cta-desc {
+    font-size: 18px;
+    color: var(--muted);
+    max-width: 500px;
+    margin: 0 auto 48px;
+    font-weight: 300;
+  }
+
+  .cta-items {
+    display: flex;
+    gap: 20px;
+    justify-content: center;
+    flex-wrap: wrap;
+    position: relative;
+  }
+
+  .cta-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    color: var(--muted);
+  }
+
+  .cta-item::before {
+    content: '✓';
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: rgba(6,214,160,0.15);
+    color: var(--green);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+
+  /* DIVIDER */
+  .divider {
+    width: 100%;
+    height: 1px;
+    background: var(--border);
+  }
+
+  /* NAV */
+  nav {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 40px;
+    background: rgba(10,10,15,0.85);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .nav-logo {
+    font-family: 'Playfair Display', serif;
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+  }
+
+  .nav-logo span { color: var(--accent); }
+
+  .nav-links {
+    display: flex;
+    gap: 32px;
+    list-style: none;
+  }
+
+  .nav-links a {
+    color: var(--muted);
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 500;
+    transition: color 0.2s;
+  }
+
+  .nav-links a:hover { color: var(--text); }
+
+  /* FADE IN ANIMATIONS */
+  .fade-in {
+    opacity: 0;
+    transform: translateY(24px);
+    transition: opacity 0.7s ease, transform 0.7s ease;
+  }
+
+  .fade-in.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  @media (max-width: 900px) {
+    .moments-grid { grid-template-columns: 1fr; }
+    .channels-grid { grid-template-columns: 1fr; }
+    .agents-grid { grid-template-columns: 1fr 1fr; }    .flow-steps { grid-template-columns: 1fr; }
+    .flow-connector { display: none; }
+    .rules-grid { grid-template-columns: 1fr; }
+    .roadmap-grid { grid-template-columns: 1fr; }
+    nav { padding: 16px 20px; }
+    .nav-links { display: none; }
+    section { padding: 60px 20px; }
+    .journey, .agents-section, .roadmap-section, .ocs-section, .cta-section { padding: 60px 20px; }
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-logo">MY HOST <span>BizMate</span></div>
+  <ul class="nav-links">
+    <li><a href="#journey">How It Works</a></li>
+    <li><a href="#channels">Channels</a></li>
+    <li><a href="#agents">AI Agents</a></li>
+    <li><a href="#ocs">Owner Control</a></li>
+    <li><a href="#roadmap">Roadmap</a></li>
+  </ul>
+</nav>
+
+<!-- HERO -->
+<div class="hero" id="home">
+  <div class="hero-bg"></div>
+  <div class="hero-grid"></div>
+  <div class="hero-badge">Nismara Uma Villa · Pilot 2026</div>
+  <h1>Your property runs<br><span>itself.</span></h1>
+  <p class="hero-sub">MY HOST BizMate is an AI platform that handles guest communications, bookings, decisions, and reporting — 24/7, in any language.</p>
+  <div class="hero-stats">
+    <div class="hero-stat">
+      <div class="hero-stat-num">7<span>+</span></div>
+      <div class="hero-stat-label">AI Agents Active</div>
+    </div>
+    <div class="hero-stat">
+      <div class="hero-stat-num">3</div>
+      <div class="hero-stat-label">Languages</div>
+    </div>
+    <div class="hero-stat">
+      <div class="hero-stat-num">24<span>/7</span></div>
+      <div class="hero-stat-label">Always On</div>
+    </div>
+    <div class="hero-stat">
+      <div class="hero-stat-num">0</div>
+      <div class="hero-stat-label">Missed Enquiries</div>
+    </div>
+  </div>
+  <div class="scroll-hint">
+    <span>scroll</span>
+    <div class="scroll-hint-line"></div>
+  </div>
+</div>
+
+<!-- 3 MOMENTS -->
+<div class="journey" id="journey">
+  <div class="journey-inner">
+    <div class="journey-header fade-in">
+      <div class="section-label">The Guest Journey</div>
+      <h2 class="section-title">Three moments that matter</h2>
+      <p class="section-desc" style="margin: 0 auto;">Your system works silently across every stage — from first contact to next booking.</p>
+    </div>
+
+    <div class="moments-grid fade-in">
+      <div class="moment m1">
+        <div class="moment-num">1</div>
+        <span class="moment-icon">🌅</span>
+        <div class="moment-phase">Before Arrival</div>
+        <div class="moment-title">Convert interest into bookings</div>
+        <div class="moment-desc">A guest discovers your property — on Airbnb, Instagram, or WhatsApp. BANYU responds instantly, answers questions, and guides them to book. KORA handles phone calls. No enquiry goes unanswered, ever.</div>
+        <div class="moment-tags">
+          <span class="tag tag-blue">BANYU · WhatsApp</span>
+          <span class="tag tag-blue">KORA · Voice</span>
+          <span class="tag tag-orange">Lead capture</span>
+          <span class="tag tag-orange">Auto follow-up</span>
+          <span class="tag tag-green">Availability check</span>
+          <span class="tag tag-green">Booking confirmation</span>
+        </div>
+      </div>
+
+      <div class="moment m2">
+        <div class="moment-num">2</div>
+        <span class="moment-icon">🌴</span>
+        <div class="moment-phase">During Stay</div>
+        <div class="moment-title">Delight guests. Decide less.</div>
+        <div class="moment-desc">Guests request late checkout, transport, or a special arrangement. The system handles it automatically — or asks you only when it truly needs your decision. You stay in control without being on call.</div>
+        <div class="moment-tags">
+          <span class="tag tag-green">Auto-approved requests</span>
+          <span class="tag tag-orange">Owner alerts only when needed</span>
+          <span class="tag tag-purple">Cultural tips · NUSANTARA</span>
+          <span class="tag tag-blue">Service requests</span>
+        </div>
+      </div>
+
+      <div class="moment m3">
+        <div class="moment-num">3</div>
+        <span class="moment-icon">🌙</span>
+        <div class="moment-phase">After Checkout</div>
+        <div class="moment-title">Learn, report, and rebook.</div>
+        <div class="moment-desc">After every stay, you get a full performance briefing — revenue, occupancy, guest feedback, decisions made. OSIRIS answers any business question. The system identifies gap nights and revenue opportunities automatically.</div>
+        <div class="moment-tags">
+          <span class="tag tag-purple">OSIRIS · Business Intelligence</span>
+          <span class="tag tag-yellow">Daily / Weekly / Monthly reports</span>
+          <span class="tag tag-orange">Revenue opportunities</span>
+          <span class="tag tag-green">Re-booking follow-up</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- CHANNELS -->
+<section id="channels">
+  <div class="fade-in">
+    <div class="section-label">Communication Channels</div>
+    <h2 class="section-title">Every channel.<br>One system.</h2>
+    <p class="section-desc">Guests can reach you on WhatsApp, phone, web, or OTA. All conversations flow into the same place — and the AI handles them all.</p>
+  </div>
+
+  <div class="channels-grid fade-in">
+    <div class="channel-card wa">
+      <div class="channel-header">
+        <div class="channel-icon" style="background:rgba(37,211,102,0.1);">💬</div>
+        <div>
+          <div class="channel-name">WhatsApp</div>
+          <div class="channel-agent">Agent: BANYU</div>
+        </div>
+        <div style="margin-left:auto;"><span class="live-badge">Live</span></div>
+      </div>
+      <p class="channel-desc">The main channel for guest communication. BANYU replies in English, Indonesian, or Spanish — instantly, 24/7. Detects intent, creates bookings, escalates to you when needed.</p>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <span class="tag tag-green">EN / ID / ES</span>
+        <span class="tag tag-green">Auto-responses</span>
+        <span class="tag tag-green">Smart escalation</span>
+      </div>
+    </div>
+
+    <div class="channel-card voice">
+      <div class="channel-header">
+        <div class="channel-icon" style="background:rgba(76,201,240,0.1);">📞</div>
+        <div>
+          <div class="channel-name">Voice Calls</div>
+          <div class="channel-agent">Agent: KORA Squad</div>
+        </div>
+        <div style="margin-left:auto;"><span class="live-badge">Live</span></div>
+      </div>
+      <p class="channel-desc">KORA answers phone calls, checks availability, takes bookings, and handles guest queries. After every call, a full summary is logged automatically.</p>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <span class="tag tag-blue">EN / ID / ES</span>
+        <span class="tag tag-blue">Post-call logging</span>
+        <span class="tag tag-blue">Voice booking</span>
+      </div>
+    </div>
+
+    <div class="channel-card web">
+      <div class="channel-header">
+        <div class="channel-icon" style="background:rgba(255,107,53,0.1);">🌐</div>
+        <div>
+          <div class="channel-name">Property Website</div>
+          <div class="channel-agent">Landing page + KORA widget</div>
+        </div>
+        <div style="margin-left:auto;"><span class="live-badge">Live</span></div>
+      </div>
+      <p class="channel-desc">Your public property website with real-time availability and an embedded KORA voice widget. Guests can call directly from the browser without installing anything.</p>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <span class="tag tag-orange">Direct bookings</span>
+        <span class="tag tag-orange">Voice widget</span>
+        <span class="tag tag-orange">No OTA commission</span>
+      </div>
+    </div>
+
+    <div class="channel-card ota">
+      <div class="channel-header">
+        <div class="channel-icon" style="background:rgba(255,56,92,0.1);">🏠</div>
+        <div>
+          <div class="channel-name">OTA Channels</div>
+          <div class="channel-agent">Airbnb · Booking.com + Zodomus</div>
+        </div>
+        <div style="margin-left:auto;"><span class="live-badge">Live</span></div>
+      </div>
+      <p class="channel-desc">Airbnb and Booking.com bookings sync automatically. Zodomus channel manager (coming) will unify all OTA calendars, pricing, and availability in real time.</p>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <span class="tag tag-orange">Auto-sync</span>
+        <span class="tag tag-orange">No double bookings</span>
+        <span class="tag tag-yellow">Zodomus · Soon</span>
+      </div>
+    </div>
+
+    <div class="channel-card email">
+      <div class="channel-header">
+        <div class="channel-icon" style="background:rgba(177,133,219,0.1);">✉️</div>
+        <div>
+          <div class="channel-name">Email</div>
+          <div class="channel-agent">Resend · Automated sequences</div>
+        </div>
+        <div style="margin-left:auto;"><span class="soon-badge">Coming Soon</span></div>
+      </div>
+      <p class="channel-desc">Automated email sequences for booking confirmations, pre-arrival tips, post-stay thank-yous, and re-booking offers. Powered by Resend with beautiful templates.</p>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <span class="tag tag-purple">Pre-arrival emails</span>
+        <span class="tag tag-purple">Post-stay follow-up</span>
+        <span class="tag tag-purple">Resend integration</span>
+      </div>
+    </div>
+
+    <div class="channel-card content">
+      <div class="channel-header">
+        <div class="channel-icon" style="background:rgba(255,209,102,0.1);">🎬</div>
+        <div>
+          <div class="channel-name">Content & Video</div>
+          <div class="channel-agent">MAIA · Content Studio</div>
+        </div>
+        <div style="margin-left:auto;"><span class="soon-badge">Coming Soon</span></div>
+      </div>
+      <p class="channel-desc">AI-generated social media content, short-form video, and marketing campaigns tailored to your property. Competitor monitoring and market intelligence included.</p>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <span class="tag tag-yellow">Social content</span>
+        <span class="tag tag-yellow">Video creation</span>
+        <span class="tag tag-yellow">Market intelligence</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- AGENTS -->
+<div class="agents-section" id="agents">
+  <div class="agents-inner">
+    <div class="fade-in">
+      <div class="section-label">The AI Team</div>
+      <h2 class="section-title">Six agents.<br>One team working for you.</h2>
+      <p class="section-desc">Each agent has a specialty. Together they cover every aspect of your property operation — automatically.</p>
+    </div>
+
+    <div class="agents-grid fade-in">
+      <div class="agent-card">
+        <div class="agent-glow" style="background:var(--green);"></div>
+        <span class="agent-emoji">💬</span>
+        <div class="agent-name">BANYU</div>
+        <div class="agent-role" style="color:var(--green);">WhatsApp Concierge</div>
+        <p class="agent-desc">Your front-line guest communicator. Responds instantly on WhatsApp in any language. Detects what guests need and handles it — or escalates to you when a real decision is required.</p>
+      </div>
+
+      <div class="agent-card">
+        <div class="agent-glow" style="background:var(--blue);"></div>
+        <span class="agent-emoji">📞</span>
+        <div class="agent-name">KORA</div>
+        <div class="agent-role" style="color:var(--blue);">Voice AI Assistant</div>
+        <p class="agent-desc">Answers phone calls 24/7. Checks availability, takes bookings, answers FAQs, and creates a full call summary automatically after every conversation.</p>
+      </div>
+
+      <div class="agent-card">
+        <div class="agent-glow" style="background:var(--purple);"></div>
+        <span class="agent-emoji">🧠</span>
+        <div class="agent-name">OSIRIS</div>
+        <div class="agent-role" style="color:var(--purple);">Business Intelligence</div>
+        <p class="agent-desc">Ask any business question in plain language: "What was my revenue last month?" or "Which property has the most cancellations?" OSIRIS answers with real data instantly.</p>
+      </div>
+
+      <div class="agent-card">
+        <div class="agent-glow" style="background:var(--accent2);"></div>
+        <span class="agent-emoji">🌺</span>
+        <div class="agent-name">NUSANTARA</div>
+        <div class="agent-role" style="color:var(--accent2);">Cultural Intelligence</div>
+        <p class="agent-desc">Deep knowledge of Bali — ceremonies, events, local etiquette, zones, and sacred sites. Helps BANYU and KORA give guests a genuinely local, enriching experience.</p>
+      </div>
+
+      <div class="agent-card">
+        <div class="agent-glow" style="background:var(--accent);"></div>
+        <span class="agent-emoji">⚡</span>
+        <div class="agent-name">AUTOPILOT</div>
+        <div class="agent-role" style="color:var(--accent);">Task Execution</div>
+        <p class="agent-desc">The execution engine behind Owner Control. Auto-approves routine requests, sends notifications, updates records, and keeps everything in sync — without you lifting a finger.</p>
+      </div>
+
+      <div class="agent-card">
+        <div class="agent-glow" style="background:var(--red);"></div>
+        <span class="agent-emoji">💡</span>
+        <div class="agent-name">LUMINA</div>
+        <div class="agent-role" style="color:var(--red);">Sales & Leads</div>
+        <p class="agent-desc">Enriches every lead with context — new vs returning guest, booking history, intent signals. Routes the right information to the right place automatically.</p>
+      </div>
+
+      <div class="agent-card">
+        <div class="agent-glow" style="background:#ff6b9d;"></div>
+        <span class="agent-emoji">🎯</span>
+        <div class="agent-name">IRIS</div>
+        <div class="agent-role" style="color:#ff6b9d;">Marketing Intelligence</div>
+        <p class="agent-desc">Monitors competitors, tracks market trends, and identifies pricing opportunities. Gives you the strategic intelligence to stay ahead — who's booking, at what price, and why.</p>
+      </div>
+
+      <div class="agent-card">
+        <div class="agent-glow" style="background:var(--accent2);"></div>
+        <span class="agent-emoji">🔮</span>
+        <div class="agent-name">AURA</div>
+        <div class="agent-role" style="color:var(--accent2);">Insights & Predictions</div>
+        <p class="agent-desc">Turns your historical data into forward-looking intelligence. Predicts demand, identifies seasonal patterns, and recommends actions before problems arise — your AI forecasting engine.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- OCS -->
+<div class="ocs-section" id="ocs">
+  <div class="ocs-inner">
+    <div class="fade-in">
+      <div class="section-label">Owner Control System</div>
+      <h2 class="section-title">You decide.<br>The system executes.</h2>
+      <p class="section-desc">When a guest makes a special request, here's exactly what happens — with or without you needing to do anything.</p>
+    </div>
+
+    <div class="flow-container fade-in">
+      <div class="flow-connector"></div>
+      <div class="flow-steps">
+        <div class="flow-step">
+          <div class="flow-circle" style="color:var(--blue);border-color:rgba(76,201,240,0.4);">💬</div>
+          <div class="flow-step-title">Guest Request</div>
+          <div class="flow-step-desc">Guest sends message via WhatsApp or calls KORA</div>
+        </div>
+        <div class="flow-step">
+          <div class="flow-circle" style="color:var(--accent);border-color:rgba(255,107,53,0.4);">🔍</div>
+          <div class="flow-step-title">BANYU Detects</div>
+          <div class="flow-step-desc">Intent classified: late checkout, refund, transport, etc.</div>
+        </div>
+        <div class="flow-step">
+          <div class="flow-circle" style="color:var(--accent2);border-color:rgba(255,209,102,0.4);">⚖️</div>
+          <div class="flow-step-title">Rules Applied</div>
+          <div class="flow-step-desc">Your personal rules decide: auto-approve or escalate</div>
+        </div>
+        <div class="flow-step">
+          <div class="flow-circle" style="color:var(--green);border-color:rgba(6,214,160,0.4);">✅</div>
+          <div class="flow-step-title">Auto or Ask You</div>
+          <div class="flow-step-desc">Routine → handled. Complex → you get a notification</div>
+        </div>
+        <div class="flow-step">
+          <div class="flow-circle" style="color:var(--purple);border-color:rgba(177,133,219,0.4);">📊</div>
+          <div class="flow-step-title">Logged & Reported</div>
+          <div class="flow-step-desc">Everything recorded. Visible in Daily / Weekly / Monthly</div>
+        </div>
+      </div>
+    </div>
+
+    <div style="margin-top:60px;" class="fade-in">
+      <div class="section-label">Your Personal Rules · Nismara</div>
+      <h3 style="font-family:'Playfair Display',serif;font-size:28px;font-weight:700;margin-bottom:8px;">Auto-approved vs escalated to you</h3>
+      <p style="color:var(--muted);font-size:15px;margin-bottom:0;">These rules are yours — and you can change them any time.</p>
+
+      <div class="rules-grid">
+        <div class="rule-item">
+          <div class="rule-icon rule-auto">✅</div>
+          <div class="rule-text"><strong>Late checkout ≤ 14:00</strong><span>Automatically approved and guest notified</span></div>
+        </div>
+        <div class="rule-item">
+          <div class="rule-icon rule-escalate">🔔</div>
+          <div class="rule-text"><strong>Late checkout > 14:00</strong><span>Escalated to you with a notification</span></div>
+        </div>
+        <div class="rule-item">
+          <div class="rule-icon rule-auto">✅</div>
+          <div class="rule-text"><strong>Discount ≤ 10%</strong><span>Automatically approved</span></div>
+        </div>
+        <div class="rule-item">
+          <div class="rule-icon rule-escalate">🔔</div>
+          <div class="rule-text"><strong>Discount > 10%</strong><span>You decide — system waits for your approval</span></div>
+        </div>
+        <div class="rule-item">
+          <div class="rule-icon rule-auto">✅</div>
+          <div class="rule-text"><strong>Transport & special requests</strong><span>Always auto-approved — standard service</span></div>
+        </div>
+        <div class="rule-item">
+          <div class="rule-icon rule-escalate">🔔</div>
+          <div class="rule-text"><strong>Refund / cancellation / date change</strong><span>Always escalated — financial impact</span></div>
+        </div>
+        <div class="rule-item">
+          <div class="rule-icon rule-auto">✅</div>
+          <div class="rule-text"><strong>Early check-in ≥ 10:00</strong><span>Automatically approved</span></div>
+        </div>
+        <div class="rule-item">
+          <div class="rule-icon rule-escalate">🔔</div>
+          <div class="rule-text"><strong>Complaint mentioning reviews</strong><span>Escalated immediately — reputation risk</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ROADMAP -->
+<div class="roadmap-section" id="roadmap">
+  <div class="roadmap-inner">
+    <div class="fade-in">
+      <div class="section-label">What's Coming</div>
+      <h2 class="section-title">The platform keeps growing.</h2>
+      <p class="section-desc">Everything that's live today, what's being built right now, and what's on the horizon.</p>
+    </div>
+
+    <div class="roadmap-grid fade-in">
+      <div class="roadmap-col">
+        <div class="roadmap-col-header">
+          <span class="live-badge">Live now</span>
+          <span class="roadmap-col-title" style="margin-left:8px;">Active</span>
+        </div>
+        <div class="roadmap-item">
+          <div class="roadmap-dot" style="background:var(--green);"></div>
+          <div class="roadmap-item-text"><strong>BANYU</strong> — WhatsApp AI in EN/ID/ES</div>
+        </div>
+        <div class="roadmap-item">
+          <div class="roadmap-dot" style="background:var(--green);"></div>
+          <div class="roadmap-item-text"><strong>KORA</strong> — Voice AI with 3 languages</div>
+        </div>
+        <div class="roadmap-item">
+          <div class="roadmap-dot" style="background:var(--green);"></div>
+          <div class="roadmap-item-text"><strong>OSIRIS</strong> — Business Intelligence chat</div>
+        </div>
+        <div class="roadmap-item">
+          <div class="roadmap-dot" style="background:var(--green);"></div>
+          <div class="roadmap-item-text"><strong>Owner Control System</strong> — decisions dashboard</div>
+        </div>
+        <div class="roadmap-item">
+          <div class="roadmap-dot" style="background:var(--green);"></div>
+          <div class="roadmap-item-text"><strong>Daily / Weekly / Monthly</strong> reports</div>
+        </div>
+        <div class="roadmap-item">
+          <div class="roadmap-dot" style="background:var(--green);"></div>
+          <div class="roadmap-item-text"><strong>Airbnb + Booking.com</strong> sync</div>
+        </div>
+        <div class="roadmap-item">
+          <div class="roadmap-dot" style="background:var(--green);"></div>
+          <div class="roadmap-item-text"><strong>IRIS</strong> — Marketing Intelligence agent</div>
+        </div>
+        <div class="roadmap-item">
+          <div class="roadmap-dot" style="background:var(--green);"></div>
+          <div class="roadmap-item-text"><strong>AURA</strong> — Insights & Predictions agent</div>
+        </div>
+        <div class="roadmap-item">
+          <div class="roadmap-dot" style="background:var(--green);"></div>
+          <div class="roadmap-item-text"><strong>NUSANTARA</strong> — Bali cultural AI</div>
+        </div>
+      </div>
+
+      <div class="roadmap-col">
+        <div class="roadmap-col-header">
+          <span class="soon-badge">Q2 2026</span>
+          <span class="roadmap-col-title" style="margin-left:8px;">In Progress</span>
+        </div>
+        <div class="roadmap-item">
+          <div class="roadmap-dot" style="background:var(--accent2);"></div>
+          <div class="roadmap-item-text"><strong>Zodomus</strong> — unified channel manager. One place for all OTA calendars & pricing</div>
+        </div>
+        <div class="roadmap-item">
+          <div class="roadmap-dot" style="background:var(--accent2);"></div>
+          <div class="roadmap-item-text"><strong>Resend Email</strong> — automated sequences for pre-arrival, post-stay, and re-booking</div>
+        </div>
+        <div class="roadmap-item">
+          <div class="roadmap-dot" style="background:var(--accent2);"></div>
+          <div class="roadmap-item-text"><strong>Revenue Opportunities</strong> — AI detects gap nights and upsell moments automatically</div>
+        </div>
+        <div class="roadmap-item">
+          <div class="roadmap-dot" style="background:var(--accent2);"></div>
+          <div class="roadmap-item-text"><strong>WhatsApp notifications</strong> for Nismara — pending Meta WABA approval</div>
+        </div>
+        <div class="roadmap-item">
+          <div class="roadmap-dot" style="background:var(--accent2);"></div>
+          <div class="roadmap-item-text"><strong>Multi-property expansion</strong> — onboarding next boutique hotels in Bali</div>
+        </div>
+      </div>
+
+      <div class="roadmap-col">
+        <div class="roadmap-col-header">
+          <div style="width:10px;height:10px;border-radius:50%;background:var(--purple);"></div>
+          <span class="roadmap-col-title" style="margin-left:8px;">H2 2026 & Beyond</span>
+        </div>
+        <div class="roadmap-item">
+          <div class="roadmap-dot" style="background:var(--purple);"></div>
+          <div class="roadmap-item-text"><strong>MAIA Content Studio</strong> — AI video, social media content, and campaign creation</div>
+        </div>
+        <div class="roadmap-item">
+          <div class="roadmap-dot" style="background:var(--purple);"></div>
+          <div class="roadmap-item-text"><strong>Dynamic pricing AI</strong> — rates adjusted automatically based on demand and competition</div>
+        </div>
+        <div class="roadmap-item">
+          <div class="roadmap-dot" style="background:var(--purple);"></div>
+          <div class="roadmap-item-text"><strong>Guest profiles</strong> — memory across stays, preferences, loyalty recognition</div>
+        </div>
+        <div class="roadmap-item">
+          <div class="roadmap-dot" style="background:var(--purple);"></div>
+          <div class="roadmap-item-text"><strong>IRIS + AURA</strong> — new specialist agents for revenue and experience optimization</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- CTA -->
+<div class="cta-section">
+  <h2 class="cta-title fade-in">The future of<br><em>hospitality management</em><br>is already here.</h2>
+  <p class="cta-desc fade-in">Nismara is running it today. Every guest interaction, every decision, every report — automated and intelligent.</p>
+  <div class="cta-items fade-in">
+    <div class="cta-item">Responds in seconds, not hours</div>
+    <div class="cta-item">Works while you sleep</div>
+    <div class="cta-item">Learns your preferences</div>
+    <div class="cta-item">Zero missed enquiries</div>
+    <div class="cta-item">Full visibility, always</div>
+  </div>
+</div>
+
+<script>
+  // Intersection Observer for fade-in
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach((entry, i) => {
+      if (entry.isIntersecting) {
+        setTimeout(() => {
+          entry.target.classList.add('visible');
+        }, 100);
+        observer.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.1 });
+
+  document.querySelectorAll('.fade-in').forEach(el => observer.observe(el));
+
+  // Stagger fade-ins within grids
+  document.querySelectorAll('.moments-grid .moment, .channels-grid .channel-card, .agents-grid .agent-card, .roadmap-grid .roadmap-col').forEach((el, i) => {
+    el.style.transitionDelay = (i * 0.1) + 's';
+    el.classList.add('fade-in');
+    observer.observe(el);
+  });
+</script>
+
+</body>
+</html>
