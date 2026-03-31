@@ -6865,7 +6865,7 @@ const Autopilot = ({ onBack }) => {
         const matchesPriority = filterDecisionPriority === 'All' || decision.priority === filterDecisionPriority;
         const matchesType = filterDecisionType === 'All' || decision.decision_type === filterDecisionType;
         const matchesAgent = filterDecisionAgent === 'All' || decision.generated_by_agent?.toUpperCase() === filterDecisionAgent;
-        const matchesProperty = filterDecisionProperty === 'All' || !decision.villa_name || decision.villa_name === filterDecisionProperty;
+        const matchesProperty = filterDecisionProperty === 'All' || decision.villa_name === filterDecisionProperty;
 
         // Date filtering based on period (Daily/Weekly/Monthly) with Bali timezone (UTC+8)
         let matchesDate = true;
@@ -6915,6 +6915,17 @@ const Autopilot = ({ onBack }) => {
             const endOfMonthUTC = new Date(endOfMonthBali.getTime() - (8 * 60 * 60 * 1000));
 
             matchesDate = decisionDate >= startOfMonthUTC && decisionDate <= endOfMonthUTC;
+          } else if (filterDecisionPeriod === 'custom') {
+            // Custom date range
+            if (customDecisionDateFrom && customDecisionDateTo) {
+              const fromDate = new Date(customDecisionDateFrom);
+              fromDate.setHours(0, 0, 0, 0);
+
+              const toDate = new Date(customDecisionDateTo);
+              toDate.setHours(23, 59, 59, 999);
+
+              matchesDate = decisionDate >= fromDate && decisionDate <= toDate;
+            }
           }
         }
 
@@ -7035,19 +7046,6 @@ const Autopilot = ({ onBack }) => {
                 ))}
               </select>
 
-              {/* Date Filter */}
-              <select
-                value={filterDecisionDate}
-                onChange={(e) => setFilterDecisionDate(e.target.value)}
-                className="px-3 py-2.5 bg-[#1f2937] text-white rounded-xl text-sm border border-[#d85a2a]/30 focus:border-[#d85a2a] outline-none"
-              >
-                <option value="all">All Dates</option>
-                <option value="today">Today</option>
-                <option value="week">This Week</option>
-                <option value="month">This Month</option>
-                <option value="custom">Custom Range</option>
-              </select>
-
               {/* Period Filter */}
               <select
                 value={filterDecisionPeriod}
@@ -7058,6 +7056,7 @@ const Autopilot = ({ onBack }) => {
                 <option value="daily">Daily</option>
                 <option value="weekly">Weekly</option>
                 <option value="monthly">Monthly</option>
+                <option value="custom">Custom Range</option>
               </select>
 
               {/* Search */}
@@ -7074,7 +7073,7 @@ const Autopilot = ({ onBack }) => {
             </div>
 
             {/* Custom Date Range (if selected) */}
-            {filterDecisionDate === 'custom' && (
+            {filterDecisionPeriod === 'custom' && (
               <div className="grid grid-cols-2 gap-3 mt-3">
                 <div>
                   <label className="text-xs text-gray-400 mb-1 block">From</label>
