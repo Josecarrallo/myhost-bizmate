@@ -76,8 +76,8 @@ export const getTodayPendingDecisions = async (tenantId) => {
 };
 
 /**
- * Get Daily Summary from n8n API v2.4
- * ⚠️ ENDPOINT CHANGED: /dailysummary-v2 → /dailysummary-v4
+ * Get Daily Summary from n8n API v2.5
+ * ⚠️ ENDPOINT CHANGED: /dailysummary-v4 → /dailysummary-v5
  * @param {string} tenantId - The tenant ID
  * @param {string} propertyId - The property ID
  * @param {string} date - Date in YYYY-MM-DD format (optional, defaults to today)
@@ -86,10 +86,10 @@ export const getTodayPendingDecisions = async (tenantId) => {
 export const getDailySummaryAPI = async (tenantId, propertyId, date = null) => {
   try {
     const targetDate = date || new Date().toISOString().split('T')[0];
-    console.log('🔄 getDailySummaryAPI v2.4 called for:', { tenantId, propertyId, targetDate });
+    console.log('🔄 getDailySummaryAPI v2.5 called for:', { tenantId, propertyId, targetDate });
 
     const response = await fetch(
-      'https://n8n-production-bb2d.up.railway.app/webhook/autopilot/dailysummary-v4',
+      'https://n8n-production-bb2d.up.railway.app/webhook/autopilot/dailysummary-v5',
       {
         method: 'POST',
         headers: {
@@ -109,7 +109,7 @@ export const getDailySummaryAPI = async (tenantId, propertyId, date = null) => {
     }
 
     const data = await response.json();
-    console.log('✅ Daily Summary API v2.4 FULL RESPONSE:', data);
+    console.log('✅ Daily Summary API v2.5 FULL RESPONSE:', data);
     console.log('📊 Daily Summary API KPIs:', {
       'occupancy_rate': data.kpis?.occupancy_rate,
       'occupancy_label': data.kpis?.occupancy_label,

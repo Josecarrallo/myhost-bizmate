@@ -7180,7 +7180,7 @@ const Autopilot = ({ onBack }) => {
                       </p>
                     </div>
 
-                    {/* KPI 3: Revenue confirmado - PRE-CALCULADO del API */}
+                    {/* KPI 3: Confirmed revenue - PRE-CALCULADO del API */}
                     {(() => {
                       const inHouseGuests = dailySummaryAPI?.in_house_guests || [];
 
@@ -7261,9 +7261,9 @@ const Autopilot = ({ onBack }) => {
                             <th className="pb-2 pr-2 md:pr-3 text-gray-400">Villa</th>
                             <th className="pb-2 pr-2 md:pr-3 text-gray-400">Check-in</th>
                             <th className="pb-2 pr-2 md:pr-3 text-gray-400">Check-out</th>
-                            <th className="pb-2 pr-2 md:pr-3 text-gray-400">Noches</th>
+                            <th className="pb-2 pr-2 md:pr-3 text-gray-400">Nights</th>
                             <th className="pb-2 pr-2 md:pr-3 text-gray-400">Revenue IDR</th>
-                            <th className="pb-2 pr-2 md:pr-3 text-gray-400">Canal</th>
+                            <th className="pb-2 pr-2 md:pr-3 text-gray-400">Channel</th>
                             <th className="pb-2 text-gray-400">Status</th>
                           </tr>
                         </thead>
@@ -7284,12 +7284,15 @@ const Autopilot = ({ onBack }) => {
                               Math.ceil((checkOut - checkIn) / (1000 * 60 * 60 * 24)) :
                               '--';
 
-                            // BUG 1 FIX: Status badge
+                            // BUG 1 FIX: Status badge with all possible states
                             const status = guest.status || 'confirmed';
-                            const statusBadge = status === 'confirmed' ? 'bg-[#D1FAE5] text-[#065F46]' :
-                                               status === 'checked_out' ? 'bg-[#F3F4F6] text-[#6B7280]' :
-                                               status === 'cancelled' ? 'bg-[#FEE2E2] text-[#991B1B]' :
-                                               'bg-[#FEF3C7] text-[#92400E]';
+                            const statusBadge = status === 'confirmed' ? 'bg-blue-100 text-blue-800' :
+                                               status === 'checked_in' ? 'bg-green-100 text-green-800' :
+                                               status === 'checked_out' ? 'bg-gray-100 text-gray-700' :
+                                               status === 'cancelled' ? 'bg-red-100 text-red-800' :
+                                               status === 'provisional' ? 'bg-yellow-100 text-yellow-800' :
+                                               status === 'pending_payment' ? 'bg-orange-100 text-orange-800' :
+                                               'bg-gray-100 text-gray-700';
 
                             return (
                               <tr key={idx} className="text-gray-300">
@@ -7314,7 +7317,7 @@ const Autopilot = ({ onBack }) => {
                   </div>
                 )}
 
-                {/* Revenue por villa - v4.3 NUEVO del API */}
+                {/* Revenue by villa - v4.3 NUEVO del API */}
                 {(() => {
                   const revenueByVilla = filteredDaily?.revenue_by_villa;
                   if (!revenueByVilla || typeof revenueByVilla !== 'object') return null;
@@ -7327,7 +7330,7 @@ const Autopilot = ({ onBack }) => {
                     <div className="bg-[#1f2937] p-5 rounded-lg border border-purple-500/30">
                       <h4 className="text-lg font-bold text-purple-400 mb-4 flex items-center gap-2">
                         <TrendingUp className="w-5 h-5" />
-                        Revenue por villa
+                        Revenue by villa
                       </h4>
                       <div className="overflow-x-auto">
                         <table className="w-full min-w-[300px] text-left text-xs md:text-sm">
@@ -7471,7 +7474,7 @@ const Autopilot = ({ onBack }) => {
                       ) : (
                         <div className="flex items-center gap-3 text-gray-300 p-4 bg-[#2a2f3a] rounded-lg">
                           <span className="text-2xl">✅</span>
-                          <p className="text-lg font-semibold">No hay decisiones pendientes hoy. Todas resueltas.</p>
+                          <p className="text-lg font-semibold">No pending decisions today.</p>
                         </div>
                       )}
                     </div>
@@ -7620,7 +7623,7 @@ const Autopilot = ({ onBack }) => {
                                     <div className="break-words">{guestName}</div>
                                   </td>
                                   <td className="py-1 pr-2 md:py-2 md:pr-3 align-top">
-                                    <div className="break-words">{request.description || request.request || request.title || 'N/A'}</div>
+                                    <div className="break-words">{request.request || request.description || 'N/A'}</div>
                                   </td>
                                   <td className="py-1 md:py-2">
                                     {isApproved && (
@@ -7759,12 +7762,12 @@ const Autopilot = ({ onBack }) => {
                         <p className="text-xl md:text-3xl font-bold text-blue-400">
                           {filteredSummary.total_bookings || 0}
                         </p>
-                        <p className="text-xs text-gray-500 mt-1">esta semana</p>
+                        <p className="text-xs text-gray-500 mt-1">this week</p>
                       </div>
 
-                      {/* KPI 3: Revenue confirmado */}
+                      {/* KPI 3: Confirmed revenue */}
                       <div className="bg-[#1f2937] p-4 rounded-lg border border-purple-500/30 text-center">
-                        <p className="text-gray-400 text-sm mb-1">Revenue confirmado</p>
+                        <p className="text-gray-400 text-sm mb-1">Confirmed revenue</p>
                         <p className="text-sm md:text-xl font-bold text-purple-400 whitespace-nowrap">
                           {formatIDR(filteredSummary.revenue_total_idr || filteredSummary.revenue_total || 0)}
                         </p>
@@ -7814,9 +7817,9 @@ const Autopilot = ({ onBack }) => {
                                 <th className="pb-2 pr-4 text-gray-400">Villa</th>
                                 <th className="pb-2 pr-3 text-gray-400">Check-in</th>
                                 <th className="pb-2 pr-3 text-gray-400">Check-out</th>
-                                <th className="pb-2 pr-3 text-gray-400 text-center">Noches</th>
+                                <th className="pb-2 pr-3 text-gray-400 text-center">Nights</th>
                                 <th className="pb-2 pr-3 text-gray-400">Revenue IDR</th>
-                                <th className="pb-2 pr-3 text-gray-400">Canal</th>
+                                <th className="pb-2 pr-3 text-gray-400">Channel</th>
                                 <th className="pb-2 text-gray-400">Status</th>
                               </tr>
                             </thead>
@@ -7861,15 +7864,15 @@ const Autopilot = ({ onBack }) => {
                           </table>
                         </div>
                       ) : (
-                        <p className="text-gray-400 text-sm">0 bookings esta semana.</p>
+                        <p className="text-gray-400 text-sm">0 bookings this week.</p>
                       )}
                     </div>
 
-                    {/* Revenue por villa table - ALWAYS SHOW */}
+                    {/* Revenue by villa table - ALWAYS SHOW */}
                     <div className="bg-[#1f2937] p-5 rounded-lg border border-purple-500/30">
                       <h4 className="text-lg font-bold text-purple-400 mb-4 flex items-center gap-2">
                         <TrendingUp className="w-5 h-5" />
-                        Revenue por villa
+                        Revenue by villa
                       </h4>
                       {revenueByVilla && revenueByVilla.length > 0 ? (
                         <div className="overflow-x-auto">
@@ -7897,7 +7900,7 @@ const Autopilot = ({ onBack }) => {
                           </table>
                         </div>
                       ) : (
-                        <p className="text-gray-400 text-sm">0 villas esta semana.</p>
+                        <p className="text-gray-400 text-sm">0 villas this week.</p>
                       )}
                     </div>
 
@@ -8018,7 +8021,7 @@ const Autopilot = ({ onBack }) => {
                           </table>
                         </div>
                       ) : (
-                        <p className="text-gray-400 text-sm">0 decisiones pendientes de aprobacion esta semana.</p>
+                        <p className="text-gray-400 text-sm">No pending decisions this week.</p>
                       )}
                     </div>
 
@@ -8288,12 +8291,12 @@ const Autopilot = ({ onBack }) => {
                         <p className="text-3xl font-bold text-blue-400">
                           {summary.total_bookings || bookingTrends.total_bookings || 0}
                         </p>
-                        <p className="text-xs text-gray-500 mt-1">este mes</p>
+                        <p className="text-xs text-gray-500 mt-1">this month</p>
                       </div>
 
-                      {/* KPI 3: Revenue confirmado */}
+                      {/* KPI 3: Confirmed revenue */}
                       <div className="bg-[#1f2937] p-4 rounded-lg border border-purple-500/30 text-center">
-                        <p className="text-gray-400 text-sm mb-1">Revenue confirmado</p>
+                        <p className="text-gray-400 text-sm mb-1">Confirmed revenue</p>
                         <p className="text-3xl font-bold text-purple-400">
                           {formatIDR(summary.revenue_total_idr || summary.revenue_total || 0)}
                         </p>
@@ -8349,7 +8352,7 @@ const Autopilot = ({ onBack }) => {
                           ))}
                         </div>
                       ) : (
-                        <p className="text-gray-400 text-sm">0 decisiones pendientes de aprobacion esta semana.</p>
+                        <p className="text-gray-400 text-sm">No pending decisions this week.</p>
                       )}
                     </div>
 
@@ -8360,7 +8363,7 @@ const Autopilot = ({ onBack }) => {
                           <summary className="cursor-pointer list-none">
                             <h4 className="text-lg font-bold text-green-400 mb-4 flex items-center gap-2">
                               <CheckCircle className="w-5 h-5" />
-                              ✅ Auto-resolved este mes ({autoResolved.length})
+                              ✅ Auto-resolved this month ({autoResolved.length})
                               <span className="text-xs text-gray-400 ml-auto group-open:hidden">Click para expandir</span>
                               <span className="text-xs text-gray-400 ml-auto group-open:inline hidden">Click para colapsar</span>
                             </h4>
@@ -8383,7 +8386,7 @@ const Autopilot = ({ onBack }) => {
                       <div className="bg-[#1f2937] p-5 rounded-lg border border-blue-500/30">
                         <h4 className="text-lg font-bold text-blue-400 mb-4 flex items-center gap-2">
                           <ClipboardList className="w-5 h-5" />
-                          Bookings este mes ({bookingsList.length})
+                          Bookings this month ({bookingsList.length})
                         </h4>
                         <div className="overflow-x-auto">
                           <table className="w-full text-left text-sm">
@@ -8394,9 +8397,9 @@ const Autopilot = ({ onBack }) => {
                                 <th className="pb-2 text-gray-400">Villa</th>
                                 <th className="pb-2 text-gray-400">Check-in</th>
                                 <th className="pb-2 text-gray-400">Check-out</th>
-                                <th className="pb-2 text-gray-400">Noches</th>
+                                <th className="pb-2 text-gray-400">Nights</th>
                                 <th className="pb-2 text-gray-400">Revenue IDR</th>
-                                <th className="pb-2 text-gray-400">Canal</th>
+                                <th className="pb-2 text-gray-400">Channel</th>
                                 <th className="pb-2 text-gray-400">Status</th>
                               </tr>
                             </thead>
@@ -8436,12 +8439,12 @@ const Autopilot = ({ onBack }) => {
                       </div>
                     )}
 
-                    {/* Revenue por villa table */}
+                    {/* Revenue by villa table */}
                     {revenueByVilla && revenueByVilla.length > 0 && (
                       <div className="bg-[#1f2937] p-5 rounded-lg border border-purple-500/30">
                         <h4 className="text-lg font-bold text-purple-400 mb-4 flex items-center gap-2">
                           <TrendingUp className="w-5 h-5" />
-                          Revenue por villa
+                          Revenue by villa
                         </h4>
                         <div className="overflow-x-auto">
                           <table className="w-full text-left text-sm">
@@ -8516,18 +8519,18 @@ const Autopilot = ({ onBack }) => {
                       </div>
                     )}
 
-                    {/* Canales table */}
+                    {/* Channels table */}
                     {channels && channels.length > 0 && (
                       <div className="bg-[#1f2937] p-5 rounded-lg border border-pink-500/30">
                         <h4 className="text-lg font-bold text-pink-400 mb-4 flex items-center gap-2">
                           <MessageSquare className="w-5 h-5" />
-                          Canales
+                          Channels
                         </h4>
                         <div className="overflow-x-auto">
                           <table className="w-full text-left text-sm">
                             <thead>
                               <tr className="border-b border-gray-700">
-                                <th className="pb-2 text-gray-400">Canal</th>
+                                <th className="pb-2 text-gray-400">Channel</th>
                                 <th className="pb-2 text-gray-400 text-right">Bookings</th>
                               </tr>
                             </thead>
@@ -8544,12 +8547,12 @@ const Autopilot = ({ onBack }) => {
                       </div>
                     )}
 
-                    {/* Owner decisions este mes (with Fecha column) */}
+                    {/* Owner decisions this month (with Fecha column) */}
                     {decisionsList && decisionsList.length > 0 && (
                       <div className="bg-[#1f2937] p-5 rounded-lg border border-red-500/30">
                         <h4 className="text-lg font-bold text-red-400 mb-4 flex items-center gap-2">
                           <AlertCircle className="w-5 h-5" />
-                          Owner decisions este mes ({decisionsList.length})
+                          Owner decisions this month ({decisionsList.length})
                         </h4>
                         <div className="overflow-x-auto">
                           <table className="w-full text-left text-sm">
@@ -8604,12 +8607,12 @@ const Autopilot = ({ onBack }) => {
                       </div>
                     )}
 
-                    {/* Recomendaciones estratégicas */}
+                    {/* Strategic Recommendations */}
                     {strategicRecs && strategicRecs.length > 0 && (
                       <div className="bg-[#1f2937] p-5 rounded-lg border border-purple-500/30">
                         <h4 className="text-lg font-bold text-purple-400 mb-4 flex items-center gap-2">
                           <MessageSquare className="w-5 h-5" />
-                          Recomendaciones estratégicas
+                          Strategic Recommendations
                         </h4>
                         <div className="space-y-3">
                           {strategicRecs.map((rec, idx) => (
