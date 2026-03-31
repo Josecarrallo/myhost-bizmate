@@ -156,12 +156,12 @@ const MonthlyReport = ({
           <p className="text-xl md:text-3xl font-bold text-blue-400">
             {bookingsList.length}
           </p>
-          <p className="text-xs text-gray-500 mt-1">este mes</p>
+          <p className="text-xs text-gray-500 mt-1">this month</p>
         </div>
 
-        {/* KPI 3: Revenue confirmado */}
+        {/* KPI 3: Confirmed revenue */}
         <div className="bg-[#1f2937] p-4 rounded-lg border border-purple-500/30 text-center">
-          <p className="text-gray-400 text-sm mb-1">Revenue confirmado</p>
+          <p className="text-gray-400 text-sm mb-1">Confirmed revenue</p>
           <p className="text-sm md:text-xl font-bold text-purple-400 whitespace-nowrap">
             {formatIDR(summary.revenue_total_idr || summary.revenue_total || 0)}
           </p>
@@ -250,15 +250,15 @@ const MonthlyReport = ({
             </table>
           </div>
         ) : (
-          <p className="text-gray-400 text-sm">0 bookings este mes.</p>
+          <p className="text-gray-400 text-sm">0 bookings this month.</p>
         )}
       </div>
 
-      {/* Revenue por villa table - ALWAYS SHOW */}
+      {/* Revenue by villa table - ALWAYS SHOW */}
       <div className="bg-[#1f2937] p-5 rounded-lg border border-purple-500/30">
         <h4 className="text-lg font-bold text-purple-400 mb-4 flex items-center gap-2">
           <TrendingUp className="w-5 h-5" />
-          Revenue por villa
+          Revenue by villa
         </h4>
         {revenueByVilla && revenueByVilla.length > 0 ? (
           <div className="overflow-x-auto">
@@ -286,7 +286,7 @@ const MonthlyReport = ({
             </table>
           </div>
         ) : (
-          <p className="text-gray-400 text-sm">0 villas este mes.</p>
+          <p className="text-gray-400 text-sm">0 villas this month.</p>
         )}
       </div>
 
@@ -377,7 +377,7 @@ const MonthlyReport = ({
             </table>
           </div>
         ) : (
-          <p className="text-gray-400 text-sm">0 decisiones pendientes de aprobacion este mes.</p>
+          <p className="text-gray-400 text-sm">0 decisiones pendientes de aprobacion this month.</p>
         )}
       </div>
 
@@ -385,7 +385,7 @@ const MonthlyReport = ({
       <div className="bg-[#1f2937] p-5 rounded-lg border border-green-500/30">
         <h4 className="text-sm font-semibold text-green-400 mb-3 flex items-center gap-2">
           <CheckCircle className="w-5 h-5" />
-          Auto-resolved — {autoResolved.length} este mes
+          Auto-resolved — {autoResolved.length} this month
         </h4>
         {autoResolved && autoResolved.length > 0 ? (
           <div className="overflow-x-auto">
@@ -419,7 +419,7 @@ const MonthlyReport = ({
             </table>
           </div>
         ) : (
-          <p className="text-gray-400 text-sm">0 decisions auto-resolved este mes.</p>
+          <p className="text-gray-400 text-sm">0 decisions auto-resolved this month.</p>
         )}
       </div>
 
@@ -490,7 +490,7 @@ const MonthlyReport = ({
               </table>
             </div>
           ) : (
-            <p className="text-gray-400 text-sm">0 requests este mes.</p>
+            <p className="text-gray-400 text-sm">0 requests this month.</p>
           );
         })()}
       </div>
@@ -553,7 +553,7 @@ const MonthlyReport = ({
             </table>
           </div>
         ) : (
-          <p className="text-gray-400 text-sm">0 decisions este mes.</p>
+          <p className="text-gray-400 text-sm">0 decisions this month.</p>
         )}
       </div>
 
