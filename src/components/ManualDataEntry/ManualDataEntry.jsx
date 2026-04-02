@@ -2815,8 +2815,8 @@ const ManualDataEntry = ({ onBack }) => {
 
       {/* Edit Booking Modal */}
       {editingBooking && (
-        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4 overflow-y-auto">
-          <div className="bg-[#1f2937] rounded-2xl p-6 max-w-2xl w-full border-2 border-orange-500 my-8">
+        <div className="fixed inset-0 bg-black/70 flex items-start md:items-center justify-center z-50 p-4 overflow-y-auto">
+          <div className="bg-[#1f2937] rounded-2xl p-6 max-w-2xl w-full border-2 border-orange-500 my-8 max-h-[90vh] overflow-y-auto">
             <h3 className="text-2xl font-bold text-orange-400 mb-6">Edit Booking</h3>
 
             <form onSubmit={handleUpdateBooking} className="space-y-4">
