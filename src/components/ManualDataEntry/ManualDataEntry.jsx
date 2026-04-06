@@ -78,7 +78,7 @@ const ManualDataEntry = ({ onBack }) => {
     checkOut: '',
     guests: '2',
     totalAmount: '',
-    status: 'hold',
+    status: 'pending_payment',
     notes: ''
   });
 
@@ -115,7 +115,7 @@ const ManualDataEntry = ({ onBack }) => {
     checkOut: '',
     guests: '2',
     totalAmount: '',
-    status: 'hold',
+    status: 'pending_payment',
     notes: ''
   });
 
@@ -558,7 +558,7 @@ const ManualDataEntry = ({ onBack }) => {
       checkOut: booking.check_out || '',
       guests: booking.guests?.toString() || '2',
       totalAmount: booking.total_price?.toString() || '',
-      status: booking.status || 'hold',
+      status: booking.status || 'pending_payment', // Load status from DB: pending_payment, partial_payment, confirmed
       notes: booking.notes || ''
     });
   };
@@ -775,8 +775,8 @@ const ManualDataEntry = ({ onBack }) => {
         nights: nights,
         total_price: parseFloat(bookingForm.totalAmount) || 0,
         currency: currency,
-        status: bookingForm.status === 'hold' ? 'pending_payment' : 'confirmed',
-        payment_status: bookingForm.status === 'confirmed' ? 'paid' : 'pending',
+        status: bookingForm.status, // Direct mapping: pending_payment, partial_payment, confirmed
+        payment_status: bookingForm.status === 'confirmed' ? 'paid' : (bookingForm.status === 'partial_payment' ? 'partial' : 'pending'),
         channel: 'direct', // Manual entries are considered direct bookings
         source: 'autopilot',
         notes: bookingForm.notes || null,
@@ -807,7 +807,7 @@ const ManualDataEntry = ({ onBack }) => {
         checkOut: '',
         guests: '2',
         totalAmount: '',
-        status: 'hold',
+        status: 'pending_payment',
         notes: ''
       });
 
@@ -858,19 +858,32 @@ const ManualDataEntry = ({ onBack }) => {
         guests: parseInt(editForm.guests),
         nights: nights,
         total_price: parseFloat(editForm.totalAmount),
-        status: editForm.status === 'hold' ? 'pending_payment' : 'confirmed',
-        payment_status: editForm.status === 'confirmed' ? 'paid' : (editForm.status === 'partial' ? 'partial' : 'pending'),
+        status: editForm.status, // Direct mapping: pending_payment, partial_payment, confirmed
+        payment_status: editForm.status === 'confirmed' ? 'paid' : (editForm.status === 'partial_payment' ? 'partial' : 'pending'),
         notes: editForm.notes || null,
         updated_at: new Date().toISOString()
       };
 
       console.log('🔄 Updating booking:', editingBooking.id, updatedData);
 
-      // Call Supabase service
+      // Step 1: Update booking status in Supabase
       await supabaseService.updateBooking(editingBooking.id, updatedData);
 
+      // Step 2: If partial_payment → trigger n8n PDF workflow (fire and forget)
+      if (editForm.status === 'partial_payment') {
+        console.log('📄 Triggering PDF Booking Confirmation workflow for booking:', editingBooking.id);
+        fetch('https://n8n-production-bb2d.up.railway.app/webhook/pdf-booking-confirmation', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ booking_id: editingBooking.id })
+        }).catch(err => {
+          // Fire and forget - don't block the UI if webhook fails
+          console.warn('⚠️ n8n webhook call failed (non-blocking):', err);
+        });
+      }
+
       // Success!
-      setSuccessMessage(`Booking updated successfully! Guest: ${editForm.guestName}`);
+      setSuccessMessage(`Booking updated successfully! Guest: ${editForm.guestName}${editForm.status === 'partial_payment' ? ' - PDF confirmation will be sent via WhatsApp' : ''}`);
 
       // Close modal
       setEditingBooking(null);
@@ -2175,9 +2188,9 @@ const ManualDataEntry = ({ onBack }) => {
                   onChange={(e) => setBookingForm({...bookingForm, status: e.target.value})}
                   className="w-full px-4 py-3 bg-[#2a2f3a] border-2 border-gray-200 rounded-xl text-[#FF8C42] focus:outline-none focus:border-orange-300 [&>option]:bg-[#1f2937] [&>option]:text-white"
                 >
-                  <option value="hold">Hold - Pending Payment</option>
+                  <option value="pending_payment">Hold - Pending Payment</option>
+                  <option value="partial_payment">Partial - Deposit Received</option>
                   <option value="confirmed">Confirmed - Fully Paid</option>
-                  <option value="partial">Partial - Deposit Received</option>
                 </select>
               </div>
 
@@ -2203,7 +2216,7 @@ const ManualDataEntry = ({ onBack }) => {
                   leadId: '', guestName: '', guestPhone: '', guestEmail: '',
                   propertyId: properties.length === 1 ? properties[0].id : '',
                   villaId: '',
-                  checkIn: '', checkOut: '', guests: '2', totalAmount: '', status: 'hold', notes: ''
+                  checkIn: '', checkOut: '', guests: '2', totalAmount: '', status: 'pending_payment', notes: ''
                 })}
                 className="px-6 py-3 bg-[#2a2f3a] hover:bg-[#374151] text-[#FF8C42] rounded-xl font-medium transition-all border-2 border-gray-200"
               >
@@ -2941,9 +2954,9 @@ const ManualDataEntry = ({ onBack }) => {
                     onChange={(e) => setEditForm({...editForm, status: e.target.value})}
                     className="w-full px-4 py-3 bg-[#2a2f3a] border-2 border-gray-200 rounded-xl text-[#FF8C42] focus:outline-none focus:border-orange-300 [&>option]:bg-[#1f2937] [&>option]:text-white"
                   >
-                    <option value="hold">Hold - Pending Payment</option>
+                    <option value="pending_payment">Hold - Pending Payment</option>
+                    <option value="partial_payment">Partial - Deposit Received</option>
                     <option value="confirmed">Confirmed - Fully Paid</option>
-                    <option value="partial">Partial - Deposit Received</option>
                   </select>
                 </div>
 
