@@ -219,8 +219,12 @@ const OwnerHome = ({ onBack, tenantId: propTenantId }) => {
   };
 
   const handleApprove = async (decision) => {
-    // 1. OPTIMISTIC UPDATE - actualizar UI INMEDIATAMENTE
-    setDecisions(prev => prev.filter(d => d.id !== decision.id));
+    // 1. OPTIMISTIC UPDATE - actualizar status, NO eliminar
+    setDecisions(prev => prev.map(d =>
+      d.id === decision.id
+        ? { ...d, status: 'approved', approved_at: new Date().toISOString(), approved_by: tenantId }
+        : d
+    ));
     updateStripOptimistic(decision, 'approve');
     showToast('✅ Decision approved', 'success');
 
@@ -246,15 +250,19 @@ const OwnerHome = ({ onBack, tenantId: propTenantId }) => {
       clearTimeout(timeoutId);
       const result = await response.json();
 
-      // 3. Solo si falla → revertir
+      // 3. Solo si falla → revertir status
       if (!result.success) {
-        setDecisions(prev => [...prev, decision]);
+        setDecisions(prev => prev.map(d =>
+          d.id === decision.id ? { ...decision, status: 'pending' } : d
+        ));
         updateStripOptimistic({ ...decision, status: 'pending' }, 'revert');
         showToast('⚠️ Error — decision restored', 'error');
       }
     } catch (err) {
       // Revertir en caso de error
-      setDecisions(prev => [...prev, decision]);
+      setDecisions(prev => prev.map(d =>
+        d.id === decision.id ? { ...decision, status: 'pending' } : d
+      ));
       updateStripOptimistic({ ...decision, status: 'pending' }, 'revert');
       showToast('⚠️ Connection error', 'error');
     } finally {
@@ -272,8 +280,12 @@ const OwnerHome = ({ onBack, tenantId: propTenantId }) => {
     const decision = decisions.find(d => d.id === decisionId);
     if (!decision) return;
 
-    // 1. OPTIMISTIC UPDATE - actualizar UI INMEDIATAMENTE
-    setDecisions(prev => prev.filter(d => d.id !== decisionId));
+    // 1. OPTIMISTIC UPDATE - actualizar status, NO eliminar
+    setDecisions(prev => prev.map(d =>
+      d.id === decisionId
+        ? { ...d, status: 'rejected', rejected_at: new Date().toISOString(), outcome_notes: rejectNotes }
+        : d
+    ));
     updateStripOptimistic(decision, 'reject');
     setRejectModal(null);
     setRejectNotes('');
@@ -301,15 +313,19 @@ const OwnerHome = ({ onBack, tenantId: propTenantId }) => {
       clearTimeout(timeoutId);
       const result = await response.json();
 
-      // 3. Solo si falla → revertir
+      // 3. Solo si falla → revertir status
       if (!result.success) {
-        setDecisions(prev => [...prev, decision]);
+        setDecisions(prev => prev.map(d =>
+          d.id === decisionId ? { ...decision, status: 'pending' } : d
+        ));
         updateStripOptimistic({ ...decision, status: 'pending' }, 'revert');
         showToast('⚠️ Error — decision restored', 'error');
       }
     } catch (err) {
       // Revertir en caso de error
-      setDecisions(prev => [...prev, decision]);
+      setDecisions(prev => prev.map(d =>
+        d.id === decisionId ? { ...decision, status: 'pending' } : d
+      ));
       updateStripOptimistic({ ...decision, status: 'pending' }, 'revert');
       showToast('⚠️ Connection error', 'error');
     } finally {
