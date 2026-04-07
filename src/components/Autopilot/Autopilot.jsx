@@ -55,6 +55,7 @@ import MasterCalendar from '../MasterCalendar/MasterCalendar';
 import ServiceRequests from '../ServiceRequests/ServiceRequests';
 import SpecializedReports from './SpecializedReports';
 import OwnerHome from './OwnerHome';
+import DecisionIntelligence from './DecisionIntelligence';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
 import { generateReportHTML } from '../../services/generateReportHTML';
@@ -6791,8 +6792,8 @@ const Autopilot = ({ onBack }) => {
           <h2 className="text-3xl font-bold text-white">Owner Control System</h2>
         </div>
 
-        {/* Two Options: Owner Home & Owner Decisions */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Three Options: Owner Home, Owner Decisions & Decision Intelligence */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {/* Option 1: Owner Home */}
           <button
             onClick={() => setOcsView('owner-home')}
@@ -6835,6 +6836,29 @@ const Autopilot = ({ onBack }) => {
             </p>
             <div className="flex items-center gap-2 text-white font-semibold">
               <span>Manage Decisions</span>
+              <ChevronRight className="w-5 h-5 group-hover:translate-x-2 transition-transform" />
+            </div>
+          </button>
+
+          {/* Option 3: Decision Intelligence */}
+          <button
+            onClick={() => setOcsView('decision-intelligence')}
+            className="group bg-gradient-to-br from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 rounded-3xl p-8 shadow-2xl border-2 border-purple-400/30 transition-all transform hover:scale-105 text-left"
+          >
+            <div className="flex items-center gap-4 mb-4">
+              <div className="p-4 bg-white/20 rounded-2xl">
+                <Sparkles className="w-12 h-12 text-white" />
+              </div>
+              <div>
+                <h3 className="text-2xl font-bold text-white">Decision Intelligence</h3>
+                <p className="text-purple-100 text-sm">AI-Powered Insights</p>
+              </div>
+            </div>
+            <p className="text-white/90 mb-4">
+              Enhanced decision context with AI recommendations, SLA timers, booking context, guest profiles, and automated resolution tracking.
+            </p>
+            <div className="flex items-center gap-2 text-white font-semibold">
+              <span>View Intelligence</span>
               <ChevronRight className="w-5 h-5 group-hover:translate-x-2 transition-transform" />
             </div>
           </button>
@@ -9396,11 +9420,19 @@ const Autopilot = ({ onBack }) => {
             ocsView === 'owner-home' ? (
               <OwnerHome
                 onBack={() => setOcsView(null)}
+                onNavigate={(view) => setOcsView(view)}
                 propertyId={propertyId}
                 tenantId={userData?.id}
               />
             ) :
-            ocsView === 'owner-decisions' ? renderDecisionsSection() : null
+            ocsView === 'owner-decisions' ? renderDecisionsSection() :
+            ocsView === 'decision-intelligence' ? (
+              <DecisionIntelligence
+                onBack={() => setOcsView(null)}
+                propertyId={propertyId}
+                tenantId={userData?.id}
+              />
+            ) : null
           )}
           {activeSection === 'data-export' && renderDataExportSection()}
         </div>
