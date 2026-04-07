@@ -629,8 +629,8 @@ const OwnerHome = ({ onBack, tenantId: propTenantId }) => {
             const priorityColors = {
               urgent: { bg: '#FEF2F2', text: '#DC2626', border: '#DC2626' },
               high: { bg: '#FFF7ED', text: '#EA580C', border: '#EA580C' },
-              medium: { bg: '#FEFCE8', text: '#CA8A04', border: '#CA8A04' },
-              low: { bg: '#F0FDF4', text: '#16A34A', border: '#16A34A' }
+              medium: { bg: '#F3F4F6', text: '#6B7280', border: '#6B7280' },
+              low: { bg: '#F9FAFB', text: '#9CA3AF', border: '#9CA3AF' }
             };
             const colors = priorityColors[decision.priority] || priorityColors.low;
 
@@ -667,12 +667,12 @@ const OwnerHome = ({ onBack, tenantId: propTenantId }) => {
                     <User className="w-4 h-4 text-gray-500" />
                     <span className="font-semibold">{decision.guest_name || 'System Alert'}</span>
                     {stats?.is_vip && (
-                      <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs font-bold" style={{ backgroundColor: '#FEF9C3', color: '#92400E' }}>
+                      <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs font-bold" style={{ backgroundColor: '#FFF7ED', color: '#EA580C' }}>
                         ⭐ VIP
                       </span>
                     )}
                     {!stats?.is_vip && stats?.is_repeat && (
-                      <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs font-bold bg-blue-100 text-blue-800">
+                      <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs font-bold bg-gray-100 text-gray-700">
                         🔄 Repeat guest
                       </span>
                     )}
@@ -694,24 +694,24 @@ const OwnerHome = ({ onBack, tenantId: propTenantId }) => {
 
                 {/* Booking Context */}
                 {booking && (
-                  <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                  <div className="mb-4 p-3 bg-gray-50 border border-gray-200 rounded-lg">
                     <div className="flex items-center gap-4 flex-wrap">
                       {decision.villa_name && (
                         <div className="flex items-center gap-2">
-                          <div className="text-xs text-blue-700 font-semibold">Villa</div>
-                          <div className="text-sm font-bold text-blue-900 flex items-center gap-1">
+                          <div className="text-xs text-gray-600 font-semibold">Villa</div>
+                          <div className="text-sm font-bold text-gray-900 flex items-center gap-1">
                             <MapPin className="w-3 h-3" />
                             {decision.villa_name}
                           </div>
                         </div>
                       )}
                       <div className="flex items-center gap-2">
-                        <div className="text-xs text-blue-700 font-semibold">Booking Value</div>
-                        <div className="text-sm font-bold text-blue-900">{formatIDR(booking.total_price)}</div>
+                        <div className="text-xs text-gray-600 font-semibold">Booking Value</div>
+                        <div className="text-sm font-bold text-gray-900">{formatIDR(booking.total_price)}</div>
                       </div>
                       <div className="flex items-center gap-2">
-                        <div className="text-xs text-blue-700 font-semibold">Checkout</div>
-                        <div className="text-sm font-bold text-blue-900">
+                        <div className="text-xs text-gray-600 font-semibold">Checkout</div>
+                        <div className="text-sm font-bold text-gray-900">
                           {formatDate(booking.check_out)} {formatTime(booking.check_out)}
                         </div>
                       </div>
@@ -755,8 +755,8 @@ const OwnerHome = ({ onBack, tenantId: propTenantId }) => {
                   const displayReason = reason.length > 90 ? reason.slice(0, 90) + '...' : reason;
 
                   // Determinar estilos
-                  const bgColor = isApprove ? '#DCFCE7' : isEscalate ? '#FEF9C3' : '#F1F5F9';
-                  const textColor = isApprove ? '#15803D' : isEscalate ? '#92400E' : '#475569';
+                  const bgColor = isApprove ? '#FFFFFF' : isEscalate ? '#FFF7ED' : '#F1F5F9';
+                  const textColor = isApprove ? '#EA580C' : isEscalate ? '#EA580C' : '#475569';
                   const icon = isApprove ? '✅' : isEscalate ? '⚡' : 'ℹ️';
                   const action = isApprove ? 'AUTO-APPROVE' : isEscalate ? 'ESCALATE' : 'REVIEW';
 
@@ -777,22 +777,22 @@ const OwnerHome = ({ onBack, tenantId: propTenantId }) => {
                   <div
                     className="p-3 rounded-lg mb-4 border-2"
                     style={{
-                      backgroundColor: impactColor === '#DC2626' ? '#FEF2F2' : impactColor === '#EA580C' ? '#FFF7ED' : '#F0FDF4',
-                      borderColor: impactColor
+                      backgroundColor: impactColor === '#DC2626' ? '#FEF2F2' : '#FFF7ED',
+                      borderColor: impactColor === '#DC2626' ? '#DC2626' : '#EA580C'
                     }}
                   >
                     <div className="flex items-center gap-2">
-                      <DollarSign className="w-4 h-4" style={{ color: impactColor }} />
-                      <span className="text-sm font-bold" style={{ color: impactColor }}>
+                      <DollarSign className="w-4 h-4" style={{ color: impactColor === '#DC2626' ? '#DC2626' : '#EA580C' }} />
+                      <span className="text-sm font-bold" style={{ color: impactColor === '#DC2626' ? '#DC2626' : '#EA580C' }}>
                         {decision.financial_impact_estimate}
                       </span>
                     </div>
                   </div>
                 )}
 
-                {/* Action Buttons o Modified Badge */}
-                {decision.status === 'modified' ? (
-                  <div className="p-4 rounded-lg bg-orange-50 border-2 border-orange-500">
+                {/* Modified Badge (if modified) */}
+                {decision.status === 'modified' && (
+                  <div className="p-4 rounded-lg bg-orange-50 border-2 border-orange-500 mb-4">
                     <div className="flex items-start gap-3">
                       <Edit3 className="w-5 h-5 text-orange-600 mt-0.5" />
                       <div className="flex-1">
@@ -810,100 +810,159 @@ const OwnerHome = ({ onBack, tenantId: propTenantId }) => {
                       </div>
                     </div>
                   </div>
-                ) : (
-                  <div className="flex gap-3">
-                    <button
-                      onClick={() => handleApprove(decision)}
-                      disabled={actionInProgress === decision.id}
-                      className="flex-[2] flex items-center justify-center gap-2 px-6 py-4 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white rounded-xl font-black text-lg transition-all shadow-lg"
-                    >
-                      <ThumbsUp className="w-6 h-6" />
-                      {actionInProgress === decision.id ? 'PROCESSING...' : 'APPROVE'}
-                    </button>
-                    <button
-                      onClick={() => setRejectModal(decision.id)}
-                      disabled={actionInProgress === decision.id}
-                      className="flex-1 flex items-center justify-center gap-2 px-4 py-4 bg-red-600 hover:bg-red-700 disabled:bg-gray-400 text-white rounded-xl font-bold transition-all"
-                    >
-                      <ThumbsDown className="w-5 h-5" />
-                      REJECT
-                    </button>
-                    <button
-                      onClick={() => setModifyModal(decision.id)}
-                      disabled={actionInProgress === decision.id}
-                      className="flex-1 flex items-center justify-center gap-2 px-4 py-4 bg-orange-500 hover:bg-orange-600 disabled:bg-gray-400 text-white rounded-xl font-bold transition-all"
-                    >
-                      <Edit3 className="w-5 h-5" />
-                      MODIFY
-                    </button>
-                  </div>
                 )}
+
+                {/* Action Buttons (always visible) */}
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => handleApprove(decision)}
+                    disabled={actionInProgress === decision.id}
+                    className="flex-[2] flex items-center justify-center gap-2 px-6 py-4 bg-orange-500 hover:bg-orange-600 disabled:bg-gray-400 text-white rounded-xl font-black text-lg transition-all shadow-lg"
+                  >
+                    <ThumbsUp className="w-6 h-6" />
+                    {actionInProgress === decision.id ? 'PROCESSING...' : 'APPROVE'}
+                  </button>
+                  <button
+                    onClick={() => setRejectModal(decision.id)}
+                    disabled={actionInProgress === decision.id}
+                    className="flex-1 flex items-center justify-center gap-2 px-4 py-4 bg-red-600 hover:bg-red-700 disabled:bg-gray-400 text-white rounded-xl font-bold transition-all"
+                  >
+                    <ThumbsDown className="w-5 h-5" />
+                    REJECT
+                  </button>
+                  <button
+                    onClick={() => setModifyModal(decision.id)}
+                    disabled={actionInProgress === decision.id}
+                    className="flex-1 flex items-center justify-center gap-2 px-4 py-4 bg-gray-600 hover:bg-gray-700 disabled:bg-gray-400 text-white rounded-xl font-bold transition-all"
+                  >
+                    <Edit3 className="w-5 h-5" />
+                    MODIFY
+                  </button>
+                </div>
               </div>
             );
           })}
         </div>
       )}
 
-      {/* ========== AUTO-RESOLVED SECTION ========== */}
-      {decisions.filter(d => d.status === 'approved').length > 0 && (
-        <div className="mt-6 bg-white rounded-xl shadow-lg border-2 border-gray-200 overflow-hidden">
-          <button
-            onClick={() => setShowAutoResolved(!showAutoResolved)}
-            className="w-full px-6 py-4 flex items-center justify-between bg-green-50 hover:bg-green-100 transition-colors"
-          >
-            <div className="flex items-center gap-3">
-              <CheckCircle2 className="w-5 h-5 text-green-600" />
-              <h3 className="text-lg font-bold text-green-900">
-                Auto-Resolved This Month ({decisions.filter(d => d.status === 'approved').length})
-              </h3>
-            </div>
-            {showAutoResolved ? (
-              <ChevronUp className="w-5 h-5 text-green-700" />
-            ) : (
-              <ChevronDown className="w-5 h-5 text-green-700" />
-            )}
-          </button>
+      {/* ========== TODAY'S ACTIVITY SECTION ========== */}
+      {(() => {
+        // Get today's start timestamp
+        const todayStart = new Date();
+        todayStart.setHours(0, 0, 0, 0);
 
-          {showAutoResolved && (
-            <div className="p-4 space-y-2">
-              {decisions
-                .filter(d => d.status === 'approved')
-                .map(decision => (
-                  <div
-                    key={decision.id}
-                    className="p-4 bg-gray-50 rounded-lg border border-gray-200"
-                  >
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="font-bold text-gray-900">
-                            {decision.guest_name || 'System Alert'}
-                          </span>
-                          <span className="text-gray-500">·</span>
-                          <span className="text-sm text-gray-600">
-                            {decision.decision_type?.replace('_', ' ')}
-                          </span>
+        console.log('🕐 [Today\'s Activity] Filtering for created today (after):', todayStart.toISOString());
+        console.log('📋 [Today\'s Activity] ALL decisions in array:', decisions.length);
+
+        // Filter: ALL decisions CREATED TODAY (pending + approved + rejected)
+        const todayDecisions = decisions.filter(d => {
+          if (!d.created_at) return false;
+
+          const createdAt = new Date(d.created_at);
+          const isToday = createdAt >= todayStart;
+
+          if (isToday) {
+            console.log('✅ [Today\'s Activity] Including:', d.guest_name, d.decision_type, d.status, 'created:', createdAt.toISOString());
+          }
+
+          return isToday;
+        });
+
+        // Sort by created_at (most recent first)
+        todayDecisions.sort((a, b) => {
+          return new Date(b.created_at) - new Date(a.created_at);
+        });
+
+        console.log('📊 [Today\'s Activity] Total created today:', todayDecisions.length);
+
+        if (todayDecisions.length === 0) {
+          return (
+            <div className="mt-6 bg-white rounded-xl shadow-lg border-2 border-gray-200 p-8 text-center">
+              <div className="text-gray-400 mb-2">
+                <Clock className="w-12 h-12 mx-auto opacity-50" />
+              </div>
+              <h3 className="text-lg font-bold text-gray-600 mb-1">No activity today yet</h3>
+              <p className="text-sm text-gray-500">All decisions created today will appear here</p>
+            </div>
+          );
+        }
+
+        return (
+          <div className="mt-6 bg-white rounded-xl shadow-lg border-2 border-gray-200 overflow-hidden">
+            <button
+              onClick={() => setShowAutoResolved(!showAutoResolved)}
+              className="w-full px-6 py-4 flex items-center justify-between bg-orange-50 hover:bg-orange-100 transition-colors"
+            >
+              <div className="flex items-center gap-3">
+                <Clock className="w-5 h-5 text-orange-600" />
+                <h3 className="text-lg font-bold text-orange-900">
+                  Today's Activity ({todayDecisions.length})
+                </h3>
+              </div>
+              {showAutoResolved ? (
+                <ChevronUp className="w-5 h-5 text-orange-700" />
+              ) : (
+                <ChevronDown className="w-5 h-5 text-orange-700" />
+              )}
+            </button>
+
+            {showAutoResolved && (
+              <div className="p-4 space-y-2">
+                {todayDecisions.map(decision => {
+                  // Determine badge based on status + approved_by
+                  let badge = { text: '—', color: 'text-gray-500' };
+
+                  if (decision.status === 'rejected') {
+                    badge = { text: '❌ REJECTED', color: 'text-red-600' };
+                  } else if (decision.status === 'approved' && decision.approved_by === 'autopilot') {
+                    badge = { text: '🤖 AUTO-APPROVED', color: 'text-green-600' };
+                  } else if (decision.status === 'approved' && decision.approved_by === 'owner') {
+                    badge = { text: '✅ APPROVED by owner', color: 'text-green-600' };
+                  } else if (decision.status === 'approved') {
+                    // Fallback for approved_by = null
+                    badge = { text: '✅ APPROVED', color: 'text-green-600' };
+                  } else if (decision.status === 'pending' || decision.status === 'modified') {
+                    badge = { text: '⏳ PENDING', color: 'text-orange-600' };
+                  }
+
+                  return (
+                    <div
+                      key={decision.id}
+                      className="p-4 bg-gray-50 rounded-lg border border-gray-200"
+                    >
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="font-bold text-gray-900">
+                              {decision.guest_name || 'System Alert'}
+                            </span>
+                            <span className="text-gray-500">·</span>
+                            <span className="text-sm text-gray-600">
+                              {decision.decision_type?.replace('_', ' ')}
+                            </span>
+                          </div>
+                          <p className="text-sm text-gray-700">{decision.summary || decision.title}</p>
+                          {decision.financial_impact_estimate && (
+                            <p className="text-xs text-orange-700 mt-1">
+                              💰 {decision.financial_impact_estimate}
+                            </p>
+                          )}
                         </div>
-                        <p className="text-sm text-gray-700">{decision.summary || decision.title}</p>
-                        {decision.financial_impact_estimate && (
-                          <p className="text-xs text-green-700 mt-1">
-                            💰 {decision.financial_impact_estimate}
-                          </p>
-                        )}
-                      </div>
-                      <div className="text-right">
-                        <div className="text-xs text-green-600 font-semibold">✅ APPROVED</div>
-                        <div className="text-xs text-gray-500">
-                          {decision.approved_at ? new Date(decision.approved_at).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : ''}
+                        <div className="text-right">
+                          <div className={`text-xs font-semibold ${badge.color}`}>{badge.text}</div>
+                          <div className="text-xs text-gray-500">
+                            {new Date(decision.created_at).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })}
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </div>
-                ))}
-            </div>
-          )}
-        </div>
-      )}
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        );
+      })()}
 
       {/* REJECT MODAL */}
       {rejectModal && (
