@@ -2,404 +2,444 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
 import {
   ArrowLeft,
-  RefreshCw,
-  AlertCircle,
-  Home,
-  Users,
-  TrendingUp,
-  DollarSign,
+  AlertTriangle,
   Clock,
-  CheckCircle,
-  Bell,
+  CheckCircle2,
+  DollarSign,
   ThumbsUp,
   ThumbsDown,
-  Eye,
+  Edit3,
+  Star,
+  User,
+  MapPin,
+  Sparkles,
+  TrendingUp,
+  AlertCircle,
   ChevronDown,
-  ChevronUp,
-  Sparkles
+  ChevronUp
 } from 'lucide-react';
 
-const OwnerHome = ({ onBack, propertyId: propPropertyId, tenantId: propTenantId }) => {
-  // State
+const OwnerHome = ({ onBack, tenantId: propTenantId }) => {
   const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false); // Silent refresh without full loading screen
   const [error, setError] = useState(null);
-  const [data, setData] = useState(null);
-  const [propertyId, setPropertyId] = useState(propPropertyId);
+  const [analytics, setAnalytics] = useState(null);
+  const [decisions, setDecisions] = useState([]);
+  const [decisionContexts, setDecisionContexts] = useState({});
+  const [guestStats, setGuestStats] = useState({});
   const [tenantId, setTenantId] = useState(propTenantId);
-  const [expandedSections, setExpandedSections] = useState({
-    arrivals: false,
-    departures: false,
-    autoResolved: false
-  });
-  const [actionLoading, setActionLoading] = useState({});
+  const [actionInProgress, setActionInProgress] = useState(null);
+  const [showAutoResolved, setShowAutoResolved] = useState(false);
+  const [rejectModal, setRejectModal] = useState(null);
+  const [modifyModal, setModifyModal] = useState(null);
+  const [rejectNotes, setRejectNotes] = useState('');
+  const [modifyNotes, setModifyNotes] = useState('');
+  const [toast, setToast] = useState(null);
 
-  // Load data from aggregator
-  const loadData = async (silent = false, explicitPropertyId = null, explicitTenantId = null) => {
-    // Use explicit IDs if provided, otherwise use state
-    const usePropertyId = explicitPropertyId || propertyId;
-    const useTenantId = explicitTenantId || tenantId;
-
-    if (!usePropertyId || !useTenantId) {
-      console.error('❌ [OWNER HOME] Cannot load - missing IDs:', { usePropertyId, useTenantId });
-      return;
-    }
-
-    if (silent) {
-      setRefreshing(true);
-    } else {
-      setLoading(true);
-    }
-    setError(null);
-
-    console.log('🔍 [OWNER HOME] Loading data with:', { property_id: usePropertyId, tenant_id: useTenantId, silent });
-
-    try {
-      const response = await fetch('https://n8n-production-bb2d.up.railway.app/webhook/owner-home-v1', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          property_id: usePropertyId,
-          tenant_id: useTenantId
-        })
-      });
-
-      console.log('🔍 [OWNER HOME] Response status:', response.status);
-      console.log('🔍 [OWNER HOME] Response headers:', response.headers.get('content-type'));
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      // Check if response has content
-      const contentType = response.headers.get('content-type');
-      if (!contentType || !contentType.includes('application/json')) {
-        throw new Error(`Expected JSON response, got: ${contentType || 'no content-type'}`);
-      }
-
-      const text = await response.text();
-      console.log('🔍 [OWNER HOME] Raw response:', text.substring(0, 200));
-
-      if (!text || text.trim() === '') {
-        throw new Error('Empty response from aggregator');
-      }
-
-      const result = JSON.parse(text);
-      console.log('✅ Owner Home data loaded:', result);
-      setData(result);
-    } catch (err) {
-      console.error('❌ Error loading Owner Home data:', err);
-      if (!silent) {
-        setError(err.message || 'Failed to load data');
-      }
-    } finally {
-      if (silent) {
-        setRefreshing(false);
-      } else {
-        setLoading(false);
-      }
-    }
+  // Toast notification helper
+  const showToast = (message, type = 'success') => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 3000);
   };
 
-  // Handle approve/reject actions
-  const handleDecisionAction = async (decisionId, action) => {
-    console.log(`🔄 [DECISION ACTION] ========== CALLED ==========`);
-    console.log(`🔄 [DECISION ACTION] Starting ${action} for decision:`, decisionId);
-    console.log(`🔄 [DECISION ACTION] Current actionLoading state:`, actionLoading);
+  // Optimistic strip update helper
+  const updateStripOptimistic = (decision, action) => {
+    setAnalytics(prev => {
+      if (!prev) return prev;
 
-    // GUARD: Prevent multiple clicks on same item
-    if (actionLoading[decisionId]) {
-      console.warn(`⚠️ [DECISION ACTION] Already processing ${decisionId}, ignoring duplicate call`);
-      return;
-    }
+      const isPending = decision.status === 'pending' || decision.status === 'modified';
+      const isUrgent = decision.priority === 'urgent';
+      const revenue = decision.estimated_revenue_uplift || 0;
 
-    setActionLoading(prev => ({ ...prev, [decisionId]: action }));
+      // Solo restar del strip si es approve o reject
+      // Modify NO resta porque la decisión sigue pending
+      const shouldDeduct = action === 'approve' || action === 'reject';
 
-    try {
-      const payload = {
-        action: action, // 'approve' or 'reject'
-        decision_id: decisionId,
-        action_by: 'owner'
+      return {
+        ...prev,
+        pending_count: (isPending && shouldDeduct) ? Math.max(0, prev.pending_count - 1) : prev.pending_count,
+        urgent_count: (isPending && isUrgent && shouldDeduct) ? Math.max(0, prev.urgent_count - 1) : prev.urgent_count,
+        total_financial_impact: (isPending && shouldDeduct) ? Math.max(0, prev.total_financial_impact - revenue) : prev.total_financial_impact,
+        auto_approved_today: action === 'approve' ? prev.auto_approved_today + 1 : prev.auto_approved_today
       };
-      console.log('📤 [DECISION ACTION] Sending payload:', payload);
-
-      const response = await fetch('https://n8n-production-bb2d.up.railway.app/webhook/autopilot/decision-action', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(payload)
-      });
-
-      console.log('📥 [DECISION ACTION] Response status:', response.status);
-      console.log('📥 [DECISION ACTION] Response headers:', response.headers.get('content-type'));
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('❌ [DECISION ACTION] Error response:', errorText);
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      // Try to parse response
-      const responseText = await response.text();
-      console.log('📥 [DECISION ACTION] Response body:', responseText);
-
-      if (responseText) {
-        try {
-          const responseData = JSON.parse(responseText);
-          console.log('✅ [DECISION ACTION] Parsed response:', responseData);
-        } catch (e) {
-          console.log('⚠️ [DECISION ACTION] Response is not JSON:', responseText);
-        }
-      }
-
-      console.log(`✅ Decision ${action}ed successfully:`, decisionId);
-
-      // ✅ UPDATE LOCAL STATE: Change status to 'approved' or 'rejected' instead of removing
-      setData(prevData => {
-        if (!prevData) return prevData;
-
-        const updateItemStatus = (items) => {
-          if (!items) return items;
-          return items.map(item =>
-            item.id === decisionId
-              ? { ...item, status: action === 'approve' ? 'approved' : 'rejected' }
-              : item
-          );
-        };
-
-        return {
-          ...prevData,
-          critical_now: updateItemStatus(prevData.critical_now),
-          needs_your_decision: updateItemStatus(prevData.needs_your_decision),
-          revenue_opportunities: updateItemStatus(prevData.revenue_opportunities)
-        };
-      });
-
-      console.log(`✅ [DECISION ACTION] Local state updated - item ${decisionId} status changed to ${action === 'approve' ? 'approved' : 'rejected'}`);
-    } catch (err) {
-      console.error(`❌ [DECISION ACTION] Error:`, err);
-      alert(`Error: ${err.message || 'Failed to ' + action + ' decision'}`);
-    } finally {
-      setActionLoading(prev => ({ ...prev, [decisionId]: null }));
-    }
+    });
   };
 
-  // Toggle section expansion
-  const toggleSection = (section) => {
-    setExpandedSections(prev => ({ ...prev, [section]: !prev[section] }));
-  };
-
-  // Format currency
-  const formatIDR = (amount) => {
-    if (!amount) return 'Rp 0';
-    const millions = (amount / 1000000).toFixed(1);
-    return `Rp ${millions}M`;
-  };
-
-  // Format time ago
-  const formatTimeAgo = (timestamp) => {
-    if (!timestamp) return '';
-    const now = new Date();
-    const past = new Date(timestamp);
-    const diffHours = Math.floor((now - past) / (1000 * 60 * 60));
-
-    if (diffHours < 1) return 'Less than 1 hour ago';
-    if (diffHours === 1) return '1 hour ago';
-    if (diffHours < 24) return `${diffHours} hours ago`;
-    const diffDays = Math.floor(diffHours / 24);
-    if (diffDays === 1) return '1 day ago';
-    return `${diffDays} days ago`;
-  };
-
-  // Get priority badge color
-  const getPriorityColor = (priority) => {
-    switch (priority) {
-      case 'critical':
-        return 'bg-red-500/20 text-red-300 border-red-500/40';
-      case 'high':
-        return 'bg-orange-500/20 text-orange-300 border-orange-500/40';
-      case 'medium':
-        return 'bg-yellow-500/20 text-yellow-300 border-yellow-500/40';
-      case 'low':
-        return 'bg-gray-500/20 text-gray-300 border-gray-500/40';
-      default:
-        return 'bg-gray-500/20 text-gray-300 border-gray-500/40';
-    }
-  };
-
-  // Initialize IDs and load data
   useEffect(() => {
-    let cancelled = false; // Prevent race conditions
-
     const init = async () => {
-      if (cancelled) return;
       try {
-        let finalPropertyId = propPropertyId;
         let finalTenantId = propTenantId;
 
-        // Only fetch IDs if not provided
-        if (!finalPropertyId || !finalTenantId) {
-          console.log('🔍 [OWNER HOME] IDs not provided, fetching from Supabase...');
-
+        if (!finalTenantId) {
           const { data: { user } } = await supabase.auth.getUser();
-
           if (!user) {
-            console.error('❌ [OWNER HOME] No user logged in');
-            if (!cancelled) {
-              setError('No user logged in');
-              setLoading(false);
-            }
+            setError('No user logged in');
+            setLoading(false);
             return;
           }
-
-          finalTenantId = finalTenantId || user.id;
-          console.log('✅ [OWNER HOME] Using tenant_id:', finalTenantId);
-
-          if (!finalPropertyId) {
-            const { data: userProperty, error: propError } = await supabase
-              .from('properties')
-              .select('id, name')
-              .eq('owner_id', finalTenantId)
-              .single();
-
-            if (propError || !userProperty) {
-              console.error('❌ [OWNER HOME] Error fetching property:', propError);
-              if (!cancelled) {
-                setError('Could not load property. Please try again.');
-                setLoading(false);
-              }
-              return;
-            }
-
-            finalPropertyId = userProperty.id;
-            console.log('✅ [OWNER HOME] Found property:', userProperty.name, finalPropertyId);
-          }
+          finalTenantId = user.id;
         }
 
-        // Set state if not cancelled
-        if (!cancelled) {
-          setPropertyId(finalPropertyId);
-          setTenantId(finalTenantId);
-        }
-
-        // Load data with the IDs we just got
-        console.log('🔄 [OWNER HOME] Loading data with IDs:', { finalPropertyId, finalTenantId });
-
-        // Call loadData with explicit IDs
-        try {
-          const response = await fetch('https://n8n-production-bb2d.up.railway.app/webhook/owner-home-v1', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              property_id: finalPropertyId,
-              tenant_id: finalTenantId
-            })
-          });
-
-          console.log('📥 [OWNER HOME] Response status:', response.status);
-
-          if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-          }
-
-          const text = await response.text();
-
-          if (!text || text.trim() === '') {
-            console.error('❌ [OWNER HOME] Empty response from aggregator');
-            throw new Error('Empty response from aggregator');
-          }
-
-          console.log('📥 [OWNER HOME] Response received, length:', text.length, 'first 100 chars:', text.substring(0, 100));
-
-          const result = JSON.parse(text);
-          console.log('✅ [OWNER HOME] Data loaded successfully, sections:', Object.keys(result));
-
-          if (!cancelled) {
-            setData(result);
-            setLoading(false);
-          }
-        } catch (err) {
-          if (!cancelled) {
-            console.error('❌ [OWNER HOME] Error loading data:', err);
-            setError('Failed to load dashboard data. Please try again.');
-            setLoading(false);
-          }
-        }
+        setTenantId(finalTenantId);
+        await fetchAllData(finalTenantId);
       } catch (err) {
-        if (!cancelled) {
-          console.error('❌ [OWNER HOME] Initialization error:', err);
-          setError('Failed to initialize. Please refresh the page.');
-          setLoading(false);
-        }
+        console.error('❌ [OWNER HOME] Initialization error:', err);
+        setError('Failed to initialize');
+        setLoading(false);
       }
     };
 
     init();
+  }, [propTenantId]);
 
-    // Cleanup function to prevent race conditions
-    return () => {
-      cancelled = true;
-    };
-  }, []); // Only run once on mount
+  const fetchAllData = async (tid) => {
+    try {
+      setLoading(true);
+      setError(null);
 
-  // Calculate total items requiring attention (only pending items)
-  const getTotalAttentionItems = () => {
-    if (!data) return 0;
-    const countPending = (items) => items?.filter(item => item.status === 'pending').length || 0;
-    return countPending(data.critical_now) + countPending(data.needs_your_decision);
+      // 1. Fetch all decisions
+      const { data: decisionsData, error: decisionsError } = await supabase
+        .from('owner_decisions')
+        .select('*')
+        .eq('tenant_id', tid)
+        .order('created_at', { ascending: false });
+
+      if (decisionsError) throw decisionsError;
+
+      // Sort by priority: urgent > high > medium > low
+      // Within same priority, sort by overdue time (most overdue first)
+      const priorityOrder = { urgent: 1, high: 2, medium: 3, low: 4 };
+      const sortedDecisions = (decisionsData || []).sort((a, b) => {
+        const priorityA = priorityOrder[a.priority] || 999;
+        const priorityB = priorityOrder[b.priority] || 999;
+
+        if (priorityA !== priorityB) {
+          return priorityA - priorityB;
+        }
+
+        // Same priority - sort by most overdue first
+        const now = new Date();
+        const dueA = a.due_date ? new Date(a.due_date) : new Date(9999, 0);
+        const dueB = b.due_date ? new Date(b.due_date) : new Date(9999, 0);
+        const overdueA = now - dueA; // positive = overdue
+        const overdueB = now - dueB;
+
+        return overdueB - overdueA; // most overdue first
+      });
+
+      setDecisions(sortedDecisions);
+
+      // 2. Calculate analytics from decisions data
+      // Pending incluye tanto 'pending' como 'modified' (aún no resueltas definitivamente)
+      const pending = (decisionsData || []).filter(d => d.status === 'pending' || d.status === 'modified');
+      const approved = (decisionsData || []).filter(d => d.status === 'approved');
+      const autoApproved = approved.filter(d => !d.approved_by);
+      const urgentPending = pending.filter(d => d.priority === 'urgent');
+
+      const totalFinancialImpact = pending.reduce((sum, d) => sum + (d.estimated_revenue_uplift || 0), 0);
+
+      // Calculate avg response time for approved decisions
+      let avgResponseHours = 0;
+      if (approved.length > 0) {
+        const responseTimes = approved
+          .filter(d => d.approved_at && d.created_at)
+          .map(d => {
+            const created = new Date(d.created_at);
+            const approved = new Date(d.approved_at);
+            return (approved - created) / (1000 * 60 * 60); // hours
+          });
+        avgResponseHours = responseTimes.length > 0
+          ? responseTimes.reduce((sum, t) => sum + t, 0) / responseTimes.length
+          : 0;
+      }
+
+      // Set calculated analytics
+      setAnalytics({
+        total_decisions: decisionsData?.length || 0,
+        pending_count: pending.length,
+        urgent_count: urgentPending.length,
+        total_financial_impact: totalFinancialImpact,
+        auto_approved_today: autoApproved.length,
+        avg_response_time_hours: avgResponseHours
+      });
+
+      // 3. Fetch contexts for pending decisions
+      await fetchDecisionContexts(tid, pending);
+
+      // 4. Fetch guest stats
+      if (decisionsData && decisionsData.length > 0) {
+        const uniquePhones = [...new Set(decisionsData.filter(d => d.guest_phone).map(d => d.guest_phone))];
+        await fetchGuestStatsForPhones(tid, uniquePhones);
+      }
+    } catch (err) {
+      console.error('❌ [OWNER HOME] Error fetching data:', err);
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchDecisionContexts = async (tid, pendingDecisions) => {
+    // Cargar todos los contexts EN PARALELO con Promise.all
+    const contextPromises = pendingDecisions.map(decision =>
+      supabase.rpc('get_decision_context', { p_decision_id: decision.id })
+        .then(({ data, error }) => ({ id: decision.id, data, error }))
+        .catch(err => ({ id: decision.id, error: err }))
+    );
+
+    const results = await Promise.all(contextPromises);
+
+    const contexts = {};
+    results.forEach(({ id, data, error }) => {
+      if (!error && data) {
+        contexts[id] = data;
+      }
+    });
+
+    setDecisionContexts(contexts);
+  };
+
+  const fetchGuestStatsForPhones = async (tid, phones) => {
+    // Cargar todos los stats EN PARALELO con Promise.all
+    const statsPromises = phones.map(phone =>
+      supabase.rpc('get_repeat_guest_stats', { p_tenant_id: tid, p_guest_phone: phone })
+        .then(({ data, error }) => ({ phone, data, error }))
+        .catch(err => ({ phone, error: err }))
+    );
+
+    const results = await Promise.all(statsPromises);
+
+    const statsMap = {};
+    results.forEach(({ phone, data, error }) => {
+      if (!error && data) {
+        statsMap[phone] = data;
+      }
+    });
+
+    setGuestStats(statsMap);
+  };
+
+  const handleApprove = async (decision) => {
+    // 1. OPTIMISTIC UPDATE - actualizar UI INMEDIATAMENTE
+    setDecisions(prev => prev.filter(d => d.id !== decision.id));
+    updateStripOptimistic(decision, 'approve');
+    showToast('✅ Decision approved', 'success');
+
+    // 2. Llamar backend en paralelo (no bloquear UI)
+    try {
+      setActionInProgress(decision.id);
+
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
+
+      const response = await fetch('https://n8n-production-bb2d.up.railway.app/webhook/autopilot/decision-action', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          decision_id: decision.id,
+          action: 'approve',
+          action_by: 'owner',
+          notes: ''
+        }),
+        signal: controller.signal
+      });
+
+      clearTimeout(timeoutId);
+      const result = await response.json();
+
+      // 3. Solo si falla → revertir
+      if (!result.success) {
+        setDecisions(prev => [...prev, decision]);
+        updateStripOptimistic({ ...decision, status: 'pending' }, 'revert');
+        showToast('⚠️ Error — decision restored', 'error');
+      }
+    } catch (err) {
+      // Revertir en caso de error
+      setDecisions(prev => [...prev, decision]);
+      updateStripOptimistic({ ...decision, status: 'pending' }, 'revert');
+      showToast('⚠️ Connection error', 'error');
+    } finally {
+      setActionInProgress(null);
+    }
+  };
+
+  const handleReject = async (decisionId) => {
+    if (!rejectNotes.trim()) {
+      showToast('Please provide a reason for rejection', 'error');
+      return;
+    }
+
+    // Encontrar la decision completa
+    const decision = decisions.find(d => d.id === decisionId);
+    if (!decision) return;
+
+    // 1. OPTIMISTIC UPDATE - actualizar UI INMEDIATAMENTE
+    setDecisions(prev => prev.filter(d => d.id !== decisionId));
+    updateStripOptimistic(decision, 'reject');
+    setRejectModal(null);
+    setRejectNotes('');
+    showToast('❌ Decision rejected', 'success');
+
+    // 2. Llamar backend en paralelo
+    try {
+      setActionInProgress(decisionId);
+
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
+
+      const response = await fetch('https://n8n-production-bb2d.up.railway.app/webhook/autopilot/decision-action', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          decision_id: decisionId,
+          action: 'reject',
+          action_by: 'owner',
+          notes: rejectNotes
+        }),
+        signal: controller.signal
+      });
+
+      clearTimeout(timeoutId);
+      const result = await response.json();
+
+      // 3. Solo si falla → revertir
+      if (!result.success) {
+        setDecisions(prev => [...prev, decision]);
+        updateStripOptimistic({ ...decision, status: 'pending' }, 'revert');
+        showToast('⚠️ Error — decision restored', 'error');
+      }
+    } catch (err) {
+      // Revertir en caso de error
+      setDecisions(prev => [...prev, decision]);
+      updateStripOptimistic({ ...decision, status: 'pending' }, 'revert');
+      showToast('⚠️ Connection error', 'error');
+    } finally {
+      setActionInProgress(null);
+    }
+  };
+
+  const handleModify = async (decisionId) => {
+    if (!modifyNotes.trim()) {
+      showToast('Please describe the modification', 'error');
+      return;
+    }
+
+    // Encontrar la decision completa
+    const decision = decisions.find(d => d.id === decisionId);
+    if (!decision) return;
+
+    const notes = modifyNotes;
+
+    // 1. OPTIMISTIC UPDATE - NO eliminar la card, cambiar a "modified"
+    setDecisions(prev => prev.map(d =>
+      d.id === decisionId
+        ? { ...d, status: 'modified', modification_notes: notes, modified_at: new Date().toISOString() }
+        : d
+    ));
+    updateStripOptimistic(decision, 'modify');
+    setModifyModal(null);
+    setModifyNotes('');
+    showToast('✏️ Decision modified', 'success');
+
+    // 2. Llamar backend en paralelo
+    try {
+      setActionInProgress(decisionId);
+
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
+
+      const response = await fetch('https://n8n-production-bb2d.up.railway.app/webhook/autopilot/decision-action', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          decision_id: decisionId,
+          action: 'modify',
+          action_by: 'owner',
+          notes: notes
+        }),
+        signal: controller.signal
+      });
+
+      clearTimeout(timeoutId);
+      const result = await response.json();
+
+      // 3. Solo si falla → revertir
+      if (!result.success) {
+        setDecisions(prev => prev.map(d =>
+          d.id === decisionId ? decision : d  // restaurar estado original
+        ));
+        updateStripOptimistic({ ...decision, status: 'pending' }, 'revert');
+        showToast('⚠️ Error — decision restored', 'error');
+      }
+    } catch (err) {
+      // Revertir en caso de error
+      setDecisions(prev => prev.map(d =>
+        d.id === decisionId ? decision : d
+      ));
+      updateStripOptimistic({ ...decision, status: 'pending' }, 'revert');
+      showToast('⚠️ Connection error', 'error');
+    } finally {
+      setActionInProgress(null);
+    }
+  };
+
+  const formatIDR = (amount) => {
+    if (!amount || amount === 0) return '—';
+    // Indonesian format: Rp 1.000.000 (dots as thousands separator)
+    return `Rp ${Math.round(amount).toLocaleString('id-ID')}`;
+  };
+
+  const formatDate = (dateStr) => {
+    if (!dateStr) return '';
+    const date = new Date(dateStr);
+    return date.toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' });
+  };
+
+  const formatTime = (dateStr) => {
+    if (!dateStr) return '';
+    const date = new Date(dateStr);
+    return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
+  };
+
+  const getCountdown = (dueDate, createdAt) => {
+    if (!dueDate) return null;
+    const now = new Date();
+    const due = new Date(dueDate);
+    const created = new Date(createdAt);
+    const totalMs = due - created;
+    const remainingMs = due - now;
+
+    if (remainingMs < 0) {
+      const absMs = Math.abs(remainingMs);
+      const hours = Math.floor(absMs / (1000 * 60 * 60));
+      const minutes = Math.floor((absMs % (1000 * 60 * 60)) / (1000 * 60));
+      return { overdue: true, hours, minutes, percentRemaining: 0 };
+    } else {
+      const hours = Math.floor(remainingMs / (1000 * 60 * 60));
+      const minutes = Math.floor((remainingMs % (1000 * 60 * 60)) / (1000 * 60));
+      const percentRemaining = (remainingMs / totalMs) * 100;
+      return { overdue: false, hours, minutes, percentRemaining };
+    }
+  };
+
+  const formatHours = (hours) => {
+    if (!hours || hours === 0) return '0h';
+    if (hours < 1) {
+      const minutes = Math.round(hours * 60);
+      return `${minutes}min`;
+    }
+    const h = Math.floor(hours);
+    const m = Math.round((hours - h) * 60);
+    return m > 0 ? `${h}h ${m}min` : `${h}h`;
   };
 
   // LOADING STATE
   if (loading) {
     return (
-      <div className="p-6 space-y-6 bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 min-h-screen flex items-center justify-center">
+      <div className="flex-1 h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black p-4 flex items-center justify-center">
         <div className="text-center">
           <div className="w-20 h-20 border-4 border-orange-500/30 border-t-orange-500 rounded-full animate-spin mx-auto mb-6"></div>
-          <h2 className="text-2xl font-bold text-white mb-2">Loading Your Dashboard</h2>
-          <p className="text-gray-400">Aggregating data from all sources...</p>
-          <p className="text-gray-500 text-sm mt-2">This may take a few seconds</p>
-        </div>
-      </div>
-    );
-  }
-
-  // OLD SKELETON CODE REMOVED
-  if (false) {
-    return (
-      <div className="p-6 space-y-6 bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 min-h-screen">
-        {/* Header Skeleton */}
-        <div className="flex items-center justify-between mb-8">
-          <div className="flex items-center gap-4">
-            <div className="w-10 h-10 bg-gray-700 rounded-xl animate-pulse"></div>
-            <div>
-              <div className="w-48 h-6 bg-gray-700 rounded animate-pulse mb-2"></div>
-              <div className="w-32 h-4 bg-gray-700 rounded animate-pulse"></div>
-            </div>
-          </div>
-          <div className="w-24 h-10 bg-gray-700 rounded-xl animate-pulse"></div>
-        </div>
-
-        {/* Quick Stats Skeleton */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          {[1, 2, 3, 4].map(i => (
-            <div key={i} className="bg-[#1f2937] rounded-2xl p-6 border border-gray-700/50 animate-pulse">
-              <div className="w-full h-20"></div>
-            </div>
-          ))}
-        </div>
-
-        {/* Priority Stack Skeleton */}
-        <div className="space-y-4">
-          {[1, 2, 3].map(i => (
-            <div key={i} className="bg-[#1f2937] rounded-2xl p-6 border border-gray-700/50 animate-pulse">
-              <div className="w-full h-32"></div>
-            </div>
-          ))}
+          <h2 className="text-2xl font-bold text-white mb-2">Loading Owner Decision Center</h2>
+          <p className="text-gray-400 text-sm">Preparing your control tower...</p>
         </div>
       </div>
     );
@@ -408,423 +448,562 @@ const OwnerHome = ({ onBack, propertyId: propPropertyId, tenantId: propTenantId 
   // ERROR STATE
   if (error) {
     return (
-      <div className="p-6 bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 min-h-screen">
+      <div className="flex-1 h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black p-4">
         <div className="flex items-center gap-3 mb-6">
-          <button onClick={onBack} className="p-2 rounded-xl hover:bg-white/10 text-gray-400 hover:text-white transition-colors">
-            <ArrowLeft className="w-5 h-5" />
+          <button onClick={onBack} className="p-3 bg-gray-800 hover:bg-gray-700 rounded-xl transition-all">
+            <ArrowLeft className="w-6 h-6 text-white" />
           </button>
-          <h2 className="text-2xl font-bold text-white">Owner Home</h2>
+          <h2 className="text-3xl font-bold text-white">Owner Decision Center</h2>
         </div>
 
-        <div className="bg-red-500/20 border border-red-500/40 rounded-2xl p-6 text-center">
-          <AlertCircle className="w-12 h-12 text-red-400 mx-auto mb-4" />
-          <p className="text-red-300 font-semibold mb-2">Error loading data</p>
-          <p className="text-gray-400 text-sm mb-4">{error}</p>
-          <div className="flex gap-3 justify-center">
-            <button
-              onClick={onBack}
-              className="px-6 py-3 bg-gray-600 hover:bg-gray-700 text-white rounded-xl font-semibold transition-colors"
-            >
-              Go Back
-            </button>
-            <button
-              onClick={() => {
-                setError(null);
-                setLoading(true);
-                window.location.reload();
-              }}
-              className="px-6 py-3 bg-red-500 hover:bg-red-600 text-white rounded-xl font-semibold transition-colors"
-            >
-              Refresh Page
-            </button>
+        <div className="bg-red-900/20 border-2 border-red-500 rounded-xl p-6">
+          <div className="flex items-center gap-3 mb-2">
+            <AlertTriangle className="w-5 h-5 text-red-500" />
+            <h3 className="font-bold text-red-400">Error loading data</h3>
           </div>
-        </div>
-      </div>
-    );
-  }
-
-  // EMPTY STATE
-  if (!data || (
-    (!data.critical_now || data.critical_now.length === 0) &&
-    (!data.needs_your_decision || data.needs_your_decision.length === 0) &&
-    (!data.today_operations || (
-      data.today_operations.arrivals === 0 &&
-      data.today_operations.departures === 0 &&
-      data.today_operations.overdue_tasks === 0 &&
-      data.today_operations.pending_messages === 0
-    ))
-  )) {
-    return (
-      <div className="p-6 bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 min-h-screen">
-        <div className="flex items-center gap-3 mb-6">
-          <button onClick={onBack} className="p-2 rounded-xl hover:bg-white/10 text-gray-400 hover:text-white transition-colors">
-            <ArrowLeft className="w-5 h-5" />
-          </button>
-          <h2 className="text-2xl font-bold text-white">Owner Home</h2>
-        </div>
-
-        <div className="bg-green-500/20 border border-green-500/40 rounded-2xl p-12 text-center">
-          <CheckCircle className="w-16 h-16 text-green-400 mx-auto mb-4" />
-          <p className="text-green-300 font-semibold text-xl mb-2">Everything is in order today</p>
-          <p className="text-gray-400">No items require your attention at this time.</p>
-        </div>
-      </div>
-    );
-  }
-
-  const totalAttention = getTotalAttentionItems();
-
-  return (
-    <div className="p-4 md:p-6 space-y-4 md:space-y-6 bg-gray-900 min-h-screen">
-      {/* ========== 1. HEADER ========== */}
-      <div className="space-y-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <button onClick={onBack} className="p-2 rounded-xl hover:bg-white/10 text-gray-400 hover:text-white transition-colors">
-              <ArrowLeft className="w-5 h-5" />
-            </button>
-            <div>
-              <h2 className="text-xl md:text-2xl font-bold text-white">Owner Home</h2>
-              <p className="text-gray-400 text-xs md:text-sm">{new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
-            </div>
-          </div>
-
+          <p className="text-red-300 text-sm mb-4">{error}</p>
           <button
-            onClick={() => loadData(false)}
-            disabled={loading || refreshing}
-            className="p-2 md:p-3 bg-[#1f2937] hover:bg-orange-500 text-gray-300 hover:text-white rounded-xl transition-colors disabled:opacity-50"
-            title={refreshing ? 'Updating...' : 'Refresh data'}
+            onClick={() => fetchAllData(tenantId)}
+            className="px-4 py-2 bg-orange-500 text-white rounded-xl hover:bg-orange-600 transition-colors font-semibold"
           >
-            <RefreshCw className={`w-4 h-4 md:w-5 md:h-5 ${(loading || refreshing) ? 'animate-spin' : ''}`} />
+            Retry
           </button>
         </div>
-
-        {totalAttention > 0 && (
-          <div className="px-3 py-2 bg-orange-500/20 text-orange-300 rounded-xl font-bold border border-orange-500/40 text-center text-sm">
-            {totalAttention} {totalAttention === 1 ? 'item' : 'items'} require attention
-          </div>
-        )}
-
-        {refreshing && (
-          <div className="px-3 py-2 bg-blue-500/20 text-blue-300 rounded-xl text-sm font-medium border border-blue-500/40 flex items-center justify-center gap-2">
-            <div className="w-3 h-3 border-2 border-blue-300/40 border-t-blue-300 rounded-full animate-spin" />
-            Updating...
-          </div>
-        )}
       </div>
+    );
+  }
 
-      {/* ========== 2. QUICK STATS ========== */}
-      <div className="grid grid-cols-2 gap-3">
-        <div className="bg-[#1f2937] rounded-xl p-3 border border-blue-500/40">
-          <p className="text-gray-400 text-xs mb-1">Villas Occupied</p>
-          <p className="text-xl font-bold text-blue-400">{data.quick_stats?.guests_in_house || 0}/3</p>
-        </div>
+  const total = analytics?.total_decisions || 0;
+  const urgent = analytics?.urgent_count || 0;
+  const pending = analytics?.pending_count || 0;
+  const revenueAtStake = analytics?.total_financial_impact || 0;
+  const overdue = analytics?.overdue_count || 0;
+  const autoApproved = analytics?.auto_approved_today || 0;
+  const avgResponseTime = analytics?.avg_response_time_hours || 0;
 
-        <div className="bg-[#1f2937] rounded-xl p-3 border border-yellow-500/40">
-          <p className="text-gray-400 text-xs mb-1">Revenue</p>
-          <p className="text-xl font-bold text-yellow-400">{formatIDR(data.quick_stats?.revenue_inhouse_idr || 0)}</p>
-        </div>
+  // Incluir tanto pending como modified (el owner ya actuó en modified pero sigue visible)
+  const pendingDecisions = decisions.filter(d => d.status === 'pending' || d.status === 'modified');
 
-        <div className="bg-[#1f2937] rounded-xl p-3 border border-orange-500/40">
-          <p className="text-gray-400 text-xs mb-1">Overdue Tasks</p>
-          <p className="text-xl font-bold text-orange-400">{data.today_operations?.overdue_tasks || 0}</p>
-        </div>
-
-        <div className="bg-[#1f2937] rounded-xl p-3 border border-green-500/40">
-          <p className="text-gray-400 text-xs mb-1">Active Guests</p>
-          <p className="text-xl font-bold text-green-400">{data.quick_stats?.guests_in_house || 0}</p>
-        </div>
-      </div>
-
-      {/* ========== 3. PRIORITY STACK ========== */}
-
-      {/* Critical Now */}
-      {data.critical_now && data.critical_now.length > 0 && (
-        <div className="space-y-3">
-          <h3 className="text-xl font-bold text-red-400 flex items-center gap-2">
-            <AlertCircle className="w-5 h-5" />
-            Critical Now
-          </h3>
-          {data.critical_now.slice(0, 5).map(item => (
-            <PriorityCard
-              key={item.id}
-              item={item}
-              onApprove={() => handleDecisionAction(item.id, 'approve')}
-              onReject={() => handleDecisionAction(item.id, 'reject')}
-              actionLoading={actionLoading[item.id]}
-              formatTimeAgo={formatTimeAgo}
-              getPriorityColor={getPriorityColor}
-            />
-          ))}
-        </div>
-      )}
-
-      {/* Needs Your Decision */}
-      {data.needs_your_decision && data.needs_your_decision.length > 0 && (
-        <div className="space-y-3">
-          <h3 className="text-xl font-bold text-orange-400 flex items-center gap-2">
-            <Clock className="w-5 h-5" />
-            Needs Your Decision
-          </h3>
-          {data.needs_your_decision.slice(0, 5).map(item => (
-            <PriorityCard
-              key={item.id}
-              item={item}
-              onApprove={() => handleDecisionAction(item.id, 'approve')}
-              onReject={() => handleDecisionAction(item.id, 'reject')}
-              actionLoading={actionLoading[item.id]}
-              formatTimeAgo={formatTimeAgo}
-              getPriorityColor={getPriorityColor}
-            />
-          ))}
-        </div>
-      )}
-
-      {/* Revenue Opportunities - Always show with graceful empty state */}
-      <div className="space-y-3">
-        <h3 className="text-xl font-bold text-green-400 flex items-center gap-2">
-          <TrendingUp className="w-5 h-5" />
-          Revenue Opportunities
-          {data.revenue_opportunities && data.revenue_opportunities.length > 0 && (
-            <span className="px-3 py-1 bg-green-500/20 text-green-400 rounded-full text-sm font-bold">
-              {data.revenue_opportunities.length}
-            </span>
-          )}
-        </h3>
-        {data.revenue_opportunities && data.revenue_opportunities.length > 0 ? (
-          data.revenue_opportunities.map((opp, idx) => (
-            <PriorityCard
-              key={idx}
-              item={opp}
-              priorityColor="green"
-              onApprove={() => handleDecisionAction(opp.id, 'approve')}
-              onReject={() => handleDecisionAction(opp.id, 'reject')}
-              actionLoading={actionLoading[opp.id]}
-            />
-          ))
-        ) : (
-          <div className="bg-[#1f2937] rounded-2xl p-6 border border-green-500/20 text-center">
-            <TrendingUp className="w-12 h-12 text-green-500/40 mx-auto mb-3" />
-            <p className="text-gray-400 font-medium">No opportunities detected</p>
-            <p className="text-gray-500 text-sm mt-1">The system constantly monitors for new revenue opportunities</p>
-          </div>
-        )}
-      </div>
-
-      {/* ========== 4. TODAY OPERATIONS ========== */}
-      <div className="bg-[#1f2937] rounded-2xl p-6 border border-gray-700/50">
-        <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
-          <Home className="w-5 h-5" />
-          Today Operations
-        </h3>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* Arrivals */}
-          <div className="bg-[#2a2f3a] rounded-xl p-4">
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
-                <TrendingUp className="w-5 h-5 text-green-400" />
-                <span className="text-white font-semibold">Arrivals</span>
-                <span className="text-green-400 font-bold">{data.today_operations?.arrivals || 0}</span>
-              </div>
-              {data.today_operations?.arrivals_detail?.length > 0 && (
-                <button onClick={() => toggleSection('arrivals')} className="text-gray-400 hover:text-white">
-                  {expandedSections.arrivals ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
-                </button>
-              )}
-            </div>
-            {expandedSections.arrivals && data.today_operations?.arrivals_detail?.length > 0 && (
-              <div className="space-y-2 mt-3 pl-7">
-                {data.today_operations.arrivals_detail.map((arrival, idx) => (
-                  <div key={idx} className="text-sm text-gray-400">
-                    • {arrival.guest_name}
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Departures */}
-          <div className="bg-[#2a2f3a] rounded-xl p-4">
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
-                <Home className="w-5 h-5 text-purple-400" />
-                <span className="text-white font-semibold">Departures</span>
-                <span className="text-purple-400 font-bold">{data.today_operations?.departures || 0}</span>
-              </div>
-              {data.today_operations?.departures_detail?.length > 0 && (
-                <button onClick={() => toggleSection('departures')} className="text-gray-400 hover:text-white">
-                  {expandedSections.departures ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
-                </button>
-              )}
-            </div>
-            {expandedSections.departures && data.today_operations?.departures_detail?.length > 0 && (
-              <div className="space-y-2 mt-3 pl-7">
-                {data.today_operations.departures_detail.map((departure, idx) => (
-                  <div key={idx} className="text-sm text-gray-400">
-                    • {departure.guest_name}
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Overdue Tasks */}
-          <div className="bg-[#2a2f3a] rounded-xl p-4">
-            <div className="flex items-center gap-2">
-              <Clock className="w-5 h-5 text-red-400" />
-              <span className="text-white font-semibold">Overdue Tasks</span>
-              <span className="text-red-400 font-bold">{data.today_operations?.overdue_tasks || 0}</span>
-            </div>
-          </div>
-
-          {/* Pending Messages */}
-          <div className="bg-[#2a2f3a] rounded-xl p-4">
-            <div className="flex items-center gap-2">
-              <Bell className="w-5 h-5 text-yellow-400" />
-              <span className="text-white font-semibold">Pending Messages</span>
-              <span className="text-yellow-400 font-bold">{data.today_operations?.pending_messages || 0}</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* ========== 5. SYSTEM ACTIVITY ========== */}
-      <div className="bg-[#1f2937] rounded-2xl p-6 border border-green-500/40">
-        <h3 className="text-xl font-bold text-green-400 mb-4 flex items-center gap-2">
-          <Sparkles className="w-5 h-5" />
-          System Activity
-        </h3>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {/* Auto-resolved */}
-          <div className="bg-[#2a2f3a] rounded-xl p-4">
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
-                <CheckCircle className="w-5 h-5 text-green-400" />
-                <span className="text-white font-semibold">Auto-resolved Today</span>
-                <span className="text-green-400 font-bold">{data.system_activity?.auto_resolved_today || 0}</span>
-              </div>
-              {data.system_activity?.auto_resolved_items?.length > 0 && (
-                <button onClick={() => toggleSection('autoResolved')} className="text-gray-400 hover:text-white">
-                  {expandedSections.autoResolved ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
-                </button>
-              )}
-            </div>
-            {expandedSections.autoResolved && data.system_activity?.auto_resolved_items?.length > 0 && (
-              <div className="space-y-2 mt-3 pl-7">
-                {data.system_activity.auto_resolved_items.map((item, idx) => (
-                  <div key={idx} className="text-sm text-gray-400">
-                    • {item.type}: {item.guest} - {item.resolution}
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Follow-ups sent */}
-          <div className="bg-[#2a2f3a] rounded-xl p-4">
-            <div className="flex items-center gap-2">
-              <Bell className="w-5 h-5 text-blue-400" />
-              <span className="text-white font-semibold">Follow-ups Sent</span>
-              <span className="text-blue-400 font-bold">{data.system_activity?.followups_sent_today || 0}</span>
-            </div>
-          </div>
-
-          {/* Alerts sent */}
-          <div className="bg-[#2a2f3a] rounded-xl p-4">
-            <div className="flex items-center gap-2">
-              <AlertCircle className="w-5 h-5 text-orange-400" />
-              <span className="text-white font-semibold">Alerts Sent</span>
-              <span className="text-orange-400 font-bold">{data.system_activity?.alerts_sent_today || 0}</span>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-// Priority Card Component
-const PriorityCard = ({ item, onApprove, onReject, actionLoading, formatTimeAgo, getPriorityColor }) => {
-  const isDecision = item.type === 'decision';
-  const isPending = item.status === 'pending';
+  // Dynamic header color and message
+  const headerColor = urgent > 0 ? '#DC2626' : pending > 0 ? '#EA580C' : '#16A34A';
+  const headerMsg = urgent > 0
+    ? `🚨 URGENT ACTION REQUIRED · ${urgent} ${urgent === 1 ? 'decision needs' : 'decisions need'} immediate attention`
+    : pending > 0
+    ? `⚡ ${pending} ${pending === 1 ? 'decision' : 'decisions'} waiting for your review`
+    : '✅ All clear — system handled everything today';
 
   return (
-    <div className="bg-[#1f2937] rounded-2xl p-4 border border-gray-700/50 hover:border-orange-500/40 transition-colors">
-      <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
-        <div className="flex-1">
-          <div className="flex items-center gap-2 mb-2">
-            <span className={`px-2 py-1 rounded-lg text-xs font-bold border ${getPriorityColor(item.priority)}`}>
-              {item.priority?.toUpperCase()}
-            </span>
-            <span className="px-2 py-1 rounded-lg text-xs font-semibold bg-blue-500/20 text-blue-300 border border-blue-500/40">
-              {item.type === 'decision' ? 'Decision' : 'Task'}
-            </span>
-            {/* Status Badge - Show APPROVED or REJECTED */}
-            {item.status === 'approved' && (
-              <span className="px-2 py-1 rounded-lg text-xs font-bold bg-green-500/20 text-green-300 border border-green-500/40">
-                APPROVED
-              </span>
-            )}
-            {item.status === 'rejected' && (
-              <span className="px-2 py-1 rounded-lg text-xs font-bold bg-red-500/20 text-red-300 border border-red-500/40">
-                REJECTED
-              </span>
-            )}
+    <div className="flex-1 bg-gradient-to-br from-gray-900 via-gray-800 to-black overflow-y-auto">
+      <div className="p-4 md:p-6 min-h-screen">
+      {/* Header */}
+      <div className="flex items-center gap-4 mb-6">
+        <button
+          onClick={onBack}
+          className="p-3 bg-gray-800 hover:bg-gray-700 rounded-xl transition-all"
+        >
+          <ArrowLeft className="w-6 h-6 text-white" />
+        </button>
+        <h2 className="text-3xl font-bold text-white">
+          Owner Decision Center
+          <span className="text-gray-400 ml-3">
+            Today · {new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+          </span>
+        </h2>
+      </div>
+
+      {/* ========== COMMAND CENTER HEADER ========== */}
+      <div className="bg-white rounded-xl shadow-xl overflow-hidden mb-6 border-2 border-gray-200">
+        {/* Top Bar - Dynamic Color */}
+        <div className="px-6 py-4 flex items-center justify-between" style={{ backgroundColor: headerColor }}>
+          <h3 className="text-white font-bold text-lg">{headerMsg}</h3>
+          <div className="text-white text-sm opacity-90">
+            {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
           </div>
+        </div>
 
-          <h4 className="text-white font-bold text-base md:text-lg mb-2 break-words">{item.title}</h4>
-          <p className="text-gray-400 text-sm mb-3 break-words">{item.summary}</p>
+        {/* Metrics Grid - NÚMEROS GRANDES */}
+        {pending > 0 || urgent > 0 ? (
+          <>
+            <div className="grid grid-cols-2 md:grid-cols-[0.8fr_0.8fr_0.8fr_2fr] divide-x divide-gray-200 border-b-2 border-gray-200">
+              {/* TOTAL */}
+              <div className="p-3 md:p-5 bg-white">
+                <div className="text-gray-500 text-xs font-bold uppercase tracking-wider mb-2">Total</div>
+                <div className="text-4xl md:text-5xl font-black text-gray-900 mb-1">{total}</div>
+                <div className="text-gray-600 text-xs">decisions</div>
+              </div>
 
-          {item.guest_name && (
-            <div className="text-sm text-gray-400 mb-2">
-              <span className="text-gray-500">Guest:</span> <span className="text-white">{item.guest_name}</span>
+              {/* URGENT */}
+              <div className="p-3 md:p-5 bg-white">
+                <div className="text-gray-500 text-xs font-bold uppercase tracking-wider mb-2">Urgent</div>
+                <div className={`text-4xl md:text-5xl font-black mb-1 flex items-center gap-1 ${urgent > 0 ? 'text-red-600' : 'text-gray-400'}`}>
+                  {urgent > 0 && <span className="text-2xl">🔴</span>}
+                  {urgent}
+                </div>
+                <div className="text-gray-600 text-xs">need now</div>
+              </div>
+
+              {/* PENDING */}
+              <div className="p-3 md:p-5 bg-white">
+                <div className="text-gray-500 text-xs font-bold uppercase tracking-wider mb-2">Pending</div>
+                <div className={`text-4xl md:text-5xl font-black mb-1 flex items-center gap-1 ${pending > 0 ? 'text-orange-600' : 'text-gray-400'}`}>
+                  {pending > 0 && <Clock className="w-6 h-6 md:w-8 md:h-8" />}
+                  {pending}
+                </div>
+                <div className="text-gray-600 text-xs">waiting</div>
+              </div>
+
+              {/* REVENUE AT STAKE */}
+              <div className="p-3 md:p-5 bg-white">
+                <div className="text-gray-500 text-xs font-bold uppercase tracking-wider mb-2">Revenue at Stake</div>
+                <div className={`text-3xl md:text-4xl font-black mb-1 ${revenueAtStake > 0 ? 'text-red-600' : 'text-gray-400'}`}>
+                  {revenueAtStake > 0 ? formatIDR(revenueAtStake) : '—'}
+                </div>
+                <div className="text-gray-600 text-xs">
+                  {revenueAtStake > 0 ? 'across decisions' : 'No risk'}
+                </div>
+              </div>
             </div>
-          )}
 
-          <div className="text-xs text-gray-500">
-            {formatTimeAgo(item.created_at)}
-          </div>
+            {/* Alert Strips */}
+            <div className="p-4 space-y-2 bg-gray-50">
+              {/* Overdue Alert */}
+              {overdue > 0 && (
+                <div className="flex items-center gap-3 px-4 py-3 bg-red-50 border-l-4 border-red-600 rounded">
+                  <AlertTriangle className="w-5 h-5 text-red-600 flex-shrink-0" />
+                  <span className="text-red-900 font-bold text-sm">
+                    ⚠️ {overdue} {overdue === 1 ? 'decision has' : 'decisions have'} been pending for more than 24 hours
+                  </span>
+                </div>
+              )}
 
-          {item.recommended_action && (
-            <div className="mt-3 p-3 bg-orange-500/10 border border-orange-500/30 rounded-xl">
-              <p className="text-orange-300 text-sm">
-                <span className="font-semibold">Recommendation:</span> {item.recommended_action}
+              {/* Auto-Resolved */}
+              {autoApproved > 0 && (
+                <div className="flex items-center justify-between px-4 py-3 bg-green-50 border-l-4 border-green-600 rounded">
+                  <div className="flex items-center gap-3">
+                    <CheckCircle2 className="w-5 h-5 text-green-600 flex-shrink-0" />
+                    <span className="text-green-900 font-bold text-sm">
+                      ✅ System auto-resolved {autoApproved} {autoApproved === 1 ? 'decision' : 'decisions'} today
+                    </span>
+                  </div>
+                  {avgResponseTime > 0 && (
+                    <span className="text-green-700 text-sm font-semibold">
+                      Avg: {formatHours(avgResponseTime)}
+                    </span>
+                  )}
+                </div>
+              )}
+            </div>
+          </>
+        ) : (
+          /* ALL CLEAR STATE */
+          <div className="p-8 bg-green-50">
+            <div className="text-center">
+              <CheckCircle2 className="w-16 h-16 text-green-600 mx-auto mb-4" />
+              <h3 className="text-2xl font-bold text-green-900 mb-2">All clear for today</h3>
+              <p className="text-green-700 mb-4">
+                {autoApproved > 0 && `System auto-resolved ${autoApproved} ${autoApproved === 1 ? 'decision' : 'decisions'}`}
+                {autoApproved > 0 && avgResponseTime > 0 && ' · '}
+                {avgResponseTime > 0 && `Avg response: ${formatHours(avgResponseTime)}`}
               </p>
             </div>
-          )}
-        </div>
-
-        {/* Action Buttons - Only for pending decisions */}
-        {isDecision && isPending && (
-          <div className="flex flex-row md:flex-col gap-2 w-full md:w-auto">
-            <button
-              onClick={onApprove}
-              disabled={!!actionLoading}
-              className="flex-1 md:flex-none px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-xl font-semibold transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
-            >
-              {actionLoading === 'approve' ? (
-                <div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
-              ) : (
-                <ThumbsUp className="w-4 h-4" />
-              )}
-              Approve
-            </button>
-            <button
-              onClick={onReject}
-              disabled={!!actionLoading}
-              className="flex-1 md:flex-none px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-xl font-semibold transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
-            >
-              {actionLoading === 'reject' ? (
-                <div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
-              ) : (
-                <ThumbsDown className="w-4 h-4" />
-              )}
-              Reject
-            </button>
           </div>
         )}
+      </div>
+
+      {/* ========== DECISION CARDS ========== */}
+      {pendingDecisions.length === 0 ? (
+        <div className="bg-white rounded-xl p-12 text-center shadow-lg border-2 border-gray-200">
+          <CheckCircle2 className="w-16 h-16 text-green-600 mx-auto mb-4" />
+          <h3 className="text-xl font-bold text-gray-800 mb-2">No priority items right now</h3>
+          <p className="text-gray-600">All decisions have been handled. Great work!</p>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {pendingDecisions.map(decision => {
+            const context = decisionContexts[decision.id];
+            const stats = guestStats[decision.guest_phone];
+            const countdown = getCountdown(decision.due_date, decision.created_at);
+            const booking = context?.active_booking;
+
+            // Priority colors
+            const priorityColors = {
+              urgent: { bg: '#FEF2F2', text: '#DC2626', border: '#DC2626' },
+              high: { bg: '#FFF7ED', text: '#EA580C', border: '#EA580C' },
+              medium: { bg: '#FEFCE8', text: '#CA8A04', border: '#CA8A04' },
+              low: { bg: '#F0FDF4', text: '#16A34A', border: '#16A34A' }
+            };
+            const colors = priorityColors[decision.priority] || priorityColors.low;
+
+            // Financial impact color
+            const impact = decision.financial_impact_estimate || '';
+            const impactColor = impact.toLowerCase().includes('risk') ||
+                               impact.toLowerCase().includes('refund') ||
+                               impact.toLowerCase().includes('loss')
+              ? '#DC2626'
+              : impact.toLowerCase().includes('discount') ||
+                impact.toLowerCase().includes('reduction')
+              ? '#EA580C'
+              : '#16A34A';
+
+            return (
+              <div
+                key={decision.id}
+                className="bg-white rounded-xl p-6 shadow-lg border-2 border-gray-200 hover:border-orange-500 transition-all"
+                style={{ borderLeft: `4px solid ${colors.border}` }}
+              >
+                {/* Priority Badge + Title (Una sola línea) */}
+                <div className="flex items-center gap-3 mb-3">
+                  <span className="px-3 py-1 rounded-lg font-bold uppercase" style={{ backgroundColor: colors.bg, color: colors.text }}>
+                    {decision.priority === 'urgent' ? '🔴 ' : ''}{decision.priority || 'LOW'}
+                  </span>
+                  <span className="font-bold" style={{ color: colors.text }}>
+                    {decision.title || decision.decision_type?.replace('_', ' ')}
+                  </span>
+                </div>
+
+                {/* Guest Info with VIP Badge */}
+                <div className="mb-4">
+                  <div className="flex items-center gap-2 text-gray-700 flex-wrap">
+                    <User className="w-4 h-4 text-gray-500" />
+                    <span className="font-semibold">{decision.guest_name || 'System Alert'}</span>
+                    {stats?.is_vip && (
+                      <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs font-bold" style={{ backgroundColor: '#FEF9C3', color: '#92400E' }}>
+                        ⭐ VIP
+                      </span>
+                    )}
+                    {!stats?.is_vip && stats?.is_repeat && (
+                      <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs font-bold bg-blue-100 text-blue-800">
+                        🔄 Repeat guest
+                      </span>
+                    )}
+                  </div>
+                  {/* Created Date */}
+                  <div className="text-xs text-gray-500 mt-1 ml-6">
+                    {new Date(decision.created_at).toLocaleDateString('en-US', {
+                      month: 'short', day: 'numeric', year: 'numeric'
+                    })} · {new Date(decision.created_at).toLocaleTimeString('en-US', {
+                      hour: '2-digit', minute: '2-digit', hour12: false
+                    })}
+                  </div>
+                  {stats && (stats.is_vip || stats.is_repeat) && (
+                    <div className="text-xs text-gray-500 mt-1 ml-6">
+                      {formatIDR(stats.total_spent)} total · {stats.total_stays} stays
+                    </div>
+                  )}
+                </div>
+
+                {/* Booking Context */}
+                {booking && (
+                  <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                    <div className="flex items-center gap-4 flex-wrap">
+                      {decision.villa_name && (
+                        <div className="flex items-center gap-2">
+                          <div className="text-xs text-blue-700 font-semibold">Villa</div>
+                          <div className="text-sm font-bold text-blue-900 flex items-center gap-1">
+                            <MapPin className="w-3 h-3" />
+                            {decision.villa_name}
+                          </div>
+                        </div>
+                      )}
+                      <div className="flex items-center gap-2">
+                        <div className="text-xs text-blue-700 font-semibold">Booking Value</div>
+                        <div className="text-sm font-bold text-blue-900">{formatIDR(booking.total_price)}</div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="text-xs text-blue-700 font-semibold">Checkout</div>
+                        <div className="text-sm font-bold text-blue-900">
+                          {formatDate(booking.check_out)} {formatTime(booking.check_out)}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Summary + Timer (Una sola línea) */}
+                <div className="flex items-center gap-3 mb-4 flex-wrap">
+                  <p className="text-gray-700 flex-1">{decision.summary || decision.description}</p>
+                  {countdown && (
+                    <div
+                      className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg font-bold ${
+                        countdown.overdue
+                          ? 'bg-red-100 text-red-800 border-2 border-red-600 animate-pulse'
+                          : countdown.percentRemaining < 25
+                          ? 'bg-orange-100 text-orange-800 border-2 border-orange-600'
+                          : 'bg-gray-100 text-gray-700 border-2 border-gray-300'
+                      }`}
+                    >
+                      <Clock className="w-5 h-5" />
+                      <span>
+                        {countdown.overdue ? '🔴 OVERDUE' : '⏱ Decision needed in'}: {String(countdown.hours).padStart(2, '0')}:{String(countdown.minutes).padStart(2, '0')}
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                {/* System Recommendation */}
+                {decision.recommended_action && (() => {
+                  const raw = decision.recommended_action;
+                  const isApprove = raw.startsWith('AUTO_APPROVE');
+                  const isEscalate = raw.startsWith('ESCALATE');
+
+                  // Limpiar el prefijo para mostrar solo la razón
+                  const reason = raw
+                    .replace(/^(AUTO_APPROVE|ESCALATE)\s*[-–]\s*/i, '')
+                    .replace(/AUTO_APPROVE_|ESCALATE_TO_OWNER_/g, '')
+                    .replace(/_/g, ' ')
+                    .trim();
+                  const displayReason = reason.length > 90 ? reason.slice(0, 90) + '...' : reason;
+
+                  // Determinar estilos
+                  const bgColor = isApprove ? '#DCFCE7' : isEscalate ? '#FEF9C3' : '#F1F5F9';
+                  const textColor = isApprove ? '#15803D' : isEscalate ? '#92400E' : '#475569';
+                  const icon = isApprove ? '✅' : isEscalate ? '⚡' : 'ℹ️';
+                  const action = isApprove ? 'AUTO-APPROVE' : isEscalate ? 'ESCALATE' : 'REVIEW';
+
+                  return (
+                    <div
+                      className="p-3 rounded-lg mb-4 border"
+                      style={{ backgroundColor: bgColor, borderColor: textColor }}
+                    >
+                      <div className="text-sm font-bold" style={{ color: textColor }}>
+                        {icon} {action} — {displayReason}
+                      </div>
+                    </div>
+                  );
+                })()}
+
+                {/* Financial Impact */}
+                {decision.financial_impact_estimate && (
+                  <div
+                    className="p-3 rounded-lg mb-4 border-2"
+                    style={{
+                      backgroundColor: impactColor === '#DC2626' ? '#FEF2F2' : impactColor === '#EA580C' ? '#FFF7ED' : '#F0FDF4',
+                      borderColor: impactColor
+                    }}
+                  >
+                    <div className="flex items-center gap-2">
+                      <DollarSign className="w-4 h-4" style={{ color: impactColor }} />
+                      <span className="text-sm font-bold" style={{ color: impactColor }}>
+                        {decision.financial_impact_estimate}
+                      </span>
+                    </div>
+                  </div>
+                )}
+
+                {/* Action Buttons o Modified Badge */}
+                {decision.status === 'modified' ? (
+                  <div className="p-4 rounded-lg bg-orange-50 border-2 border-orange-500">
+                    <div className="flex items-start gap-3">
+                      <Edit3 className="w-5 h-5 text-orange-600 mt-0.5" />
+                      <div className="flex-1">
+                        <div className="font-bold text-orange-900 mb-1">✏️ MODIFIED</div>
+                        <p className="text-sm text-orange-800 mb-2">
+                          {decision.modification_notes || 'Owner requested modifications'}
+                        </p>
+                        <div className="text-xs text-orange-700">
+                          Modified: {new Date(decision.modified_at || decision.created_at).toLocaleDateString('en-US', {
+                            month: 'short', day: 'numeric', year: 'numeric'
+                          })} · {new Date(decision.modified_at || decision.created_at).toLocaleTimeString('en-US', {
+                            hour: '2-digit', minute: '2-digit', hour12: false
+                          })}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => handleApprove(decision)}
+                      disabled={actionInProgress === decision.id}
+                      className="flex-[2] flex items-center justify-center gap-2 px-6 py-4 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white rounded-xl font-black text-lg transition-all shadow-lg"
+                    >
+                      <ThumbsUp className="w-6 h-6" />
+                      {actionInProgress === decision.id ? 'PROCESSING...' : 'APPROVE'}
+                    </button>
+                    <button
+                      onClick={() => setRejectModal(decision.id)}
+                      disabled={actionInProgress === decision.id}
+                      className="flex-1 flex items-center justify-center gap-2 px-4 py-4 bg-red-600 hover:bg-red-700 disabled:bg-gray-400 text-white rounded-xl font-bold transition-all"
+                    >
+                      <ThumbsDown className="w-5 h-5" />
+                      REJECT
+                    </button>
+                    <button
+                      onClick={() => setModifyModal(decision.id)}
+                      disabled={actionInProgress === decision.id}
+                      className="flex-1 flex items-center justify-center gap-2 px-4 py-4 bg-orange-500 hover:bg-orange-600 disabled:bg-gray-400 text-white rounded-xl font-bold transition-all"
+                    >
+                      <Edit3 className="w-5 h-5" />
+                      MODIFY
+                    </button>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* ========== AUTO-RESOLVED SECTION ========== */}
+      {decisions.filter(d => d.status === 'approved').length > 0 && (
+        <div className="mt-6 bg-white rounded-xl shadow-lg border-2 border-gray-200 overflow-hidden">
+          <button
+            onClick={() => setShowAutoResolved(!showAutoResolved)}
+            className="w-full px-6 py-4 flex items-center justify-between bg-green-50 hover:bg-green-100 transition-colors"
+          >
+            <div className="flex items-center gap-3">
+              <CheckCircle2 className="w-5 h-5 text-green-600" />
+              <h3 className="text-lg font-bold text-green-900">
+                Auto-Resolved This Month ({decisions.filter(d => d.status === 'approved').length})
+              </h3>
+            </div>
+            {showAutoResolved ? (
+              <ChevronUp className="w-5 h-5 text-green-700" />
+            ) : (
+              <ChevronDown className="w-5 h-5 text-green-700" />
+            )}
+          </button>
+
+          {showAutoResolved && (
+            <div className="p-4 space-y-2">
+              {decisions
+                .filter(d => d.status === 'approved')
+                .map(decision => (
+                  <div
+                    key={decision.id}
+                    className="p-4 bg-gray-50 rounded-lg border border-gray-200"
+                  >
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="font-bold text-gray-900">
+                            {decision.guest_name || 'System Alert'}
+                          </span>
+                          <span className="text-gray-500">·</span>
+                          <span className="text-sm text-gray-600">
+                            {decision.decision_type?.replace('_', ' ')}
+                          </span>
+                        </div>
+                        <p className="text-sm text-gray-700">{decision.summary || decision.title}</p>
+                        {decision.financial_impact_estimate && (
+                          <p className="text-xs text-green-700 mt-1">
+                            💰 {decision.financial_impact_estimate}
+                          </p>
+                        )}
+                      </div>
+                      <div className="text-right">
+                        <div className="text-xs text-green-600 font-semibold">✅ APPROVED</div>
+                        <div className="text-xs text-gray-500">
+                          {decision.approved_at ? new Date(decision.approved_at).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : ''}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* REJECT MODAL */}
+      {rejectModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl p-6 max-w-md w-full">
+            <h3 className="text-xl font-bold text-gray-900 mb-4">Reject Decision</h3>
+            <p className="text-gray-600 mb-4">Please provide a reason for rejecting this request:</p>
+            <textarea
+              value={rejectNotes}
+              onChange={(e) => setRejectNotes(e.target.value)}
+              placeholder="Reason for rejection (required)"
+              className="w-full p-3 border-2 border-gray-300 rounded-lg mb-4 min-h-[100px] focus:border-red-500 focus:outline-none"
+            />
+            <div className="flex gap-3">
+              <button
+                onClick={() => handleReject(rejectModal)}
+                disabled={!rejectNotes.trim() || actionInProgress === rejectModal}
+                className="flex-1 px-4 py-3 bg-red-600 hover:bg-red-700 disabled:bg-gray-400 text-white rounded-lg font-bold transition-colors"
+              >
+                {actionInProgress === rejectModal ? 'PROCESSING...' : 'CONFIRM REJECT'}
+              </button>
+              <button
+                onClick={() => { setRejectModal(null); setRejectNotes(''); }}
+                disabled={actionInProgress === rejectModal}
+                className="flex-1 px-4 py-3 bg-gray-300 hover:bg-gray-400 disabled:bg-gray-200 text-gray-800 rounded-lg font-bold transition-colors"
+              >
+                CANCEL
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODIFY MODAL */}
+      {modifyModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl p-6 max-w-md w-full">
+            <h3 className="text-xl font-bold text-gray-900 mb-4">Modify Decision</h3>
+            <p className="text-gray-600 mb-4">Describe the modification or counter-offer:</p>
+            <textarea
+              value={modifyNotes}
+              onChange={(e) => setModifyNotes(e.target.value)}
+              placeholder="Modification details (required)"
+              className="w-full p-3 border-2 border-gray-300 rounded-lg mb-4 min-h-[100px] focus:border-orange-500 focus:outline-none"
+            />
+            <div className="flex gap-3">
+              <button
+                onClick={() => handleModify(modifyModal)}
+                disabled={!modifyNotes.trim() || actionInProgress === modifyModal}
+                className="flex-1 px-4 py-3 bg-orange-500 hover:bg-orange-600 disabled:bg-gray-400 text-white rounded-lg font-bold transition-colors"
+              >
+                {actionInProgress === modifyModal ? 'PROCESSING...' : 'CONFIRM MODIFY'}
+              </button>
+              <button
+                onClick={() => { setModifyModal(null); setModifyNotes(''); }}
+                disabled={actionInProgress === modifyModal}
+                className="flex-1 px-4 py-3 bg-gray-300 hover:bg-gray-400 disabled:bg-gray-200 text-gray-800 rounded-lg font-bold transition-colors"
+              >
+                CANCEL
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* TOAST NOTIFICATION */}
+      {toast && (
+        <div className="fixed top-4 right-4 z-[100] animate-slideIn">
+          <div className={`px-6 py-4 rounded-xl shadow-2xl border-2 flex items-center gap-3 min-w-[300px] ${
+            toast.type === 'success'
+              ? 'bg-green-50 border-green-500 text-green-900'
+              : 'bg-red-50 border-red-500 text-red-900'
+          }`}>
+            <div className="text-2xl">
+              {toast.type === 'success' ? '✅' : '⚠️'}
+            </div>
+            <div className="flex-1 font-bold">{toast.message}</div>
+          </div>
+        </div>
+      )}
+
+      <style jsx>{`
+        @keyframes pulse {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.5; }
+        }
+        @keyframes slideIn {
+          from {
+            transform: translateX(100%);
+            opacity: 0;
+          }
+          to {
+            transform: translateX(0);
+            opacity: 1;
+          }
+        }
+        .animate-slideIn {
+          animation: slideIn 0.3s ease-out;
+        }
+      `}</style>
       </div>
     </div>
   );
