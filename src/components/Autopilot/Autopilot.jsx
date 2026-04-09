@@ -48,7 +48,9 @@ import {
   List,
   Trash2,
   X,
-  Save
+  Save,
+  User,
+  Edit3
 } from 'lucide-react';
 import ManualDataEntry from '../ManualDataEntry/ManualDataEntry';
 import MasterCalendar from '../MasterCalendar/MasterCalendar';
@@ -175,6 +177,11 @@ const Autopilot = ({ onBack }) => {
   const [monthlySummaries, setMonthlySummaries] = useState([]);
   const [loadingSummaries, setLoadingSummaries] = useState(false);
 
+  // Owner Decisions II - context and stats for VIP badges, booking context, etc.
+  const [decisionContexts, setDecisionContexts] = useState({});
+  const [guestStats, setGuestStats] = useState({});
+  const [actionInProgress, setActionInProgress] = useState(null);
+
   // Owner Decisions edit/create states
   const [showDecisionForm, setShowDecisionForm] = useState(false);
   const [editingDecision, setEditingDecision] = useState(null);
@@ -208,6 +215,39 @@ const Autopilot = ({ onBack }) => {
   const formatIDR = (n) => {
     if (!n || isNaN(n)) return 'Rp 0';
     return 'Rp ' + Math.round(n).toLocaleString('id-ID');
+  };
+
+  const formatDate = (dateStr) => {
+    if (!dateStr) return '';
+    const date = new Date(dateStr);
+    return date.toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' });
+  };
+
+  const formatTime = (dateStr) => {
+    if (!dateStr) return '';
+    const date = new Date(dateStr);
+    return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
+  };
+
+  const getCountdown = (dueDate, createdAt) => {
+    if (!dueDate) return null;
+    const now = new Date();
+    const due = new Date(dueDate);
+    const created = new Date(createdAt);
+    const totalMs = due - created;
+    const remainingMs = due - now;
+
+    if (remainingMs < 0) {
+      const absMs = Math.abs(remainingMs);
+      const hours = Math.floor(absMs / (1000 * 60 * 60));
+      const minutes = Math.floor((absMs % (1000 * 60 * 60)) / (1000 * 60));
+      return { overdue: true, hours, minutes, percentRemaining: 0 };
+    } else {
+      const hours = Math.floor(remainingMs / (1000 * 60 * 60));
+      const minutes = Math.floor((remainingMs % (1000 * 60 * 60)) / (1000 * 60));
+      const percentRemaining = (remainingMs / totalMs) * 100;
+      return { overdue: false, hours, minutes, percentRemaining };
+    }
   };
 
   // Load villas when entering Tasks or Decisions section
@@ -1591,12 +1631,60 @@ const Autopilot = ({ onBack }) => {
       const summary = await ownerDecisionsService.getDecisionsSummary(userData.id);
       console.log('✅ Received summary:', summary);
       setDecisionsSummary(summary);
+
+      // Fetch contexts and guest stats for Owner Decisions II
+      if (decisionsData && decisionsData.length > 0) {
+        await fetchDecisionContextsForOwnerDecisions(userData.id, decisionsData);
+
+        const uniquePhones = [...new Set(decisionsData.filter(d => d.guest_phone).map(d => d.guest_phone))];
+        if (uniquePhones.length > 0) {
+          await fetchGuestStatsForOwnerDecisions(userData.id, uniquePhones);
+        }
+      }
     } catch (error) {
       console.error('❌ Error loading owner decisions:', error);
       setNotification({ type: 'error', message: 'Failed to load owner decisions' });
     } finally {
       setLoadingDecisions(false);
     }
+  };
+
+  // Fetch decision contexts for Owner Decisions II (booking info, villa details, etc.)
+  const fetchDecisionContextsForOwnerDecisions = async (tid, decisions) => {
+    const contextPromises = decisions.map(decision =>
+      supabase.rpc('get_decision_context', { p_decision_id: decision.id })
+        .then(({ data, error }) => ({ id: decision.id, data, error }))
+        .catch(err => ({ id: decision.id, error: err }))
+    );
+
+    const results = await Promise.all(contextPromises);
+    const contexts = {};
+    results.forEach(({ id, data, error }) => {
+      if (!error && data) {
+        contexts[id] = data;
+      }
+    });
+
+    setDecisionContexts(contexts);
+  };
+
+  // Fetch guest stats for VIP/Repeat badges in Owner Decisions II
+  const fetchGuestStatsForOwnerDecisions = async (tid, phones) => {
+    const statsPromises = phones.map(phone =>
+      supabase.rpc('get_repeat_guest_stats', { p_tenant_id: tid, p_guest_phone: phone })
+        .then(({ data, error }) => ({ phone, data, error }))
+        .catch(err => ({ phone, error: err }))
+    );
+
+    const results = await Promise.all(statsPromises);
+    const statsMap = {};
+    results.forEach(({ phone, data, error }) => {
+      if (!error && data) {
+        statsMap[phone] = data;
+      }
+    });
+
+    setGuestStats(statsMap);
   };
 
   // Load Weekly/Monthly Summaries based on period filter
@@ -6792,8 +6880,8 @@ const Autopilot = ({ onBack }) => {
           <h2 className="text-3xl font-bold text-white">Owner Control System</h2>
         </div>
 
-        {/* Three Options: Owner Home, Owner Decisions & Decision Intelligence */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {/* Four Options: Owner Home, Owner Decisions, Owner Decisions II & Decision Intelligence */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Option 1: Owner Home */}
           <button
             onClick={() => setOcsView('owner-home')}
@@ -6840,7 +6928,30 @@ const Autopilot = ({ onBack }) => {
             </div>
           </button>
 
-          {/* Option 3: Decision Intelligence */}
+          {/* Option 3: Owner Decisions II (NEW FORMAT - TESTING) */}
+          <button
+            onClick={() => setOcsView('owner-decisions-ii')}
+            className="group bg-gradient-to-br from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 rounded-3xl p-8 shadow-2xl border-2 border-green-400/30 transition-all transform hover:scale-105 text-left"
+          >
+            <div className="flex items-center gap-4 mb-4">
+              <div className="p-4 bg-white/20 rounded-2xl">
+                <ClipboardCheck className="w-12 h-12 text-white" />
+              </div>
+              <div>
+                <h3 className="text-2xl font-bold text-white">Owner Decisions II</h3>
+                <p className="text-green-100 text-sm">New Format (Testing)</p>
+              </div>
+            </div>
+            <p className="text-white/90 mb-4">
+              Same filters and controls as Owner Decisions, but with Owner Home card format (white background, VIP badges, booking context).
+            </p>
+            <div className="flex items-center gap-2 text-white font-semibold">
+              <span>Test New Format</span>
+              <ChevronRight className="w-5 h-5 group-hover:translate-x-2 transition-transform" />
+            </div>
+          </button>
+
+          {/* Option 4: Decision Intelligence */}
           <button
             onClick={() => setOcsView('decision-intelligence')}
             className="group bg-gradient-to-br from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 rounded-3xl p-8 shadow-2xl border-2 border-purple-400/30 transition-all transform hover:scale-105 text-left"
@@ -9331,6 +9442,692 @@ const Autopilot = ({ onBack }) => {
   };
 
   // ========================================
+  // RENDER OWNER DECISIONS II (NEW FORMAT)
+  // ========================================
+  const renderDecisionsSectionII = () => {
+    // Use same filtering logic as renderDecisionsSection
+    const filteredDecisions = ownerDecisions.filter(decision => {
+      const matchesStatus = filterDecisionStatus === 'All' || decision.status === filterDecisionStatus;
+      const matchesPriority = filterDecisionPriority === 'All' || decision.priority === filterDecisionPriority;
+      const matchesType = filterDecisionType === 'All' || decision.decision_type === filterDecisionType;
+      const matchesAgent = filterDecisionAgent === 'All' || decision.generated_by_agent?.toUpperCase() === filterDecisionAgent;
+      const matchesProperty = filterDecisionProperty === 'All' || decision.villa_name === filterDecisionProperty;
+
+      const matchesSearch = !decisionsSearchTerm ||
+        decision.guest_name?.toLowerCase().includes(decisionsSearchTerm.toLowerCase()) ||
+        decision.title?.toLowerCase().includes(decisionsSearchTerm.toLowerCase()) ||
+        decision.summary?.toLowerCase().includes(decisionsSearchTerm.toLowerCase());
+
+      let matchesDate = true;
+      if (filterDecisionPeriod !== 'all') {
+        const decisionDate = new Date(decision.created_at);
+        const now = new Date();
+        const baliTime = new Date(now.getTime() + (8 * 60 * 60 * 1000));
+
+        if (filterDecisionPeriod === 'daily') {
+          const startOfDayBali = new Date(baliTime);
+          startOfDayBali.setHours(0, 0, 0, 0);
+          const startOfDayUTC = new Date(startOfDayBali.getTime() - (8 * 60 * 60 * 1000));
+
+          const endOfDayBali = new Date(baliTime);
+          endOfDayBali.setHours(23, 59, 59, 999);
+          const endOfDayUTC = new Date(endOfDayBali.getTime() - (8 * 60 * 60 * 1000));
+
+          matchesDate = decisionDate >= startOfDayUTC && decisionDate <= endOfDayUTC;
+        } else if (filterDecisionPeriod === 'weekly') {
+          const dayOfWeek = baliTime.getDay();
+          const startOfWeekBali = new Date(baliTime);
+          startOfWeekBali.setDate(startOfWeekBali.getDate() - dayOfWeek);
+          startOfWeekBali.setHours(0, 0, 0, 0);
+          const startOfWeekUTC = new Date(startOfWeekBali.getTime() - (8 * 60 * 60 * 1000));
+
+          const endOfWeekBali = new Date(startOfWeekBali);
+          endOfWeekBali.setDate(endOfWeekBali.getDate() + 6);
+          endOfWeekBali.setHours(23, 59, 59, 999);
+          const endOfWeekUTC = new Date(endOfWeekBali.getTime() - (8 * 60 * 60 * 1000));
+
+          matchesDate = decisionDate >= startOfWeekUTC && decisionDate <= endOfWeekUTC;
+        } else if (filterDecisionPeriod === 'monthly') {
+          const startOfMonthBali = new Date(baliTime);
+          startOfMonthBali.setDate(1);
+          startOfMonthBali.setHours(0, 0, 0, 0);
+          const startOfMonthUTC = new Date(startOfMonthBali.getTime() - (8 * 60 * 60 * 1000));
+
+          const endOfMonthBali = new Date(baliTime);
+          endOfMonthBali.setMonth(endOfMonthBali.getMonth() + 1, 0);
+          endOfMonthBali.setHours(23, 59, 59, 999);
+          const endOfMonthUTC = new Date(endOfMonthBali.getTime() - (8 * 60 * 60 * 1000));
+
+          matchesDate = decisionDate >= startOfMonthUTC && decisionDate <= endOfMonthUTC;
+        } else if (filterDecisionPeriod === 'custom') {
+          if (customDecisionDateFrom && customDecisionDateTo) {
+            const fromDate = new Date(customDecisionDateFrom);
+            fromDate.setHours(0, 0, 0, 0);
+            const toDate = new Date(customDecisionDateTo);
+            toDate.setHours(23, 59, 59, 999);
+            matchesDate = decisionDate >= fromDate && decisionDate <= toDate;
+          }
+        }
+      }
+
+      return matchesStatus && matchesPriority && matchesType && matchesAgent && matchesProperty && matchesSearch && matchesDate;
+    });
+
+    // Get unique values for filter dropdowns
+    const uniqueTypes = [...new Set(ownerDecisions.map(d => d.decision_type))];
+    const uniqueAgents = [...new Set(ownerDecisions.map(d => d.generated_by_agent?.toUpperCase()).filter(Boolean))];
+
+    return (
+      <div className="space-y-6">
+        {/* OWNER DECISIONS II */}
+        <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-3xl p-6 shadow-2xl border-2 border-green-500/20">
+          <div className="flex items-center justify-between mb-4">
+            <button
+              onClick={() => setOcsView(null)}
+              className="p-2 bg-[#1f2937]/95 backdrop-blur-sm rounded-xl hover:bg-green-500 transition-all border border-green-500/20"
+            >
+              <ArrowLeft className="w-5 h-5 text-green-400" />
+            </button>
+            <h3 className="text-2xl font-black text-green-400 flex items-center gap-2">
+              <CheckCircle className="w-6 h-6 text-green-400" />
+              Owner Decisions II ({filteredDecisions.length})
+            </h3>
+            <button
+              onClick={() => {
+                setEditingDecision(null);
+                setShowDecisionForm(true);
+              }}
+              className="flex items-center gap-2 px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-xl font-semibold transition-all shadow-lg"
+            >
+              <Plus className="w-4 h-4" />
+              New Decision
+            </button>
+          </div>
+
+          {/* FILTERS PANEL */}
+          <div className="bg-[#2a2f3a] rounded-xl p-4 mb-6 border border-green-500/20">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+              {/* Status Filter */}
+              <select
+                value={filterDecisionStatus}
+                onChange={(e) => setFilterDecisionStatus(e.target.value)}
+                className="px-3 py-2.5 bg-[#1f2937] text-white rounded-xl text-sm border border-green-500/30 focus:border-green-500 outline-none"
+              >
+                <option value="All">All Status</option>
+                <option value="pending">Pending</option>
+                <option value="approved">Approved</option>
+                <option value="rejected">Rejected</option>
+                <option value="modified">Modified</option>
+                <option value="executed">Executed</option>
+              </select>
+
+              {/* Priority Filter */}
+              <select
+                value={filterDecisionPriority}
+                onChange={(e) => setFilterDecisionPriority(e.target.value)}
+                className="px-3 py-2.5 bg-[#1f2937] text-white rounded-xl text-sm border border-green-500/30 focus:border-green-500 outline-none"
+              >
+                <option value="All">All Priorities</option>
+                <option value="urgent">🔴 Urgent</option>
+                <option value="high">🟠 High</option>
+                <option value="medium">🟡 Medium</option>
+                <option value="low">🟢 Low</option>
+              </select>
+
+              {/* Type Filter */}
+              <select
+                value={filterDecisionType}
+                onChange={(e) => setFilterDecisionType(e.target.value)}
+                className="px-3 py-2.5 bg-[#1f2937] text-white rounded-xl text-sm border border-green-500/30 focus:border-green-500 outline-none"
+              >
+                <option value="All">All Types</option>
+                {uniqueTypes.map(type => (
+                  <option key={type} value={type}>
+                    {type.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}
+                  </option>
+                ))}
+              </select>
+
+              {/* Agent Filter */}
+              <select
+                value={filterDecisionAgent}
+                onChange={(e) => setFilterDecisionAgent(e.target.value)}
+                className="px-3 py-2.5 bg-[#1f2937] text-white rounded-xl text-sm border border-green-500/30 focus:border-green-500 outline-none"
+              >
+                <option value="All">AI Agents</option>
+                <option value="BANYU">BANYU</option>
+                <option value="OSIRIS">OSIRIS</option>
+                <option value="LUMINA">LUMINA</option>
+                <option value="NUSANTARA">NUSANTARA</option>
+                <option value="KORA">KORA</option>
+                <option value="SYSTEM">SYSTEM</option>
+              </select>
+
+              {/* Property Filter */}
+              <select
+                value={filterDecisionProperty}
+                onChange={(e) => setFilterDecisionProperty(e.target.value)}
+                className="px-3 py-2.5 bg-[#1f2937] text-white rounded-xl text-sm border border-green-500/30 focus:border-green-500 outline-none"
+              >
+                <option value="All">All Properties</option>
+                {villas.map(villa => (
+                  <option key={villa.id} value={villa.name}>
+                    {villa.name}
+                  </option>
+                ))}
+              </select>
+
+              {/* Period Filter */}
+              <select
+                value={filterDecisionPeriod}
+                onChange={(e) => setFilterDecisionPeriod(e.target.value)}
+                className="px-3 py-2.5 bg-[#1f2937] text-white rounded-xl text-sm border border-green-500/30 focus:border-green-500 outline-none"
+              >
+                <option value="all">All Periods</option>
+                <option value="daily">Daily</option>
+                <option value="weekly">Weekly</option>
+                <option value="monthly">Monthly</option>
+                <option value="custom">Custom Range</option>
+              </select>
+
+              {/* Search */}
+              <div className="relative md:col-span-2 lg:col-span-2">
+                <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="Search by guest, title, or summary..."
+                  value={decisionsSearchTerm}
+                  onChange={(e) => setDecisionsSearchTerm(e.target.value)}
+                  className="w-full pl-12 pr-4 py-2.5 bg-[#1f2937] border border-green-500/30 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500/50 text-sm"
+                />
+              </div>
+            </div>
+
+            {/* Custom Date Range (if selected) */}
+            {filterDecisionPeriod === 'custom' && (
+              <div className="grid grid-cols-2 gap-3 mt-3">
+                <div>
+                  <label className="text-xs text-gray-400 mb-1 block">From</label>
+                  <input
+                    type="date"
+                    value={customDecisionDateFrom}
+                    onChange={(e) => setCustomDecisionDateFrom(e.target.value)}
+                    className="w-full px-3 py-2 bg-[#1f2937] text-white rounded-lg text-sm border border-gray-700 focus:border-green-500 outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-gray-400 mb-1 block">To</label>
+                  <input
+                    type="date"
+                    value={customDecisionDateTo}
+                    onChange={(e) => setCustomDecisionDateTo(e.target.value)}
+                    className="w-full px-3 py-2 bg-[#1f2937] text-white rounded-lg text-sm border border-gray-700 focus:border-green-500 outline-none"
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Clear Filters Button */}
+            <button
+              onClick={() => {
+                setFilterDecisionStatus('All');
+                setFilterDecisionPriority('All');
+                setFilterDecisionType('All');
+                setFilterDecisionAgent('All');
+                setFilterDecisionProperty('All');
+                setFilterDecisionDate('all');
+                setFilterDecisionPeriod('all');
+                setCustomDecisionDateFrom('');
+                setCustomDecisionDateTo('');
+                setDecisionsSearchTerm('');
+              }}
+              className="w-full px-3 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg text-sm font-bold transition-all mt-3"
+            >
+              Clear Filters
+            </button>
+          </div>
+
+          {/* DECISION CARDS (Owner Home Format) */}
+          <div className="space-y-4">
+            {filteredDecisions.length === 0 ? (
+              <div className="bg-white rounded-xl p-8 text-center border-2 border-gray-200">
+                <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
+                <h4 className="text-xl font-bold text-gray-700 mb-2">No decisions found</h4>
+                <p className="text-gray-500">Try adjusting your filters or create a new decision.</p>
+              </div>
+            ) : (
+              filteredDecisions.map(decision => {
+                const context = decisionContexts[decision.id];
+                const stats = guestStats[decision.guest_phone];
+                const countdown = getCountdown(decision.due_date, decision.created_at);
+                const booking = context?.active_booking;
+
+                // Priority colors
+                const priorityColors = {
+                  urgent: { bg: '#FEF2F2', text: '#DC2626', border: '#DC2626' },
+                  high: { bg: '#FFF7ED', text: '#EA580C', border: '#EA580C' },
+                  medium: { bg: '#F3F4F6', text: '#6B7280', border: '#6B7280' },
+                  low: { bg: '#F9FAFB', text: '#9CA3AF', border: '#9CA3AF' }
+                };
+                const colors = priorityColors[decision.priority] || priorityColors.low;
+
+                // Financial impact color
+                const impact = decision.financial_impact_estimate || '';
+                const impactColor = impact.toLowerCase().includes('risk') ||
+                                   impact.toLowerCase().includes('refund') ||
+                                   impact.toLowerCase().includes('loss')
+                  ? '#DC2626'
+                  : impact.toLowerCase().includes('discount') ||
+                    impact.toLowerCase().includes('reduction')
+                  ? '#EA580C'
+                  : '#16A34A';
+
+                return (
+                  <div
+                    key={decision.id}
+                    className="bg-white rounded-xl p-6 shadow-lg border-2 border-gray-200 hover:border-orange-500 transition-all"
+                    style={{ borderLeft: `4px solid ${colors.border}` }}
+                  >
+                    {/* Priority Badge + Title (Una sola línea) */}
+                    <div className="flex items-center gap-3 mb-3">
+                      <span className="px-3 py-1 rounded-lg font-bold uppercase" style={{ backgroundColor: colors.bg, color: colors.text }}>
+                        {decision.priority === 'urgent' ? '🔴 ' : ''}{decision.priority || 'LOW'}
+                      </span>
+                      <span className="font-bold" style={{ color: colors.text }}>
+                        {decision.title || decision.decision_type?.replace('_', ' ')}
+                      </span>
+                    </div>
+
+                    {/* Guest Info with VIP Badge */}
+                    <div className="mb-4">
+                      <div className="flex items-center gap-2 text-gray-700 flex-wrap">
+                        <User className="w-4 h-4 text-gray-500" />
+                        <span className="font-semibold">{decision.guest_name || 'System Alert'}</span>
+                        {stats?.is_vip && (
+                          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs font-bold" style={{ backgroundColor: '#FFF7ED', color: '#EA580C' }}>
+                            ⭐ VIP
+                          </span>
+                        )}
+                        {!stats?.is_vip && stats?.is_repeat && (
+                          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs font-bold bg-gray-100 text-gray-700">
+                            🔄 Repeat guest
+                          </span>
+                        )}
+                      </div>
+                      {/* Created Date */}
+                      <div className="text-xs text-gray-500 mt-1 ml-6">
+                        {new Date(decision.created_at).toLocaleDateString('en-US', {
+                          month: 'short', day: 'numeric', year: 'numeric'
+                        })} · {new Date(decision.created_at).toLocaleTimeString('en-US', {
+                          hour: '2-digit', minute: '2-digit', hour12: false
+                        })}
+                      </div>
+                      {stats && (stats.is_vip || stats.is_repeat) && (
+                        <div className="text-xs text-gray-500 mt-1 ml-6">
+                          {formatIDR(stats.total_spent)} total · {stats.total_stays} stays
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Booking Context */}
+                    {booking && (
+                      <div className="mb-4 p-3 bg-gray-50 border border-gray-200 rounded-lg">
+                        <div className="flex items-center gap-4 flex-wrap">
+                          {decision.villa_name && (
+                            <div className="flex items-center gap-2">
+                              <div className="text-xs text-gray-600 font-semibold">Villa</div>
+                              <div className="text-sm font-bold text-gray-900 flex items-center gap-1">
+                                <MapPin className="w-3 h-3" />
+                                {decision.villa_name}
+                              </div>
+                            </div>
+                          )}
+                          <div className="flex items-center gap-2">
+                            <div className="text-xs text-gray-600 font-semibold">Booking Value</div>
+                            <div className="text-sm font-bold text-gray-900">{formatIDR(booking.total_price)}</div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <div className="text-xs text-gray-600 font-semibold">Checkout</div>
+                            <div className="text-sm font-bold text-gray-900">
+                              {formatDate(booking.check_out)} {formatTime(booking.check_out)}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Summary + Timer (Una sola línea) */}
+                    <div className="flex items-center gap-3 mb-4 flex-wrap">
+                      <p className="text-gray-700 flex-1">{decision.summary || decision.description}</p>
+                      {countdown && (
+                        <div
+                          className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg font-bold ${
+                            countdown.overdue
+                              ? 'bg-red-100 text-red-800 border-2 border-red-600 animate-pulse'
+                              : countdown.percentRemaining < 25
+                              ? 'bg-orange-100 text-orange-800 border-2 border-orange-600'
+                              : 'bg-gray-100 text-gray-700 border-2 border-gray-300'
+                          }`}
+                        >
+                          <Clock className="w-5 h-5" />
+                          <span>
+                            {countdown.overdue ? '🔴 OVERDUE' : '⏱ Decision needed in'}: {String(countdown.hours).padStart(2, '0')}:{String(countdown.minutes).padStart(2, '0')}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* System Recommendation */}
+                    {decision.recommended_action && (() => {
+                      const raw = decision.recommended_action;
+                      const isApprove = raw.startsWith('AUTO_APPROVE');
+                      const isEscalate = raw.startsWith('ESCALATE');
+
+                      // Limpiar el prefijo para mostrar solo la razón
+                      const reason = raw
+                        .replace(/^(AUTO_APPROVE|ESCALATE)\s*[-–]\s*/i, '')
+                        .replace(/AUTO_APPROVE_|ESCALATE_TO_OWNER_/g, '')
+                        .replace(/_/g, ' ')
+                        .trim();
+                      const displayReason = reason.length > 90 ? reason.slice(0, 90) + '...' : reason;
+
+                      // Determinar estilos
+                      const bgColor = isApprove ? '#FFFFFF' : isEscalate ? '#FFF7ED' : '#F1F5F9';
+                      const textColor = isApprove ? '#EA580C' : isEscalate ? '#EA580C' : '#475569';
+                      const icon = isApprove ? '✅' : isEscalate ? '⚡' : 'ℹ️';
+                      const action = isApprove ? 'AUTO-APPROVE' : isEscalate ? 'ESCALATE' : 'REVIEW';
+
+                      return (
+                        <div
+                          className="p-3 rounded-lg mb-4 border"
+                          style={{ backgroundColor: bgColor, borderColor: textColor }}
+                        >
+                          <div className="text-sm font-bold" style={{ color: textColor }}>
+                            {icon} {action} — {displayReason}
+                          </div>
+                        </div>
+                      );
+                    })()}
+
+                    {/* Financial Impact */}
+                    {decision.financial_impact_estimate && (
+                      <div
+                        className="p-3 rounded-lg mb-4 border-2"
+                        style={{
+                          backgroundColor: impactColor === '#DC2626' ? '#FEF2F2' : '#FFF7ED',
+                          borderColor: impactColor === '#DC2626' ? '#DC2626' : '#EA580C'
+                        }}
+                      >
+                        <div className="flex items-center gap-2">
+                          <DollarSign className="w-4 h-4" style={{ color: impactColor === '#DC2626' ? '#DC2626' : '#EA580C' }} />
+                          <span className="text-sm font-bold" style={{ color: impactColor === '#DC2626' ? '#DC2626' : '#EA580C' }}>
+                            {decision.financial_impact_estimate}
+                          </span>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Modified Badge (if modified) */}
+                    {decision.status === 'modified' && (
+                      <div className="p-4 rounded-lg bg-orange-50 border-2 border-orange-500 mb-4">
+                        <div className="flex items-start gap-3">
+                          <Edit3 className="w-5 h-5 text-orange-600 mt-0.5" />
+                          <div className="flex-1">
+                            <div className="font-bold text-orange-900 mb-1">✏️ MODIFIED</div>
+                            <p className="text-sm text-orange-800 mb-2">
+                              {decision.modification_notes || 'Owner requested modifications'}
+                            </p>
+                            <div className="text-xs text-orange-700">
+                              Modified: {new Date(decision.modified_at || decision.created_at).toLocaleDateString('en-US', {
+                                month: 'short', day: 'numeric', year: 'numeric'
+                              })} · {new Date(decision.modified_at || decision.created_at).toLocaleTimeString('en-US', {
+                                hour: '2-digit', minute: '2-digit', hour12: false
+                              })}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Action Buttons (always visible) */}
+                    <div className="flex gap-3">
+                      <button
+                        onClick={() => handleApprove(decision)}
+                        disabled={actionInProgress === decision.id}
+                        className="flex-[2] flex items-center justify-center gap-2 px-6 py-4 bg-orange-500 hover:bg-orange-600 disabled:bg-gray-400 text-white rounded-xl font-black text-lg transition-all shadow-lg"
+                      >
+                        <ThumbsUp className="w-6 h-6" />
+                        {actionInProgress === decision.id ? 'PROCESSING...' : 'APPROVE'}
+                      </button>
+                      <button
+                        onClick={() => setRejectModal(decision.id)}
+                        disabled={actionInProgress === decision.id}
+                        className="flex-1 flex items-center justify-center gap-2 px-4 py-4 bg-red-600 hover:bg-red-700 disabled:bg-gray-400 text-white rounded-xl font-bold transition-all"
+                      >
+                        <ThumbsDown className="w-5 h-5" />
+                        REJECT
+                      </button>
+                      <button
+                        onClick={() => setModifyModal(decision.id)}
+                        disabled={actionInProgress === decision.id}
+                        className="flex-1 flex items-center justify-center gap-2 px-4 py-4 bg-gray-600 hover:bg-gray-700 disabled:bg-gray-400 text-white rounded-xl font-bold transition-all"
+                      >
+                        <Edit3 className="w-5 h-5" />
+                        MODIFY
+                      </button>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </div>
+
+        {/* CREATE/EDIT DECISION FORM MODAL */}
+        {showDecisionForm && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-2 md:p-4">
+            <div className="bg-[#1f2937] rounded-2xl w-[98%] sm:w-[90%] md:w-full max-w-2xl max-h-[92vh] md:max-h-[90vh] overflow-y-auto border-2 border-[#d85a2a]/30" style={{ marginLeft: '40px' }}>
+              {/* Header */}
+              <div className="flex items-center justify-between p-4 md:p-6 border-b border-gray-700">
+                <h3 className="text-xl md:text-2xl font-bold text-[#FF8C42] flex items-center gap-2">
+                  <Settings className="w-6 h-6 text-[#FF8C42]" />
+                  {editingDecision ? 'Edit Decision' : 'New Decision'}
+                </h3>
+                <button
+                  onClick={() => {
+                    setShowDecisionForm(false);
+                    setEditingDecision(null);
+                  }}
+                  className="p-2 hover:bg-gray-700 rounded-lg transition-colors"
+                >
+                  <X className="w-6 h-6 text-gray-400" />
+                </button>
+              </div>
+
+              {/* Form Content */}
+              <div className="p-4 md:p-6 space-y-4">
+                {/* Title */}
+                <div>
+                  <label className="text-gray-300 text-sm font-medium block mb-2">Title *</label>
+                  <input
+                    type="text"
+                    placeholder="e.g., Late Checkout Request - Guest Name"
+                    className="w-full px-4 py-2 bg-[#2a2f3a] text-white rounded-lg border border-gray-600 focus:border-orange-500 outline-none"
+                    value={decisionFormData.title}
+                    onChange={(e) => setDecisionFormData({...decisionFormData, title: e.target.value})}
+                  />
+                </div>
+
+                {/* Summary */}
+                <div>
+                  <label className="text-gray-300 text-sm font-medium block mb-2">Summary *</label>
+                  <textarea
+                    placeholder="Brief summary of the decision..."
+                    className="w-full px-4 py-2 bg-[#2a2f3a] text-white rounded-lg border border-gray-600 focus:border-orange-500 outline-none resize-none"
+                    rows="2"
+                    value={decisionFormData.summary}
+                    onChange={(e) => setDecisionFormData({...decisionFormData, summary: e.target.value})}
+                  />
+                </div>
+
+                {/* Description */}
+                <div>
+                  <label className="text-gray-300 text-sm font-medium block mb-2">Description</label>
+                  <textarea
+                    placeholder="Detailed description..."
+                    className="w-full px-4 py-2 bg-[#2a2f3a] text-white rounded-lg border border-gray-600 focus:border-orange-500 outline-none resize-none"
+                    rows="4"
+                    value={decisionFormData.description}
+                    onChange={(e) => setDecisionFormData({...decisionFormData, description: e.target.value})}
+                  />
+                </div>
+
+                {/* Property Selection */}
+                <div>
+                  <label className="text-gray-300 text-sm font-medium block mb-2">Property *</label>
+                  <select
+                    className="w-full px-4 py-2 bg-[#2a2f3a] text-white rounded-lg border border-gray-600 focus:border-orange-500 outline-none"
+                    value={decisionFormData.property_id}
+                    onChange={(e) => {
+                      const selectedVilla = villas.find(v => v.id === e.target.value);
+                      setDecisionFormData({
+                        ...decisionFormData,
+                        property_id: e.target.value,
+                        villa_id: e.target.value,
+                        villa_name: selectedVilla?.name || ''
+                      });
+                    }}
+                  >
+                    <option value="">-- Select Property --</option>
+                    {villas.map(villa => (
+                      <option key={villa.id} value={villa.id}>
+                        {villa.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Scheduled Date */}
+                <div>
+                  <label className="text-gray-300 text-sm font-medium block mb-2">Scheduled Date</label>
+                  <input
+                    type="date"
+                    className="w-full px-4 py-2 bg-[#2a2f3a] text-white rounded-lg border border-gray-600 focus:border-orange-500 outline-none"
+                    value={decisionFormData.scheduled_date}
+                    onChange={(e) => setDecisionFormData({...decisionFormData, scheduled_date: e.target.value})}
+                  />
+                </div>
+
+                {/* Row 1: Type, Priority, Status */}
+                <div className="grid grid-cols-3 gap-3">
+                  <div>
+                    <label className="text-gray-300 text-sm font-medium block mb-2">Type *</label>
+                    <select
+                      className="w-full px-4 py-2 bg-[#2a2f3a] text-white rounded-lg border border-gray-600 focus:border-orange-500 outline-none"
+                      value={decisionFormData.decision_type}
+                      onChange={(e) => setDecisionFormData({...decisionFormData, decision_type: e.target.value})}
+                    >
+                      <option value="late_checkout">Late Checkout</option>
+                      <option value="early_checkin">Early Check-in</option>
+                      <option value="refund_request">Refund Request</option>
+                      <option value="pricing_exception">Pricing Exception</option>
+                      <option value="cancellation">Cancellation</option>
+                      <option value="complaint">Complaint</option>
+                      <option value="special_request">Special Request</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-gray-300 text-sm font-medium block mb-2">Priority *</label>
+                    <select
+                      className="w-full px-4 py-2 bg-[#2a2f3a] text-white rounded-lg border border-gray-600 focus:border-orange-500 outline-none"
+                      value={decisionFormData.priority}
+                      onChange={(e) => setDecisionFormData({...decisionFormData, priority: e.target.value})}
+                    >
+                      <option value="low">Low</option>
+                      <option value="medium">Medium</option>
+                      <option value="high">High</option>
+                      <option value="urgent">Urgent</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-gray-300 text-sm font-medium block mb-2">Status *</label>
+                    <select
+                      className="w-full px-4 py-2 bg-[#2a2f3a] text-white rounded-lg border border-gray-600 focus:border-orange-500 outline-none"
+                      value={decisionFormData.status}
+                      onChange={(e) => setDecisionFormData({...decisionFormData, status: e.target.value})}
+                    >
+                      <option value="pending">Pending</option>
+                      <option value="approved">Approved</option>
+                      <option value="rejected">Rejected</option>
+                      <option value="modified">Modified</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Row 2: Guest Info */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-gray-300 text-sm font-medium block mb-2">Guest Name</label>
+                    <input
+                      type="text"
+                      placeholder="Guest name"
+                      className="w-full px-4 py-2 bg-[#2a2f3a] text-white rounded-lg border border-gray-600 focus:border-orange-500 outline-none"
+                      value={decisionFormData.guest_name}
+                      onChange={(e) => setDecisionFormData({...decisionFormData, guest_name: e.target.value})}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-gray-300 text-sm font-medium block mb-2">Guest Phone</label>
+                    <input
+                      type="text"
+                      placeholder="+62..."
+                      className="w-full px-4 py-2 bg-[#2a2f3a] text-white rounded-lg border border-gray-600 focus:border-orange-500 outline-none"
+                      value={decisionFormData.guest_phone}
+                      onChange={(e) => setDecisionFormData({...decisionFormData, guest_phone: e.target.value})}
+                    />
+                  </div>
+                </div>
+
+                {/* Financial Impact */}
+                <div>
+                  <label className="text-gray-300 text-sm font-medium block mb-2">Financial Impact (USD)</label>
+                  <input
+                    type="number"
+                    placeholder="0.00 (negative for cost, positive for revenue)"
+                    className="w-full px-4 py-2 bg-[#2a2f3a] text-white rounded-lg border border-gray-600 focus:border-orange-500 outline-none"
+                    value={decisionFormData.financial_impact_estimate}
+                    onChange={(e) => setDecisionFormData({...decisionFormData, financial_impact_estimate: e.target.value})}
+                  />
+                </div>
+              </div>
+
+              <div className="flex gap-3 p-4 md:p-6">
+                <button
+                  onClick={handleSaveDecision}
+                  disabled={isSavingDecision}
+                  className="flex-1 px-4 py-3 bg-orange-500 hover:bg-orange-600 text-white rounded-lg font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isSavingDecision ? 'Saving...' : (editingDecision ? 'Update Decision' : 'Create Decision')}
+                </button>
+                <button
+                  onClick={() => {
+                    setShowDecisionForm(false);
+                    setEditingDecision(null);
+                  }}
+                  disabled={isSavingDecision}
+                  className="flex-1 px-4 py-3 bg-gray-600 hover:bg-gray-700 text-white rounded-lg font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  // ========================================
   // APPLY VILLA FILTERING (Before Render)
   // ========================================
 
@@ -9426,6 +10223,7 @@ const Autopilot = ({ onBack }) => {
               />
             ) :
             ocsView === 'owner-decisions' ? renderDecisionsSection() :
+            ocsView === 'owner-decisions-ii' ? renderDecisionsSectionII() :
             ocsView === 'decision-intelligence' ? (
               <DecisionIntelligence
                 onBack={() => setOcsView(null)}
