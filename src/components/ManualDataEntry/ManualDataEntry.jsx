@@ -1044,6 +1044,18 @@ const ManualDataEntry = ({ onBack }) => {
       });
       console.log('✅ Booking payment_status updated to:', newStatus);
 
+      // Trigger PDF confirmation webhook when payment is fully paid
+      if (newStatus === 'paid') {
+        console.log('📄 Triggering PDF Booking Confirmation workflow for booking:', paymentForm.bookingId);
+        fetch('https://n8n-production-bb2d.up.railway.app/webhook/pdf-booking-confirmation', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ booking_id: paymentForm.bookingId })
+        }).catch(err => {
+          console.warn('⚠️ n8n webhook call failed (non-blocking):', err);
+        });
+      }
+
       // Success message with details
       setSuccessMessage(`✅ Payment recorded! IDR ${parseFloat(paymentForm.amount).toLocaleString()} - ${statusMessage}`);
 
