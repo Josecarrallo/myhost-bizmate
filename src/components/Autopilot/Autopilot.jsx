@@ -2093,13 +2093,14 @@ const Autopilot = ({ onBack }) => {
       const formattedPrice = price >= 1000000
         ? `Rp ${Math.round(price).toLocaleString('id-ID')}`
         : `$${Math.round(price).toLocaleString('en-US')}`;
-      bookingsTableHTML += `<tr><td>${booking.guest_name || 'N/A'}</td><td>${checkIn}</td><td>${checkOut}</td><td>${nights}</td><td>${formattedPrice}</td></tr>`;
+      const code = booking.confirmation_code || 'N/A';
+      bookingsTableHTML += `<tr><td><strong>${code}</strong></td><td>${booking.guest_name || 'N/A'}</td><td>${checkIn}</td><td>${checkOut}</td><td>${nights}</td><td>${formattedPrice}</td></tr>`;
     });
     const totalRevenueFormatted = realCounts.totalRevenue >= 1000000
       ? `Rp ${Math.round(realCounts.totalRevenue).toLocaleString('id-ID')}`
       : `$${Math.round(realCounts.totalRevenue).toLocaleString('en-US')}`;
     bookingsTableHTML += `<tr style="font-weight: bold;">
-                <td>TOTAL</td>
+                <td colspan="2">TOTAL</td>
                 <td colspan="2">${realCounts.totalBookings} bookings</td>
                 <td>${realCounts.totalNights} nights</td>
                 <td>${totalRevenueFormatted}</td>
@@ -2210,6 +2211,7 @@ const Autopilot = ({ onBack }) => {
             <h3>All Bookings</h3>
             <table>
               <tr>
+                <th>Code</th>
                 <th>Guest</th>
                 <th>Check In</th>
                 <th>Check Out</th>
@@ -2557,6 +2559,15 @@ const Autopilot = ({ onBack }) => {
                 <div className="block md:hidden space-y-3">
                   {allBookings.map((booking) => (
                     <div key={booking.id} className="bg-[#2a2f3a] rounded-xl p-4 border-l-4 border-orange-500 shadow-lg">
+                      {/* Booking Code Banner */}
+                      {booking.confirmation_code && (
+                        <div className="mb-3 p-2 bg-[#FF8C42] rounded-lg">
+                          <div className="flex items-center gap-2">
+                            <span className="text-white text-xs font-semibold">Code:</span>
+                            <span className="text-white text-sm font-bold">{booking.confirmation_code}</span>
+                          </div>
+                        </div>
+                      )}
                       <div className="flex justify-between items-start mb-3">
                         <div className="flex-1">
                           <h3 className="text-white font-bold text-lg">{booking.guest_name || 'N/A'}</h3>
@@ -2607,6 +2618,7 @@ const Autopilot = ({ onBack }) => {
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="border-b border-gray-700">
+                        <th className="text-left text-gray-400 font-semibold p-3">Code</th>
                         <th className="text-left text-gray-400 font-semibold p-3">Guest Name</th>
                         <th className="text-left text-gray-400 font-semibold p-3">Check In</th>
                         <th className="text-left text-gray-400 font-semibold p-3">Check Out</th>
@@ -2617,6 +2629,11 @@ const Autopilot = ({ onBack }) => {
                     <tbody>
                       {allBookings.map((booking) => (
                         <tr key={booking.id} className="border-b border-gray-800 hover:bg-[#2a2f3a] transition-colors">
+                          <td className="p-3">
+                            <span className="inline-flex items-center px-2 py-1 bg-[#FF8C42] rounded text-white text-xs font-bold">
+                              {booking.confirmation_code || 'N/A'}
+                            </span>
+                          </td>
                           <td className="text-white p-3 font-medium">{booking.guest_name || 'N/A'}</td>
                           <td className="text-gray-300 p-3">
                             {booking.check_in ? new Date(booking.check_in).toLocaleDateString('en-US', {
