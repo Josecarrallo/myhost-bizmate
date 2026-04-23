@@ -201,6 +201,7 @@ const Autopilot = ({ onBack }) => {
     scheduled_date: '',
     guest_name: '',
     guest_phone: '',
+    booking_code: '',
     financial_impact_estimate: 0,
     decision_category: 'approval',
     generated_by_agent: 'system'
@@ -6916,7 +6917,7 @@ const Autopilot = ({ onBack }) => {
           <h2 className="text-3xl font-bold text-white">Owner Control System</h2>
         </div>
 
-        {/* Four Options: Owner Home, Owner Decisions, Owner Decisions II & Decision Intelligence */}
+        {/* Three Options: Owner Home, Owner Decisions, Owner Decisions II */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Option 1: Owner Home */}
           <button
@@ -6987,28 +6988,6 @@ const Autopilot = ({ onBack }) => {
             </div>
           </button>
 
-          {/* Option 4: Decision Intelligence */}
-          <button
-            onClick={() => setOcsView('decision-intelligence')}
-            className="group bg-gradient-to-br from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 rounded-3xl p-8 shadow-2xl border-2 border-purple-400/30 transition-all transform hover:scale-105 text-left"
-          >
-            <div className="flex items-center gap-4 mb-4">
-              <div className="p-4 bg-white/20 rounded-2xl">
-                <Sparkles className="w-12 h-12 text-white" />
-              </div>
-              <div>
-                <h3 className="text-2xl font-bold text-white">Decision Intelligence</h3>
-                <p className="text-purple-100 text-sm">AI-Powered Insights</p>
-              </div>
-            </div>
-            <p className="text-white/90 mb-4">
-              Enhanced decision context with AI recommendations, SLA timers, booking context, guest profiles, and automated resolution tracking.
-            </p>
-            <div className="flex items-center gap-2 text-white font-semibold">
-              <span>View Intelligence</span>
-              <ChevronRight className="w-5 h-5 group-hover:translate-x-2 transition-transform" />
-            </div>
-          </button>
         </div>
       </div>
     );
@@ -9141,8 +9120,8 @@ const Autopilot = ({ onBack }) => {
         </div>
       )}
 
-      {/* CREATE/EDIT DECISION FORM MODAL */}
-      {showDecisionForm && (
+      {/* CREATE/EDIT DECISION FORM MODAL - Owner Decisions (OLD) */}
+      {showDecisionForm && ocsView === 'owner-decisions' && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-2 md:p-4">
           <div className="bg-[#1f2937] rounded-2xl w-[98%] sm:w-[90%] md:w-full max-w-2xl max-h-[92vh] md:max-h-[90vh] overflow-y-auto border-2 border-[#d85a2a]/30" style={{ marginLeft: '40px' }}>
             {/* Header */}
@@ -9746,7 +9725,7 @@ const Autopilot = ({ onBack }) => {
                 const context = decisionContexts[decision.id];
                 const stats = guestStats[decision.guest_phone];
                 const countdown = getCountdown(decision.due_date, decision.created_at);
-                const booking = context?.active_booking;
+                const booking = decision.booking_id ? decisionBookings[decision.booking_id] : context?.active_booking;
 
                 // Priority colors
                 const priorityColors = {
@@ -9774,6 +9753,16 @@ const Autopilot = ({ onBack }) => {
                     className="bg-white rounded-xl p-6 shadow-lg border-2 border-gray-200 hover:border-orange-500 transition-all"
                     style={{ borderLeft: `4px solid ${colors.border}` }}
                   >
+                    {/* Booking Code - FIRST LINE */}
+                    {booking?.confirmation_code && (
+                      <div className="mb-3 p-2 bg-[#FF8C42] rounded-lg inline-block">
+                        <div className="flex items-center gap-2">
+                          <span className="text-white text-xs font-semibold">Code:</span>
+                          <span className="text-white text-sm font-bold">{booking.confirmation_code}</span>
+                        </div>
+                      </div>
+                    )}
+
                     {/* Priority Badge + Title (Una sola línea) */}
                     <div className="flex items-center gap-3 mb-3">
                       <span className="px-3 py-1 rounded-lg font-bold uppercase" style={{ backgroundColor: colors.bg, color: colors.text }}>
@@ -9969,8 +9958,8 @@ const Autopilot = ({ onBack }) => {
           </div>
         </div>
 
-        {/* CREATE/EDIT DECISION FORM MODAL */}
-        {showDecisionForm && (
+        {/* CREATE/EDIT DECISION FORM MODAL - Owner Decisions II (NEW) */}
+        {showDecisionForm && ocsView === 'owner-decisions-ii' && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-2 md:p-4">
             <div className="bg-[#1f2937] rounded-2xl w-[98%] sm:w-[90%] md:w-full max-w-2xl max-h-[92vh] md:max-h-[90vh] overflow-y-auto border-2 border-[#d85a2a]/30" style={{ marginLeft: '40px' }}>
               {/* Header */}
@@ -9992,6 +9981,18 @@ const Autopilot = ({ onBack }) => {
 
               {/* Form Content */}
               <div className="p-4 md:p-6 space-y-4">
+                {/* Booking Code - FIRST FIELD */}
+                <div>
+                  <label className="text-gray-300 text-sm font-medium block mb-2">Booking Code</label>
+                  <input
+                    type="text"
+                    placeholder="e.g., IZU-2026-0093"
+                    className="w-full px-4 py-2 bg-[#2a2f3a] text-white rounded-lg border border-gray-600 focus:border-orange-500 outline-none"
+                    value={decisionFormData.booking_code}
+                    onChange={(e) => setDecisionFormData({...decisionFormData, booking_code: e.target.value})}
+                  />
+                </div>
+
                 {/* Title */}
                 <div>
                   <label className="text-gray-300 text-sm font-medium block mb-2">Title *</label>

@@ -701,6 +701,16 @@ const OwnerHome = ({ onBack, tenantId: propTenantId }) => {
                 className="bg-white rounded-xl p-6 shadow-lg border-2 border-gray-200 hover:border-orange-500 transition-all"
                 style={{ borderLeft: `4px solid ${colors.border}` }}
               >
+                {/* Booking Code - FIRST LINE */}
+                {booking?.confirmation_code && (
+                  <div className="mb-3 p-2 bg-orange-500 rounded-lg">
+                    <div className="flex items-center gap-2">
+                      <span className="text-white text-xs font-semibold">Code:</span>
+                      <span className="text-white text-sm font-bold">{booking.confirmation_code}</span>
+                    </div>
+                  </div>
+                )}
+
                 {/* Priority Badge + Title (Una sola línea) */}
                 <div className="flex items-center gap-3 mb-3">
                   <span className="px-3 py-1 rounded-lg font-bold uppercase" style={{ backgroundColor: colors.bg, color: colors.text }}>
@@ -710,16 +720,6 @@ const OwnerHome = ({ onBack, tenantId: propTenantId }) => {
                     {decision.title || decision.decision_type?.replace('_', ' ')}
                   </span>
                 </div>
-
-                {/* Booking Code */}
-                {booking?.confirmation_code && (
-                  <div className="mb-3 p-2 bg-orange-500 rounded-lg">
-                    <div className="flex items-center gap-2">
-                      <span className="text-white text-xs font-semibold">Code:</span>
-                      <span className="text-white text-sm font-bold">{booking.confirmation_code}</span>
-                    </div>
-                  </div>
-                )}
 
                 {/* Guest Info with VIP Badge */}
                 <div className="mb-4">
