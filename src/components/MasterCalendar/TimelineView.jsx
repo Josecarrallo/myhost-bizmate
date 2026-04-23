@@ -296,6 +296,11 @@ const TimelineView = ({
                 <div>
                   {/* Days Header */}
                   <div className="sticky top-0 z-10 bg-[#1f2937] flex min-w-max">
+                    {/* Villa Column Header */}
+                    <div className="w-48 flex-shrink-0 border-r border-gray-600 px-4 py-2 flex items-center">
+                      <span className="text-white text-xs font-bold">VILLA / UNIT</span>
+                    </div>
+
                     {/* Day columns */}
                     <div className="flex">
                       {days.map((day, idx) => {
@@ -332,6 +337,11 @@ const TimelineView = ({
 
               return (
                 <div key={villa.id} className="flex border-b border-gray-700 hover:bg-gray-800/30 transition-colors min-w-max">
+                  {/* Villa Name Column */}
+                  <div className="w-48 flex-shrink-0 p-4 border-r border-gray-700 flex items-center">
+                    <div className="text-white font-semibold text-sm truncate">{villa.name}</div>
+                  </div>
+
                   {/* Timeline */}
                   <div className="relative h-20 p-2 min-w-max flex-1">
                     {/* Day grid lines */}
@@ -359,6 +369,9 @@ const TimelineView = ({
                           onClick={() => setSelectedBooking(booking)}
                         >
                           <div className="p-2 h-full flex flex-col justify-center">
+                            <div className={`text-[9px] font-semibold truncate mb-0.5 ${(booking.source || '').toLowerCase().trim() === 'gita' ? 'text-gray-700' : 'text-white/90'}`}>
+                              {booking.confirmation_code || 'N/A'}
+                            </div>
                             <div className={`text-xs font-bold truncate ${(booking.source || '').toLowerCase().trim() === 'gita' ? 'text-gray-800' : 'text-white'}`}>
                               {booking.guest_name}
                             </div>
@@ -410,6 +423,14 @@ const TimelineView = ({
             </div>
 
             <div className="p-6 space-y-4">
+              {/* Booking Code */}
+              <div className="p-3 bg-orange-500 rounded-lg">
+                <div className="flex items-center gap-2">
+                  <span className="text-white text-sm font-semibold">Booking Code:</span>
+                  <span className="text-white text-base font-bold">{selectedBooking.confirmation_code || 'N/A'}</span>
+                </div>
+              </div>
+
               {/* Guest Info */}
               <div>
                 <h4 className="text-white font-semibold mb-2">Guest Information</h4>
