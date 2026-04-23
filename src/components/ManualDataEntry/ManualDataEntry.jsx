@@ -1556,20 +1556,21 @@ const ManualDataEntry = ({ onBack }) => {
                       <table className="w-full table-fixed">
                         <thead className="bg-orange-500">
                           <tr>
-                            <th className="w-[18%] px-4 py-3 text-left text-white font-bold">Guest</th>
-                            <th className="w-[23%] px-4 py-3 text-left text-white font-bold">Property</th>
-                            <th className="w-[11%] px-4 py-3 text-left text-white font-bold">Check-in</th>
-                            <th className="w-[11%] px-4 py-3 text-left text-white font-bold">Check-out</th>
-                            <th className="w-[7%] px-4 py-3 text-center text-white font-bold">Nights</th>
-                            <th className="w-[11%] px-2 py-3 text-left text-white font-bold">Status</th>
-                            <th className="w-[14%] px-4 py-3 text-right text-white font-bold">Price</th>
+                            <th className="w-[18%] px-4 py-3 text-left text-white font-bold">Code</th>
+                            <th className="w-[13%] px-4 py-3 text-left text-white font-bold">Guest</th>
+                            <th className="w-[16%] px-4 py-3 text-left text-white font-bold">Property</th>
+                            <th className="w-[10%] px-4 py-3 text-left text-white font-bold">Check-in</th>
+                            <th className="w-[10%] px-4 py-3 text-left text-white font-bold">Check-out</th>
+                            <th className="w-[6%] px-4 py-3 text-center text-white font-bold">Nights</th>
+                            <th className="w-[10%] px-2 py-3 text-left text-white font-bold">Status</th>
+                            <th className="w-[12%] px-4 py-3 text-right text-white font-bold">Price</th>
                             <th className="w-[5%] px-2 py-3 text-center text-white font-bold"></th>
                           </tr>
                         </thead>
                         <tbody>
                           {bookings.length === 0 ? (
                             <tr>
-                              <td colSpan="8" className="px-4 py-8 text-center text-gray-400">
+                              <td colSpan="9" className="px-4 py-8 text-center text-gray-400">
                                 No bookings found
                               </td>
                             </tr>
@@ -1581,6 +1582,9 @@ const ManualDataEntry = ({ onBack }) => {
                                 onClick={() => handleEditBooking(booking)}
                                 title="Click to edit this booking"
                               >
+                                <td className="px-4 py-3 text-orange-400 text-sm font-bold overflow-hidden">
+                                  <div className="truncate">{booking.confirmation_code || 'N/A'}</div>
+                                </td>
                                 <td className="px-4 py-3 text-gray-300 text-sm overflow-hidden">
                                   <div className="truncate">{booking.guest_name}</div>
                                 </td>
@@ -2840,12 +2844,20 @@ const ManualDataEntry = ({ onBack }) => {
 
       {/* Edit Booking Modal */}
       {editingBooking && (
-        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4 overflow-y-auto">
-          <div className="bg-[#1f2937] rounded-2xl p-6 max-w-2xl w-full border-2 border-orange-500 my-8">
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4 pl-4 md:pl-[60px] overflow-y-auto">
+          <div className="bg-[#1f2937] rounded-2xl p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto border-2 border-orange-500 my-8">
             <h3 className="text-2xl font-bold text-orange-400 mb-6">Edit Booking</h3>
 
             <form onSubmit={handleUpdateBooking} className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Booking Code - Read Only */}
+                <div className="md:col-span-2 p-2 bg-orange-500 rounded-lg">
+                  <div className="flex items-center gap-2">
+                    <span className="text-white text-xs font-semibold">Code:</span>
+                    <span className="text-white text-sm font-bold">{editingBooking.confirmation_code || 'N/A'}</span>
+                  </div>
+                </div>
+
                 {/* Guest Name */}
                 <div className="md:col-span-2">
                   <label className="block text-[#FF8C42] font-medium mb-2">Guest Name *</label>
