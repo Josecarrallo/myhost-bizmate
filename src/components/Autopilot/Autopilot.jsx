@@ -142,6 +142,7 @@ const Autopilot = ({ onBack }) => {
 
   // Owner Decisions (OCS) states
   const [ownerDecisions, setOwnerDecisions] = useState([]);
+  const [decisionBookings, setDecisionBookings] = useState({}); // Map booking_id -> {confirmation_code}
   const [decisionsSummary, setDecisionsSummary] = useState({
     pending: 0,
     urgent: 0,
@@ -1627,6 +1628,24 @@ const Autopilot = ({ onBack }) => {
       const decisionsData = await ownerDecisionsService.getOwnerDecisions(userData.id, filters);
       console.log('✅ Received decisions data:', decisionsData);
       setOwnerDecisions(decisionsData);
+
+      // Load bookings with confirmation_code
+      const bookingIds = decisionsData.filter(d => d.booking_id).map(d => d.booking_id);
+      if (bookingIds.length > 0) {
+        const { data: bookingsData, error: bookingsError } = await supabase
+          .from('bookings')
+          .select('id, confirmation_code')
+          .in('id', bookingIds);
+
+        if (!bookingsError && bookingsData) {
+          const bookingsMap = {};
+          bookingsData.forEach(b => {
+            bookingsMap[b.id] = b;
+          });
+          setDecisionBookings(bookingsMap);
+          console.log('✅ Loaded', bookingsData.length, 'booking confirmation codes');
+        }
+      }
 
       const summary = await ownerDecisionsService.getDecisionsSummary(userData.id);
       console.log('✅ Received summary:', summary);
@@ -8817,6 +8836,7 @@ const Autopilot = ({ onBack }) => {
 
               const typeInfo = decisionTypeLabels[decision.decision_type] || { label: decision.decision_type, emoji: '📋' };
               const agentBadge = decision.generated_by_agent?.toUpperCase() || 'SYSTEM';
+              const booking = decision.booking_id ? decisionBookings[decision.booking_id] : null;
 
               return (
                 <div
@@ -8859,6 +8879,15 @@ const Autopilot = ({ onBack }) => {
                           </span>
                         )}
                       </div>
+                      {/* Booking Code */}
+                      {booking?.confirmation_code && (
+                        <div className="mb-3 p-2 bg-orange-500 rounded-lg inline-block">
+                          <div className="flex items-center gap-2">
+                            <span className="text-white text-xs font-semibold">Code:</span>
+                            <span className="text-white text-sm font-bold">{booking.confirmation_code}</span>
+                          </div>
+                        </div>
+                      )}
                       <h4 className="text-white font-bold text-xl mb-2">
                         {typeInfo.emoji} {decision.title}
                       </h4>

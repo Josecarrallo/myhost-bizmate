@@ -195,6 +195,30 @@ const OwnerHome = ({ onBack, tenantId: propTenantId }) => {
       }
     });
 
+    // Ahora obtener los bookings con confirmation_code para las decisiones que tienen booking_id
+    const bookingIds = pendingDecisions
+      .filter(d => d.booking_id)
+      .map(d => d.booking_id);
+
+    if (bookingIds.length > 0) {
+      const { data: bookingsData, error: bookingsError } = await supabase
+        .from('bookings')
+        .select('id, confirmation_code')
+        .in('id', bookingIds);
+
+      if (!bookingsError && bookingsData) {
+        // Agregar el booking al context correspondiente
+        pendingDecisions.forEach(decision => {
+          if (decision.booking_id && contexts[decision.id]) {
+            const booking = bookingsData.find(b => b.id === decision.booking_id);
+            if (booking) {
+              contexts[decision.id].active_booking = booking;
+            }
+          }
+        });
+      }
+    }
+
     setDecisionContexts(contexts);
   };
 
@@ -641,6 +665,16 @@ const OwnerHome = ({ onBack, tenantId: propTenantId }) => {
             const countdown = getCountdown(decision.due_date, decision.created_at);
             const booking = context?.active_booking;
 
+            // Debug: Log booking data for first decision
+            if (decision.id && !window.loggedBooking) {
+              console.log('🔍 [OWNER HOME] Decision:', decision.id);
+              console.log('🔍 [OWNER HOME] Context FULL:', JSON.stringify(context, null, 2));
+              console.log('🔍 [OWNER HOME] Context keys:', context ? Object.keys(context) : 'null');
+              console.log('🔍 [OWNER HOME] Booking:', booking);
+              console.log('🔍 [OWNER HOME] Confirmation code:', booking?.confirmation_code);
+              window.loggedBooking = true;
+            }
+
             // Priority colors
             const priorityColors = {
               urgent: { bg: '#FEF2F2', text: '#DC2626', border: '#DC2626' },
@@ -676,6 +710,16 @@ const OwnerHome = ({ onBack, tenantId: propTenantId }) => {
                     {decision.title || decision.decision_type?.replace('_', ' ')}
                   </span>
                 </div>
+
+                {/* Booking Code */}
+                {booking?.confirmation_code && (
+                  <div className="mb-3 p-2 bg-orange-500 rounded-lg">
+                    <div className="flex items-center gap-2">
+                      <span className="text-white text-xs font-semibold">Code:</span>
+                      <span className="text-white text-sm font-bold">{booking.confirmation_code}</span>
+                    </div>
+                  </div>
+                )}
 
                 {/* Guest Info with VIP Badge */}
                 <div className="mb-4">
@@ -941,11 +985,23 @@ const OwnerHome = ({ onBack, tenantId: propTenantId }) => {
                     badge = { text: '⏳ PENDING', color: 'text-orange-600' };
                   }
 
+                  // Get context for this decision if available
+                  const context = decisionContexts[decision.id];
+                  const booking = context?.active_booking;
+
                   return (
                     <div
                       key={decision.id}
                       className="p-4 bg-gray-50 rounded-lg border border-gray-200"
                     >
+                      {/* Booking Code */}
+                      {booking?.confirmation_code && (
+                        <div className="mb-2 px-2 py-1 bg-orange-500 rounded inline-flex items-center gap-1">
+                          <span className="text-white text-[10px] font-semibold">Code:</span>
+                          <span className="text-white text-xs font-bold">{booking.confirmation_code}</span>
+                        </div>
+                      )}
+
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-1">
