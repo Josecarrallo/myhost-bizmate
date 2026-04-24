@@ -70,6 +70,13 @@ import { ownerSummariesService } from '../../services/ownerSummariesService';
 const Autopilot = ({ onBack }) => {
   const { userData } = useAuth();
 
+  // Helper function to extract refund % from description and append to title
+  const getRefundTitle = (decision) => {
+    if (decision.decision_type !== 'refund_request') return decision.title;
+    const match = (decision.description || '').match(/(\d+)\s*%/);
+    return match ? `${decision.title} ${match[1]}%` : decision.title;
+  };
+
   // Navigation between 9 sections
   const [activeSection, setActiveSection] = useState('menu'); // Start with menu visible
   const [activeView, setActiveView] = useState('daily'); // for Overview section
@@ -8885,9 +8892,8 @@ const Autopilot = ({ onBack }) => {
                         </div>
                       )}
                       <h4 className="text-white font-bold text-xl mb-2">
-                        {typeInfo.emoji} {decision.title}
+                        {typeInfo.emoji} {getRefundTitle(decision)}
                       </h4>
-                      <p className="text-gray-400 text-sm mb-3">{decision.summary}</p>
                       <div className="flex items-center gap-3 mb-3">
                         <p className="text-orange-400 font-medium text-lg">👤 {decision.guest_name || 'N/A'}</p>
                         {decision.guest_phone && (
@@ -9769,7 +9775,7 @@ const Autopilot = ({ onBack }) => {
                         {decision.priority === 'urgent' ? '🔴 ' : ''}{decision.priority || 'LOW'}
                       </span>
                       <span className="font-bold" style={{ color: colors.text }}>
-                        {decision.title || decision.decision_type?.replace('_', ' ')}
+                        {getRefundTitle(decision) || decision.decision_type?.replace('_', ' ')}
                       </span>
                     </div>
 

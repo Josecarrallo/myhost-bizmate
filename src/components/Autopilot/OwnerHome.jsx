@@ -35,6 +35,13 @@ const OwnerHome = ({ onBack, tenantId: propTenantId }) => {
   const [modifyNotes, setModifyNotes] = useState('');
   const [toast, setToast] = useState(null);
 
+  // Helper function to extract refund % from description and append to title
+  const getRefundTitle = (decision) => {
+    if (decision.decision_type !== 'refund_request') return decision.title;
+    const match = (decision.description || '').match(/(\d+)\s*%/);
+    return match ? `${decision.title} ${match[1]}%` : decision.title;
+  };
+
   // Toast notification helper
   const showToast = (message, type = 'success') => {
     setToast({ message, type });
@@ -717,7 +724,7 @@ const OwnerHome = ({ onBack, tenantId: propTenantId }) => {
                     {decision.priority === 'urgent' ? '🔴 ' : ''}{decision.priority || 'LOW'}
                   </span>
                   <span className="font-bold" style={{ color: colors.text }}>
-                    {decision.title || decision.decision_type?.replace('_', ' ')}
+                    {getRefundTitle(decision) || decision.decision_type?.replace('_', ' ')}
                   </span>
                 </div>
 
@@ -779,10 +786,9 @@ const OwnerHome = ({ onBack, tenantId: propTenantId }) => {
                   </div>
                 )}
 
-                {/* Summary + Timer (Una sola línea) */}
-                <div className="flex items-center gap-3 mb-4 flex-wrap">
-                  <p className="text-gray-700 flex-1">{decision.summary || decision.description}</p>
-                  {countdown && (
+                {/* Timer */}
+                {countdown && (
+                  <div className="flex items-center gap-3 mb-4 flex-wrap">
                     <div
                       className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg font-bold ${
                         countdown.overdue
@@ -797,8 +803,8 @@ const OwnerHome = ({ onBack, tenantId: propTenantId }) => {
                         {countdown.overdue ? '🔴 OVERDUE' : '⏱ Decision needed in'}: {String(countdown.hours).padStart(2, '0')}:{String(countdown.minutes).padStart(2, '0')}
                       </span>
                     </div>
-                  )}
-                </div>
+                  </div>
+                )}
 
                 {/* System Recommendation */}
                 {decision.recommended_action && (() => {
