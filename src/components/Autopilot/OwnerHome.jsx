@@ -42,6 +42,13 @@ const OwnerHome = ({ onBack, tenantId: propTenantId }) => {
     return match ? `${decision.title} ${match[1]}%` : decision.title;
   };
 
+  // Helper function to extract guest message from description (OCS-01)
+  const extractGuestMessage = (description) => {
+    if (!description) return null;
+    const match = description.match(/Guest message:\s*"([^"]+)"/);
+    return match ? match[1] : null;
+  };
+
   // Toast notification helper
   const showToast = (message, type = 'success') => {
     setToast({ message, type });
@@ -728,6 +735,18 @@ const OwnerHome = ({ onBack, tenantId: propTenantId }) => {
                   </span>
                 </div>
 
+                {/* Guest said block (OCS-01) */}
+                {extractGuestMessage(decision.description) && (
+                  <div className="bg-gray-100 border-l-4 border-blue-500 p-3 mb-3 rounded">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-sm font-semibold text-gray-700">💬 Guest said:</span>
+                    </div>
+                    <p className="text-gray-800 italic line-clamp-2">
+                      "{extractGuestMessage(decision.description)}"
+                    </p>
+                  </div>
+                )}
+
                 {/* Guest Info with VIP Badge */}
                 <div className="mb-4">
                   <div className="flex items-center gap-2 text-gray-700 flex-wrap">
@@ -1020,6 +1039,13 @@ const OwnerHome = ({ onBack, tenantId: propTenantId }) => {
                             </span>
                           </div>
                           <p className="text-sm text-gray-700">{decision.summary || decision.title}</p>
+                          {/* Guest said block (OCS-01) - Timeline version */}
+                          {extractGuestMessage(decision.description) && (
+                            <div className="bg-gray-100 border-l-2 border-blue-500 p-2 mt-2 rounded text-xs">
+                              <span className="font-semibold text-gray-700">💬 Guest said: </span>
+                              <span className="text-gray-800 italic">"{extractGuestMessage(decision.description)}"</span>
+                            </div>
+                          )}
                           {decision.financial_impact_estimate && (
                             <p className="text-xs text-orange-700 mt-1">
                               💰 {decision.financial_impact_estimate}

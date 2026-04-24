@@ -77,6 +77,13 @@ const Autopilot = ({ onBack }) => {
     return match ? `${decision.title} ${match[1]}%` : decision.title;
   };
 
+  // Helper function to extract guest message from description (OCS-01)
+  const extractGuestMessage = (description) => {
+    if (!description) return null;
+    const match = description.match(/Guest message:\s*"([^"]+)"/);
+    return match ? match[1] : null;
+  };
+
   // Navigation between 9 sections
   const [activeSection, setActiveSection] = useState('menu'); // Start with menu visible
   const [activeView, setActiveView] = useState('daily'); // for Overview section
@@ -8894,6 +8901,17 @@ const Autopilot = ({ onBack }) => {
                       <h4 className="text-white font-bold text-xl mb-2">
                         {typeInfo.emoji} {getRefundTitle(decision)}
                       </h4>
+                      {/* Guest said block (OCS-01) */}
+                      {extractGuestMessage(decision.description) && (
+                        <div className="bg-gray-100 border-l-4 border-blue-500 p-3 mb-3 rounded">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="text-sm font-semibold text-gray-700">💬 Guest said:</span>
+                          </div>
+                          <p className="text-gray-800 italic line-clamp-2">
+                            "{extractGuestMessage(decision.description)}"
+                          </p>
+                        </div>
+                      )}
                       <div className="flex items-center gap-3 mb-3">
                         <p className="text-orange-400 font-medium text-lg">👤 {decision.guest_name || 'N/A'}</p>
                         {decision.guest_phone && (
