@@ -885,7 +885,7 @@ const OwnerHome = ({ onBack, tenantId: propTenantId }) => {
                 {/* OCS-04: Revenue at Stake */}
                 {decision.estimated_revenue_uplift && decision.estimated_revenue_uplift > 0 && (
                   <div className="mb-3 p-3 bg-green-50 rounded-lg border border-green-200">
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
                       <span className="text-green-800 text-xs font-semibold uppercase tracking-wide">
                         Revenue at Stake:
                       </span>
@@ -967,29 +967,29 @@ const OwnerHome = ({ onBack, tenantId: propTenantId }) => {
                 )}
 
                 {/* Action Buttons */}
-                <div className="flex gap-3">
+                <div className="flex gap-2">
                   <button
                     onClick={() => handleApprove(decision)}
                     disabled={actionInProgress === decision.id || decision.status === 'approved' || decision.status === 'rejected'}
-                    className="flex-[2] flex items-center justify-center gap-2 px-6 py-4 bg-orange-500 hover:bg-orange-600 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded-xl font-black text-lg transition-all shadow-lg"
+                    className="flex-[2] flex items-center justify-center gap-1 px-3 py-3 sm:gap-2 sm:px-6 sm:py-4 bg-orange-500 hover:bg-orange-600 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded-xl font-black text-sm sm:text-lg transition-all shadow-lg"
                   >
-                    <ThumbsUp className="w-6 h-6" />
+                    <ThumbsUp className="w-5 h-5 sm:w-6 sm:h-6" />
                     {actionInProgress === decision.id ? 'PROCESSING...' : 'APPROVE'}
                   </button>
                   <button
                     onClick={() => setRejectModal(decision.id)}
                     disabled={actionInProgress === decision.id || decision.status === 'approved' || decision.status === 'rejected'}
-                    className="flex-1 flex items-center justify-center gap-2 px-4 py-4 bg-red-600 hover:bg-red-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded-xl font-bold transition-all"
+                    className="flex-1 flex items-center justify-center gap-1 px-2 py-3 sm:gap-2 sm:px-4 sm:py-4 bg-red-600 hover:bg-red-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded-xl font-bold text-xs sm:text-base transition-all"
                   >
-                    <ThumbsDown className="w-5 h-5" />
+                    <ThumbsDown className="w-4 h-4 sm:w-5 sm:h-5" />
                     REJECT
                   </button>
                   <button
                     onClick={() => setModifyModal(decision.id)}
                     disabled={actionInProgress === decision.id || decision.status === 'approved' || decision.status === 'rejected'}
-                    className="flex-1 flex items-center justify-center gap-2 px-4 py-4 bg-gray-600 hover:bg-gray-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded-xl font-bold transition-all"
+                    className="flex-1 flex items-center justify-center gap-1 px-2 py-3 sm:gap-2 sm:px-4 sm:py-4 bg-gray-600 hover:bg-gray-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded-xl font-bold text-xs sm:text-base transition-all"
                   >
-                    <Edit3 className="w-5 h-5" />
+                    <Edit3 className="w-4 h-4 sm:w-5 sm:h-5" />
                     MODIFY
                   </button>
                 </div>
