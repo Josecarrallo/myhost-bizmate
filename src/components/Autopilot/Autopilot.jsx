@@ -70,6 +70,20 @@ import { ownerSummariesService } from '../../services/ownerSummariesService';
 const Autopilot = ({ onBack }) => {
   const { userData } = useAuth();
 
+  // Helper function to extract refund % from description and append to title
+  const getRefundTitle = (decision) => {
+    if (decision.decision_type !== 'refund_request') return decision.title;
+    const match = (decision.description || '').match(/(\d+)\s*%/);
+    return match ? `${decision.title} ${match[1]}%` : decision.title;
+  };
+
+  // Helper function to extract guest message from description (OCS-01)
+  const extractGuestMessage = (description) => {
+    if (!description) return null;
+    const match = description.match(/Guest message:\s*"([^"]+)"/);
+    return match ? match[1] : null;
+  };
+
   // Navigation between 9 sections
   const [activeSection, setActiveSection] = useState('menu'); // Start with menu visible
   const [activeView, setActiveView] = useState('daily'); // for Overview section
@@ -142,6 +156,7 @@ const Autopilot = ({ onBack }) => {
 
   // Owner Decisions (OCS) states
   const [ownerDecisions, setOwnerDecisions] = useState([]);
+  const [decisionBookings, setDecisionBookings] = useState({}); // Map booking_id -> {confirmation_code}
   const [decisionsSummary, setDecisionsSummary] = useState({
     pending: 0,
     urgent: 0,
@@ -200,6 +215,7 @@ const Autopilot = ({ onBack }) => {
     scheduled_date: '',
     guest_name: '',
     guest_phone: '',
+    booking_code: '',
     financial_impact_estimate: 0,
     decision_category: 'approval',
     generated_by_agent: 'system'
@@ -1628,6 +1644,24 @@ const Autopilot = ({ onBack }) => {
       console.log('✅ Received decisions data:', decisionsData);
       setOwnerDecisions(decisionsData);
 
+      // Load bookings with confirmation_code
+      const bookingIds = decisionsData.filter(d => d.booking_id).map(d => d.booking_id);
+      if (bookingIds.length > 0) {
+        const { data: bookingsData, error: bookingsError } = await supabase
+          .from('bookings')
+          .select('id, confirmation_code')
+          .in('id', bookingIds);
+
+        if (!bookingsError && bookingsData) {
+          const bookingsMap = {};
+          bookingsData.forEach(b => {
+            bookingsMap[b.id] = b;
+          });
+          setDecisionBookings(bookingsMap);
+          console.log('✅ Loaded', bookingsData.length, 'booking confirmation codes');
+        }
+      }
+
       const summary = await ownerDecisionsService.getDecisionsSummary(userData.id);
       console.log('✅ Received summary:', summary);
       setDecisionsSummary(summary);
@@ -2074,13 +2108,14 @@ const Autopilot = ({ onBack }) => {
       const formattedPrice = price >= 1000000
         ? `Rp ${Math.round(price).toLocaleString('id-ID')}`
         : `$${Math.round(price).toLocaleString('en-US')}`;
-      bookingsTableHTML += `<tr><td>${booking.guest_name || 'N/A'}</td><td>${checkIn}</td><td>${checkOut}</td><td>${nights}</td><td>${formattedPrice}</td></tr>`;
+      const code = booking.confirmation_code || 'N/A';
+      bookingsTableHTML += `<tr><td><strong>${code}</strong></td><td>${booking.guest_name || 'N/A'}</td><td>${checkIn}</td><td>${checkOut}</td><td>${nights}</td><td>${formattedPrice}</td></tr>`;
     });
     const totalRevenueFormatted = realCounts.totalRevenue >= 1000000
       ? `Rp ${Math.round(realCounts.totalRevenue).toLocaleString('id-ID')}`
       : `$${Math.round(realCounts.totalRevenue).toLocaleString('en-US')}`;
     bookingsTableHTML += `<tr style="font-weight: bold;">
-                <td>TOTAL</td>
+                <td colspan="2">TOTAL</td>
                 <td colspan="2">${realCounts.totalBookings} bookings</td>
                 <td>${realCounts.totalNights} nights</td>
                 <td>${totalRevenueFormatted}</td>
@@ -2191,6 +2226,7 @@ const Autopilot = ({ onBack }) => {
             <h3>All Bookings</h3>
             <table>
               <tr>
+                <th>Code</th>
                 <th>Guest</th>
                 <th>Check In</th>
                 <th>Check Out</th>
@@ -2538,6 +2574,15 @@ const Autopilot = ({ onBack }) => {
                 <div className="block md:hidden space-y-3">
                   {allBookings.map((booking) => (
                     <div key={booking.id} className="bg-[#2a2f3a] rounded-xl p-4 border-l-4 border-orange-500 shadow-lg">
+                      {/* Booking Code Banner */}
+                      {booking.confirmation_code && (
+                        <div className="mb-3 p-2 bg-[#FF8C42] rounded-lg">
+                          <div className="flex items-center gap-2">
+                            <span className="text-white text-xs font-semibold">Code:</span>
+                            <span className="text-white text-sm font-bold">{booking.confirmation_code}</span>
+                          </div>
+                        </div>
+                      )}
                       <div className="flex justify-between items-start mb-3">
                         <div className="flex-1">
                           <h3 className="text-white font-bold text-lg">{booking.guest_name || 'N/A'}</h3>
@@ -2588,6 +2633,7 @@ const Autopilot = ({ onBack }) => {
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="border-b border-gray-700">
+                        <th className="text-left text-gray-400 font-semibold p-3">Code</th>
                         <th className="text-left text-gray-400 font-semibold p-3">Guest Name</th>
                         <th className="text-left text-gray-400 font-semibold p-3">Check In</th>
                         <th className="text-left text-gray-400 font-semibold p-3">Check Out</th>
@@ -2598,6 +2644,11 @@ const Autopilot = ({ onBack }) => {
                     <tbody>
                       {allBookings.map((booking) => (
                         <tr key={booking.id} className="border-b border-gray-800 hover:bg-[#2a2f3a] transition-colors">
+                          <td className="p-3">
+                            <span className="inline-flex items-center px-2 py-1 bg-[#FF8C42] rounded text-white text-xs font-bold">
+                              {booking.confirmation_code || 'N/A'}
+                            </span>
+                          </td>
                           <td className="text-white p-3 font-medium">{booking.guest_name || 'N/A'}</td>
                           <td className="text-gray-300 p-3">
                             {booking.check_in ? new Date(booking.check_in).toLocaleDateString('en-US', {
@@ -6880,7 +6931,7 @@ const Autopilot = ({ onBack }) => {
           <h2 className="text-3xl font-bold text-white">Owner Control System</h2>
         </div>
 
-        {/* Four Options: Owner Home, Owner Decisions, Owner Decisions II & Decision Intelligence */}
+        {/* Three Options: Owner Home, Owner Decisions, Owner Decisions II */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Option 1: Owner Home */}
           <button
@@ -6951,28 +7002,6 @@ const Autopilot = ({ onBack }) => {
             </div>
           </button>
 
-          {/* Option 4: Decision Intelligence */}
-          <button
-            onClick={() => setOcsView('decision-intelligence')}
-            className="group bg-gradient-to-br from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 rounded-3xl p-8 shadow-2xl border-2 border-purple-400/30 transition-all transform hover:scale-105 text-left"
-          >
-            <div className="flex items-center gap-4 mb-4">
-              <div className="p-4 bg-white/20 rounded-2xl">
-                <Sparkles className="w-12 h-12 text-white" />
-              </div>
-              <div>
-                <h3 className="text-2xl font-bold text-white">Decision Intelligence</h3>
-                <p className="text-purple-100 text-sm">AI-Powered Insights</p>
-              </div>
-            </div>
-            <p className="text-white/90 mb-4">
-              Enhanced decision context with AI recommendations, SLA timers, booking context, guest profiles, and automated resolution tracking.
-            </p>
-            <div className="flex items-center gap-2 text-white font-semibold">
-              <span>View Intelligence</span>
-              <ChevronRight className="w-5 h-5 group-hover:translate-x-2 transition-transform" />
-            </div>
-          </button>
         </div>
       </div>
     );
@@ -8817,6 +8846,7 @@ const Autopilot = ({ onBack }) => {
 
               const typeInfo = decisionTypeLabels[decision.decision_type] || { label: decision.decision_type, emoji: '📋' };
               const agentBadge = decision.generated_by_agent?.toUpperCase() || 'SYSTEM';
+              const booking = decision.booking_id ? decisionBookings[decision.booking_id] : null;
 
               return (
                 <div
@@ -8859,10 +8889,29 @@ const Autopilot = ({ onBack }) => {
                           </span>
                         )}
                       </div>
+                      {/* Booking Code */}
+                      {booking?.confirmation_code && (
+                        <div className="mb-3 p-2 bg-orange-500 rounded-lg inline-block">
+                          <div className="flex items-center gap-2">
+                            <span className="text-white text-xs font-semibold">Code:</span>
+                            <span className="text-white text-sm font-bold">{booking.confirmation_code}</span>
+                          </div>
+                        </div>
+                      )}
                       <h4 className="text-white font-bold text-xl mb-2">
-                        {typeInfo.emoji} {decision.title}
+                        {typeInfo.emoji} {getRefundTitle(decision)}
                       </h4>
-                      <p className="text-gray-400 text-sm mb-3">{decision.summary}</p>
+                      {/* Guest said block (OCS-01) */}
+                      {extractGuestMessage(decision.description) && (
+                        <div className="bg-gray-100 border-l-4 border-blue-500 p-3 mb-3 rounded">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="text-sm font-semibold text-gray-700">💬 Guest said:</span>
+                          </div>
+                          <p className="text-gray-800 italic line-clamp-2">
+                            "{extractGuestMessage(decision.description)}"
+                          </p>
+                        </div>
+                      )}
                       <div className="flex items-center gap-3 mb-3">
                         <p className="text-orange-400 font-medium text-lg">👤 {decision.guest_name || 'N/A'}</p>
                         {decision.guest_phone && (
@@ -9095,8 +9144,8 @@ const Autopilot = ({ onBack }) => {
         </div>
       )}
 
-      {/* CREATE/EDIT DECISION FORM MODAL */}
-      {showDecisionForm && (
+      {/* CREATE/EDIT DECISION FORM MODAL - Owner Decisions (OLD) */}
+      {showDecisionForm && ocsView === 'owner-decisions' && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-2 md:p-4">
           <div className="bg-[#1f2937] rounded-2xl w-[98%] sm:w-[90%] md:w-full max-w-2xl max-h-[92vh] md:max-h-[90vh] overflow-y-auto border-2 border-[#d85a2a]/30" style={{ marginLeft: '40px' }}>
             {/* Header */}
@@ -9700,7 +9749,7 @@ const Autopilot = ({ onBack }) => {
                 const context = decisionContexts[decision.id];
                 const stats = guestStats[decision.guest_phone];
                 const countdown = getCountdown(decision.due_date, decision.created_at);
-                const booking = context?.active_booking;
+                const booking = decision.booking_id ? decisionBookings[decision.booking_id] : context?.active_booking;
 
                 // Priority colors
                 const priorityColors = {
@@ -9728,13 +9777,23 @@ const Autopilot = ({ onBack }) => {
                     className="bg-white rounded-xl p-6 shadow-lg border-2 border-gray-200 hover:border-orange-500 transition-all"
                     style={{ borderLeft: `4px solid ${colors.border}` }}
                   >
+                    {/* Booking Code - FIRST LINE */}
+                    {booking?.confirmation_code && (
+                      <div className="mb-3 p-2 bg-[#FF8C42] rounded-lg inline-block">
+                        <div className="flex items-center gap-2">
+                          <span className="text-white text-xs font-semibold">Code:</span>
+                          <span className="text-white text-sm font-bold">{booking.confirmation_code}</span>
+                        </div>
+                      </div>
+                    )}
+
                     {/* Priority Badge + Title (Una sola línea) */}
                     <div className="flex items-center gap-3 mb-3">
                       <span className="px-3 py-1 rounded-lg font-bold uppercase" style={{ backgroundColor: colors.bg, color: colors.text }}>
                         {decision.priority === 'urgent' ? '🔴 ' : ''}{decision.priority || 'LOW'}
                       </span>
                       <span className="font-bold" style={{ color: colors.text }}>
-                        {decision.title || decision.decision_type?.replace('_', ' ')}
+                        {getRefundTitle(decision) || decision.decision_type?.replace('_', ' ')}
                       </span>
                     </div>
 
@@ -9923,8 +9982,8 @@ const Autopilot = ({ onBack }) => {
           </div>
         </div>
 
-        {/* CREATE/EDIT DECISION FORM MODAL */}
-        {showDecisionForm && (
+        {/* CREATE/EDIT DECISION FORM MODAL - Owner Decisions II (NEW) */}
+        {showDecisionForm && ocsView === 'owner-decisions-ii' && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-2 md:p-4">
             <div className="bg-[#1f2937] rounded-2xl w-[98%] sm:w-[90%] md:w-full max-w-2xl max-h-[92vh] md:max-h-[90vh] overflow-y-auto border-2 border-[#d85a2a]/30" style={{ marginLeft: '40px' }}>
               {/* Header */}
@@ -9946,6 +10005,18 @@ const Autopilot = ({ onBack }) => {
 
               {/* Form Content */}
               <div className="p-4 md:p-6 space-y-4">
+                {/* Booking Code - FIRST FIELD */}
+                <div>
+                  <label className="text-gray-300 text-sm font-medium block mb-2">Booking Code</label>
+                  <input
+                    type="text"
+                    placeholder="e.g., IZU-2026-0093"
+                    className="w-full px-4 py-2 bg-[#2a2f3a] text-white rounded-lg border border-gray-600 focus:border-orange-500 outline-none"
+                    value={decisionFormData.booking_code}
+                    onChange={(e) => setDecisionFormData({...decisionFormData, booking_code: e.target.value})}
+                  />
+                </div>
+
                 {/* Title */}
                 <div>
                   <label className="text-gray-300 text-sm font-medium block mb-2">Title *</label>

@@ -928,6 +928,7 @@ const MasterCalendar = ({ onBack }) => {
                               key={`b-${bidx}`}
                               className={`text-xs px-2 py-1 rounded border ${getChannelColor(booking.source)}`}
                             >
+                              <div className="text-[10px] font-semibold opacity-90 truncate mb-0.5">{booking.confirmation_code || 'N/A'}</div>
                               <div className="font-bold truncate">{booking.guest_name}</div>
                               <div className="text-[10px] opacity-90 font-semibold uppercase">
                                 {(() => {
@@ -1040,6 +1041,7 @@ const MasterCalendar = ({ onBack }) => {
                         {/* Bookings */}
                         {items.bookings.slice(0, 2).map((booking, bidx) => (
                           <div key={`b-${bidx}`} className="text-xs px-2 py-1.5 mb-1 rounded border border-blue-500/50 bg-blue-500/10">
+                            <div className="text-white text-[10px] font-semibold mb-0.5">{booking.confirmation_code || 'N/A'}</div>
                             <div className="font-bold text-white">{booking.guest_name}</div>
                             <div className="text-blue-300 text-[10px]">{booking.source || booking.channel || 'Direct'}</div>
                           </div>
@@ -1381,6 +1383,13 @@ const MasterCalendar = ({ onBack }) => {
                         <div className="space-y-3">
                           {items.bookings.map((booking, idx) => (
                             <div key={idx} className="bg-white/5 rounded-lg p-4 border border-white/10">
+                              {/* Booking Code */}
+                              <div className="mb-3 p-2 bg-orange-500 rounded-lg">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-white text-xs font-semibold">Code:</span>
+                                  <span className="text-white text-sm font-bold">{booking.confirmation_code || 'N/A'}</span>
+                                </div>
+                              </div>
                               <div className="flex items-start justify-between mb-2">
                                 <div>
                                   <div className="text-white font-medium">{booking.guest_name}</div>

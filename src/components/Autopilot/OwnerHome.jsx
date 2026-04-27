@@ -16,7 +16,9 @@ import {
   TrendingUp,
   AlertCircle,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  MessageCircle,
+  ArrowRight
 } from 'lucide-react';
 
 const OwnerHome = ({ onBack, tenantId: propTenantId }) => {
@@ -34,6 +36,72 @@ const OwnerHome = ({ onBack, tenantId: propTenantId }) => {
   const [rejectNotes, setRejectNotes] = useState('');
   const [modifyNotes, setModifyNotes] = useState('');
   const [toast, setToast] = useState(null);
+
+  // Helper function to extract refund % from description and append to title
+  const getRefundTitle = (decision) => {
+    if (decision.decision_type !== 'refund_request') return decision.title;
+    const match = (decision.description || '').match(/(\d+)\s*%/);
+    return match ? `${decision.title} ${match[1]}%` : decision.title;
+  };
+
+  // OCS-01: Extraer mensaje del guest desde description
+  // Maneja 3 formatos diferentes de mensajes
+  const extractGuestMessage = (description) => {
+    if (!description) return null;
+
+    // Formato 1: "Guest said: '...'" o "El guest dijo: '...'"
+    const match1 = description.match(/(?:Guest said|El guest dijo):\s*['"']([^'"']+)['"']/i);
+    if (match1) return match1[1];
+
+    // Formato 2: "Mensaje recibido: ..." o "Message received: ..."
+    const match2 = description.match(/(?:Mensaje recibido|Message received):\s*['"']?([^.]+)['"']?/i);
+    if (match2) return match2[1];
+
+    // Formato 3: Primera línea del description si es suficientemente larga
+    const firstLine = description.split('\n')[0];
+    if (firstLine.length > 20 && firstLine.length < 200) return firstLine;
+
+    return null;
+  };
+
+  // OCS-02: Formatear Booking Value con currency apropiada
+  const formatBookingValue = (totalPrice, currency) => {
+    if (!totalPrice || totalPrice === 0) return 'N/A';
+    const curr = currency || 'USD';
+    const symbol = curr === 'USD' ? '$' : curr === 'IDR' ? 'Rp' : curr;
+    return `${symbol}${totalPrice.toLocaleString()}`;
+  };
+
+  // OCS-04: Formatear Revenue at Stake agrupado por currency
+  const formatRevenueAtStake = (estimatedRevenue, currency) => {
+    if (!estimatedRevenue || estimatedRevenue === 0) return null;
+    const curr = currency || 'USD';
+    const symbol = curr === 'USD' ? '$' : curr === 'IDR' ? 'Rp' : curr;
+    return {
+      amount: estimatedRevenue,
+      currency: curr,
+      formatted: `${symbol}${estimatedRevenue.toLocaleString()}`
+    };
+  };
+
+  // OCS-05: Formatear Date Change mostrando CURRENT vs REQUESTED
+  const formatDateChange = (description, currentCheckIn, currentCheckOut) => {
+    if (!description) return null;
+
+    // Buscar fecha solicitada en description
+    const dateMatch = description.match(/(?:new dates?|nuevas? fechas?|cambio a).*?(\d{4}-\d{2}-\d{2})/i);
+    if (!dateMatch) return null;
+
+    const requestedDate = dateMatch[1];
+    const currentDate = currentCheckIn || currentCheckOut;
+
+    if (!currentDate) return null;
+
+    return {
+      current: new Date(currentDate).toLocaleDateString('es-ES', { day: '2-digit', month: 'short' }),
+      requested: new Date(requestedDate).toLocaleDateString('es-ES', { day: '2-digit', month: 'short' })
+    };
+  };
 
   // Toast notification helper
   const showToast = (message, type = 'success') => {
@@ -195,6 +263,30 @@ const OwnerHome = ({ onBack, tenantId: propTenantId }) => {
       }
     });
 
+    // Ahora obtener los bookings con confirmation_code para las decisiones que tienen booking_id
+    const bookingIds = pendingDecisions
+      .filter(d => d.booking_id)
+      .map(d => d.booking_id);
+
+    if (bookingIds.length > 0) {
+      const { data: bookingsData, error: bookingsError } = await supabase
+        .from('bookings')
+        .select('id, confirmation_code, total_price, currency, check_in, check_out')
+        .in('id', bookingIds);
+
+      if (!bookingsError && bookingsData) {
+        // Agregar el booking al context correspondiente
+        pendingDecisions.forEach(decision => {
+          if (decision.booking_id && contexts[decision.id]) {
+            const booking = bookingsData.find(b => b.id === decision.booking_id);
+            if (booking) {
+              contexts[decision.id].active_booking = booking;
+            }
+          }
+        });
+      }
+    }
+
     setDecisionContexts(contexts);
   };
 
@@ -233,7 +325,7 @@ const OwnerHome = ({ onBack, tenantId: propTenantId }) => {
       setActionInProgress(decision.id);
 
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 5000);
+      const timeoutId = setTimeout(() => controller.abort(), 15000);
 
       const response = await fetch('https://n8n-production-bb2d.up.railway.app/webhook/autopilot/decision-action', {
         method: 'POST',
@@ -296,7 +388,7 @@ const OwnerHome = ({ onBack, tenantId: propTenantId }) => {
       setActionInProgress(decisionId);
 
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 5000);
+      const timeoutId = setTimeout(() => controller.abort(), 15000);
 
       const response = await fetch('https://n8n-production-bb2d.up.railway.app/webhook/autopilot/decision-action', {
         method: 'POST',
@@ -361,7 +453,7 @@ const OwnerHome = ({ onBack, tenantId: propTenantId }) => {
       setActionInProgress(decisionId);
 
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 5000);
+      const timeoutId = setTimeout(() => controller.abort(), 15000);
 
       const response = await fetch('https://n8n-production-bb2d.up.railway.app/webhook/autopilot/decision-action', {
         method: 'POST',
@@ -497,8 +589,8 @@ const OwnerHome = ({ onBack, tenantId: propTenantId }) => {
   const autoApproved = analytics?.auto_approved_today || 0;
   const avgResponseTime = analytics?.avg_response_time_hours || 0;
 
-  // Incluir tanto pending como modified (el owner ya actuó en modified pero sigue visible)
-  const pendingDecisions = decisions.filter(d => d.status === 'pending' || d.status === 'modified');
+  // OCS-FIX: Mostrar TODAS las decisiones (pending, modified, approved, rejected) - nunca ocultar
+  const pendingDecisions = decisions; // Mostrar todas sin filtrar
 
   // Dynamic header color and message
   const headerColor = urgent > 0 ? '#DC2626' : pending > 0 ? '#EA580C' : '#16A34A';
@@ -641,6 +733,16 @@ const OwnerHome = ({ onBack, tenantId: propTenantId }) => {
             const countdown = getCountdown(decision.due_date, decision.created_at);
             const booking = context?.active_booking;
 
+            // Debug: Log booking data for first decision
+            if (decision.id && !window.loggedBooking) {
+              console.log('🔍 [OWNER HOME] Decision:', decision.id);
+              console.log('🔍 [OWNER HOME] Context FULL:', JSON.stringify(context, null, 2));
+              console.log('🔍 [OWNER HOME] Context keys:', context ? Object.keys(context) : 'null');
+              console.log('🔍 [OWNER HOME] Booking:', booking);
+              console.log('🔍 [OWNER HOME] Confirmation code:', booking?.confirmation_code);
+              window.loggedBooking = true;
+            }
+
             // Priority colors
             const priorityColors = {
               urgent: { bg: '#FEF2F2', text: '#DC2626', border: '#DC2626' },
@@ -667,15 +769,45 @@ const OwnerHome = ({ onBack, tenantId: propTenantId }) => {
                 className="bg-white rounded-xl p-6 shadow-lg border-2 border-gray-200 hover:border-orange-500 transition-all"
                 style={{ borderLeft: `4px solid ${colors.border}` }}
               >
-                {/* Priority Badge + Title (Una sola línea) */}
-                <div className="flex items-center gap-3 mb-3">
+                {/* Booking Code - FIRST LINE */}
+                {booking?.confirmation_code && (
+                  <div className="mb-3 p-2 bg-orange-500 rounded-lg">
+                    <div className="flex items-center gap-2">
+                      <span className="text-white text-xs font-semibold">Code:</span>
+                      <span className="text-white text-sm font-bold">{booking.confirmation_code}</span>
+                    </div>
+                  </div>
+                )}
+
+                {/* Priority Badge + Title + Timer (Una sola línea) */}
+                <div className="flex items-center gap-3 mb-3 flex-wrap">
                   <span className="px-3 py-1 rounded-lg font-bold uppercase" style={{ backgroundColor: colors.bg, color: colors.text }}>
                     {decision.priority === 'urgent' ? '🔴 ' : ''}{decision.priority || 'LOW'}
                   </span>
                   <span className="font-bold" style={{ color: colors.text }}>
-                    {decision.title || decision.decision_type?.replace('_', ' ')}
+                    {getRefundTitle(decision) || decision.decision_type?.replace('_', ' ')}
                   </span>
+                  {countdown && (
+                    <span className="text-xs font-semibold text-gray-600">
+                      (overdue: {String(countdown.hours).padStart(2, '0')}:{String(countdown.minutes).padStart(2, '0')})
+                    </span>
+                  )}
                 </div>
+
+                {/* OCS-01: Mensaje del guest extraído del description */}
+                {extractGuestMessage(decision.description) && (
+                  <div className="mb-3 p-2 bg-blue-50 rounded-lg border border-blue-200">
+                    <div className="flex items-start gap-2">
+                      <MessageCircle className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
+                      <div className="flex-1">
+                        <span className="text-blue-800 text-xs font-semibold">Guest said:</span>
+                        <p className="text-blue-900 text-sm mt-1 leading-tight">
+                          {extractGuestMessage(decision.description)}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 {/* Guest Info with VIP Badge */}
                 <div className="mb-4">
@@ -708,148 +840,154 @@ const OwnerHome = ({ onBack, tenantId: propTenantId }) => {
                   )}
                 </div>
 
-                {/* Booking Context */}
+                {/* OCS-02+03: Booking Context con currency correcta */}
                 {booking && (
-                  <div className="mb-4 p-3 bg-gray-50 border border-gray-200 rounded-lg">
-                    <div className="flex items-center gap-4 flex-wrap">
-                      {decision.villa_name && (
-                        <div className="flex items-center gap-2">
-                          <div className="text-xs text-gray-600 font-semibold">Villa</div>
-                          <div className="text-sm font-bold text-gray-900 flex items-center gap-1">
-                            <MapPin className="w-3 h-3" />
-                            {decision.villa_name}
-                          </div>
-                        </div>
-                      )}
-                      <div className="flex items-center gap-2">
-                        <div className="text-xs text-gray-600 font-semibold">Booking Value</div>
-                        <div className="text-sm font-bold text-gray-900">{formatIDR(booking.total_price)}</div>
+                  <div className="mb-3 space-y-1">
+                    {/* Villa Name (si existe) */}
+                    {decision.villa_name && (
+                      <div className="flex items-center gap-2 p-2 bg-gray-50 rounded">
+                        <span className="text-gray-600 text-xs font-medium flex items-center gap-1">
+                          <MapPin className="w-3 h-3" />
+                          Villa:
+                        </span>
+                        <span className="text-gray-900 text-sm font-bold">{decision.villa_name}</span>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <div className="text-xs text-gray-600 font-semibold">Checkout</div>
-                        <div className="text-sm font-bold text-gray-900">
-                          {formatDate(booking.check_out)} {formatTime(booking.check_out)}
-                        </div>
-                      </div>
+                    )}
+
+                    {/* OCS-02: Booking Value con currency */}
+                    <div className="flex items-center gap-2 p-2 bg-gray-50 rounded">
+                      <span className="text-gray-600 text-xs font-medium">Booking Value:</span>
+                      <span className="text-gray-900 text-sm font-bold">
+                        {formatBookingValue(booking.total_price, booking.currency)}
+                      </span>
                     </div>
+
+                    {/* OCS-03: Check-in / Check-out en misma línea */}
+                    {(booking.check_in || booking.check_out) && (
+                      <div className="flex items-center gap-2 p-2 bg-gray-50 rounded">
+                        <span className="text-gray-600 text-xs font-medium">Dates:</span>
+                        <span className="text-gray-900 text-sm font-semibold">
+                          {booking.check_in && new Date(booking.check_in).toLocaleDateString('en-GB', {
+                            day: '2-digit', month: 'short', year: '2-digit'
+                          })}
+                          {' / '}
+                          {booking.check_out && new Date(booking.check_out).toLocaleDateString('en-GB', {
+                            day: '2-digit', month: 'short', year: '2-digit'
+                          })}
+                        </span>
+                      </div>
+                    )}
                   </div>
                 )}
 
-                {/* Summary + Timer (Una sola línea) */}
-                <div className="flex items-center gap-3 mb-4 flex-wrap">
-                  <p className="text-gray-700 flex-1">{decision.summary || decision.description}</p>
-                  {countdown && (
-                    <div
-                      className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg font-bold ${
-                        countdown.overdue
-                          ? 'bg-red-100 text-red-800 border-2 border-red-600 animate-pulse'
-                          : countdown.percentRemaining < 25
-                          ? 'bg-orange-100 text-orange-800 border-2 border-orange-600'
-                          : 'bg-gray-100 text-gray-700 border-2 border-gray-300'
-                      }`}
-                    >
-                      <Clock className="w-5 h-5" />
-                      <span>
-                        {countdown.overdue ? '🔴 OVERDUE' : '⏱ Decision needed in'}: {String(countdown.hours).padStart(2, '0')}:{String(countdown.minutes).padStart(2, '0')}
+                {/* System Recommendation - ELIMINADO por OCS */}
+
+                {/* OCS-04: Revenue at Stake */}
+                {decision.estimated_revenue_uplift && decision.estimated_revenue_uplift > 0 && (
+                  <div className="mb-3 p-3 bg-green-50 rounded-lg border border-green-200">
+                    <div className="flex items-center justify-between">
+                      <span className="text-green-800 text-xs font-semibold uppercase tracking-wide">
+                        Revenue at Stake:
                       </span>
-                    </div>
-                  )}
-                </div>
-
-                {/* System Recommendation */}
-                {decision.recommended_action && (() => {
-                  const raw = decision.recommended_action;
-                  const isApprove = raw.startsWith('AUTO_APPROVE');
-                  const isEscalate = raw.startsWith('ESCALATE');
-
-                  // Limpiar el prefijo para mostrar solo la razón
-                  const reason = raw
-                    .replace(/^(AUTO_APPROVE|ESCALATE)\s*[-–]\s*/i, '')
-                    .replace(/AUTO_APPROVE_|ESCALATE_TO_OWNER_/g, '')
-                    .replace(/_/g, ' ')
-                    .trim();
-                  const displayReason = reason.length > 90 ? reason.slice(0, 90) + '...' : reason;
-
-                  // Determinar estilos
-                  const bgColor = isApprove ? '#FFFFFF' : isEscalate ? '#FFF7ED' : '#F1F5F9';
-                  const textColor = isApprove ? '#EA580C' : isEscalate ? '#EA580C' : '#475569';
-                  const icon = isApprove ? '✅' : isEscalate ? '⚡' : 'ℹ️';
-                  const action = isApprove ? 'AUTO-APPROVE' : isEscalate ? 'ESCALATE' : 'REVIEW';
-
-                  return (
-                    <div
-                      className="p-3 rounded-lg mb-4 border"
-                      style={{ backgroundColor: bgColor, borderColor: textColor }}
-                    >
-                      <div className="text-sm font-bold" style={{ color: textColor }}>
-                        {icon} {action} — {displayReason}
-                      </div>
-                    </div>
-                  );
-                })()}
-
-                {/* Financial Impact */}
-                {decision.financial_impact_estimate && (
-                  <div
-                    className="p-3 rounded-lg mb-4 border-2"
-                    style={{
-                      backgroundColor: impactColor === '#DC2626' ? '#FEF2F2' : '#FFF7ED',
-                      borderColor: impactColor === '#DC2626' ? '#DC2626' : '#EA580C'
-                    }}
-                  >
-                    <div className="flex items-center gap-2">
-                      <DollarSign className="w-4 h-4" style={{ color: impactColor === '#DC2626' ? '#DC2626' : '#EA580C' }} />
-                      <span className="text-sm font-bold" style={{ color: impactColor === '#DC2626' ? '#DC2626' : '#EA580C' }}>
-                        {decision.financial_impact_estimate}
+                      <span className="text-green-900 text-lg font-bold">
+                        {formatRevenueAtStake(decision.estimated_revenue_uplift, booking?.currency)?.formatted || 'N/A'}
                       </span>
                     </div>
                   </div>
                 )}
 
-                {/* Modified Badge (if modified) */}
+                {/* Status Badges */}
                 {decision.status === 'modified' && (
-                  <div className="p-4 rounded-lg bg-orange-50 border-2 border-orange-500 mb-4">
+                  <div className="p-3 rounded-lg bg-orange-50 border-2 border-orange-500 mb-3">
                     <div className="flex items-start gap-3">
                       <Edit3 className="w-5 h-5 text-orange-600 mt-0.5" />
                       <div className="flex-1">
-                        <div className="font-bold text-orange-900 mb-1">✏️ MODIFIED</div>
-                        <p className="text-sm text-orange-800 mb-2">
+                        <div className="font-bold text-orange-900 mb-1 flex items-center gap-2 flex-wrap">
+                          <span>✏️ MODIFIED</span>
+                          <span className="text-xs font-semibold text-orange-700">
+                            ({new Date(decision.modified_at || decision.created_at).toLocaleDateString('en-US', {
+                              month: 'short', day: 'numeric', year: 'numeric'
+                            })} · {new Date(decision.modified_at || decision.created_at).toLocaleTimeString('en-US', {
+                              hour: '2-digit', minute: '2-digit', hour12: false
+                            })})
+                          </span>
+                        </div>
+                        <p className="text-sm text-orange-800">
                           {decision.modification_notes || 'Owner requested modifications'}
                         </p>
-                        <div className="text-xs text-orange-700">
-                          Modified: {new Date(decision.modified_at || decision.created_at).toLocaleDateString('en-US', {
-                            month: 'short', day: 'numeric', year: 'numeric'
-                          })} · {new Date(decision.modified_at || decision.created_at).toLocaleTimeString('en-US', {
-                            hour: '2-digit', minute: '2-digit', hour12: false
-                          })}
-                        </div>
                       </div>
                     </div>
                   </div>
                 )}
 
-                {/* Action Buttons (always visible) */}
+                {decision.status === 'approved' && (
+                  <div className="p-3 rounded-lg bg-green-50 border-2 border-green-500 mb-3">
+                    <div className="flex items-start gap-3">
+                      <CheckCircle2 className="w-5 h-5 text-green-600 mt-0.5" />
+                      <div className="flex-1">
+                        <div className="font-bold text-green-900 mb-1 flex items-center gap-2 flex-wrap">
+                          <span>✅ APPROVED</span>
+                          <span className="text-xs font-semibold text-green-700">
+                            ({new Date(decision.approved_at || decision.created_at).toLocaleDateString('en-US', {
+                              month: 'short', day: 'numeric', year: 'numeric'
+                            })} · {new Date(decision.approved_at || decision.created_at).toLocaleTimeString('en-US', {
+                              hour: '2-digit', minute: '2-digit', hour12: false
+                            })})
+                          </span>
+                        </div>
+                        <p className="text-sm text-green-800">
+                          This decision has been approved by the owner
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {decision.status === 'rejected' && (
+                  <div className="p-3 rounded-lg bg-red-50 border-2 border-red-500 mb-3">
+                    <div className="flex items-start gap-3">
+                      <AlertTriangle className="w-5 h-5 text-red-600 mt-0.5" />
+                      <div className="flex-1">
+                        <div className="font-bold text-red-900 mb-1 flex items-center gap-2 flex-wrap">
+                          <span>❌ REJECTED</span>
+                          <span className="text-xs font-semibold text-red-700">
+                            ({new Date(decision.rejected_at || decision.created_at).toLocaleDateString('en-US', {
+                              month: 'short', day: 'numeric', year: 'numeric'
+                            })} · {new Date(decision.rejected_at || decision.created_at).toLocaleTimeString('en-US', {
+                              hour: '2-digit', minute: '2-digit', hour12: false
+                            })})
+                          </span>
+                        </div>
+                        <p className="text-sm text-red-800">
+                          {decision.outcome_notes || 'This decision was rejected by the owner'}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Action Buttons */}
                 <div className="flex gap-3">
                   <button
                     onClick={() => handleApprove(decision)}
-                    disabled={actionInProgress === decision.id}
-                    className="flex-[2] flex items-center justify-center gap-2 px-6 py-4 bg-orange-500 hover:bg-orange-600 disabled:bg-gray-400 text-white rounded-xl font-black text-lg transition-all shadow-lg"
+                    disabled={actionInProgress === decision.id || decision.status === 'approved' || decision.status === 'rejected'}
+                    className="flex-[2] flex items-center justify-center gap-2 px-6 py-4 bg-orange-500 hover:bg-orange-600 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded-xl font-black text-lg transition-all shadow-lg"
                   >
                     <ThumbsUp className="w-6 h-6" />
                     {actionInProgress === decision.id ? 'PROCESSING...' : 'APPROVE'}
                   </button>
                   <button
                     onClick={() => setRejectModal(decision.id)}
-                    disabled={actionInProgress === decision.id}
-                    className="flex-1 flex items-center justify-center gap-2 px-4 py-4 bg-red-600 hover:bg-red-700 disabled:bg-gray-400 text-white rounded-xl font-bold transition-all"
+                    disabled={actionInProgress === decision.id || decision.status === 'approved' || decision.status === 'rejected'}
+                    className="flex-1 flex items-center justify-center gap-2 px-4 py-4 bg-red-600 hover:bg-red-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded-xl font-bold transition-all"
                   >
                     <ThumbsDown className="w-5 h-5" />
                     REJECT
                   </button>
                   <button
                     onClick={() => setModifyModal(decision.id)}
-                    disabled={actionInProgress === decision.id}
-                    className="flex-1 flex items-center justify-center gap-2 px-4 py-4 bg-gray-600 hover:bg-gray-700 disabled:bg-gray-400 text-white rounded-xl font-bold transition-all"
+                    disabled={actionInProgress === decision.id || decision.status === 'approved' || decision.status === 'rejected'}
+                    className="flex-1 flex items-center justify-center gap-2 px-4 py-4 bg-gray-600 hover:bg-gray-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded-xl font-bold transition-all"
                   >
                     <Edit3 className="w-5 h-5" />
                     MODIFY
@@ -941,11 +1079,23 @@ const OwnerHome = ({ onBack, tenantId: propTenantId }) => {
                     badge = { text: '⏳ PENDING', color: 'text-orange-600' };
                   }
 
+                  // Get context for this decision if available
+                  const context = decisionContexts[decision.id];
+                  const booking = context?.active_booking;
+
                   return (
                     <div
                       key={decision.id}
                       className="p-4 bg-gray-50 rounded-lg border border-gray-200"
                     >
+                      {/* Booking Code */}
+                      {booking?.confirmation_code && (
+                        <div className="mb-2 px-2 py-1 bg-orange-500 rounded inline-flex items-center gap-1">
+                          <span className="text-white text-[10px] font-semibold">Code:</span>
+                          <span className="text-white text-xs font-bold">{booking.confirmation_code}</span>
+                        </div>
+                      )}
+
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-1">
@@ -958,6 +1108,13 @@ const OwnerHome = ({ onBack, tenantId: propTenantId }) => {
                             </span>
                           </div>
                           <p className="text-sm text-gray-700">{decision.summary || decision.title}</p>
+                          {/* Guest said block (OCS-01) - Timeline version */}
+                          {extractGuestMessage(decision.description) && (
+                            <div className="bg-gray-100 border-l-2 border-blue-500 p-2 mt-2 rounded text-xs">
+                              <span className="font-semibold text-gray-700">💬 Guest said: </span>
+                              <span className="text-gray-800 italic">"{extractGuestMessage(decision.description)}"</span>
+                            </div>
+                          )}
                           {decision.financial_impact_estimate && (
                             <p className="text-xs text-orange-700 mt-1">
                               💰 {decision.financial_impact_estimate}
