@@ -290,10 +290,13 @@ const ServiceRequests = ({ onBack }) => {
       const propertyIds = properties.map(p => p.id);
       console.log('[ServiceRequests] Loading requests for properties:', propertyIds);
 
-      // Load service requests for user's properties
+      // Load service requests for user's properties (with booking code)
       const { data: requests, error } = await supabase
         .from('service_requests')
-        .select('*')
+        .select(`
+          *,
+          booking:bookings(confirmation_code)
+        `)
         .in('property_id', propertyIds)
         .order('created_at', { ascending: false });
 
@@ -635,6 +638,24 @@ const ServiceRequests = ({ onBack }) => {
     }).format(date);
   };
 
+  // Convert UTC to Bali local time for datetime-local input
+  const utcToBaliLocal = (utcDateString) => {
+    if (!utcDateString) return '';
+    const date = new Date(utcDateString);
+    // Convert to Bali time (UTC+8)
+    const baliTime = new Date(date.getTime() + (8 * 60 * 60 * 1000));
+    return baliTime.toISOString().slice(0, 16);
+  };
+
+  // Convert Bali local time to UTC for database
+  const baliLocalToUTC = (baliLocalString) => {
+    if (!baliLocalString) return null;
+    const baliTime = new Date(baliLocalString);
+    // Convert back to UTC (subtract 8 hours)
+    const utcTime = new Date(baliTime.getTime() - (8 * 60 * 60 * 1000));
+    return utcTime.toISOString();
+  };
+
   // Format relative time
   const formatRelativeTime = (dateString) => {
     const date = new Date(dateString);
@@ -955,6 +976,7 @@ const ServiceRequests = ({ onBack }) => {
           <table className="w-full">
             <thead>
               <tr className="border-b border-[#d85a2a]/20">
+                <th className="text-left py-3 px-3 text-gray-300 font-semibold text-xs min-w-[130px]">Booking Code</th>
                 <th className="text-left py-3 px-3 text-gray-300 font-semibold text-xs min-w-[110px]">Status</th>
                 <th className="text-left py-3 px-3 text-gray-300 font-semibold text-xs">Type</th>
                 <th className="text-left py-3 px-3 text-gray-300 font-semibold text-xs">Title</th>
@@ -970,13 +992,13 @@ const ServiceRequests = ({ onBack }) => {
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan="9" className="text-center py-12 text-gray-400">
+                  <td colSpan="10" className="text-center py-12 text-gray-400">
                     Loading service requests...
                   </td>
                 </tr>
               ) : filteredRequests.length === 0 ? (
                 <tr>
-                  <td colSpan="9" className="text-center py-12 text-gray-400">
+                  <td colSpan="10" className="text-center py-12 text-gray-400">
                     No service requests found
                   </td>
                 </tr>
@@ -989,6 +1011,15 @@ const ServiceRequests = ({ onBack }) => {
                       onClick={() => handleOpenDetail(request)}
                       className="border-b border-[#d85a2a]/10 hover:bg-[#d85a2a]/5 cursor-pointer transition-colors"
                     >
+                      <td className="py-2.5 px-3">
+                        {request.booking?.confirmation_code ? (
+                          <span className="inline-flex items-center px-2 py-1 bg-orange-500 rounded text-white text-xs font-bold whitespace-nowrap">
+                            {request.booking.confirmation_code}
+                          </span>
+                        ) : (
+                          <span className="text-gray-500 text-xs">N/A</span>
+                        )}
+                      </td>
                       <td className="py-2.5 px-3">
                         <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium border ${getStatusColor(request.status)}`}>
                           {formatStatus(request.status)}
@@ -1298,6 +1329,18 @@ const ServiceRequests = ({ onBack }) => {
             <div className="p-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
 
+                {/* Booking Code - FIRST LINE */}
+                {selectedRequest.booking?.confirmation_code && (
+                  <div className="md:col-span-2">
+                    <div className="p-3 bg-orange-500 rounded-xl">
+                      <div className="flex items-center gap-2">
+                        <span className="text-white text-sm font-semibold">Booking Code:</span>
+                        <span className="text-white text-lg font-bold">{selectedRequest.booking.confirmation_code}</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 {/* Title */}
                 <div className="md:col-span-2">
                   <label className="block text-sm font-semibold text-white mb-2">Title</label>
@@ -1375,8 +1418,8 @@ const ServiceRequests = ({ onBack }) => {
                   <label className="block text-sm font-semibold text-white mb-2">Scheduled Date</label>
                   <input
                     type="datetime-local"
-                    value={editedRequest.scheduled_at ? new Date(editedRequest.scheduled_at).toISOString().slice(0, 16) : ''}
-                    onChange={(e) => setEditedRequest({...editedRequest, scheduled_at: e.target.value ? new Date(e.target.value).toISOString() : null})}
+                    value={utcToBaliLocal(editedRequest.scheduled_at)}
+                    onChange={(e) => setEditedRequest({...editedRequest, scheduled_at: baliLocalToUTC(e.target.value)})}
                     className="w-full px-4 py-3 bg-[#1f2937] border border-[#d85a2a]/30 rounded-xl text-white focus:outline-none focus:border-[#d85a2a] focus:ring-2 focus:ring-[#d85a2a]/20"
                   />
                 </div>
