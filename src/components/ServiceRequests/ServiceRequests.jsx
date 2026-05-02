@@ -1369,6 +1369,21 @@ const ServiceRequests = ({ onBack }) => {
                   </select>
                 </div>
 
+                {/* Villa */}
+                <div>
+                  <label className="block text-sm font-semibold text-white mb-2">Villa</label>
+                  <select
+                    value={editedRequest.villa_id || ''}
+                    onChange={(e) => setEditedRequest({...editedRequest, villa_id: e.target.value})}
+                    className="w-full px-4 py-3 bg-[#1f2937] border border-[#d85a2a]/30 rounded-xl text-white focus:outline-none focus:border-[#d85a2a] focus:ring-2 focus:ring-[#d85a2a]/20"
+                  >
+                    <option value="">Select a villa</option>
+                    {villas.map(villa => (
+                      <option key={villa.id} value={villa.id}>{villa.name}</option>
+                    ))}
+                  </select>
+                </div>
+
                 {/* Type */}
                 <div>
                   <label className="block text-sm font-semibold text-white mb-2">Service Type</label>

@@ -4136,6 +4136,16 @@ const Autopilot = ({ onBack }) => {
 
           {/* Form */}
           <form onSubmit={handleSubmit} className="p-4 md:p-6 space-y-4">
+            {/* Booking Code Banner */}
+            {task?.booking?.confirmation_code && (
+              <div className="p-3 bg-orange-500 rounded-xl">
+                <div className="flex items-center gap-2">
+                  <span className="text-white text-sm font-semibold">Booking Code:</span>
+                  <span className="text-white text-lg font-bold">{task.booking.confirmation_code}</span>
+                </div>
+              </div>
+            )}
+
             {/* Title */}
             <div>
               <label className="block text-white font-bold mb-2">Title *</label>
@@ -4923,6 +4933,11 @@ const Autopilot = ({ onBack }) => {
                       }}
                     >
                       <h4 className="text-white font-bold hover:text-orange-400 transition-colors">{task.title}</h4>
+                      {task.booking?.confirmation_code && (
+                        <span className="inline-flex items-center px-2 py-1 bg-orange-500 rounded text-white text-xs font-bold whitespace-nowrap mt-1">
+                          {task.booking.confirmation_code}
+                        </span>
+                      )}
                       <p className="text-gray-400 text-sm">
                         {task.category || task.task_type}
                         {task.assignee && ` • ${task.assignee}`}
@@ -6931,7 +6946,7 @@ const Autopilot = ({ onBack }) => {
           <h2 className="text-3xl font-bold text-white">Owner Control System</h2>
         </div>
 
-        {/* Three Options: Owner Home, Owner Decisions, Owner Decisions II */}
+        {/* Three Options: Owner Home, Owner Decisions II (Priority), Owner Decisions */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Option 1: Owner Home */}
           <button
@@ -6956,30 +6971,7 @@ const Autopilot = ({ onBack }) => {
             </div>
           </button>
 
-          {/* Option 2: Owner Decisions */}
-          <button
-            onClick={() => setOcsView('owner-decisions')}
-            className="group bg-gradient-to-br from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 rounded-3xl p-8 shadow-2xl border-2 border-blue-400/30 transition-all transform hover:scale-105 text-left"
-          >
-            <div className="flex items-center gap-4 mb-4">
-              <div className="p-4 bg-white/20 rounded-2xl">
-                <ClipboardCheck className="w-12 h-12 text-white" />
-              </div>
-              <div>
-                <h3 className="text-2xl font-bold text-white">Owner Decisions</h3>
-                <p className="text-blue-100 text-sm">Full Decision Management</p>
-              </div>
-            </div>
-            <p className="text-white/90 mb-4">
-              Complete decision management interface. View all decisions, filter by status, priority, type, and property. Approve or reject with detailed notes.
-            </p>
-            <div className="flex items-center gap-2 text-white font-semibold">
-              <span>Manage Decisions</span>
-              <ChevronRight className="w-5 h-5 group-hover:translate-x-2 transition-transform" />
-            </div>
-          </button>
-
-          {/* Option 3: Owner Decisions II (NEW FORMAT - TESTING) */}
+          {/* Option 2: Owner Decisions II (NEW FORMAT - TESTING) - MOVED UP */}
           <button
             onClick={() => setOcsView('owner-decisions-ii')}
             className="group bg-gradient-to-br from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 rounded-3xl p-8 shadow-2xl border-2 border-green-400/30 transition-all transform hover:scale-105 text-left"
@@ -6998,6 +6990,29 @@ const Autopilot = ({ onBack }) => {
             </p>
             <div className="flex items-center gap-2 text-white font-semibold">
               <span>Test New Format</span>
+              <ChevronRight className="w-5 h-5 group-hover:translate-x-2 transition-transform" />
+            </div>
+          </button>
+
+          {/* Option 3: Owner Decisions */}
+          <button
+            onClick={() => setOcsView('owner-decisions')}
+            className="group bg-gradient-to-br from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 rounded-3xl p-8 shadow-2xl border-2 border-blue-400/30 transition-all transform hover:scale-105 text-left"
+          >
+            <div className="flex items-center gap-4 mb-4">
+              <div className="p-4 bg-white/20 rounded-2xl">
+                <ClipboardCheck className="w-12 h-12 text-white" />
+              </div>
+              <div>
+                <h3 className="text-2xl font-bold text-white">Owner Decisions</h3>
+                <p className="text-blue-100 text-sm">Full Decision Management</p>
+              </div>
+            </div>
+            <p className="text-white/90 mb-4">
+              Complete decision management interface. View all decisions, filter by status, priority, type, and property. Approve or reject with detailed notes.
+            </p>
+            <div className="flex items-center gap-2 text-white font-semibold">
+              <span>Manage Decisions</span>
               <ChevronRight className="w-5 h-5 group-hover:translate-x-2 transition-transform" />
             </div>
           </button>
