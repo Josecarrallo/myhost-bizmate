@@ -3840,21 +3840,23 @@ const Autopilot = ({ onBack }) => {
 
         <div className="space-y-3">
           {(() => {
-            // Filter bookings based on search query
-            const filteredBookings = allBookings.filter((booking) => {
-              if (!bookingSearchQuery) return true;
+            // Filter and sort bookings by check_in date (chronological order)
+            const filteredBookings = allBookings
+              .filter((booking) => {
+                if (!bookingSearchQuery) return true;
 
-              const query = bookingSearchQuery.toLowerCase();
-              const guestName = (booking.guest_name || '').toLowerCase();
-              const checkIn = booking.check_in ? new Date(booking.check_in).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }).toLowerCase() : '';
-              const checkOut = booking.check_out ? new Date(booking.check_out).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }).toLowerCase() : '';
-              const amount = (booking.total_price || '').toString();
+                const query = bookingSearchQuery.toLowerCase();
+                const guestName = (booking.guest_name || '').toLowerCase();
+                const checkIn = booking.check_in ? new Date(booking.check_in).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }).toLowerCase() : '';
+                const checkOut = booking.check_out ? new Date(booking.check_out).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }).toLowerCase() : '';
+                const amount = (booking.total_price || '').toString();
 
-              return guestName.includes(query) ||
-                     checkIn.includes(query) ||
-                     checkOut.includes(query) ||
-                     amount.includes(query);
-            });
+                return guestName.includes(query) ||
+                       checkIn.includes(query) ||
+                       checkOut.includes(query) ||
+                       amount.includes(query);
+              })
+              .sort((a, b) => new Date(a.check_in) - new Date(b.check_in));
 
             if (filteredBookings.length === 0) {
               return (
@@ -3870,15 +3872,27 @@ const Autopilot = ({ onBack }) => {
               const nights = checkIn && checkOut
                 ? Math.ceil((checkOut - checkIn) / (1000 * 60 * 60 * 24))
                 : 0;
+              // Compact date format: DD/Mmm/YY
+              const formatDateCompact = (date) => {
+                if (!date) return 'N/A';
+                const day = String(date.getDate()).padStart(2, '0');
+                const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                return `${day}/${months[date.getMonth()]}/${String(date.getFullYear()).slice(-2)}`;
+              };
               const dateRange = checkIn && checkOut
-                ? `${checkIn.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })} - ${checkOut.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`
+                ? `${formatDateCompact(checkIn)} - ${formatDateCompact(checkOut)}`
                 : 'N/A';
 
               return (
                 <div key={booking.id} className="bg-[#2a2f3a] rounded-lg p-4 border-2 border-gray-700 hover:border-orange-500/50 transition-all">
                   <div className="flex items-center justify-between">
                     <div className="flex-1">
-                      <h4 className="text-white font-bold text-lg">{booking.guest_name || 'N/A'}</h4>
+                      <div className="flex items-center gap-2 mb-1">
+                        <h4 className="text-white font-bold text-lg">{booking.guest_name || 'N/A'}</h4>
+                        <span className="px-2 py-0.5 bg-purple-500/20 rounded text-purple-300 text-xs font-medium border border-purple-500/30">
+                          {getVillaName(booking.villa_id)}
+                        </span>
+                      </div>
                       <p className="text-gray-400 text-sm">{dateRange} • {nights} nights</p>
                     </div>
                     <div className="text-right">
@@ -6506,7 +6520,7 @@ const Autopilot = ({ onBack }) => {
   const renderDataExportSection = () => {
     const fetchAllData = async () => {
       const tenantId = TENANT_ID;
-      const [allVillas, bookings, leads, tasks] = await Promise.all([
+      const [allVillas, rawBookings, leads, tasks] = await Promise.all([
         dataService.getVillas().catch(() => []),  // villas has no tenant_id column
         dataService.getBookings({ tenant_id: tenantId }).catch(() => []),
         dataService.getLeads({ tenant_id: tenantId }).catch(() => []),
@@ -6516,12 +6530,21 @@ const Autopilot = ({ onBack }) => {
       // Identify user's villas via currency:
       // Bookings link to villa_ids → find those villas' currency → filter ALL villas by that currency
       // This includes villas with 0 bookings (e.g. Graha Uma with no bookings yet)
-      const bookedVillaIds = new Set(bookings.map(b => b.villa_id).filter(Boolean));
+      const bookedVillaIds = new Set(rawBookings.map(b => b.villa_id).filter(Boolean));
       const bookedVillas = allVillas.filter(v => bookedVillaIds.has(v.id));
       const userVillaCurrency = bookedVillas[0]?.currency || null;
       const properties = userVillaCurrency
         ? allVillas.filter(v => v.currency === userVillaCurrency)
         : bookedVillas; // fallback to just booked villas if no currency detected
+
+      // Create villa lookup map for adding villa_name to bookings
+      const villaMap = new Map(allVillas.map(v => [v.id, v.name]));
+
+      // Add villa_name to each booking
+      const bookings = rawBookings.map(b => ({
+        ...b,
+        villa_name: villaMap.get(b.villa_id) || b.property_name || 'Unknown'
+      }));
 
       // Payment data comes from bookings (total_price, payment_status)
       const payments = bookings.filter(b => b.total_price || b.payment_status);
@@ -6794,6 +6817,11 @@ const Autopilot = ({ onBack }) => {
         setExportMessage('Fetching bookings...');
 
         const tenantId = TENANT_ID;
+
+        // Fetch villas for name lookup
+        const allVillas = await dataService.getVillas().catch(() => []);
+        const villaMap = new Map(allVillas.map(v => [v.id, v.name]));
+
         let query = supabase
           .from('bookings')
           .select('guest_name, check_in, check_out, guests, nights, total_price, channel, payment_status, notes, villa_id')
@@ -6811,7 +6839,12 @@ const Autopilot = ({ onBack }) => {
 
         const { data: bookingsRaw, error } = await query;
         if (error) throw new Error(error.message);
-        const bkgs = bookingsRaw || [];
+
+        // Add villa_name to each booking
+        const bkgs = (bookingsRaw || []).map(b => ({
+          ...b,
+          villa_name: villaMap.get(b.villa_id) || 'Unknown'
+        }));
 
         setExportMessage('Building Excel sheet...');
 
@@ -6848,8 +6881,8 @@ const Autopilot = ({ onBack }) => {
 
         // Build rows
         const rows = [];
-        // Header row 1
-        rows.push(['NO', 'YEAR', 'MONTH', 'GUEST NAME', 'CHECK IN', 'CHECK OUT', 'PAX', 'ROOM NIGHTS', 'PRICE (IDR)', 'BOOKING SOURCE', 'PAYMENT STATUS', 'SPECIAL REQUEST', 'TOTAL REVENUE ON HAND']);
+        // Header row 1 - Added VILLA column
+        rows.push(['NO', 'YEAR', 'MONTH', 'VILLA', 'GUEST NAME', 'CHECK IN', 'CHECK OUT', 'PAX', 'ROOM NIGHTS', 'PRICE (IDR)', 'BOOKING SOURCE', 'PAYMENT STATUS', 'SPECIAL REQUEST', 'TOTAL REVENUE ON HAND']);
 
         let counter = 1;
         let cumulativeRevenue = 0;
@@ -6871,6 +6904,7 @@ const Autopilot = ({ onBack }) => {
               counter++,
               i === 0 ? year : '',                       // Year only on first row of month
               i === 0 ? month : '',                      // Month only on first row of month
+              b.villa_name || '-',                       // Villa name
               b.guest_name || '-',
               fmtDate(b.check_in),
               fmtDate(b.check_out),
@@ -6889,11 +6923,12 @@ const Autopilot = ({ onBack }) => {
         const wb = XLSX.utils.book_new();
         const ws = XLSX.utils.aoa_to_sheet(rows);
 
-        // Column widths
+        // Column widths - Updated for VILLA column
         ws['!cols'] = [
           { wch: 5 },  // NO
           { wch: 8 },  // YEAR
           { wch: 12 }, // MONTH
+          { wch: 18 }, // VILLA
           { wch: 22 }, // GUEST NAME
           { wch: 13 }, // CHECK IN
           { wch: 13 }, // CHECK OUT
@@ -6907,7 +6942,7 @@ const Autopilot = ({ onBack }) => {
         ];
 
         // Style header row (XLSX basic style via cell metadata)
-        const headerRange = XLSX.utils.decode_range(ws['!ref'] || 'A1:M1');
+        const headerRange = XLSX.utils.decode_range(ws['!ref'] || 'A1:N1');
         for (let C = headerRange.s.c; C <= headerRange.e.c; C++) {
           const addr = XLSX.utils.encode_cell({ r: 0, c: C });
           if (!ws[addr]) continue;
