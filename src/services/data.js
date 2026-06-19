@@ -822,16 +822,23 @@ export const dataService = {
   // ============================================
 
   // Get overview stats filtered by date range
-  async getOverviewStats(tenantId, startDate, endDate) {
+  async getOverviewStats(tenantId, startDate, endDate, villaId = null) {
     try {
-      console.log('📊 Fetching overview stats:', { tenantId, startDate, endDate });
+      console.log('📊 Fetching overview stats:', { tenantId, startDate, endDate, villaId });
+
+      const params = {
+        p_tenant_id: tenantId,
+        p_start_date: startDate,
+        p_end_date: endDate
+      };
+
+      // Add villa filter if specified
+      if (villaId) {
+        params.p_villa_id = villaId;
+      }
 
       const { data, error } = await supabase
-        .rpc('get_overview_stats', {
-          p_tenant_id: tenantId,
-          p_start_date: startDate,
-          p_end_date: endDate
-        });
+        .rpc('get_overview_stats', params);
 
       if (error) {
         console.error('Error fetching overview stats:', error);

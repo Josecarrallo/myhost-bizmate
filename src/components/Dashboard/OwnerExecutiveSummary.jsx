@@ -31,6 +31,10 @@ const OwnerExecutiveSummary = ({ userName = 'Owner', onNavigate }) => {
   const [currency, setCurrency] = useState('USD');
   const [loading, setLoading] = useState(true);
 
+  // Villa filter state
+  const [villas, setVillas] = useState([]);
+  const [selectedVilla, setSelectedVilla] = useState('all'); // 'all' or villa id
+
   // Reset state when user changes
   useEffect(() => {
     if (!tenantId) {
@@ -38,14 +42,27 @@ const OwnerExecutiveSummary = ({ userName = 'Owner', onNavigate }) => {
       setStats(null);
       setCurrency('USD');
       setLoading(true);
+      setVillas([]);
+      setSelectedVilla('all');
     }
+  }, [tenantId]);
+
+  // Load villas when tenant changes
+  useEffect(() => {
+    const loadVillas = async () => {
+      if (tenantId) {
+        const villasData = await dataService.getVillas(tenantId);
+        setVillas(villasData || []);
+      }
+    };
+    loadVillas();
   }, [tenantId]);
 
   useEffect(() => {
     if (tenantId) {
       loadOverviewData();
     }
-  }, [tenantId, dateRange]);
+  }, [tenantId, dateRange, selectedVilla]);
 
   const loadOverviewData = async () => {
     setLoading(true);
@@ -57,11 +74,13 @@ const OwnerExecutiveSummary = ({ userName = 'Owner', onNavigate }) => {
         setCurrency(userProperty.currency);
       }
 
-      // Get overview stats
+      // Get overview stats (with optional villa filter)
+      const villaId = selectedVilla === 'all' ? null : selectedVilla;
       const overviewData = await dataService.getOverviewStats(
         tenantId,
         dateRange.start,
-        dateRange.end
+        dateRange.end,
+        villaId
       );
 
       setStats(overviewData);
@@ -155,6 +174,7 @@ const OwnerExecutiveSummary = ({ userName = 'Owner', onNavigate }) => {
             <p style="text-align: center; color: #666;">Generated: ${today}</p>
             <p style="text-align: center; color: #666;">Owner: <strong>${userName || 'N/A'}</strong></p>
             <p style="text-align: center; color: #666;">Period: <strong>${dateRange.label}</strong> (${dateRange.start} to ${dateRange.end})</p>
+            <p style="text-align: center; color: #666;">Villa: <strong>${selectedVilla === 'all' ? 'All Villas' : (villas.find(v => v.id === selectedVilla)?.name || 'N/A')}</strong></p>
             <button class="btn-print" onclick="window.print()">🖨️ Print Report</button>
 
             <h2>📊 Revenue & Performance Analytics</h2>
@@ -264,6 +284,25 @@ const OwnerExecutiveSummary = ({ userName = 'Owner', onNavigate }) => {
           </div>
           <Filter className="hidden md:block w-5 h-5 md:w-6 md:h-6 text-orange-400 flex-shrink-0 mt-1" />
         </div>
+
+        {/* Villa Filter */}
+        {villas.length > 1 && (
+          <div className="mt-4 p-4 bg-[#1f2937]/95 backdrop-blur-sm rounded-lg border-2 border-[#d85a2a]/20">
+            <p className="text-sm font-medium text-orange-400 mb-3">🏠 Filter by Villa</p>
+            <select
+              value={selectedVilla}
+              onChange={(e) => setSelectedVilla(e.target.value)}
+              className="w-full md:w-auto min-w-[250px] bg-[#2a2f3a] text-white px-4 py-3 rounded-lg border-2 border-orange-500/30 focus:border-orange-500 focus:outline-none hover:border-orange-500/50 transition-all cursor-pointer text-sm font-medium"
+            >
+              <option value="all">All Villas</option>
+              {villas.map((villa) => (
+                <option key={villa.id} value={villa.id}>
+                  {villa.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
 
         {/* Date Range Selector */}
         <div className="mt-4 p-4 bg-[#1f2937]/95 backdrop-blur-sm rounded-lg border-2 border-[#d85a2a]/20">
