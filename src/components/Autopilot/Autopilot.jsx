@@ -97,6 +97,7 @@ const Autopilot = ({ onBack }) => {
   const [reportHTML, setReportHTML] = useState('<html><body style="margin:0;padding:40px;font-family:sans-serif;text-align:center;color:#666;"><h2 style="color:#f97316;">Business Report</h2><p>Select owner and period, then click <strong>Generate Report</strong>.</p></body></html>'); // Business Reports HTML content
   const [selectedPeriod, setSelectedPeriod] = useState('this_month'); // Period selector for reports
   const [selectedAllInfoPeriod, setSelectedAllInfoPeriod] = useState('all_time'); // Period selector for All Information
+  const [selectedAllInfoVilla, setSelectedAllInfoVilla] = useState('all'); // Villa filter for All Information ('all' or villa id)
   const [businessReportMode, setBusinessReportMode] = useState(null); // null = selection screen, 'global' = existing report, 'enhanced' = enhanced report, 'specialized' = specialized reports
 
   // Maintenance & Tasks tabs state
@@ -919,7 +920,7 @@ const Autopilot = ({ onBack }) => {
           .lte('check_in', dateFilter.endDate);
       }
 
-      const { data: bookings, error } = await bookingsQuery.order('check_in', { ascending: false });
+      const { data: bookings, error } = await bookingsQuery.order('check_in', { ascending: true });
 
       if (error) {
         console.error('Error loading bookings:', error);
@@ -2031,10 +2032,31 @@ const Autopilot = ({ onBack }) => {
     const printWindow = window.open('', '', 'width=1200,height=800');
     const today = new Date().toLocaleDateString();
 
+    // ========== APPLY VILLA FILTER ==========
+    // Filter bookings by selected villa (same logic as UI)
+    const reportBookings = selectedAllInfoVilla === 'all'
+      ? allBookings
+      : allBookings.filter(b => b.villa_id === selectedAllInfoVilla);
+
+    // Filter properties by selected villa
+    const reportProperties = selectedAllInfoVilla === 'all'
+      ? userProperties
+      : userProperties.filter(p => p.id === selectedAllInfoVilla);
+
+    // Get villa name for title
+    const getVillaNameForReport = (villaId) => {
+      const villa = userProperties.find(v => v.id === villaId);
+      return villa ? villa.name : 'Unknown Villa';
+    };
+    const villaFilterLabel = selectedAllInfoVilla === 'all'
+      ? 'All Villas'
+      : getVillaNameForReport(selectedAllInfoVilla);
+    // ========== END VILLA FILTER ==========
+
     // Build properties HTML
     let propertiesHTML = '';
-    if (userProperties.length > 0) {
-      userProperties.forEach(property => {
+    if (reportProperties.length > 0) {
+      reportProperties.forEach(property => {
         propertiesHTML += `
             <div class="summary-box">
               <strong>${property.name}</strong><br>
@@ -2047,14 +2069,25 @@ const Autopilot = ({ onBack }) => {
       propertiesHTML = '<div class="summary-box">No properties found</div>';
     }
 
-    // Build clients table HTML - SHOW ALL BOOKINGS
+    // Helper function for compact date format (03/Jan/26)
+    const formatDateCompact = (dateStr) => {
+      if (!dateStr) return 'N/A';
+      const date = new Date(dateStr);
+      const day = String(date.getDate()).padStart(2, '0');
+      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      const month = months[date.getMonth()];
+      const year = String(date.getFullYear()).slice(-2);
+      return `${day}/${month}/${year}`;
+    };
+
+    // Build clients table HTML - SHOW FILTERED BOOKINGS
     let clientsTableHTML = '';
-    allBookings.forEach(booking => {
+    reportBookings.forEach(booking => {
       const price = booking.total_price || 0;
       const formattedPrice = price >= 1000000
         ? `Rp ${Math.round(price).toLocaleString('id-ID')}`
         : `$${Math.round(price).toLocaleString('en-US')}`;
-      const checkIn = booking.check_in ? new Date(booking.check_in).toLocaleDateString() : 'N/A';
+      const checkIn = formatDateCompact(booking.check_in);
       clientsTableHTML += `<tr><td>${booking.guest_name || 'N/A'}</td><td>${booking.guest_country || 'N/A'}</td><td>${checkIn}</td><td>${formattedPrice}</td></tr>`;
     });
 
@@ -2096,11 +2129,11 @@ const Autopilot = ({ onBack }) => {
       leadsHTML = '<div class="summary-box" style="text-align: center; color: #666;">No leads data available for this period</div>';
     }
 
-    // Build bookings table HTML - SHOW ALL BOOKINGS
+    // Build bookings table HTML - SHOW FILTERED BOOKINGS
     let bookingsTableHTML = '';
-    allBookings.forEach(booking => {
-      const checkIn = booking.check_in ? new Date(booking.check_in).toLocaleDateString() : 'N/A';
-      const checkOut = booking.check_out ? new Date(booking.check_out).toLocaleDateString() : 'N/A';
+    reportBookings.forEach(booking => {
+      const checkIn = formatDateCompact(booking.check_in);
+      const checkOut = formatDateCompact(booking.check_out);
       const nights = booking.check_in && booking.check_out
         ? Math.ceil((new Date(booking.check_out) - new Date(booking.check_in)) / (1000 * 60 * 60 * 24))
         : 0;
@@ -2111,19 +2144,64 @@ const Autopilot = ({ onBack }) => {
       const code = booking.confirmation_code || 'N/A';
       bookingsTableHTML += `<tr><td><strong>${code}</strong></td><td>${booking.guest_name || 'N/A'}</td><td>${checkIn}</td><td>${checkOut}</td><td>${nights}</td><td>${formattedPrice}</td></tr>`;
     });
-    const totalRevenueFormatted = realCounts.totalRevenue >= 1000000
-      ? `Rp ${Math.round(realCounts.totalRevenue).toLocaleString('id-ID')}`
-      : `$${Math.round(realCounts.totalRevenue).toLocaleString('en-US')}`;
+
+    // ========== CALCULATE FILTERED STATS FOR REPORT ==========
+    const reportTotalRevenue = reportBookings.reduce((sum, b) => sum + (b.total_price || 0), 0);
+    const reportTotalNights = reportBookings.reduce((sum, b) => {
+      if (b.check_in && b.check_out) {
+        const nights = Math.ceil((new Date(b.check_out) - new Date(b.check_in)) / (1000 * 60 * 60 * 24));
+        return sum + (nights > 0 ? nights : 0);
+      }
+      return sum;
+    }, 0);
+    const reportAvgBookingValue = reportBookings.length > 0 ? reportTotalRevenue / reportBookings.length : 0;
+
+    // Calculate unique countries from filtered bookings
+    const reportCountriesSet = new Set();
+    reportBookings.forEach(booking => {
+      const country = booking.guest_country;
+      if (country && country.trim() !== '' && country.toLowerCase() !== 'null') {
+        reportCountriesSet.add(country);
+      }
+    });
+
+    // Calculate repeat guests from filtered bookings
+    const reportGuestCount = {};
+    reportBookings.forEach(booking => {
+      const guestEmail = booking.guest_email;
+      if (guestEmail) {
+        reportGuestCount[guestEmail] = (reportGuestCount[guestEmail] || 0) + 1;
+      }
+    });
+    const reportRepeatGuests = Object.values(reportGuestCount).filter(count => count > 1).length;
+
+    // Calculate occupancy for filtered bookings
+    const reportMonthsWithBookings = new Set();
+    reportBookings.forEach(booking => {
+      if (booking.check_in) {
+        const date = new Date(booking.check_in);
+        const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+        reportMonthsWithBookings.add(monthKey);
+      }
+    });
+    const reportTotalMonths = reportMonthsWithBookings.size || 1;
+    const reportAvailableNights = reportTotalMonths * 31;
+    const reportOccupancy = reportAvailableNights > 0 ? (reportTotalNights / reportAvailableNights) * 100 : 0;
+    // ========== END FILTERED STATS ==========
+
+    const totalRevenueFormatted = reportTotalRevenue >= 1000000
+      ? `Rp ${Math.round(reportTotalRevenue).toLocaleString('id-ID')}`
+      : `$${Math.round(reportTotalRevenue).toLocaleString('en-US')}`;
     bookingsTableHTML += `<tr style="font-weight: bold;">
                 <td colspan="2">TOTAL</td>
-                <td colspan="2">${realCounts.totalBookings} bookings</td>
-                <td>${realCounts.totalNights} nights</td>
+                <td colspan="2">${reportBookings.length} bookings</td>
+                <td>${reportTotalNights} nights</td>
                 <td>${totalRevenueFormatted}</td>
               </tr>`;
 
-    // Build countries table HTML
+    // Build countries table HTML - USE FILTERED BOOKINGS
     const countryStats = {};
-    allBookings.forEach(booking => {
+    reportBookings.forEach(booking => {
       const country = booking.guest_country || 'Unknown';
       if (!countryStats[country]) {
         countryStats[country] = { count: 0, revenue: 0 };
@@ -2142,13 +2220,13 @@ const Autopilot = ({ onBack }) => {
         countriesTableHTML += `<tr><td>${country}</td><td>${stats.count}</td><td>${formattedRevenue}</td></tr>`;
       });
 
-    // Build payments stats
+    // Build payments stats - USE FILTERED BOOKINGS
     const paymentStats = {
       paid: { count: 0, amount: 0 },
       pending: { count: 0, amount: 0 },
       overdue: { count: 0, amount: 0 }
     };
-    allBookings.forEach(booking => {
+    reportBookings.forEach(booking => {
       const status = (booking.payment_status || 'pending').toLowerCase();
       if (status === 'paid' || status === 'completed') {
         paymentStats.paid.count++;
@@ -2168,32 +2246,33 @@ const Autopilot = ({ onBack }) => {
     const paidPercent = totalAmount > 0 ? ((paymentStats.paid.amount / totalAmount) * 100).toFixed(1) : 0;
     const pendingPercent = totalAmount > 0 ? ((paymentStats.pending.amount / totalAmount) * 100).toFixed(1) : 0;
     const overduePercent = totalAmount > 0 ? ((paymentStats.overdue.amount / totalAmount) * 100).toFixed(1) : 0;
-    const paid = allBookings.filter(b => {
+    const paid = reportBookings.filter(b => {
       const status = (b.payment_status || '').toLowerCase();
       return status === 'paid' || status === 'completed';
     }).length;
-    const total = allBookings.length;
+    const total = reportBookings.length;
     const paymentCompletionRate = total > 0 ? ((paid / total) * 100).toFixed(1) : 0;
 
-    const avgBookingValueFormatted = realCounts.averageBookingValue >= 1000000
-      ? `Rp ${Math.round(realCounts.averageBookingValue).toLocaleString('id-ID')}`
-      : `$${Math.round(realCounts.averageBookingValue).toLocaleString('en-US')}`;
+    const avgBookingValueFormatted = reportAvgBookingValue >= 1000000
+      ? `Rp ${Math.round(reportAvgBookingValue).toLocaleString('id-ID')}`
+      : `$${Math.round(reportAvgBookingValue).toLocaleString('en-US')}`;
 
     const content = `
       <html>
         <head>
-          <title>Complete Data Summary - ${today}</title>
+          <title>Complete Data Summary - ${villaFilterLabel} - ${today}</title>
           <style>
             body { font-family: Arial, sans-serif; padding: 40px; background: #f5f5f5; }
             .container { max-width: 1100px; margin: 0 auto; background: white; padding: 30px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
             h1 { color: #d85a2a; text-align: center; margin-bottom: 10px; }
             h2 { color: #333; border-bottom: 2px solid #d85a2a; padding-bottom: 10px; margin-top: 30px; }
             h3 { color: #666; margin-top: 20px; }
-            table { width: 100%; border-collapse: collapse; margin: 15px 0; }
-            th { background: #d85a2a; color: white; padding: 12px; text-align: left; }
-            td { padding: 10px; border-bottom: 1px solid #ddd; }
+            table { width: 100%; border-collapse: collapse; margin: 15px 0; table-layout: auto; }
+            th { background: #d85a2a; color: white; padding: 12px; text-align: left; white-space: nowrap; }
+            td { padding: 10px; border-bottom: 1px solid #ddd; white-space: nowrap; }
             tr:hover { background: #f9f9f9; }
             .summary-box { background: #f0f0f0; padding: 15px; margin: 10px 0; border-left: 4px solid #d85a2a; }
+            .filter-badge { background: #ff8c42; color: white; padding: 5px 15px; border-radius: 20px; font-weight: bold; display: inline-block; margin: 5px 0; }
             .btn-print { background: #d85a2a; color: white; border: none; padding: 12px 24px; cursor: pointer; margin: 20px 0; font-size: 16px; border-radius: 5px; }
             .btn-print:hover { background: #c04a1a; }
             @media print { .btn-print { display: none; } }
@@ -2202,13 +2281,16 @@ const Autopilot = ({ onBack }) => {
         <body>
           <div class="container">
             <h1>MY HOST BizMate - Complete Data Summary</h1>
-            <p style="text-align: center; color: #666;">Period: ${getPeriodLabel(selectedAllInfoPeriod)} | Generated: ${today}</p>
+            <p style="text-align: center; color: #666;">
+              Period: ${getPeriodLabel(selectedAllInfoPeriod)} | Generated: ${today}<br>
+              <span class="filter-badge">Villa: ${villaFilterLabel}</span>
+            </p>
             <button class="btn-print" onclick="window.print()">🖨️ Print Report</button>
 
-            <h2>📊 Property Information (${userProperties.length} ${userProperties.length === 1 ? 'Property' : 'Properties'})</h2>
+            <h2>📊 Property Information (${reportProperties.length} ${reportProperties.length === 1 ? 'Property' : 'Properties'})</h2>
             ${propertiesHTML}
 
-            <h2>👥 Clients Database (${realCounts.totalClients} Total)</h2>
+            <h2>👥 Clients Database (${reportBookings.length} Total)</h2>
             <table>
               <tr>
                 <th>Name</th>
@@ -2219,11 +2301,11 @@ const Autopilot = ({ onBack }) => {
               ${clientsTableHTML}
             </table>
             <div class="summary-box">
-              Total Bookings: ${realCounts.totalBookings} | Countries: ${realCounts.countries} | Repeat Guests: ${realCounts.repeatGuests}
+              Total Bookings: ${reportBookings.length} | Countries: ${reportCountriesSet.size} | Repeat Guests: ${reportRepeatGuests}
             </div>
 
             <h2>🏨 Bookings Summary (${getPeriodLabel(selectedAllInfoPeriod)})</h2>
-            <h3>All Bookings</h3>
+            <h3>All Bookings${selectedAllInfoVilla !== 'all' ? ` - ${villaFilterLabel}` : ''}</h3>
             <table>
               <tr>
                 <th>Code</th>
@@ -2264,20 +2346,20 @@ const Autopilot = ({ onBack }) => {
 
             <h2>📋 Key Metrics Summary</h2>
             <div class="summary-box">
-              <strong>${getPeriodLabel(selectedAllInfoPeriod)} Performance:</strong><br>
+              <strong>${getPeriodLabel(selectedAllInfoPeriod)} Performance${selectedAllInfoVilla !== 'all' ? ` - ${villaFilterLabel}` : ''}:</strong><br>
               Total Revenue: ${totalRevenueFormatted}<br>
-              Total Bookings: ${realCounts.totalBookings}<br>
-              Total Nights: ${realCounts.totalNights}<br>
+              Total Bookings: ${reportBookings.length}<br>
+              Total Nights: ${reportTotalNights}<br>
               Average Booking Value: ${avgBookingValueFormatted}<br>
               <strong>Occupancy Calculation:</strong><br>
-              &nbsp;&nbsp;• Months with bookings: ${realCounts.monthsWithBookings}<br>
-              &nbsp;&nbsp;• Available nights: ${realCounts.availableNights} (${realCounts.monthsWithBookings} months × 31 days)<br>
-              &nbsp;&nbsp;• Booked nights: ${realCounts.totalNights}<br>
-              &nbsp;&nbsp;• Occupancy Rate: ${Math.round(realCounts.avgOccupancy * 10) / 10}%<br>
+              &nbsp;&nbsp;• Months with bookings: ${reportTotalMonths}<br>
+              &nbsp;&nbsp;• Available nights: ${reportAvailableNights} (${reportTotalMonths} months × 31 days)<br>
+              &nbsp;&nbsp;• Booked nights: ${reportTotalNights}<br>
+              &nbsp;&nbsp;• Occupancy Rate: ${Math.round(reportOccupancy * 10) / 10}%<br>
               Payment Completion: ${paymentCompletionRate}%<br>
-              Properties: ${userProperties.length}<br>
-              Countries Represented: ${realCounts.countries}<br>
-              Repeat Guests: ${realCounts.repeatGuests}
+              Properties: ${reportProperties.length}<br>
+              Countries Represented: ${reportCountriesSet.size}<br>
+              Repeat Guests: ${reportRepeatGuests}
             </div>
 
             <button class="btn-print" onclick="window.print()">🖨️ Print Report</button>
@@ -2406,6 +2488,72 @@ const Autopilot = ({ onBack }) => {
   };
 
   const renderAllDataSection = () => {
+    // ========== VILLA FILTER - Calculate filtered data ==========
+    // Helper function to get villa name from villa_id
+    const getVillaName = (villaId) => {
+      const villa = userProperties.find(v => v.id === villaId);
+      return villa ? villa.name : 'Unknown Villa';
+    };
+
+    // Filter bookings by selected villa
+    const filteredBookings = selectedAllInfoVilla === 'all'
+      ? allBookings
+      : allBookings.filter(b => b.villa_id === selectedAllInfoVilla);
+
+    // Filter properties by selected villa
+    const filteredProperties = selectedAllInfoVilla === 'all'
+      ? userProperties
+      : userProperties.filter(p => p.id === selectedAllInfoVilla);
+
+    // Calculate filtered stats
+    const filteredTotalClients = filteredBookings.length;
+
+    // Calculate unique countries from filtered bookings
+    const filteredCountries = new Set();
+    filteredBookings.forEach(booking => {
+      const country = booking.guest_country;
+      if (country && country.trim() !== '' && country.toLowerCase() !== 'null') {
+        filteredCountries.add(country);
+      }
+    });
+
+    // Calculate repeat guests from filtered bookings
+    const filteredGuestCount = {};
+    filteredBookings.forEach(booking => {
+      const guestEmail = booking.guest_email;
+      if (guestEmail) {
+        filteredGuestCount[guestEmail] = (filteredGuestCount[guestEmail] || 0) + 1;
+      }
+    });
+    const filteredRepeatGuests = Object.values(filteredGuestCount).filter(count => count > 1).length;
+
+    // Calculate filtered revenue metrics
+    const filteredTotalRevenue = filteredBookings.reduce((sum, b) => sum + (b.total_price || 0), 0);
+    const filteredAverageBookingValue = filteredBookings.length > 0 ? filteredTotalRevenue / filteredBookings.length : 0;
+
+    // Calculate filtered total nights
+    const filteredTotalNights = filteredBookings.reduce((sum, b) => {
+      if (b.check_in && b.check_out) {
+        const nights = Math.ceil((new Date(b.check_out) - new Date(b.check_in)) / (1000 * 60 * 60 * 24));
+        return sum + (nights > 0 ? nights : 0);
+      }
+      return sum;
+    }, 0);
+
+    // Calculate filtered occupancy rate
+    const filteredMonthsWithBookings = new Set();
+    filteredBookings.forEach(booking => {
+      if (booking.check_in) {
+        const date = new Date(booking.check_in);
+        const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+        filteredMonthsWithBookings.add(monthKey);
+      }
+    });
+    const filteredTotalMonths = filteredMonthsWithBookings.size || 1;
+    const filteredAvailableNights = filteredTotalMonths * 31;
+    const filteredAvgOccupancy = filteredAvailableNights > 0 ? (filteredTotalNights / filteredAvailableNights) * 100 : 0;
+    // ========== END VILLA FILTER ==========
+
     return (
       <div className="space-y-6">
         {/* Header */}
@@ -2455,6 +2603,25 @@ const Autopilot = ({ onBack }) => {
             </select>
           </div>
 
+          {/* Villa Filter */}
+          {userProperties.length > 1 && (
+            <div className="mb-4">
+              <label className="text-gray-300 text-xs font-semibold uppercase mb-2 block">Filter by Villa:</label>
+              <select
+                value={selectedAllInfoVilla}
+                onChange={(e) => setSelectedAllInfoVilla(e.target.value)}
+                className="w-full md:w-auto min-w-[250px] bg-[#374151] text-white px-4 py-2 rounded-lg border-2 border-orange-500/30 focus:border-orange-500 focus:outline-none hover:border-orange-500/50 transition-all cursor-pointer"
+              >
+                <option value="all">All Villas</option>
+                {userProperties.map((villa) => (
+                  <option key={villa.id} value={villa.id}>
+                    {villa.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
           {/* Action Buttons */}
           <div className="flex flex-col md:flex-row gap-3">
             <button
@@ -2481,11 +2648,14 @@ const Autopilot = ({ onBack }) => {
         <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-3xl p-6 shadow-2xl border-2 border-[#d85a2a]/20">
           <h3 className="text-xl font-black text-[#FF8C42] mb-4 flex items-center gap-2">
             <Home className="w-5 h-5" />
-            Properties ({userProperties.length})
+            Properties ({filteredProperties.length})
+            {selectedAllInfoVilla !== 'all' && (
+              <span className="text-sm font-normal text-orange-400 ml-2">- Filtered</span>
+            )}
           </h3>
-          {userProperties.length > 0 ? (
+          {filteredProperties.length > 0 ? (
             <div className="space-y-3">
-              {userProperties.map((property) => (
+              {filteredProperties.map((property) => (
                 <div key={property.id} className="bg-[#2a2f3a] rounded-xl p-5 border-2 border-gray-700">
                   <div className="flex items-center justify-between">
                     <div>
@@ -2511,19 +2681,22 @@ const Autopilot = ({ onBack }) => {
           <h3 className="text-xl font-black text-[#FF8C42] mb-4 flex items-center gap-2">
             <Users className="w-5 h-5" />
             Clients Database
+            {selectedAllInfoVilla !== 'all' && (
+              <span className="text-sm font-normal text-orange-400 ml-2">- {getVillaName(selectedAllInfoVilla)}</span>
+            )}
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
             <div className="bg-gradient-to-br from-blue-500/10 to-blue-600/10 rounded-xl p-4 border-2 border-blue-500/30">
               <p className="text-blue-300 text-sm mb-1">Total Clients</p>
-              <p className="text-2xl font-black text-white">{realCounts.totalClients}</p>
+              <p className="text-2xl font-black text-white">{filteredTotalClients}</p>
             </div>
             <div className="bg-gradient-to-br from-green-500/10 to-green-600/10 rounded-xl p-4 border-2 border-green-500/30">
               <p className="text-green-300 text-sm mb-1">Countries</p>
-              <p className="text-2xl font-black text-white">{realCounts.countries}</p>
+              <p className="text-2xl font-black text-white">{filteredCountries.size}</p>
             </div>
             <div className="bg-gradient-to-br from-purple-500/10 to-purple-600/10 rounded-xl p-4 border-2 border-purple-500/30">
               <p className="text-purple-300 text-sm mb-1">Repeat Guests</p>
-              <p className="text-2xl font-black text-white">{realCounts.repeatGuests}</p>
+              <p className="text-2xl font-black text-white">{filteredRepeatGuests}</p>
             </div>
           </div>
         </div>
@@ -2533,38 +2706,48 @@ const Autopilot = ({ onBack }) => {
           <h3 className="text-xl font-black text-[#FF8C42] mb-4 flex items-center gap-2">
             <Calendar className="w-5 h-5" />
             Bookings Summary ({getPeriodLabel(selectedAllInfoPeriod)})
+            {selectedAllInfoVilla !== 'all' && (
+              <span className="text-sm font-normal text-orange-400 ml-2">- {getVillaName(selectedAllInfoVilla)}</span>
+            )}
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
             <div className="bg-gradient-to-br from-blue-500/10 to-blue-600/10 rounded-xl p-5 border-2 border-blue-500/30">
               <p className="text-blue-300 text-sm mb-2">Total Bookings</p>
-              <p className="text-2xl font-black text-white mb-1">{realCounts.totalBookings}</p>
-              <p className="text-blue-200 text-xs">{realCounts.totalNights} nights booked</p>
+              <p className="text-2xl font-black text-white mb-1">{filteredBookings.length}</p>
+              <p className="text-blue-200 text-xs">{filteredTotalNights} nights booked</p>
             </div>
             <div className="bg-gradient-to-br from-green-500/10 to-green-600/10 rounded-xl p-5 border-2 border-green-500/30">
               <p className="text-green-300 text-sm mb-2">Total Revenue</p>
               <p className="text-xl font-black text-white mb-1">
-                {realCounts.totalRevenue >= 1000000
-                  ? `Rp ${Math.round(realCounts.totalRevenue).toLocaleString('id-ID')}`
-                  : `$${Math.round(realCounts.totalRevenue).toLocaleString('en-US')}`}
+                {filteredTotalRevenue >= 1000000
+                  ? `Rp ${Math.round(filteredTotalRevenue).toLocaleString('id-ID')}`
+                  : `$${Math.round(filteredTotalRevenue).toLocaleString('en-US')}`}
               </p>
               <p className="text-green-200 text-xs">
-                Avg {realCounts.averageBookingValue >= 1000000
-                  ? `Rp ${Math.round(realCounts.averageBookingValue).toLocaleString('id-ID')}`
-                  : `$${Math.round(realCounts.averageBookingValue).toLocaleString('en-US')}`}/booking
+                Avg {filteredAverageBookingValue >= 1000000
+                  ? `Rp ${Math.round(filteredAverageBookingValue).toLocaleString('id-ID')}`
+                  : `$${Math.round(filteredAverageBookingValue).toLocaleString('en-US')}`}/booking
               </p>
             </div>
             <div className="bg-gradient-to-br from-purple-500/10 to-purple-600/10 rounded-xl p-5 border-2 border-purple-500/30">
               <p className="text-purple-300 text-sm mb-2">Avg Occupancy</p>
-              <p className="text-2xl font-black text-white mb-1">{Math.round(realCounts.avgOccupancy)}%</p>
-              <p className="text-purple-200 text-xs">Across {userProperties.length} {userProperties.length === 1 ? 'property' : 'properties'}</p>
+              <p className="text-2xl font-black text-white mb-1">{Math.round(filteredAvgOccupancy)}%</p>
+              <p className="text-purple-200 text-xs">Across {filteredProperties.length} {filteredProperties.length === 1 ? 'property' : 'properties'}</p>
             </div>
           </div>
 
-          {/* Detailed Bookings Table */}
+          {/* Detailed Bookings Table with Villa Filter */}
           <div className="mt-6 border-t-2 border-[#d85a2a]/20 pt-6">
-            <h4 className="text-lg font-bold text-white mb-4">All Bookings ({allBookings.length})</h4>
+            <h4 className="text-lg font-bold text-white mb-4">
+              All Bookings ({filteredBookings.length})
+              {selectedAllInfoVilla !== 'all' && (
+                <span className="text-sm font-normal text-orange-400 ml-2">
+                  - {getVillaName(selectedAllInfoVilla)}
+                </span>
+              )}
+            </h4>
 
-            {allBookings.length === 0 ? (
+            {filteredBookings.length === 0 ? (
               <div className="text-center text-gray-500 p-8 bg-[#2a2f3a] rounded-xl border-2 border-gray-700">
                 No bookings found
               </div>
@@ -2572,116 +2755,130 @@ const Autopilot = ({ onBack }) => {
               <>
                 {/* MOBILE VERSION: Cards (< 768px) */}
                 <div className="block md:hidden space-y-3">
-                  {allBookings.map((booking) => (
-                    <div key={booking.id} className="bg-[#2a2f3a] rounded-xl p-4 border-l-4 border-orange-500 shadow-lg">
-                      {/* Booking Code Banner */}
-                      {booking.confirmation_code && (
-                        <div className="mb-3 p-2 bg-[#FF8C42] rounded-lg">
-                          <div className="flex items-center gap-2">
-                            <span className="text-white text-xs font-semibold">Code:</span>
-                            <span className="text-white text-sm font-bold">{booking.confirmation_code}</span>
+                  {filteredBookings.map((booking) => (
+                          <div key={booking.id} className="bg-[#2a2f3a] rounded-xl p-4 border-l-4 border-orange-500 shadow-lg">
+                            {/* Booking Code Banner */}
+                            {booking.confirmation_code && (
+                              <div className="mb-3 p-2 bg-[#FF8C42] rounded-lg">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-white text-xs font-semibold">Code:</span>
+                                  <span className="text-white text-sm font-bold">{booking.confirmation_code}</span>
+                                </div>
+                              </div>
+                            )}
+                            {/* Villa Name Banner */}
+                            <div className="mb-3 px-2 py-1 bg-purple-500/20 rounded-lg border border-purple-500/30">
+                              <p className="text-purple-300 text-xs font-medium">{getVillaName(booking.villa_id)}</p>
+                            </div>
+                            <div className="flex justify-between items-start mb-3">
+                              <div className="flex-1">
+                                <h3 className="text-white font-bold text-lg">{booking.guest_name || 'N/A'}</h3>
+                              </div>
+                              <span className={`px-3 py-1 rounded-full text-xs font-bold ${
+                                booking.status === 'confirmed' ? 'bg-green-500/20 text-green-400' :
+                                booking.status === 'pending' ? 'bg-yellow-500/20 text-yellow-400' :
+                                booking.status === 'cancelled' ? 'bg-red-500/20 text-red-400' :
+                                'bg-gray-500/20 text-gray-400'
+                              }`}>
+                                {booking.status || 'unknown'}
+                              </span>
+                            </div>
+                            <div className="grid grid-cols-2 gap-3 mb-3">
+                              <div>
+                                <p className="text-gray-500 text-xs">Check In</p>
+                                <p className="text-white text-sm font-medium whitespace-nowrap">
+                                  {booking.check_in ? (() => {
+                                    const d = new Date(booking.check_in);
+                                    const day = String(d.getDate()).padStart(2, '0');
+                                    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                                    return `${day}/${months[d.getMonth()]}/${String(d.getFullYear()).slice(-2)}`;
+                                  })() : 'N/A'}
+                                </p>
+                              </div>
+                              <div>
+                                <p className="text-gray-500 text-xs">Check Out</p>
+                                <p className="text-white text-sm font-medium whitespace-nowrap">
+                                  {booking.check_out ? (() => {
+                                    const d = new Date(booking.check_out);
+                                    const day = String(d.getDate()).padStart(2, '0');
+                                    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                                    return `${day}/${months[d.getMonth()]}/${String(d.getFullYear()).slice(-2)}`;
+                                  })() : 'N/A'}
+                                </p>
+                              </div>
+                              <div className="col-span-2">
+                                <p className="text-gray-500 text-xs">Total</p>
+                                <p className="text-green-400 text-lg font-bold">
+                                  ${booking.total_price?.toLocaleString() || '0'}
+                                </p>
+                              </div>
+                            </div>
                           </div>
-                        </div>
-                      )}
-                      <div className="flex justify-between items-start mb-3">
-                        <div className="flex-1">
-                          <h3 className="text-white font-bold text-lg">{booking.guest_name || 'N/A'}</h3>
-                        </div>
-                        <span className={`px-3 py-1 rounded-full text-xs font-bold ${
-                          booking.status === 'confirmed' ? 'bg-green-500/20 text-green-400' :
-                          booking.status === 'pending' ? 'bg-yellow-500/20 text-yellow-400' :
-                          booking.status === 'cancelled' ? 'bg-red-500/20 text-red-400' :
-                          'bg-gray-500/20 text-gray-400'
-                        }`}>
-                          {booking.status || 'unknown'}
-                        </span>
+                        ))}
                       </div>
-                      <div className="grid grid-cols-2 gap-3 mb-3">
-                        <div>
-                          <p className="text-gray-500 text-xs">Check In</p>
-                          <p className="text-white text-sm font-medium">
-                            {booking.check_in ? new Date(booking.check_in).toLocaleDateString('en-US', {
-                              month: 'short',
-                              day: 'numeric',
-                              year: 'numeric'
-                            }) : 'N/A'}
-                          </p>
-                        </div>
-                        <div>
-                          <p className="text-gray-500 text-xs">Check Out</p>
-                          <p className="text-white text-sm font-medium">
-                            {booking.check_out ? new Date(booking.check_out).toLocaleDateString('en-US', {
-                              month: 'short',
-                              day: 'numeric',
-                              year: 'numeric'
-                            }) : 'N/A'}
-                          </p>
-                        </div>
-                        <div className="col-span-2">
-                          <p className="text-gray-500 text-xs">Total</p>
-                          <p className="text-green-400 text-lg font-bold">
-                            ${booking.total_price?.toLocaleString() || '0'}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
 
-                {/* DESKTOP VERSION: Table (>= 768px) */}
-                <div className="hidden md:block overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="border-b border-gray-700">
-                        <th className="text-left text-gray-400 font-semibold p-3">Code</th>
-                        <th className="text-left text-gray-400 font-semibold p-3">Guest Name</th>
-                        <th className="text-left text-gray-400 font-semibold p-3">Check In</th>
-                        <th className="text-left text-gray-400 font-semibold p-3">Check Out</th>
-                        <th className="text-right text-gray-400 font-semibold p-3">Total</th>
-                        <th className="text-center text-gray-400 font-semibold p-3">Status</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {allBookings.map((booking) => (
-                        <tr key={booking.id} className="border-b border-gray-800 hover:bg-[#2a2f3a] transition-colors">
-                          <td className="p-3">
-                            <span className="inline-flex items-center px-2 py-1 bg-[#FF8C42] rounded text-white text-xs font-bold">
-                              {booking.confirmation_code || 'N/A'}
-                            </span>
-                          </td>
-                          <td className="text-white p-3 font-medium">{booking.guest_name || 'N/A'}</td>
-                          <td className="text-gray-300 p-3">
-                            {booking.check_in ? new Date(booking.check_in).toLocaleDateString('en-US', {
-                              month: 'short',
-                              day: 'numeric',
-                              year: 'numeric'
-                            }) : 'N/A'}
-                          </td>
-                          <td className="text-gray-300 p-3">
-                            {booking.check_out ? new Date(booking.check_out).toLocaleDateString('en-US', {
-                              month: 'short',
-                              day: 'numeric',
-                              year: 'numeric'
-                            }) : 'N/A'}
-                          </td>
-                          <td className="text-right text-green-400 p-3 font-bold">
-                            ${booking.total_price?.toLocaleString() || '0'}
-                          </td>
-                          <td className="text-center p-3">
-                            <span className={`px-3 py-1 rounded-full text-xs font-bold ${
-                              booking.status === 'confirmed' ? 'bg-green-500/20 text-green-400' :
-                              booking.status === 'pending' ? 'bg-yellow-500/20 text-yellow-400' :
-                              booking.status === 'cancelled' ? 'bg-red-500/20 text-red-400' :
-                              'bg-gray-500/20 text-gray-400'
-                            }`}>
-                              {booking.status || 'unknown'}
-                            </span>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                      {/* DESKTOP VERSION: Table (>= 768px) */}
+                      <div className="hidden md:block overflow-x-auto">
+                        <table className="w-full text-sm">
+                          <thead>
+                            <tr className="border-b border-gray-700">
+                              <th className="text-left text-gray-400 font-semibold p-3">Code</th>
+                              <th className="text-left text-gray-400 font-semibold p-3">Villa</th>
+                              <th className="text-left text-gray-400 font-semibold p-3">Guest Name</th>
+                              <th className="text-left text-gray-400 font-semibold p-3">Check In</th>
+                              <th className="text-left text-gray-400 font-semibold p-3">Check Out</th>
+                              <th className="text-right text-gray-400 font-semibold p-3">Total</th>
+                              <th className="text-center text-gray-400 font-semibold p-3">Status</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {filteredBookings.map((booking) => (
+                              <tr key={booking.id} className="border-b border-gray-800 hover:bg-[#2a2f3a] transition-colors">
+                                <td className="p-3">
+                                  <span className="inline-flex items-center px-2 py-1 bg-[#FF8C42] rounded text-white text-xs font-bold">
+                                    {booking.confirmation_code || 'N/A'}
+                                  </span>
+                                </td>
+                                <td className="p-3">
+                                  <span className="inline-flex items-center px-2 py-1 bg-purple-500/20 rounded text-purple-300 text-xs font-medium border border-purple-500/30">
+                                    {getVillaName(booking.villa_id)}
+                                  </span>
+                                </td>
+                                <td className="text-white p-3 font-medium">{booking.guest_name || 'N/A'}</td>
+                                <td className="text-gray-300 p-3 whitespace-nowrap">
+                                  {booking.check_in ? (() => {
+                                    const d = new Date(booking.check_in);
+                                    const day = String(d.getDate()).padStart(2, '0');
+                                    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                                    return `${day}/${months[d.getMonth()]}/${String(d.getFullYear()).slice(-2)}`;
+                                  })() : 'N/A'}
+                                </td>
+                                <td className="text-gray-300 p-3 whitespace-nowrap">
+                                  {booking.check_out ? (() => {
+                                    const d = new Date(booking.check_out);
+                                    const day = String(d.getDate()).padStart(2, '0');
+                                    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                                    return `${day}/${months[d.getMonth()]}/${String(d.getFullYear()).slice(-2)}`;
+                                  })() : 'N/A'}
+                                </td>
+                                <td className="text-right text-green-400 p-3 font-bold">
+                                  ${booking.total_price?.toLocaleString() || '0'}
+                                </td>
+                                <td className="text-center p-3">
+                                  <span className={`px-3 py-1 rounded-full text-xs font-bold ${
+                                    booking.status === 'confirmed' ? 'bg-green-500/20 text-green-400' :
+                                    booking.status === 'pending' ? 'bg-yellow-500/20 text-yellow-400' :
+                                    booking.status === 'cancelled' ? 'bg-red-500/20 text-red-400' :
+                                    'bg-gray-500/20 text-gray-400'
+                                  }`}>
+                                    {booking.status || 'unknown'}
+                                  </span>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
               </>
             )}
           </div>
@@ -2692,39 +2889,42 @@ const Autopilot = ({ onBack }) => {
           <h3 className="text-xl font-black text-[#FF8C42] mb-4 flex items-center gap-2">
             <CreditCard className="w-5 h-5" />
             Payments Summary ({getPeriodLabel(selectedAllInfoPeriod)})
+            {selectedAllInfoVilla !== 'all' && (
+              <span className="text-sm font-normal text-orange-400 ml-2">- {getVillaName(selectedAllInfoVilla)}</span>
+            )}
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="bg-gradient-to-br from-green-500/10 to-green-600/10 rounded-xl p-5 border-2 border-green-500/30">
               <p className="text-green-300 text-sm mb-2">Paid</p>
               <p className="text-2xl font-black text-white mb-1">
-                {allBookings.filter(b => b.payment_status === 'paid' || b.payment_status === 'completed').length}
+                {filteredBookings.filter(b => b.payment_status === 'paid' || b.payment_status === 'completed').length}
               </p>
               <p className="text-green-200 text-sm">
-                {realCounts.totalRevenue >= 1000000
-                  ? `Rp ${Math.round(allBookings.filter(b => b.payment_status === 'paid' || b.payment_status === 'completed').reduce((sum, b) => sum + (b.total_price || 0), 0)).toLocaleString('id-ID')}`
-                  : `$${Math.round(allBookings.filter(b => b.payment_status === 'paid' || b.payment_status === 'completed').reduce((sum, b) => sum + (b.total_price || 0), 0)).toLocaleString('en-US')}`}
+                {filteredTotalRevenue >= 1000000
+                  ? `Rp ${Math.round(filteredBookings.filter(b => b.payment_status === 'paid' || b.payment_status === 'completed').reduce((sum, b) => sum + (b.total_price || 0), 0)).toLocaleString('id-ID')}`
+                  : `$${Math.round(filteredBookings.filter(b => b.payment_status === 'paid' || b.payment_status === 'completed').reduce((sum, b) => sum + (b.total_price || 0), 0)).toLocaleString('en-US')}`}
               </p>
             </div>
             <div className="bg-gradient-to-br from-yellow-500/10 to-yellow-600/10 rounded-xl p-5 border-2 border-yellow-500/30">
               <p className="text-yellow-300 text-sm mb-2">Pending</p>
               <p className="text-2xl font-black text-white mb-1">
-                {allBookings.filter(b => b.payment_status === 'pending' || !b.payment_status).length}
+                {filteredBookings.filter(b => b.payment_status === 'pending' || !b.payment_status).length}
               </p>
               <p className="text-yellow-200 text-sm">
-                {realCounts.totalRevenue >= 1000000
-                  ? `Rp ${Math.round(allBookings.filter(b => b.payment_status === 'pending' || !b.payment_status).reduce((sum, b) => sum + (b.total_price || 0), 0)).toLocaleString('id-ID')}`
-                  : `$${Math.round(allBookings.filter(b => b.payment_status === 'pending' || !b.payment_status).reduce((sum, b) => sum + (b.total_price || 0), 0)).toLocaleString('en-US')}`}
+                {filteredTotalRevenue >= 1000000
+                  ? `Rp ${Math.round(filteredBookings.filter(b => b.payment_status === 'pending' || !b.payment_status).reduce((sum, b) => sum + (b.total_price || 0), 0)).toLocaleString('id-ID')}`
+                  : `$${Math.round(filteredBookings.filter(b => b.payment_status === 'pending' || !b.payment_status).reduce((sum, b) => sum + (b.total_price || 0), 0)).toLocaleString('en-US')}`}
               </p>
             </div>
             <div className="bg-gradient-to-br from-gray-500/10 to-gray-600/10 rounded-xl p-5 border-2 border-gray-500/30">
               <p className="text-gray-300 text-sm mb-2">Overdue</p>
               <p className="text-2xl font-black text-white mb-1">
-                {allBookings.filter(b => b.payment_status === 'overdue').length}
+                {filteredBookings.filter(b => b.payment_status === 'overdue').length}
               </p>
               <p className="text-gray-200 text-sm">
-                {realCounts.totalRevenue >= 1000000
-                  ? `Rp ${Math.round(allBookings.filter(b => b.payment_status === 'overdue').reduce((sum, b) => sum + (b.total_price || 0), 0)).toLocaleString('id-ID')}`
-                  : `$${Math.round(allBookings.filter(b => b.payment_status === 'overdue').reduce((sum, b) => sum + (b.total_price || 0), 0)).toLocaleString('en-US')}`}
+                {filteredTotalRevenue >= 1000000
+                  ? `Rp ${Math.round(filteredBookings.filter(b => b.payment_status === 'overdue').reduce((sum, b) => sum + (b.total_price || 0), 0)).toLocaleString('id-ID')}`
+                  : `$${Math.round(filteredBookings.filter(b => b.payment_status === 'overdue').reduce((sum, b) => sum + (b.total_price || 0), 0)).toLocaleString('en-US')}`}
               </p>
             </div>
           </div>
@@ -3640,21 +3840,23 @@ const Autopilot = ({ onBack }) => {
 
         <div className="space-y-3">
           {(() => {
-            // Filter bookings based on search query
-            const filteredBookings = allBookings.filter((booking) => {
-              if (!bookingSearchQuery) return true;
+            // Filter and sort bookings by check_in date (chronological order)
+            const filteredBookings = allBookings
+              .filter((booking) => {
+                if (!bookingSearchQuery) return true;
 
-              const query = bookingSearchQuery.toLowerCase();
-              const guestName = (booking.guest_name || '').toLowerCase();
-              const checkIn = booking.check_in ? new Date(booking.check_in).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }).toLowerCase() : '';
-              const checkOut = booking.check_out ? new Date(booking.check_out).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }).toLowerCase() : '';
-              const amount = (booking.total_price || '').toString();
+                const query = bookingSearchQuery.toLowerCase();
+                const guestName = (booking.guest_name || '').toLowerCase();
+                const checkIn = booking.check_in ? new Date(booking.check_in).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }).toLowerCase() : '';
+                const checkOut = booking.check_out ? new Date(booking.check_out).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }).toLowerCase() : '';
+                const amount = (booking.total_price || '').toString();
 
-              return guestName.includes(query) ||
-                     checkIn.includes(query) ||
-                     checkOut.includes(query) ||
-                     amount.includes(query);
-            });
+                return guestName.includes(query) ||
+                       checkIn.includes(query) ||
+                       checkOut.includes(query) ||
+                       amount.includes(query);
+              })
+              .sort((a, b) => new Date(a.check_in) - new Date(b.check_in));
 
             if (filteredBookings.length === 0) {
               return (
@@ -3670,15 +3872,27 @@ const Autopilot = ({ onBack }) => {
               const nights = checkIn && checkOut
                 ? Math.ceil((checkOut - checkIn) / (1000 * 60 * 60 * 24))
                 : 0;
+              // Compact date format: DD/Mmm/YY
+              const formatDateCompact = (date) => {
+                if (!date) return 'N/A';
+                const day = String(date.getDate()).padStart(2, '0');
+                const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                return `${day}/${months[date.getMonth()]}/${String(date.getFullYear()).slice(-2)}`;
+              };
               const dateRange = checkIn && checkOut
-                ? `${checkIn.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })} - ${checkOut.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`
+                ? `${formatDateCompact(checkIn)} - ${formatDateCompact(checkOut)}`
                 : 'N/A';
 
               return (
                 <div key={booking.id} className="bg-[#2a2f3a] rounded-lg p-4 border-2 border-gray-700 hover:border-orange-500/50 transition-all">
                   <div className="flex items-center justify-between">
                     <div className="flex-1">
-                      <h4 className="text-white font-bold text-lg">{booking.guest_name || 'N/A'}</h4>
+                      <div className="flex items-center gap-2 mb-1">
+                        <h4 className="text-white font-bold text-lg">{booking.guest_name || 'N/A'}</h4>
+                        <span className="px-2 py-0.5 bg-purple-500/20 rounded text-purple-300 text-xs font-medium border border-purple-500/30">
+                          {getVillaName(booking.villa_id)}
+                        </span>
+                      </div>
                       <p className="text-gray-400 text-sm">{dateRange} • {nights} nights</p>
                     </div>
                     <div className="text-right">
@@ -6306,7 +6520,7 @@ const Autopilot = ({ onBack }) => {
   const renderDataExportSection = () => {
     const fetchAllData = async () => {
       const tenantId = TENANT_ID;
-      const [allVillas, bookings, leads, tasks] = await Promise.all([
+      const [allVillas, rawBookings, leads, tasks] = await Promise.all([
         dataService.getVillas().catch(() => []),  // villas has no tenant_id column
         dataService.getBookings({ tenant_id: tenantId }).catch(() => []),
         dataService.getLeads({ tenant_id: tenantId }).catch(() => []),
@@ -6316,12 +6530,21 @@ const Autopilot = ({ onBack }) => {
       // Identify user's villas via currency:
       // Bookings link to villa_ids → find those villas' currency → filter ALL villas by that currency
       // This includes villas with 0 bookings (e.g. Graha Uma with no bookings yet)
-      const bookedVillaIds = new Set(bookings.map(b => b.villa_id).filter(Boolean));
+      const bookedVillaIds = new Set(rawBookings.map(b => b.villa_id).filter(Boolean));
       const bookedVillas = allVillas.filter(v => bookedVillaIds.has(v.id));
       const userVillaCurrency = bookedVillas[0]?.currency || null;
       const properties = userVillaCurrency
         ? allVillas.filter(v => v.currency === userVillaCurrency)
         : bookedVillas; // fallback to just booked villas if no currency detected
+
+      // Create villa lookup map for adding villa_name to bookings
+      const villaMap = new Map(allVillas.map(v => [v.id, v.name]));
+
+      // Add villa_name to each booking
+      const bookings = rawBookings.map(b => ({
+        ...b,
+        villa_name: villaMap.get(b.villa_id) || b.property_name || 'Unknown'
+      }));
 
       // Payment data comes from bookings (total_price, payment_status)
       const payments = bookings.filter(b => b.total_price || b.payment_status);
@@ -6594,6 +6817,11 @@ const Autopilot = ({ onBack }) => {
         setExportMessage('Fetching bookings...');
 
         const tenantId = TENANT_ID;
+
+        // Fetch villas for name lookup
+        const allVillas = await dataService.getVillas().catch(() => []);
+        const villaMap = new Map(allVillas.map(v => [v.id, v.name]));
+
         let query = supabase
           .from('bookings')
           .select('guest_name, check_in, check_out, guests, nights, total_price, channel, payment_status, notes, villa_id')
@@ -6611,7 +6839,12 @@ const Autopilot = ({ onBack }) => {
 
         const { data: bookingsRaw, error } = await query;
         if (error) throw new Error(error.message);
-        const bkgs = bookingsRaw || [];
+
+        // Add villa_name to each booking
+        const bkgs = (bookingsRaw || []).map(b => ({
+          ...b,
+          villa_name: villaMap.get(b.villa_id) || 'Unknown'
+        }));
 
         setExportMessage('Building Excel sheet...');
 
@@ -6648,8 +6881,8 @@ const Autopilot = ({ onBack }) => {
 
         // Build rows
         const rows = [];
-        // Header row 1
-        rows.push(['NO', 'YEAR', 'MONTH', 'GUEST NAME', 'CHECK IN', 'CHECK OUT', 'PAX', 'ROOM NIGHTS', 'PRICE (IDR)', 'BOOKING SOURCE', 'PAYMENT STATUS', 'SPECIAL REQUEST', 'TOTAL REVENUE ON HAND']);
+        // Header row 1 - Added VILLA column
+        rows.push(['NO', 'YEAR', 'MONTH', 'VILLA', 'GUEST NAME', 'CHECK IN', 'CHECK OUT', 'PAX', 'ROOM NIGHTS', 'PRICE (IDR)', 'BOOKING SOURCE', 'PAYMENT STATUS', 'SPECIAL REQUEST', 'TOTAL REVENUE ON HAND']);
 
         let counter = 1;
         let cumulativeRevenue = 0;
@@ -6671,6 +6904,7 @@ const Autopilot = ({ onBack }) => {
               counter++,
               i === 0 ? year : '',                       // Year only on first row of month
               i === 0 ? month : '',                      // Month only on first row of month
+              b.villa_name || '-',                       // Villa name
               b.guest_name || '-',
               fmtDate(b.check_in),
               fmtDate(b.check_out),
@@ -6689,11 +6923,12 @@ const Autopilot = ({ onBack }) => {
         const wb = XLSX.utils.book_new();
         const ws = XLSX.utils.aoa_to_sheet(rows);
 
-        // Column widths
+        // Column widths - Updated for VILLA column
         ws['!cols'] = [
           { wch: 5 },  // NO
           { wch: 8 },  // YEAR
           { wch: 12 }, // MONTH
+          { wch: 18 }, // VILLA
           { wch: 22 }, // GUEST NAME
           { wch: 13 }, // CHECK IN
           { wch: 13 }, // CHECK OUT
@@ -6707,7 +6942,7 @@ const Autopilot = ({ onBack }) => {
         ];
 
         // Style header row (XLSX basic style via cell metadata)
-        const headerRange = XLSX.utils.decode_range(ws['!ref'] || 'A1:M1');
+        const headerRange = XLSX.utils.decode_range(ws['!ref'] || 'A1:N1');
         for (let C = headerRange.s.c; C <= headerRange.e.c; C++) {
           const addr = XLSX.utils.encode_cell({ r: 0, c: C });
           if (!ws[addr]) continue;
