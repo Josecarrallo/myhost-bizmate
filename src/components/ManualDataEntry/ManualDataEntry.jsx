@@ -1557,18 +1557,18 @@ const ManualDataEntry = ({ onBack }) => {
                   {/* DESKTOP VERSION: Table (>= 768px) */}
                   <div className="hidden md:block bg-[#2a2f3a] rounded-xl overflow-hidden border-2 border-gray-200">
                     <div className="overflow-x-auto">
-                      <table className="w-full">
+                      <table className="w-full table-fixed">
                         <thead className="bg-orange-500">
                           <tr>
-                            <th className="w-[120px] min-w-[120px] px-2 py-3 text-left text-white font-bold">Code</th>
-                            <th className="px-2 py-3 text-left text-white font-bold">Guest</th>
-                            <th className="px-2 py-3 text-left text-white font-bold">Property</th>
-                            <th className="w-[90px] px-2 py-3 text-center text-white font-bold">Check-in</th>
-                            <th className="w-[90px] px-2 py-3 text-center text-white font-bold">Check-out</th>
-                            <th className="w-[60px] px-2 py-3 text-center text-white font-bold">Nights</th>
-                            <th className="w-[100px] px-2 py-3 text-center text-white font-bold">Status</th>
-                            <th className="w-[120px] px-2 py-3 text-right text-white font-bold">Price</th>
-                            <th className="w-[40px] px-1 py-3 text-center text-white font-bold"></th>
+                            <th className="w-[16%] px-2 py-3 text-left text-white font-bold">Code</th>
+                            <th className="w-[14%] px-2 py-3 text-left text-white font-bold">Guest</th>
+                            <th className="w-[16%] px-2 py-3 text-left text-white font-bold">Property</th>
+                            <th className="w-[8%] px-1 py-3 text-center text-white font-bold">Check-in</th>
+                            <th className="w-[8%] px-1 py-3 text-center text-white font-bold">Check-out</th>
+                            <th className="w-[5%] px-1 py-3 text-center text-white font-bold">Nights</th>
+                            <th className="w-[10%] px-2 py-3 text-center text-white font-bold">Status</th>
+                            <th className="w-[14%] px-2 py-3 text-right text-white font-bold">Price</th>
+                            <th className="w-[9%] px-1 py-3 text-center text-white font-bold"></th>
                           </tr>
                         </thead>
                         <tbody>
@@ -1586,17 +1586,21 @@ const ManualDataEntry = ({ onBack }) => {
                                 onClick={() => handleEditBooking(booking)}
                                 title="Click to edit this booking"
                               >
-                                <td className="px-2 py-3 text-orange-400 text-sm font-bold whitespace-nowrap">
-                                  {booking.confirmation_code || 'N/A'}
+                                <td className="px-2 py-3 text-orange-400 text-sm font-bold overflow-hidden">
+                                  <div className="truncate">{booking.confirmation_code || 'N/A'}</div>
                                 </td>
-                                <td className="px-2 py-3 text-gray-300 text-sm">
-                                  <div className="truncate max-w-[150px]">{booking.guest_name}</div>
+                                <td className="px-2 py-3 text-gray-300 text-sm overflow-hidden">
+                                  <div className="truncate">{booking.guest_name}</div>
                                 </td>
-                                <td className="px-2 py-3 text-gray-300 text-sm">
-                                  <div className="truncate max-w-[120px]">{villas.find(v => v.id === booking.villa_id)?.name || properties.find(p => p.id === booking.property_id)?.name || 'N/A'}</div>
+                                <td className="px-2 py-3 text-gray-300 text-sm overflow-hidden">
+                                  <div className="truncate">{villas.find(v => v.id === booking.villa_id)?.name || properties.find(p => p.id === booking.property_id)?.name || 'N/A'}</div>
                                 </td>
-                                <td className="px-2 py-3 text-gray-300 text-sm text-center whitespace-nowrap">{booking.check_in}</td>
-                                <td className="px-2 py-3 text-gray-300 text-sm text-center whitespace-nowrap">{booking.check_out}</td>
+                                <td className="px-1 py-3 text-gray-300 text-xs text-center whitespace-nowrap">
+                                  {booking.check_in ? new Date(booking.check_in).toLocaleDateString('en-GB', {day:'2-digit', month:'2-digit', year:'2-digit'}).replace(/\//g, '/') : 'N/A'}
+                                </td>
+                                <td className="px-1 py-3 text-gray-300 text-xs text-center whitespace-nowrap">
+                                  {booking.check_out ? new Date(booking.check_out).toLocaleDateString('en-GB', {day:'2-digit', month:'2-digit', year:'2-digit'}).replace(/\//g, '/') : 'N/A'}
+                                </td>
                                 <td className="px-2 py-3 text-white text-sm text-center whitespace-nowrap">{booking.nights}</td>
                                 <td className="px-2 py-3">
                                   <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold inline-block whitespace-nowrap ${
@@ -1608,12 +1612,14 @@ const ManualDataEntry = ({ onBack }) => {
                                     {booking.status === 'pending_payment' ? 'pending' : booking.status}
                                   </span>
                                 </td>
-                                <td className="px-4 py-3 text-white text-sm text-right whitespace-nowrap">
-                                  {booking.source === 'ical_sync' ? (
-                                    <span className="text-gray-500 italic text-xs">N/A</span>
-                                  ) : (
-                                    `IDR ${booking.total_price?.toLocaleString()}`
-                                  )}
+                                <td className="px-2 py-3 text-white text-sm text-right overflow-hidden">
+                                  <div className="truncate">
+                                    {booking.source === 'ical_sync' ? (
+                                      <span className="text-gray-500 italic text-xs">N/A</span>
+                                    ) : (
+                                      `IDR ${booking.total_price?.toLocaleString()}`
+                                    )}
+                                  </div>
                                 </td>
                                 <td className="px-2 py-3 text-center" onClick={(e) => e.stopPropagation()}>
                                   <button
