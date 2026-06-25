@@ -802,6 +802,19 @@ const ManualDataEntry = ({ onBack }) => {
       // Call Supabase service
       const result = await supabaseService.createBooking(bookingData);
 
+      console.log('✅ Booking created, result:', result);
+
+      // Send WhatsApp notification to guest for new manual booking (same as deposit received flow)
+      console.log('📄 Triggering PDF Booking Confirmation workflow for booking:', result.id);
+      fetch('https://n8n-production-bb2d.up.railway.app/webhook/pdf-booking-confirmation', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ booking_id: result.id })
+      }).catch(err => {
+        // Fire and forget - don't block the UI if webhook fails
+        console.warn('⚠️ n8n webhook call failed (non-blocking):', err);
+      });
+
       // Success!
       setSuccessMessage(`Booking created successfully! Guest: ${bookingForm.guestName}, ${nights} nights`);
 
