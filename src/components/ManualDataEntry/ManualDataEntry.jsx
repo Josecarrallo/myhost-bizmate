@@ -39,6 +39,9 @@ const ManualDataEntry = ({ onBack }) => {
   const [isLoadingBookings, setIsLoadingBookings] = useState(false);
   const [filterProperty, setFilterProperty] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
+  const [filterDateRange, setFilterDateRange] = useState('all');
+  const [customDateFrom, setCustomDateFrom] = useState('');
+  const [customDateTo, setCustomDateTo] = useState('');
   const [searchGuest, setSearchGuest] = useState('');
   const [searchInput, setSearchInput] = useState(''); // Separate input value from filter
 
@@ -311,7 +314,7 @@ const ManualDataEntry = ({ onBack }) => {
   }, [bookingForm.villaId, bookingForm.checkIn, bookingForm.checkOut, villas]);
 
   // Load bookings for the owner
-  const loadBookings = async (customVillaFilter = null, customStatusFilter = null) => {
+  const loadBookings = async (customVillaFilter = null, customStatusFilter = null, customDateFrom = null, customDateTo = null) => {
     const tenantId = user?.id || userData?.id;
     if (!tenantId) {
       console.warn('❌ No user.id or userData.id - cannot load bookings');
@@ -348,6 +351,14 @@ const ManualDataEntry = ({ onBack }) => {
 
       if (searchGuest) {
         filters.guest_name = searchGuest;
+      }
+
+      // Apply date range filter
+      if (customDateFrom) {
+        filters.check_in_gte = customDateFrom;
+      }
+      if (customDateTo) {
+        filters.check_in_lte = customDateTo;
       }
 
       console.log('🔍 Loading bookings with filters:', JSON.stringify(filters, null, 2));
@@ -790,6 +801,19 @@ const ManualDataEntry = ({ onBack }) => {
 
       // Call Supabase service
       const result = await supabaseService.createBooking(bookingData);
+
+      console.log('✅ Booking created, result:', result);
+
+      // Send WhatsApp notification to guest for new manual booking (same as deposit received flow)
+      console.log('📄 Triggering PDF Booking Confirmation workflow for booking:', result.id);
+      fetch('https://n8n-production-bb2d.up.railway.app/webhook/pdf-booking-confirmation', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ booking_id: result.id })
+      }).catch(err => {
+        // Fire and forget - don't block the UI if webhook fails
+        console.warn('⚠️ n8n webhook call failed (non-blocking):', err);
+      });
 
       // Success!
       setSuccessMessage(`Booking created successfully! Guest: ${bookingForm.guestName}, ${nights} nights`);
@@ -1381,17 +1405,17 @@ const ManualDataEntry = ({ onBack }) => {
                 View/Edit Bookings
               </h3>
 
-              {/* Filters */}
-              <div className="grid grid-cols-1 md:grid-cols-5 gap-3 mb-4">
+              {/* Filters - Row 1 */}
+              <div className="flex flex-wrap gap-3 mb-3 items-center">
                 {/* Villa Filter */}
                 <select
                   value={filterProperty}
                   onChange={(e) => {
                     const newValue = e.target.value;
                     setFilterProperty(newValue);
-                    loadBookings(newValue);
+                    loadBookings(newValue, null, customDateFrom || null, customDateTo || null);
                   }}
-                  className="px-4 py-2 bg-[#2a2f3a] border-2 border-gray-200 rounded-xl text-white focus:outline-none focus:border-orange-300"
+                  className="px-4 py-2.5 bg-[#2a2f3a] border-2 border-gray-200 rounded-xl text-white focus:outline-none focus:border-orange-300"
                 >
                   <option value="">All Villas</option>
                   {villas.map(v => (
@@ -1403,7 +1427,7 @@ const ManualDataEntry = ({ onBack }) => {
                 <select
                   value={filterStatus}
                   onChange={(e) => setFilterStatus(e.target.value)}
-                  className="px-4 py-2 bg-[#2a2f3a] border-2 border-gray-200 rounded-xl text-white focus:outline-none focus:border-orange-300"
+                  className="px-4 py-2.5 bg-[#2a2f3a] border-2 border-gray-200 rounded-xl text-white focus:outline-none focus:border-orange-300"
                 >
                   <option value="">All Status</option>
                   <option value="confirmed">Confirmed</option>
@@ -1414,14 +1438,43 @@ const ManualDataEntry = ({ onBack }) => {
                 </select>
 
                 {/* Search Guest (no auto-search to avoid CORS errors) */}
-                <div className="md:col-span-2 flex gap-2">
+                <input
+                  type="text"
+                  placeholder="Search guest (press Enter)..."
+                  value={searchInput}
+                  onChange={(e) => setSearchInput(e.target.value)}
+                  onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
+                  className="px-4 py-2.5 bg-[#2a2f3a] border-2 border-gray-200 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:border-orange-300 flex-1 min-w-[200px]"
+                />
+              </div>
+
+              {/* Filters - Row 2: Date Range + Clear */}
+              <div className="flex flex-wrap gap-3 mb-4 items-center">
+                {/* Date From Filter */}
+                <div className="flex items-center gap-2">
+                  <span className="text-gray-400 text-sm">From</span>
                   <input
-                    type="text"
-                    placeholder="Search guest name (press Enter)..."
-                    value={searchInput}
-                    onChange={(e) => setSearchInput(e.target.value)}
-                    onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
-                    className="flex-1 px-4 py-2 bg-[#2a2f3a] border-2 border-gray-200 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:border-orange-300"
+                    type="date"
+                    value={customDateFrom}
+                    onChange={(e) => {
+                      setCustomDateFrom(e.target.value);
+                      loadBookings(filterProperty || null, filterStatus || null, e.target.value || null, customDateTo || null);
+                    }}
+                    className="px-4 py-2.5 bg-[#2a2f3a] border-2 border-gray-200 rounded-xl text-white text-sm focus:outline-none focus:border-orange-300"
+                  />
+                </div>
+
+                {/* Date To Filter */}
+                <div className="flex items-center gap-2">
+                  <span className="text-gray-400 text-sm">To</span>
+                  <input
+                    type="date"
+                    value={customDateTo}
+                    onChange={(e) => {
+                      setCustomDateTo(e.target.value);
+                      loadBookings(filterProperty || null, filterStatus || null, customDateFrom || null, e.target.value || null);
+                    }}
+                    className="px-4 py-2.5 bg-[#2a2f3a] border-2 border-gray-200 rounded-xl text-white text-sm focus:outline-none focus:border-orange-300"
                   />
                 </div>
 
@@ -1430,11 +1483,13 @@ const ManualDataEntry = ({ onBack }) => {
                   onClick={() => {
                     setFilterProperty('');
                     setFilterStatus('');
+                    setCustomDateFrom('');
+                    setCustomDateTo('');
                     setSearchGuest('');
                     setSearchInput('');
                     loadBookings();
                   }}
-                  className="px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-xl font-medium transition-all"
+                  className="px-4 py-2.5 bg-orange-500 hover:bg-orange-600 text-white rounded-xl font-medium transition-all"
                 >
                   Clear Filters
                 </button>
@@ -1557,18 +1612,18 @@ const ManualDataEntry = ({ onBack }) => {
                   {/* DESKTOP VERSION: Table (>= 768px) */}
                   <div className="hidden md:block bg-[#2a2f3a] rounded-xl overflow-hidden border-2 border-gray-200">
                     <div className="overflow-x-auto">
-                      <table className="w-full table-fixed">
+                      <table className="w-full min-w-[750px] table-fixed">
                         <thead className="bg-orange-500">
                           <tr>
-                            <th className="w-[16%] px-2 py-3 text-left text-white font-bold">Code</th>
-                            <th className="w-[14%] px-2 py-3 text-left text-white font-bold">Guest</th>
-                            <th className="w-[16%] px-2 py-3 text-left text-white font-bold">Property</th>
-                            <th className="w-[8%] px-1 py-3 text-center text-white font-bold">Check-in</th>
-                            <th className="w-[8%] px-1 py-3 text-center text-white font-bold">Check-out</th>
-                            <th className="w-[5%] px-1 py-3 text-center text-white font-bold">Nights</th>
-                            <th className="w-[10%] px-2 py-3 text-center text-white font-bold">Status</th>
-                            <th className="w-[14%] px-2 py-3 text-right text-white font-bold">Price</th>
-                            <th className="w-[9%] px-1 py-3 text-center text-white font-bold"></th>
+                            <th className="w-[120px] px-2 py-3 text-left text-white font-bold text-sm">Code</th>
+                            <th className="w-[100px] px-2 py-3 text-left text-white font-bold text-sm">Guest</th>
+                            <th className="w-[80px] px-1 py-3 text-left text-white font-bold text-sm">Villa</th>
+                            <th className="w-[70px] px-1 py-3 text-center text-white font-bold text-sm">Check-in</th>
+                            <th className="w-[70px] px-1 py-3 text-center text-white font-bold text-sm">Check-out</th>
+                            <th className="w-[50px] px-1 py-3 text-center text-white font-bold text-sm">Nights</th>
+                            <th className="w-[55px] px-1 py-3 text-center text-white font-bold text-sm">Status</th>
+                            <th className="w-[115px] px-2 py-3 text-right text-white font-bold text-sm">Price</th>
+                            <th className="w-[35px] px-1 py-3 text-center text-white font-bold"></th>
                           </tr>
                         </thead>
                         <tbody>
@@ -1596,20 +1651,25 @@ const ManualDataEntry = ({ onBack }) => {
                                   <div className="truncate">{villas.find(v => v.id === booking.villa_id)?.name || properties.find(p => p.id === booking.property_id)?.name || 'N/A'}</div>
                                 </td>
                                 <td className="px-1 py-3 text-gray-300 text-xs text-center whitespace-nowrap">
-                                  {booking.check_in ? new Date(booking.check_in).toLocaleDateString('en-GB', {day:'2-digit', month:'2-digit', year:'2-digit'}).replace(/\//g, '/') : 'N/A'}
+                                  {booking.check_in ? new Date(booking.check_in).toLocaleDateString('en-GB', {day:'2-digit', month:'short', year:'2-digit'}).replace(/ /g, '/') : 'N/A'}
                                 </td>
                                 <td className="px-1 py-3 text-gray-300 text-xs text-center whitespace-nowrap">
-                                  {booking.check_out ? new Date(booking.check_out).toLocaleDateString('en-GB', {day:'2-digit', month:'2-digit', year:'2-digit'}).replace(/\//g, '/') : 'N/A'}
+                                  {booking.check_out ? new Date(booking.check_out).toLocaleDateString('en-GB', {day:'2-digit', month:'short', year:'2-digit'}).replace(/ /g, '/') : 'N/A'}
                                 </td>
                                 <td className="px-2 py-3 text-white text-sm text-center whitespace-nowrap">{booking.nights}</td>
-                                <td className="px-2 py-3">
-                                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold inline-block whitespace-nowrap ${
+                                <td className="px-1 py-3 text-center">
+                                  <span className={`px-1.5 py-0.5 rounded-full text-[9px] font-bold inline-block whitespace-nowrap ${
                                     booking.status === 'confirmed' ? 'bg-green-500 text-white' :
                                     booking.status === 'pending_payment' ? 'bg-yellow-500 text-black' :
                                     booking.status === 'cancelled' ? 'bg-red-500 text-white' :
+                                    booking.status === 'checked_in' ? 'bg-blue-500 text-white' :
+                                    booking.status === 'checked_out' ? 'bg-purple-500 text-white' :
                                     'bg-gray-500 text-white'
                                   }`}>
-                                    {booking.status === 'pending_payment' ? 'pending' : booking.status}
+                                    {booking.status === 'pending_payment' ? 'pending' :
+                                     booking.status === 'checked_in' ? 'in' :
+                                     booking.status === 'checked_out' ? 'out' :
+                                     booking.status}
                                   </span>
                                 </td>
                                 <td className="px-2 py-3 text-white text-sm text-right overflow-hidden">
