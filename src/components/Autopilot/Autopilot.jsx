@@ -9999,7 +9999,7 @@ const Autopilot = ({ onBack }) => {
                 const context = decisionContexts[decision.id];
                 const stats = guestStats[decision.guest_phone];
                 const countdown = getCountdown(decision.due_date, decision.created_at);
-                const booking = decision.booking_id ? decisionBookings[decision.booking_id] : context?.active_booking;
+                const booking = decision.booking_id ? decisionBookings[decision.booking_id] : null;
 
                 // Priority colors
                 const priorityColors = {
@@ -10052,6 +10052,9 @@ const Autopilot = ({ onBack }) => {
                       <div className="flex items-center gap-2 text-gray-700 flex-wrap">
                         <User className="w-4 h-4 text-gray-500" />
                         <span className="font-semibold">{decision.guest_name || 'System Alert'}</span>
+                        {decision.guest_phone && (
+                          <span className="text-gray-500 text-sm">📱 {decision.guest_phone}</span>
+                        )}
                         {stats?.is_vip && (
                           <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs font-bold" style={{ backgroundColor: '#FFF7ED', color: '#EA580C' }}>
                             ⭐ VIP

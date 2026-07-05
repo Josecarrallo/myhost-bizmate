@@ -136,18 +136,23 @@ export const supabaseService = {
   },
 
   async deleteBooking(id) {
-    // First, delete any tasks associated with this booking
+    // Delete all related records before deleting the booking (cascade delete)
+
+    // 1. Delete tasks
     const { error: tasksError } = await supabase
       .from('tasks')
       .delete()
       .eq('booking_id', id);
+    if (tasksError) console.warn('Warning deleting tasks:', tasksError.message);
 
-    if (tasksError) {
-      console.warn('Warning deleting tasks:', tasksError.message);
-      // Continue anyway - maybe there were no tasks
-    }
+    // 2. Delete service_requests (THIS WAS THE MISSING ONE!)
+    const { error: serviceRequestsError } = await supabase
+      .from('service_requests')
+      .delete()
+      .eq('booking_id', id);
+    if (serviceRequestsError) console.warn('Warning deleting service_requests:', serviceRequestsError.message);
 
-    // Then delete the booking
+    // Finally delete the booking
     const { error } = await supabase
       .from('bookings')
       .delete()

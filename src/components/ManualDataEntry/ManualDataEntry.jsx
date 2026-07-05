@@ -529,7 +529,8 @@ const ManualDataEntry = ({ onBack }) => {
       setTimeout(() => setSuccessMessage(''), 5000);
     } catch (error) {
       console.error('Error deleting booking:', error);
-      setErrorMessage('Failed to delete booking');
+      // Show the REAL error message so we can debug
+      setErrorMessage(`Failed to delete booking: ${error.message || error}`);
     } finally {
       setIsDeleting(false);
     }
