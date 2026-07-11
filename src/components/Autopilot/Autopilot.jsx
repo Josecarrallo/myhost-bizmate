@@ -58,6 +58,7 @@ import ServiceRequests from '../ServiceRequests/ServiceRequests';
 import SpecializedReports from './SpecializedReports';
 import OwnerHome from './OwnerHome';
 import DecisionIntelligence from './DecisionIntelligence';
+import Guest360 from '../Guest360';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
 import { generateReportHTML } from '../../services/generateReportHTML';
@@ -123,6 +124,9 @@ const Autopilot = ({ onBack }) => {
   // Task modals
   const [showTaskModal, setShowTaskModal] = useState(false);
   const [selectedTask, setSelectedTask] = useState(null); // null = create new, object = edit existing
+
+  // Guest 360 state
+  const [selectedGuestPhone, setSelectedGuestPhone] = useState(null);
 
   // Guest Issues data from Supabase (REAL DATA)
   const [guestIssues, setGuestIssues] = useState([]);
@@ -785,6 +789,13 @@ const Autopilot = ({ onBack }) => {
       icon: ClipboardList,
       description: 'Add Leads, Bookings, Payments, Tasks',
       badge: null
+    },
+    {
+      id: 'guest-360',
+      name: 'OCS 360',
+      icon: User,
+      description: 'Guest unified profile view',
+      badge: 'New'
     },
     {
       id: 'master-calendar',
@@ -10527,6 +10538,17 @@ const Autopilot = ({ onBack }) => {
       <div className="flex-1 overflow-y-auto p-2 relative z-10">
         <div className="max-w-[96%] mx-auto">
           {activeSection === 'data-entry' && renderDataEntrySection()}
+          {activeSection === 'guest-360' && (
+            <Guest360
+              guestPhone={selectedGuestPhone}
+              tenantId={userData?.id}
+              userRole="owner"
+              onBack={() => {
+                setSelectedGuestPhone(null);
+                setActiveSection('menu');
+              }}
+            />
+          )}
           {activeSection === 'automated-flows' && renderAutomatedFlowsSection()}
           {activeSection === 'business-reports' && renderBusinessReportsSection()}
           {activeSection === 'all-data' && renderAllDataSection()}
