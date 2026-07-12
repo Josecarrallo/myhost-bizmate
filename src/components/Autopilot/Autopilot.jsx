@@ -7192,58 +7192,12 @@ const Autopilot = ({ onBack }) => {
           <h2 className="text-3xl font-bold text-white">Owner Control System</h2>
         </div>
 
-        {/* Three Options: Owner Home, Owner Decisions II (Priority), Owner Decisions */}
+        {/* Two Options: Owner Decisions + OCS 360 */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Option 1: Owner Home */}
-          <button
-            onClick={() => setOcsView('owner-home')}
-            className="group bg-gradient-to-br from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 rounded-3xl p-8 shadow-2xl border-2 border-orange-400/30 transition-all transform hover:scale-105 text-left"
-          >
-            <div className="flex items-center gap-4 mb-4">
-              <div className="p-4 bg-white/20 rounded-2xl">
-                <Home className="w-12 h-12 text-white" />
-              </div>
-              <div>
-                <h3 className="text-2xl font-bold text-white">Owner Home</h3>
-                <p className="text-orange-100 text-sm">Priority Dashboard</p>
-              </div>
-            </div>
-            <p className="text-white/90 mb-4">
-              See what needs your attention right now. Critical items, pending decisions, today's operations, and system activity in one place.
-            </p>
-            <div className="flex items-center gap-2 text-white font-semibold">
-              <span>Open Dashboard</span>
-              <ChevronRight className="w-5 h-5 group-hover:translate-x-2 transition-transform" />
-            </div>
-          </button>
-
-          {/* Option 2: Owner Decisions II (NEW FORMAT - TESTING) - MOVED UP */}
-          <button
-            onClick={() => setOcsView('owner-decisions-ii')}
-            className="group bg-gradient-to-br from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 rounded-3xl p-8 shadow-2xl border-2 border-green-400/30 transition-all transform hover:scale-105 text-left"
-          >
-            <div className="flex items-center gap-4 mb-4">
-              <div className="p-4 bg-white/20 rounded-2xl">
-                <ClipboardCheck className="w-12 h-12 text-white" />
-              </div>
-              <div>
-                <h3 className="text-2xl font-bold text-white">Owner Decisions II</h3>
-                <p className="text-green-100 text-sm">New Format (Testing)</p>
-              </div>
-            </div>
-            <p className="text-white/90 mb-4">
-              Same filters and controls as Owner Decisions, but with Owner Home card format (white background, VIP badges, booking context).
-            </p>
-            <div className="flex items-center gap-2 text-white font-semibold">
-              <span>Test New Format</span>
-              <ChevronRight className="w-5 h-5 group-hover:translate-x-2 transition-transform" />
-            </div>
-          </button>
-
-          {/* Option 3: Owner Decisions */}
+          {/* Option 1: Owner Decisions */}
           <button
             onClick={() => setOcsView('owner-decisions')}
-            className="group bg-gradient-to-br from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 rounded-3xl p-8 shadow-2xl border-2 border-blue-400/30 transition-all transform hover:scale-105 text-left"
+            className="group bg-gradient-to-br from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 rounded-3xl p-8 shadow-2xl border-2 border-orange-400/30 transition-all transform hover:scale-105 text-left"
           >
             <div className="flex items-center gap-4 mb-4">
               <div className="p-4 bg-white/20 rounded-2xl">
@@ -7251,7 +7205,7 @@ const Autopilot = ({ onBack }) => {
               </div>
               <div>
                 <h3 className="text-2xl font-bold text-white">Owner Decisions</h3>
-                <p className="text-blue-100 text-sm">Full Decision Management</p>
+                <p className="text-orange-100 text-sm">Full Decision Management</p>
               </div>
             </div>
             <p className="text-white/90 mb-4">
@@ -7259,6 +7213,29 @@ const Autopilot = ({ onBack }) => {
             </p>
             <div className="flex items-center gap-2 text-white font-semibold">
               <span>Manage Decisions</span>
+              <ChevronRight className="w-5 h-5 group-hover:translate-x-2 transition-transform" />
+            </div>
+          </button>
+
+          {/* Option 2: OCS 360 - Guest Profile */}
+          <button
+            onClick={() => setOcsView('ocs-360')}
+            className="group bg-gradient-to-br from-slate-600 to-slate-700 hover:from-slate-700 hover:to-slate-800 rounded-3xl p-8 shadow-2xl border-2 border-slate-500/30 transition-all transform hover:scale-105 text-left"
+          >
+            <div className="flex items-center gap-4 mb-4">
+              <div className="p-4 bg-orange-500/30 rounded-2xl">
+                <Users className="w-12 h-12 text-orange-400" />
+              </div>
+              <div>
+                <h3 className="text-2xl font-bold text-white">OCS 360</h3>
+                <p className="text-slate-300 text-sm">Guest Profile 360°</p>
+              </div>
+            </div>
+            <p className="text-white/90 mb-4">
+              Unified guest view with all bookings, services, decisions and communications in one place. Complete guest history at a glance.
+            </p>
+            <div className="flex items-center gap-2 text-orange-400 font-semibold">
+              <span>View Guest Profiles</span>
               <ChevronRight className="w-5 h-5 group-hover:translate-x-2 transition-transform" />
             </div>
           </button>
@@ -10560,21 +10537,19 @@ const Autopilot = ({ onBack }) => {
           {activeSection === 'service-requests' && <ServiceRequests onBack={() => setActiveSection('menu')} />}
           {activeSection === 'decisions' && (
             ocsView === null ? renderOCSMenu() :
-            ocsView === 'owner-home' ? (
-              <OwnerHome
-                onBack={() => setOcsView(null)}
-                onNavigate={(view) => setOcsView(view)}
-                propertyId={propertyId}
-                tenantId={userData?.id}
-              />
-            ) :
             ocsView === 'owner-decisions' ? renderDecisionsSection() :
-            ocsView === 'owner-decisions-ii' ? renderDecisionsSectionII() :
             ocsView === 'decision-intelligence' ? (
               <DecisionIntelligence
                 onBack={() => setOcsView(null)}
                 propertyId={propertyId}
                 tenantId={userData?.id}
+              />
+            ) :
+            ocsView === 'ocs-360' ? (
+              <Guest360
+                tenantId={userData?.id}
+                userRole="owner"
+                onBack={() => setOcsView(null)}
               />
             ) : null
           )}
