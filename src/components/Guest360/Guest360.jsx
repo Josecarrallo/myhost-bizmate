@@ -8,7 +8,7 @@ import useGuest360Data from './hooks/useGuest360Data';
 import { LoadingSpinner, EmptyState } from './components/shared';
 
 // Constants
-import { GUEST_TABS } from './constants';
+import { GUEST_TABS, formatCurrency } from './constants';
 
 // Sub-components - Phase 2
 import GuestHeader from './components/GuestHeader';
@@ -64,6 +64,7 @@ const Guest360 = ({
     reviews,
     digitalCheckin,
     stats,
+    currency,
     loading,
     error,
     refresh,
@@ -81,8 +82,8 @@ const Guest360 = ({
     );
   }
 
-  // Currency - default to USD (properties table not available)
-  const currency = 'USD';
+  // Currency is now fetched from villas table by useGuest360Data hook
+  // Default 'USD' is set in the hook, updated to owner's actual currency
 
   // Loading state
   if (loading) {
@@ -237,12 +238,12 @@ const Guest360 = ({
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <p className="text-xs text-[#8a93a1] uppercase tracking-wider mb-1">Total Bookings</p>
-                  <p className="text-2xl font-bold text-white">{bookings.length}</p>
+                  <p className="text-base md:text-2xl font-bold text-white">{bookings.length}</p>
                 </div>
                 <div>
                   <p className="text-xs text-[#8a93a1] uppercase tracking-wider mb-1">Total Revenue</p>
-                  <p className="text-2xl font-bold text-[#f5791f] font-mono">
-                    ${bookings.reduce((sum, b) => sum + (b.total_price || 0), 0).toLocaleString()}
+                  <p className="text-xs md:text-2xl font-bold text-[#f5791f] font-mono overflow-hidden text-ellipsis">
+                    {formatCurrency(bookings.reduce((sum, b) => sum + (b.total_price || 0), 0), currency)}
                   </p>
                 </div>
               </div>
@@ -284,9 +285,9 @@ const Guest360 = ({
                                   <p className="text-white text-sm font-medium truncate">
                                     {decision.title || decision.decision_type || 'Decision'}
                                   </p>
-                                  {decisionBooking?.booking_code && (
+                                  {(decisionBooking?.confirmation_code || decisionBooking?.reservation_id) && (
                                     <p className="text-[#f5791f] text-xs font-mono mt-1">
-                                      #{decisionBooking.booking_code}
+                                      #{decisionBooking.confirmation_code || decisionBooking.reservation_id?.split('@')[0]?.slice(-12)}
                                     </p>
                                   )}
                                   {decision.description && (
@@ -348,29 +349,71 @@ const Guest360 = ({
               )}
             </div>
 
-            {/* Guest Notes placeholder - Fase 6 */}
+            {/* Guest Notes - from guest profile or bookings */}
             <div className="bg-[#333b47] rounded-2xl border border-white/10 p-5">
               <h3 className="text-sm font-semibold text-white mb-3">Guest Notes</h3>
-              {guest?.notes ? (
-                <p className="text-[#aab2bf] text-sm">{guest.notes}</p>
-              ) : (
-                <p className="text-[#6d7683] text-sm">No notes</p>
-              )}
+              {(() => {
+                // Check guest notes first, then booking notes
+                const guestNotes = guest?.notes || guest?.special_requests;
+                const bookingNotes = bookings.find(b => b.notes || b.special_requests);
+                const notes = guestNotes || bookingNotes?.notes || bookingNotes?.special_requests;
+
+                return notes ? (
+                  <p className="text-[#aab2bf] text-sm whitespace-pre-wrap">{notes}</p>
+                ) : (
+                  <p className="text-[#6d7683] text-sm">No notes</p>
+                );
+              })()}
             </div>
 
-            {/* Quick Actions placeholder - Fase 6 */}
+            {/* Quick Actions */}
             <div className="bg-[#333b47] rounded-2xl border border-white/10 p-5">
               <h3 className="text-sm font-semibold text-white mb-3">Quick Actions</h3>
               <div className="space-y-2">
-                {['Send WhatsApp Message', 'New Booking', 'Create Service Request'].map((action, i) => (
-                  <button
-                    key={i}
-                    className="w-full flex items-center justify-between p-3 rounded-xl bg-[#2c333e] hover:bg-[#3a434f] text-[#aab2bf] hover:text-white transition-colors text-sm"
-                  >
-                    <span>{action}</span>
-                    <span className="text-[#f5791f]">→</span>
-                  </button>
-                ))}
+                {/* Send WhatsApp Message */}
+                <button
+                  onClick={() => {
+                    const phone = guest?.phone || guestPhone;
+                    if (phone) {
+                      const cleanPhone = phone.replace(/\D/g, '');
+                      window.open(`https://wa.me/${cleanPhone}`, '_blank');
+                    }
+                  }}
+                  className="w-full flex items-center justify-between p-3 rounded-xl bg-[#2c333e] hover:bg-[#3a434f] text-[#aab2bf] hover:text-white transition-colors text-sm"
+                >
+                  <span>Send WhatsApp Message</span>
+                  <span className="text-[#25D366]">→</span>
+                </button>
+
+                {/* Edit Booking - goes to active/latest booking */}
+                <button
+                  onClick={() => {
+                    const bookingToEdit = activeBooking || bookings[0];
+                    if (bookingToEdit) {
+                      // Navigate to Bookings module with this booking selected
+                      const code = bookingToEdit.confirmation_code || bookingToEdit.reservation_id?.split('@')[0]?.slice(-12);
+                      console.log('Edit booking:', bookingToEdit.id, code);
+                      alert(`Navigate to edit booking: ${code || bookingToEdit.id}`);
+                    }
+                  }}
+                  className="w-full flex items-center justify-between p-3 rounded-xl bg-[#2c333e] hover:bg-[#3a434f] text-[#aab2bf] hover:text-white transition-colors text-sm"
+                >
+                  <span>Edit Booking</span>
+                  <span className="text-[#f5791f]">→</span>
+                </button>
+
+                {/* View Service Requests */}
+                <button
+                  onClick={() => {
+                    // Navigate to Service Requests view
+                    console.log('View service requests for guest:', guestPhone);
+                    alert(`View ${serviceRequests.length} service requests for this guest`);
+                  }}
+                  className="w-full flex items-center justify-between p-3 rounded-xl bg-[#2c333e] hover:bg-[#3a434f] text-[#aab2bf] hover:text-white transition-colors text-sm"
+                >
+                  <span>Service Requests ({serviceRequests.length})</span>
+                  <span className="text-[#f5791f]">→</span>
+                </button>
               </div>
             </div>
 

@@ -25,6 +25,7 @@ const useGuest360Data = (guestPhone, tenantId, bookingId = null) => {
   const [reviews, setReviews] = useState([]);
   const [digitalCheckin, setDigitalCheckin] = useState(null);
   const [lead, setLead] = useState(null);
+  const [currency, setCurrency] = useState('USD'); // Owner's currency
 
   // Computed values
   const [stats, setStats] = useState({
@@ -36,14 +37,23 @@ const useGuest360Data = (guestPhone, tenantId, bookingId = null) => {
     resolvedDecisions: 0,
   });
 
-  const phoneSuffix = getPhoneSuffix(guestPhone);
+  // Check if searching by booking ID (for OTA guests with generic names)
+  const isBookingSearch = guestPhone?.startsWith('booking:');
+  const searchBookingId = isBookingSearch ? guestPhone.slice(8) : null;
+
+  // Check if searching by name (for guests without phone)
+  const isNameSearch = guestPhone?.startsWith('name:');
+  const searchName = isNameSearch ? guestPhone.slice(5) : null;
+
+  // Get phone suffix only if not searching by name or booking
+  const phoneSuffix = (isNameSearch || isBookingSearch) ? null : getPhoneSuffix(guestPhone);
 
   const fetchData = useCallback(async () => {
-    console.log('🔍 [Guest360] fetchData called:', { guestPhone, phoneSuffix, tenantId });
+    console.log('🔍 [Guest360] fetchData called:', { guestPhone, phoneSuffix, searchName, searchBookingId, tenantId });
 
-    if (!phoneSuffix || !tenantId) {
-      console.log('🔍 [Guest360] Missing data:', { phoneSuffix, tenantId });
-      setError('Se requiere teléfono y tenant_id');
+    if ((!phoneSuffix && !searchName && !searchBookingId) || !tenantId) {
+      console.log('🔍 [Guest360] Missing data:', { phoneSuffix, searchName, searchBookingId, tenantId });
+      setError('Se requiere teléfono, nombre o booking_id y tenant_id');
       setLoading(false);
       return;
     }
@@ -52,33 +62,93 @@ const useGuest360Data = (guestPhone, tenantId, bookingId = null) => {
     setError(null);
 
     try {
-      // 1. Fetch guest profile
-      const { data: guestData, error: guestError } = await supabase
-        .from('guests')
-        .select('*')
-        .like('phone', `%${phoneSuffix}`)
-        .eq('tenant_id', tenantId)
-        .maybeSingle();
+      let guestData = null;
+      let bookingsData = null;
 
-      if (guestError && guestError.code !== 'PGRST116') {
-        console.error('Error fetching guest:', guestError);
+      // Special path for booking ID search (OTA guests)
+      if (searchBookingId) {
+        // Fetch the specific booking by ID
+        const { data: bookingData, error: bookingError } = await supabase
+          .from('bookings')
+          .select(`
+            *,
+            villas:villa_id (id, name, bedrooms, max_guests)
+          `)
+          .eq('id', searchBookingId)
+          .eq('tenant_id', tenantId)
+          .single();
+
+        if (bookingError) {
+          console.error('Error fetching booking by ID:', bookingError);
+          setError('Booking not found');
+          setLoading(false);
+          return;
+        }
+
+        // Set bookings array with just this one booking
+        bookingsData = [bookingData];
+        console.log('🔍 [Guest360] Single booking loaded:', bookingData);
+
+        // Try to find guest profile by booking's guest_name or guest_phone
+        if (bookingData.guest_phone) {
+          const phoneSuffixFromBooking = getPhoneSuffix(bookingData.guest_phone);
+          if (phoneSuffixFromBooking) {
+            const { data: gd } = await supabase
+              .from('guests')
+              .select('*')
+              .eq('tenant_id', tenantId)
+              .like('phone', `%${phoneSuffixFromBooking}`)
+              .maybeSingle();
+            guestData = gd;
+          }
+        }
+
+      } else {
+        // Standard path: search by phone or name
+
+        // 1. Fetch guest profile
+        let guestQuery = supabase
+          .from('guests')
+          .select('*')
+          .eq('tenant_id', tenantId);
+
+        if (phoneSuffix) {
+          guestQuery = guestQuery.like('phone', `%${phoneSuffix}`);
+        } else if (searchName) {
+          guestQuery = guestQuery.eq('name', searchName);
+        }
+
+        const { data: gd, error: guestError } = await guestQuery.maybeSingle();
+
+        if (guestError && guestError.code !== 'PGRST116') {
+          console.error('Error fetching guest:', guestError);
+        }
+        guestData = gd;
+
+        // 2. Fetch all bookings
+        let bookingsQuery = supabase
+          .from('bookings')
+          .select(`
+            *,
+            villas:villa_id (id, name, bedrooms, max_guests)
+          `)
+          .eq('tenant_id', tenantId);
+
+        if (phoneSuffix) {
+          bookingsQuery = bookingsQuery.like('guest_phone', `%${phoneSuffix}`);
+        } else if (searchName) {
+          bookingsQuery = bookingsQuery.eq('guest_name', searchName);
+        }
+
+        const { data: bd, error: bookingsError } = await bookingsQuery.order('check_in', { ascending: false });
+
+        if (bookingsError) {
+          console.error('Error fetching bookings:', bookingsError);
+        }
+        bookingsData = bd || [];
       }
+
       setGuest(guestData);
-
-      // 2. Fetch all bookings
-      const { data: bookingsData, error: bookingsError } = await supabase
-        .from('bookings')
-        .select(`
-          *,
-          villas:villa_id (id, name, bedrooms, max_guests)
-        `)
-        .like('guest_phone', `%${phoneSuffix}`)
-        .eq('tenant_id', tenantId)
-        .order('check_in', { ascending: false });
-
-      if (bookingsError) {
-        console.error('Error fetching bookings:', bookingsError);
-      }
       console.log('🔍 [Guest360] Bookings found:', bookingsData?.length, bookingsData);
       setBookings(bookingsData || []);
 
@@ -86,6 +156,42 @@ const useGuest360Data = (guestPhone, tenantId, bookingId = null) => {
       const activeStatuses = ['confirmed', 'checked_in', 'pending_payment', 'partial_payment'];
       const active = (bookingsData || []).find(b => activeStatuses.includes(b.status));
       setActiveBooking(active || null);
+
+      // Get currency from bookings' villas (villas don't have tenant_id, only property_id)
+      // First try to get from booking's villa_id
+      const firstBookingWithVilla = (bookingsData || []).find(b => b.villa_id);
+      if (firstBookingWithVilla?.villa_id) {
+        const { data: villaData } = await supabase
+          .from('villas')
+          .select('currency')
+          .eq('id', firstBookingWithVilla.villa_id)
+          .single();
+
+        if (villaData?.currency) {
+          console.log('🔍 [Guest360] Currency from villa:', villaData.currency);
+          setCurrency(villaData.currency);
+        }
+      } else {
+        // Fallback: get currency from properties table
+        const { data: propsData } = await supabase
+          .from('properties')
+          .select('id')
+          .eq('tenant_id', tenantId)
+          .limit(1);
+
+        if (propsData && propsData.length > 0) {
+          const { data: villaData } = await supabase
+            .from('villas')
+            .select('currency')
+            .eq('property_id', propsData[0].id)
+            .limit(1);
+
+          if (villaData && villaData.length > 0 && villaData[0].currency) {
+            console.log('🔍 [Guest360] Currency from property villa:', villaData[0].currency);
+            setCurrency(villaData[0].currency);
+          }
+        }
+      }
 
       // Get booking IDs for related queries
       const bookingIds = (bookingsData || []).map(b => b.id);
@@ -135,42 +241,67 @@ const useGuest360Data = (guestPhone, tenantId, bookingId = null) => {
       }
 
       // 8. Fetch WhatsApp conversations (por teléfono, NO booking_id)
-      const { data: conversationsData } = await supabase
-        .from('whatsapp_conversations')
-        .select('*')
-        .like('contact_phone', `%${phoneSuffix}`)
-        .eq('tenant_id', tenantId)
-        .order('created_at', { ascending: false })
-        .limit(100);
-      setConversations(conversationsData || []);
+      // Only fetch if we have a phone to search by
+      if (phoneSuffix) {
+        const { data: conversationsData } = await supabase
+          .from('whatsapp_conversations')
+          .select('*')
+          .like('contact_phone', `%${phoneSuffix}`)
+          .eq('tenant_id', tenantId)
+          .order('created_at', { ascending: false })
+          .limit(100);
+        setConversations(conversationsData || []);
+      } else {
+        setConversations([]);
+      }
 
       // 9. Fetch owner decisions
       // Incluir por booking_id O por guest_phone
-      let decisionsQuery = supabase
-        .from('owner_decisions')
-        .select('*')
-        .eq('tenant_id', tenantId)
-        .order('created_at', { ascending: false });
-
+      let decisionsData = [];
       if (bookingIds.length > 0) {
-        decisionsQuery = decisionsQuery.or(
-          `booking_id.in.(${bookingIds.join(',')}),guest_phone.like.%${phoneSuffix}`
-        );
-      } else {
-        decisionsQuery = decisionsQuery.like('guest_phone', `%${phoneSuffix}`);
+        // For booking ID search or when we have bookings, query by booking_id
+        let decisionsQuery = supabase
+          .from('owner_decisions')
+          .select('*')
+          .eq('tenant_id', tenantId)
+          .order('created_at', { ascending: false });
+
+        if (phoneSuffix) {
+          // Have both booking IDs and phone suffix
+          decisionsQuery = decisionsQuery.or(
+            `booking_id.in.(${bookingIds.join(',')}),guest_phone.like.%${phoneSuffix}`
+          );
+        } else {
+          // Only have booking IDs (OTA guest case)
+          decisionsQuery = decisionsQuery.in('booking_id', bookingIds);
+        }
+
+        const { data } = await decisionsQuery;
+        decisionsData = data || [];
+      } else if (phoneSuffix) {
+        // No bookings but have phone suffix
+        const { data } = await supabase
+          .from('owner_decisions')
+          .select('*')
+          .eq('tenant_id', tenantId)
+          .like('guest_phone', `%${phoneSuffix}`)
+          .order('created_at', { ascending: false });
+        decisionsData = data || [];
       }
+      setDecisions(decisionsData);
 
-      const { data: decisionsData } = await decisionsQuery;
-      setDecisions(decisionsData || []);
-
-      // 10. Fetch lead (pre-booking)
-      const { data: leadData } = await supabase
-        .from('leads')
-        .select('*')
-        .like('phone', `%${phoneSuffix}`)
-        .eq('tenant_id', tenantId)
-        .maybeSingle();
-      setLead(leadData);
+      // 10. Fetch lead (pre-booking) - only if we have phone suffix
+      if (phoneSuffix) {
+        const { data: leadData } = await supabase
+          .from('leads')
+          .select('*')
+          .like('phone', `%${phoneSuffix}`)
+          .eq('tenant_id', tenantId)
+          .maybeSingle();
+        setLead(leadData);
+      } else {
+        setLead(null);
+      }
 
       // Calculate stats
       const totalSpent = (bookingsData || []).reduce((sum, b) => sum + (b.total_price || 0), 0);
@@ -197,7 +328,7 @@ const useGuest360Data = (guestPhone, tenantId, bookingId = null) => {
     } finally {
       setLoading(false);
     }
-  }, [phoneSuffix, tenantId, bookingId]);
+  }, [phoneSuffix, searchName, searchBookingId, tenantId, bookingId]);
 
   // Initial fetch
   useEffect(() => {
@@ -290,6 +421,7 @@ const useGuest360Data = (guestPhone, tenantId, bookingId = null) => {
     digitalCheckin,
     lead,
     stats,
+    currency,
 
     // State
     loading,

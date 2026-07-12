@@ -63,8 +63,8 @@ const GuestKPIs = ({ stats, guest, currency = 'USD' }) => {
             {kpi.label}
           </p>
 
-          {/* Value - single line, no wrapping */}
-          <p className="text-lg font-mono font-semibold text-[#f5791f] whitespace-nowrap">
+          {/* Value - single line, smaller on mobile for long currency values */}
+          <p className="text-[10px] md:text-sm font-mono font-semibold text-[#f5791f] truncate">
             {formatValue(kpi.value, kpi.format)}
           </p>
         </div>

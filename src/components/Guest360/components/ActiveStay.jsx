@@ -91,14 +91,14 @@ const ActiveStay = ({ booking, currency = 'USD', serviceRequests = [], journeyEv
         </Badge>
       </div>
 
-      {/* Villa name + booking code */}
+      {/* Villa name + confirmation code */}
       <div className="px-5 pb-4">
         <h2 className="text-xl md:text-2xl font-bold text-white mb-1">
           {villaName}
         </h2>
-        {booking.booking_code && (
-          <p className="text-xs text-[#6d7683] font-mono">
-            #{booking.booking_code}
+        {(booking.confirmation_code || booking.reservation_id) && (
+          <p className="text-xs text-[#f5791f] font-mono">
+            #{booking.confirmation_code || booking.reservation_id?.split('@')[0]?.slice(-12)}
           </p>
         )}
       </div>
@@ -290,7 +290,7 @@ const ActiveStay = ({ booking, currency = 'USD', serviceRequests = [], journeyEv
           <span className="text-xs text-[#8a93a1] uppercase tracking-wider">
             Booking Total
           </span>
-          <span className="text-lg font-mono font-bold text-white">
+          <span className="text-sm md:text-lg font-mono font-bold text-white">
             {formatCurrency(booking.total_price, currency)}
           </span>
         </div>
