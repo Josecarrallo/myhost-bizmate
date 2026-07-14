@@ -47,7 +47,6 @@ const ServiceRequests = ({ onBack }) => {
   const [filterStatus, setFilterStatus] = useState('All');
   const [filterType, setFilterType] = useState('All');
   const [filterVilla, setFilterVilla] = useState('all');
-  const [filterDate, setFilterDate] = useState('all');
   const [customDateFrom, setCustomDateFrom] = useState('');
   const [customDateTo, setCustomDateTo] = useState('');
   const [showFilters, setShowFilters] = useState(false);
@@ -60,9 +59,16 @@ const ServiceRequests = ({ onBack }) => {
   // Villas data (for filters)
   const [villas, setVillas] = useState([]);
 
+  // Bookings data (for linking services to bookings)
+  const [bookings, setBookings] = useState([]);
+
+  // Services catalog (prices per tenant from Supabase)
+  const [servicesCatalog, setServicesCatalog] = useState([]);
+
   // Form data for creating new request
   const [formData, setFormData] = useState({
     villa_id: '',
+    booking_id: '',
     type: '',
     title: '',
     guest_name: '',
@@ -249,13 +255,92 @@ const ServiceRequests = ({ onBack }) => {
   ];
   */
 
-  // Load villas and service requests when userData is available
+  // Load villas, bookings, services catalog and service requests when userData is available
   useEffect(() => {
     if (userData?.id) {
       loadVillas();
+      loadBookings();
+      loadServicesCatalog();
       loadServiceRequests();
     }
   }, [userData?.id]);
+
+  // Load services catalog from Supabase (prices per tenant)
+  const loadServicesCatalog = async () => {
+    try {
+      if (!userData?.id) return;
+
+      // Get user's property_id
+      const { data: properties, error: propsError } = await supabase
+        .from('properties')
+        .select('id')
+        .eq('owner_id', userData.id);
+
+      if (propsError || !properties || properties.length === 0) {
+        console.log('[ServiceRequests] No properties found for services catalog');
+        setServicesCatalog([]);
+        return;
+      }
+
+      const propertyIds = properties.map(p => p.id);
+
+      // Get active services from catalog
+      const { data: catalogData, error } = await supabase
+        .from('services_catalog')
+        .select('*')
+        .in('property_id', propertyIds)
+        .eq('is_active', true)
+        .order('base_price', { ascending: true });
+
+      if (error) {
+        console.error('[ServiceRequests] Error loading services catalog:', error);
+        return;
+      }
+
+      console.log('[ServiceRequests] Loaded services catalog:', catalogData?.length || 0, 'items');
+      setServicesCatalog(catalogData || []);
+    } catch (error) {
+      console.error('[ServiceRequests] Error loading services catalog:', error);
+    }
+  };
+
+  const loadBookings = async () => {
+    try {
+      if (!userData?.id) return;
+
+      // Get user's properties
+      const { data: properties, error: propsError } = await supabase
+        .from('properties')
+        .select('id')
+        .eq('owner_id', userData.id);
+
+      if (propsError || !properties || properties.length === 0) {
+        setBookings([]);
+        return;
+      }
+
+      const propertyIds = properties.map(p => p.id);
+
+      // Get bookings for user's properties - only confirmed/active ones
+      const { data: bookingsData, error } = await supabase
+        .from('bookings')
+        .select('id, confirmation_code, guest_name, guest_phone, check_in, check_out, villa_id')
+        .in('property_id', propertyIds)
+        .in('status', ['confirmed', 'checked_in', 'pending_payment'])
+        .order('check_in', { ascending: false })
+        .limit(100);
+
+      if (error) {
+        console.error('[ServiceRequests] Error loading bookings:', error);
+        return;
+      }
+
+      console.log('[ServiceRequests] Loaded bookings:', bookingsData?.length || 0);
+      setBookings(bookingsData || []);
+    } catch (error) {
+      console.error('[ServiceRequests] Error loading bookings:', error);
+    }
+  };
 
   const loadServiceRequests = async () => {
     try {
@@ -371,7 +456,14 @@ const ServiceRequests = ({ onBack }) => {
       setIsSubmitting(true);
       setCreateError('');
 
-      // Validation
+      // Validation - booking_id is required (all services require a booking)
+      if (!formData.booking_id) {
+        console.log('[CREATE] Validation failed: no booking selected');
+        setCreateError('Please select a booking. Services require an existing booking.');
+        setIsSubmitting(false);
+        return;
+      }
+
       if (!formData.villa_id || !formData.type || !formData.title || !formData.guest_name || !formData.guest_phone) {
         console.log('[CREATE] Validation failed: missing required fields');
         console.log('Villa:', formData.villa_id, 'Type:', formData.type, 'Title:', formData.title, 'Guest:', formData.guest_name, 'Phone:', formData.guest_phone);
@@ -443,6 +535,7 @@ const ServiceRequests = ({ onBack }) => {
         tenant_id: userData.id,
         property_id: selectedVilla.property_id,
         villa_id: formData.villa_id,
+        booking_id: formData.booking_id || null,
         type: formData.type,
         title: formData.title,
         status: 'pending_confirmation',
@@ -479,6 +572,7 @@ const ServiceRequests = ({ onBack }) => {
       // Reset form
       setFormData({
         villa_id: '',
+        booking_id: '',
         type: '',
         title: '',
         guest_name: '',
@@ -698,44 +792,21 @@ const ServiceRequests = ({ onBack }) => {
         }
       }
 
-      // Date filtering
+      // Date filtering with From/To date pickers
       let matchesDate = true;
-      if (filterDate !== 'all' && request.scheduled_at) {
+      if (request.scheduled_at) {
         const requestDate = new Date(request.scheduled_at);
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
 
-        switch (filterDate) {
-          case 'today':
-            const todayEnd = new Date(today);
-            todayEnd.setHours(23, 59, 59, 999);
-            matchesDate = requestDate >= today && requestDate <= todayEnd;
-            break;
-          case 'tomorrow':
-            const tomorrow = new Date(today);
-            tomorrow.setDate(tomorrow.getDate() + 1);
-            const tomorrowEnd = new Date(tomorrow);
-            tomorrowEnd.setHours(23, 59, 59, 999);
-            matchesDate = requestDate >= tomorrow && requestDate <= tomorrowEnd;
-            break;
-          case 'week':
-            const weekEnd = new Date(today);
-            weekEnd.setDate(weekEnd.getDate() + 7);
-            matchesDate = requestDate >= today && requestDate <= weekEnd;
-            break;
-          case 'month':
-            const monthEnd = new Date(today);
-            monthEnd.setMonth(monthEnd.getMonth() + 1);
-            matchesDate = requestDate >= today && requestDate <= monthEnd;
-            break;
-          case 'custom':
-            if (customDateFrom && customDateTo) {
-              const start = new Date(customDateFrom);
-              const end = new Date(customDateTo);
-              end.setHours(23, 59, 59, 999); // Include full end date
-              matchesDate = requestDate >= start && requestDate <= end;
-            }
-            break;
+        if (customDateFrom) {
+          const start = new Date(customDateFrom);
+          start.setHours(0, 0, 0, 0);
+          if (requestDate < start) matchesDate = false;
+        }
+
+        if (customDateTo && matchesDate) {
+          const end = new Date(customDateTo);
+          end.setHours(23, 59, 59, 999);
+          if (requestDate > end) matchesDate = false;
         }
       }
 
@@ -766,8 +837,19 @@ const ServiceRequests = ({ onBack }) => {
     }).length
   };
 
-  // Get unique types and statuses for filters
-  const uniqueTypes = [...new Set(allRequests.map(r => r.type))];
+  // Fixed list of all service types (always show all options)
+  const allServiceTypes = [
+    'airport_transfer',
+    'tour',
+    'spa',
+    'private_chef',
+    'decoration',
+    'scooter_rental',
+    'car_rental',
+    'floating_breakfast',
+    'excursion',
+    'other'
+  ];
   const uniqueStatuses = ['pending_confirmation', 'confirmed', 'assigned', 'in_progress', 'completed', 'cancelled'];
 
   return (
@@ -859,13 +941,13 @@ const ServiceRequests = ({ onBack }) => {
 
       {/* Search and Filters */}
       <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-xl p-6 mb-6 border border-[#d85a2a]/20">
-        {/* Top Row: Villa, Date, Status, Type + Search */}
-        <div className="grid grid-cols-1 md:grid-cols-[180px_160px_160px_180px_1fr] gap-3">
+        {/* Row 1: Villa, Status, Type */}
+        <div className="flex flex-wrap gap-3 mb-3">
           {/* Villa Filter */}
           <select
             value={filterVilla}
             onChange={(e) => setFilterVilla(e.target.value)}
-            className="px-3 py-2.5 bg-[#2a2f3a] text-white rounded-xl text-sm border border-[#d85a2a]/30 focus:border-[#d85a2a] outline-none"
+            className="px-3 py-2.5 bg-[#2a2f3a] text-white rounded-xl text-sm border border-[#d85a2a]/30 focus:border-[#d85a2a] outline-none min-w-[140px]"
           >
             <option value="all">All Villas</option>
             {villas.map(villa => (
@@ -873,25 +955,11 @@ const ServiceRequests = ({ onBack }) => {
             ))}
           </select>
 
-          {/* Date Filter */}
-          <select
-            value={filterDate}
-            onChange={(e) => setFilterDate(e.target.value)}
-            className="px-3 py-2.5 bg-[#2a2f3a] text-white rounded-xl text-sm border border-[#d85a2a]/30 focus:border-[#d85a2a] outline-none"
-          >
-            <option value="all">All Dates</option>
-            <option value="today">Today</option>
-            <option value="tomorrow">Tomorrow</option>
-            <option value="week">This Week</option>
-            <option value="month">This Month</option>
-            <option value="custom">Custom Range</option>
-          </select>
-
           {/* Status Filter */}
           <select
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value)}
-            className="px-3 py-2.5 bg-[#2a2f3a] text-white rounded-xl text-sm border border-[#d85a2a]/30 focus:border-[#d85a2a] outline-none"
+            className="px-3 py-2.5 bg-[#2a2f3a] text-white rounded-xl text-sm border border-[#d85a2a]/30 focus:border-[#d85a2a] outline-none min-w-[130px]"
           >
             <option value="All">All Status</option>
             <option value="pending_confirmation">Unconfirmed</option>
@@ -906,18 +974,18 @@ const ServiceRequests = ({ onBack }) => {
           <select
             value={filterType}
             onChange={(e) => setFilterType(e.target.value)}
-            className="px-3 py-2.5 bg-[#2a2f3a] text-white rounded-xl text-sm border border-[#d85a2a]/30 focus:border-[#d85a2a] outline-none"
+            className="px-3 py-2.5 bg-[#2a2f3a] text-white rounded-xl text-sm border border-[#d85a2a]/30 focus:border-[#d85a2a] outline-none min-w-[160px]"
           >
             <option value="All">All Types</option>
-            {uniqueTypes.map(type => (
+            {allServiceTypes.map(type => (
               <option key={type} value={type}>
-                {formatType(type)}
+                {getTypeEmoji(type)} {formatType(type)}
               </option>
             ))}
           </select>
 
-          {/* Search */}
-          <div className="relative">
+          {/* Search - Flexible width */}
+          <div className="relative flex-1 min-w-[250px]">
             <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
             <input
               type="text"
@@ -929,35 +997,36 @@ const ServiceRequests = ({ onBack }) => {
           </div>
         </div>
 
-        {/* Custom Date Range (if selected) */}
-        {filterDate === 'custom' && (
-          <div className="grid grid-cols-2 gap-3 mt-3">
-            <div>
-              <label className="text-xs text-gray-400 mb-1 block">From</label>
-              <input
-                type="date"
-                value={customDateFrom}
-                onChange={(e) => setCustomDateFrom(e.target.value)}
-                className="w-full px-3 py-2 bg-[#2a2f3a] text-white rounded-lg text-sm border border-gray-700 focus:border-orange-500 outline-none"
-              />
-            </div>
-            <div>
-              <label className="text-xs text-gray-400 mb-1 block">To</label>
-              <input
-                type="date"
-                value={customDateTo}
-                onChange={(e) => setCustomDateTo(e.target.value)}
-                className="w-full px-3 py-2 bg-[#2a2f3a] text-white rounded-lg text-sm border border-gray-700 focus:border-orange-500 outline-none"
-              />
-            </div>
+        {/* Row 2: Date Range */}
+        <div className="flex flex-wrap gap-3 items-center">
+          {/* Date From Filter */}
+          <div className="flex items-center gap-2">
+            <span className="text-gray-400 text-sm w-10">From</span>
+            <input
+              type="date"
+              value={customDateFrom}
+              onChange={(e) => setCustomDateFrom(e.target.value)}
+              className="px-3 py-2.5 bg-[#2a2f3a] text-white rounded-xl text-sm border border-[#d85a2a]/30 focus:border-[#d85a2a] outline-none"
+            />
           </div>
-        )}
+
+          {/* Date To Filter */}
+          <div className="flex items-center gap-2">
+            <span className="text-gray-400 text-sm w-6">To</span>
+            <input
+              type="date"
+              value={customDateTo}
+              onChange={(e) => setCustomDateTo(e.target.value)}
+              className="px-3 py-2.5 bg-[#2a2f3a] text-white rounded-xl text-sm border border-[#d85a2a]/30 focus:border-[#d85a2a] outline-none"
+            />
+          </div>
+        </div>
+
 
         {/* Clear Filters Button */}
         <button
           onClick={() => {
             setFilterVilla('all');
-            setFilterDate('all');
             setCustomDateFrom('');
             setCustomDateTo('');
             setFilterStatus('All');
@@ -1107,6 +1176,40 @@ const ServiceRequests = ({ onBack }) => {
 
             <div className="p-6">
               <div className="space-y-4">
+                {/* Booking Selection - FIRST (all services require a booking) */}
+                <div>
+                  <label className="block text-sm font-semibold text-white mb-2">
+                    Booking Code *
+                  </label>
+                  <select
+                    value={formData.booking_id}
+                    onChange={(e) => {
+                      const selectedBooking = bookings.find(b => b.id === e.target.value);
+                      if (selectedBooking) {
+                        // Auto-fill villa, guest name, and phone from booking
+                        setFormData({
+                          ...formData,
+                          booking_id: e.target.value,
+                          villa_id: selectedBooking.villa_id || formData.villa_id,
+                          guest_name: selectedBooking.guest_name || formData.guest_name,
+                          guest_phone: selectedBooking.guest_phone || formData.guest_phone,
+                        });
+                      } else {
+                        setFormData({...formData, booking_id: e.target.value});
+                      }
+                    }}
+                    className="w-full px-4 py-2.5 bg-[#1f2937] border border-[#d85a2a]/30 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-[#d85a2a]/50"
+                  >
+                    <option value="">Select a booking</option>
+                    {bookings.map(booking => (
+                      <option key={booking.id} value={booking.id}>
+                        {booking.confirmation_code || 'N/A'} - {booking.guest_name} ({new Date(booking.check_in).toLocaleDateString()})
+                      </option>
+                    ))}
+                  </select>
+                  <p className="text-xs text-gray-400 mt-1">Services require an existing booking</p>
+                </div>
+
                 {/* Villa Selection */}
                 <div>
                   <label className="block text-sm font-semibold text-white mb-2">Villa *</label>
@@ -1122,26 +1225,61 @@ const ServiceRequests = ({ onBack }) => {
                   </select>
                 </div>
 
-                {/* Request Type */}
+                {/* Request Type - Uses services_catalog for prices */}
                 <div>
                   <label className="block text-sm font-semibold text-white mb-2">Service Type *</label>
                   <select
                     value={formData.type}
-                    onChange={(e) => setFormData({...formData, type: e.target.value})}
+                    onChange={(e) => {
+                      const selectedType = e.target.value;
+                      // Find service in catalog to get price, currency, duration
+                      const catalogService = servicesCatalog.find(s => s.service_type === selectedType);
+
+                      if (catalogService) {
+                        // Auto-fill from catalog
+                        setFormData({
+                          ...formData,
+                          type: selectedType,
+                          title: catalogService.display_name_en || formData.title,
+                          price: catalogService.base_price?.toString() || '',
+                          currency: catalogService.currency || 'IDR',
+                          duration_minutes: catalogService.duration_minutes?.toString() || ''
+                        });
+                        console.log('[ServiceRequests] Auto-filled from catalog:', catalogService);
+                      } else {
+                        // No catalog entry, just set type
+                        setFormData({...formData, type: selectedType});
+                      }
+                    }}
                     className="w-full px-4 py-2.5 bg-[#1f2937] border border-[#d85a2a]/30 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-[#d85a2a]/50"
                   >
                     <option value="">Select service type</option>
-                    <option value="airport_transfer">✈️ Airport Transfer</option>
-                    <option value="tour">🏔️ Tour</option>
-                    <option value="spa">💆 Spa</option>
-                    <option value="private_chef">👨‍🍳 Private Chef</option>
-                    <option value="decoration">🎂 Decoration</option>
-                    <option value="scooter_rental">🛵 Scooter Rental</option>
-                    <option value="car_rental">🚗 Car Rental</option>
-                    <option value="floating_breakfast">🥞 Floating Breakfast</option>
-                    <option value="excursion">🌴 Excursion</option>
-                    <option value="other">📋 Other</option>
+                    {servicesCatalog.length > 0 ? (
+                      // Use catalog services (from Supabase)
+                      servicesCatalog.map(service => (
+                        <option key={service.service_type} value={service.service_type}>
+                          {getTypeEmoji(service.service_type)} {service.display_name_en} - {service.currency} {service.base_price?.toLocaleString()}
+                        </option>
+                      ))
+                    ) : (
+                      // Fallback if no catalog loaded
+                      <>
+                        <option value="airport_transfer">✈️ Airport Transfer</option>
+                        <option value="tour">🏔️ Tour</option>
+                        <option value="spa">💆 Spa</option>
+                        <option value="private_chef">👨‍🍳 Private Chef</option>
+                        <option value="decoration">🎂 Decoration</option>
+                        <option value="scooter_rental">🛵 Scooter Rental</option>
+                        <option value="car_rental">🚗 Car Rental</option>
+                        <option value="floating_breakfast">🥞 Floating Breakfast</option>
+                        <option value="excursion">🌴 Excursion</option>
+                        <option value="other">📋 Other</option>
+                      </>
+                    )}
                   </select>
+                  {servicesCatalog.length > 0 && (
+                    <p className="text-xs text-gray-400 mt-1">Prices from your services catalog</p>
+                  )}
                 </div>
 
                 {/* Title */}
@@ -1271,6 +1409,7 @@ const ServiceRequests = ({ onBack }) => {
                   setCreateError('');
                   setFormData({
                     villa_id: '',
+                    booking_id: '',
                     type: '',
                     title: '',
                     guest_name: '',
