@@ -88,7 +88,7 @@ const Guest360 = ({
   // Loading state
   if (loading) {
     return (
-      <div className="flex-1 h-screen bg-[#272e39] flex items-center justify-center">
+      <div className="w-full h-full bg-[#272e39] flex items-center justify-center">
         <LoadingSpinner size="lg" text="Loading guest profile..." />
       </div>
     );
@@ -97,7 +97,7 @@ const Guest360 = ({
   // Error state
   if (error) {
     return (
-      <div className="flex-1 h-screen bg-[#272e39] p-6">
+      <div className="w-full h-full bg-[#272e39] p-6">
         <button
           onClick={onBack}
           className="flex items-center gap-2 text-[#aab2bf] hover:text-white mb-6 transition-colors"
@@ -125,7 +125,7 @@ const Guest360 = ({
   // No guest found
   if (!guest && bookings.length === 0) {
     return (
-      <div className="flex-1 h-screen bg-[#272e39] p-6">
+      <div className="w-full h-full bg-[#272e39] p-6">
         <button
           onClick={onBack}
           className="flex items-center gap-2 text-[#aab2bf] hover:text-white mb-6 transition-colors"
@@ -156,9 +156,9 @@ const Guest360 = ({
   };
 
   return (
-    <div className="flex-1 h-screen bg-[#272e39] overflow-auto">
+    <div className="w-full h-full bg-[#272e39] overflow-auto">
       {/* Main container */}
-      <div className="max-w-[1200px] mx-auto p-4 md:p-6">
+      <div className="w-full p-4 md:p-6">
 
         {/* Breadcrumb */}
         <div className="flex items-center gap-2 text-sm text-[#6d7683] mb-4">

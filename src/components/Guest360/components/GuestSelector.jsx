@@ -252,15 +252,15 @@ const GuestSelector = ({ tenantId, onSelectGuest, onBack }) => {
 
   if (loading) {
     return (
-      <div className="flex-1 h-screen bg-[#272e39] flex items-center justify-center">
+      <div className="w-full h-full bg-[#272e39] flex items-center justify-center">
         <LoadingSpinner size="lg" text="Loading guests..." />
       </div>
     );
   }
 
   return (
-    <div className="flex-1 h-screen bg-[#272e39] overflow-auto">
-      <div className="max-w-[800px] mx-auto p-4 md:p-6">
+    <div className="w-full h-full bg-[#272e39] overflow-auto">
+      <div className="w-full p-4 md:p-6">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
