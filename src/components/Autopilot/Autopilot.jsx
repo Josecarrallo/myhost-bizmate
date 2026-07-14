@@ -436,42 +436,24 @@ const Autopilot = ({ onBack }) => {
       let tasksData = await tasksService.getTasks(userData.id, filters);
 
       // Apply date filter (client-side for now)
-      if (taskDateFilter !== 'all' && tasksData.length > 0) {
-        const now = new Date();
-        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-
+      // Filter by From/To dates when they are set (regardless of taskDateFilter dropdown)
+      if ((taskCustomStartDate || taskCustomEndDate) && tasksData.length > 0) {
         tasksData = tasksData.filter(task => {
-          if (!task.due_date) return taskDateFilter === 'all';
-
+          if (!task.due_date) return false;
           const dueDate = new Date(task.due_date);
 
-          switch (taskDateFilter) {
-            case 'today':
-              const taskDay = new Date(dueDate.getFullYear(), dueDate.getMonth(), dueDate.getDate());
-              return taskDay.getTime() === today.getTime();
-
-            case 'week':
-              const weekFromNow = new Date(today);
-              weekFromNow.setDate(weekFromNow.getDate() + 7);
-              return dueDate >= today && dueDate <= weekFromNow;
-
-            case 'month':
-              const monthFromNow = new Date(today);
-              monthFromNow.setMonth(monthFromNow.getMonth() + 1);
-              return dueDate >= today && dueDate <= monthFromNow;
-
-            case 'custom':
-              if (taskCustomStartDate && taskCustomEndDate) {
-                const start = new Date(taskCustomStartDate);
-                const end = new Date(taskCustomEndDate);
-                end.setHours(23, 59, 59, 999); // Include full end date
-                return dueDate >= start && dueDate <= end;
-              }
-              return true;
-
-            default:
-              return true;
+          let matchesDate = true;
+          if (taskCustomStartDate) {
+            const start = new Date(taskCustomStartDate);
+            start.setHours(0, 0, 0, 0);
+            if (dueDate < start) matchesDate = false;
           }
+          if (taskCustomEndDate && matchesDate) {
+            const end = new Date(taskCustomEndDate);
+            end.setHours(23, 59, 59, 999);
+            if (dueDate > end) matchesDate = false;
+          }
+          return matchesDate;
         });
       }
 
@@ -554,20 +536,22 @@ const Autopilot = ({ onBack }) => {
             villaName = villa?.name || null;
           }
 
-          // Get booking guest name
+          // Get booking guest name and confirmation code
+          let confirmationCode = null;
           if (issue.booking_id) {
             const { data: booking } = await supabase
               .from('bookings')
-              .select('guest_name')
+              .select('guest_name, confirmation_code')
               .eq('id', issue.booking_id)
               .single();
             guestName = booking?.guest_name || null;
+            confirmationCode = booking?.confirmation_code || null;
           }
 
           return {
             ...issue,
             villa: villaName ? { name: villaName } : null,
-            booking: guestName ? { guest_name: guestName } : null
+            booking: (guestName || confirmationCode) ? { guest_name: guestName, confirmation_code: confirmationCode } : null
           };
         }));
 
@@ -791,46 +775,11 @@ const Autopilot = ({ onBack }) => {
       badge: null
     },
     {
-      id: 'guest-360',
-      name: 'OCS 360',
-      icon: User,
-      description: 'Guest unified profile view',
-      badge: 'New'
-    },
-    {
       id: 'master-calendar',
       name: 'Master Calendar',
       icon: Calendar,
       description: 'Unified calendar view - Bookings, Tasks & Operations',
-      badge: 'New'
-    },
-    {
-      id: 'business-reports',
-      name: 'Business Reports',
-      icon: FileText,
-      description: 'Monthly performance reports',
       badge: null
-    },
-    {
-      id: 'website',
-      name: 'My Villa Website',
-      icon: Globe,
-      description: 'Public landing page',
-      badge: 'Live'
-    },
-    {
-      id: 'availability',
-      name: 'Channel Sync',
-      icon: Wifi,
-      description: 'Multi-channel booking synchronization',
-      badge: '4 channels'
-    },
-    {
-      id: 'tasks',
-      name: 'Maintenance & Tasks',
-      icon: Wrench,
-      description: 'Operations',
-      badge: '5 open'
     },
     {
       id: 'service-requests',
@@ -840,24 +789,24 @@ const Autopilot = ({ onBack }) => {
       badge: null
     },
     {
+      id: 'tasks',
+      name: 'Maintenance & Tasks',
+      icon: Wrench,
+      description: 'Operations',
+      badge: null
+    },
+    {
       id: 'decisions',
       name: 'Owner Control System',
       icon: ClipboardCheck,
       description: 'Needs approval',
-      badge: '3'
+      badge: null
     },
     {
-      id: 'communication',
-      name: 'Customer Communication',
-      icon: Mail,
-      description: 'Unified inbox',
-      badge: '8 new'
-    },
-    {
-      id: 'automated-flows',
-      name: 'Automated Flows',
-      icon: Workflow,
-      description: 'View all system automation workflows',
+      id: 'business-reports',
+      name: 'Business Reports',
+      icon: FileText,
+      description: 'Monthly performance reports',
       badge: null
     },
     {
@@ -865,6 +814,27 @@ const Autopilot = ({ onBack }) => {
       name: 'My Data Export',
       icon: Download,
       description: 'Download your business data as HTML, Excel or CSV',
+      badge: null
+    },
+    {
+      id: 'website',
+      name: 'My Villa Website',
+      icon: Globe,
+      description: 'Public landing page',
+      badge: null
+    },
+    {
+      id: 'communication',
+      name: 'Customer Communication',
+      icon: Mail,
+      description: 'Unified inbox',
+      badge: null
+    },
+    {
+      id: 'automated-flows',
+      name: 'Automated Flows',
+      icon: Workflow,
+      description: 'View all system automation workflows',
       badge: null
     }
   ];
@@ -4302,27 +4272,50 @@ const Autopilot = ({ onBack }) => {
       due_date: task?.due_date ? task.due_date.split('T')[0] + 'T' + task.due_date.split('T')[1].substring(0,5) : '',
       deadline: task?.deadline ? task.deadline.split('T')[0] + 'T' + task.deadline.split('T')[1].substring(0,5) : '',
       villaId: task?.villa_id || null,
-      notes: task?.notes || ''
+      notes: task?.notes || '',
+      booking_id: task?.booking_id || null
     });
 
     const [villas, setVillas] = useState([]);
+    const [bookings, setBookings] = useState([]);
 
     useEffect(() => {
-      // Load villas for dropdown - Filter only user's villas
-      const loadVillas = async () => {
+      // Load villas and bookings for dropdowns
+      const loadData = async () => {
         try {
+          // Load villas
           const allVillas = await dataService.getVillas();
-          // Filter only Gita's villas (Nismara and Graha Uma)
           const userVillas = allVillas.filter(villa =>
             villa.name.toUpperCase().includes('NISMARA') || villa.name.toUpperCase().includes('GRAHA UMA')
           );
           setVillas(userVillas);
+
+          // Load bookings for the user's properties
+          if (userData?.id) {
+            const { data: properties } = await supabase
+              .from('properties')
+              .select('id')
+              .eq('owner_id', userData.id);
+
+            if (properties && properties.length > 0) {
+              const propertyIds = properties.map(p => p.id);
+              const { data: bookingsData } = await supabase
+                .from('bookings')
+                .select('id, confirmation_code, guest_name, check_in, check_out, villa_id')
+                .in('property_id', propertyIds)
+                .in('status', ['confirmed', 'checked_in', 'pending_payment'])
+                .order('check_in', { ascending: false })
+                .limit(100);
+
+              setBookings(bookingsData || []);
+            }
+          }
         } catch (error) {
-          console.error('Error loading villas:', error);
+          console.error('Error loading data for TaskModal:', error);
         }
       };
-      loadVillas();
-    }, []);
+      loadData();
+    }, [userData?.id]);
 
     const handleSubmit = (e) => {
       e.preventDefault();
@@ -4338,7 +4331,8 @@ const Autopilot = ({ onBack }) => {
         dueDate: formData.due_date,    // Convert to camelCase
         deadline: formData.deadline,   // Maximum deadline
         villaId: formData.villaId,
-        notes: formData.notes
+        notes: formData.notes,
+        bookingId: formData.booking_id  // Include booking reference
       };
       onSave(taskDataForService);
     };
@@ -4361,15 +4355,35 @@ const Autopilot = ({ onBack }) => {
 
           {/* Form */}
           <form onSubmit={handleSubmit} className="p-4 md:p-6 space-y-4">
-            {/* Booking Code Banner */}
-            {task?.booking?.confirmation_code && (
-              <div className="p-3 bg-orange-500 rounded-xl">
-                <div className="flex items-center gap-2">
-                  <span className="text-white text-sm font-semibold">Booking Code:</span>
-                  <span className="text-white text-lg font-bold">{task.booking.confirmation_code}</span>
-                </div>
-              </div>
-            )}
+            {/* Booking Code Selector - First field, auto-fills villa */}
+            <div>
+              <label className="block text-white font-bold mb-2">Booking Code (Optional)</label>
+              <select
+                value={formData.booking_id || ''}
+                onChange={(e) => {
+                  const selectedBooking = bookings.find(b => b.id === e.target.value);
+                  if (selectedBooking) {
+                    // Auto-fill villa from booking
+                    setFormData({
+                      ...formData,
+                      booking_id: e.target.value,
+                      villaId: selectedBooking.villa_id || formData.villaId
+                    });
+                  } else {
+                    setFormData({ ...formData, booking_id: e.target.value || null });
+                  }
+                }}
+                className="w-full px-4 py-2 bg-[#2a2f3a] text-white rounded-lg border-2 border-orange-500/50 focus:border-orange-500 outline-none"
+              >
+                <option value="">-- Select a Booking (optional) --</option>
+                {bookings.map(booking => (
+                  <option key={booking.id} value={booking.id}>
+                    {booking.confirmation_code} - {booking.guest_name} ({new Date(booking.check_in).toLocaleDateString()} - {new Date(booking.check_out).toLocaleDateString()})
+                  </option>
+                ))}
+              </select>
+              <p className="text-gray-400 text-xs mt-1">Selecting a booking will auto-fill the villa</p>
+            </div>
 
             {/* Title */}
             <div>
@@ -4569,48 +4583,42 @@ const Autopilot = ({ onBack }) => {
     const [bookings, setBookings] = useState([]);
 
     useEffect(() => {
-      // Load villas for dropdown
-      const loadVillas = async () => {
+      // Load villas and ALL bookings for dropdowns
+      const loadData = async () => {
         try {
+          // Load villas
           const allVillas = await dataService.getVillas();
-          // Filter only user's villas
           const userVillas = allVillas.filter(villa =>
             villa.name.toUpperCase().includes('NISMARA') || villa.name.toUpperCase().includes('GRAHA UMA')
           );
           setVillas(userVillas);
+
+          // Load ALL bookings for the user's properties
+          if (userData?.id) {
+            const { data: properties } = await supabase
+              .from('properties')
+              .select('id')
+              .eq('owner_id', userData.id);
+
+            if (properties && properties.length > 0) {
+              const propertyIds = properties.map(p => p.id);
+              const { data: bookingsData } = await supabase
+                .from('bookings')
+                .select('id, confirmation_code, guest_name, check_in, check_out, villa_id')
+                .in('property_id', propertyIds)
+                .in('status', ['confirmed', 'checked_in', 'pending_payment'])
+                .order('check_in', { ascending: false })
+                .limit(100);
+
+              setBookings(bookingsData || []);
+            }
+          }
         } catch (error) {
-          console.error('Error loading villas:', error);
+          console.error('Error loading data for IssueModal:', error);
         }
       };
-      loadVillas();
-    }, []);
-
-    useEffect(() => {
-      // Load bookings when villa is selected
-      if (formData.villa_id) {
-        const loadBookings = async () => {
-          try {
-            const { data, error } = await supabase
-              .from('bookings')
-              .select('id, guest_name, check_in, check_out')
-              .eq('villa_id', formData.villa_id)
-              .in('status', ['confirmed', 'checked_in'])
-              .gte('check_out', new Date().toISOString().split('T')[0])
-              .order('check_in');
-
-            if (!error && data) {
-              setBookings(data);
-            }
-          } catch (error) {
-            console.error('Error loading bookings:', error);
-          }
-        };
-        loadBookings();
-      } else {
-        setBookings([]);
-        setFormData({ ...formData, booking_id: null });
-      }
-    }, [formData.villa_id]);
+      loadData();
+    }, [userData?.id]);
 
     const handleSubmit = async (e) => {
       e.preventDefault();
@@ -4686,6 +4694,36 @@ const Autopilot = ({ onBack }) => {
 
           {/* Form */}
           <form onSubmit={handleSubmit} className="p-4 md:p-6 space-y-4">
+            {/* Booking Code Selector - First field, auto-fills villa */}
+            <div>
+              <label className="block text-white font-bold mb-2">Booking Code (Optional)</label>
+              <select
+                value={formData.booking_id || ''}
+                onChange={(e) => {
+                  const selectedBooking = bookings.find(b => b.id === e.target.value);
+                  if (selectedBooking) {
+                    // Auto-fill villa from booking
+                    setFormData({
+                      ...formData,
+                      booking_id: e.target.value,
+                      villa_id: selectedBooking.villa_id || formData.villa_id
+                    });
+                  } else {
+                    setFormData({ ...formData, booking_id: e.target.value || null });
+                  }
+                }}
+                className="w-full px-4 py-2 bg-[#2a2f3a] text-white rounded-lg border-2 border-orange-500/50 focus:border-orange-500 outline-none"
+              >
+                <option value="">-- Select a Booking (optional) --</option>
+                {bookings.map(booking => (
+                  <option key={booking.id} value={booking.id}>
+                    {booking.confirmation_code} - {booking.guest_name} ({new Date(booking.check_in).toLocaleDateString()} - {new Date(booking.check_out).toLocaleDateString()})
+                  </option>
+                ))}
+              </select>
+              <p className="text-gray-400 text-xs mt-1">Selecting a booking will auto-fill the villa</p>
+            </div>
+
             {/* Villa * */}
             <div>
               <label className="block text-white font-bold mb-2">Villa *</label>
@@ -4701,25 +4739,6 @@ const Autopilot = ({ onBack }) => {
                 ))}
               </select>
             </div>
-
-            {/* Booking (optional, depends on villa) */}
-            {formData.villa_id && (
-              <div>
-                <label className="block text-white font-bold mb-2">Related Booking (optional)</label>
-                <select
-                  value={formData.booking_id || ''}
-                  onChange={(e) => setFormData({ ...formData, booking_id: e.target.value || null })}
-                  className="w-full px-4 py-2 bg-[#2a2f3a] text-white rounded-lg border-2 border-gray-700 focus:border-orange-500 outline-none"
-                >
-                  <option value="">No active booking linked</option>
-                  {bookings.map(booking => (
-                    <option key={booking.id} value={booking.id}>
-                      {booking.guest_name} ({new Date(booking.check_in).toLocaleDateString()} - {new Date(booking.check_out).toLocaleDateString()})
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
 
             {/* Issue Type * */}
             <div>
@@ -4968,148 +4987,141 @@ const Autopilot = ({ onBack }) => {
             Current Tasks ({loadingTasks ? '...' : tasks.length})
           </h4>
 
-          {/* Advanced Filters - Single Row */}
-          <div className="space-y-3">
-              {/* All Filters in One Row */}
-              <div className="grid grid-cols-2 md:grid-cols-[0.9fr_0.85fr_0.95fr_0.8fr_0.75fr_0.75fr] gap-1.5">
-                {/* Villa Filter */}
-                <select
-                  value={taskVillaFilter}
-                  onChange={(e) => setTaskVillaFilter(e.target.value)}
-                  className="px-2 py-2 bg-[#2a2f3a] text-white rounded-lg text-xs border border-gray-700 focus:border-orange-500 outline-none"
-                >
-                  <option value="all">Villas</option>
-                  {userProperties.map(villa => (
-                    <option key={villa.id} value={villa.id}>{villa.name}</option>
-                  ))}
-                </select>
+          {/* Advanced Filters - Services Style */}
+          <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-xl p-4 mb-4 border border-orange-500/20">
+            {/* Row 1: Villa, Category, Type, Status, Priority, Staff */}
+            <div className="flex flex-wrap gap-3 mb-3">
+              {/* Villa Filter */}
+              <select
+                value={taskVillaFilter}
+                onChange={(e) => setTaskVillaFilter(e.target.value)}
+                className="px-3 py-2.5 bg-[#2a2f3a] text-white rounded-xl text-sm border border-orange-500/30 focus:border-orange-500 outline-none min-w-[140px]"
+              >
+                <option value="all">All Villas</option>
+                {userProperties.map(villa => (
+                  <option key={villa.id} value={villa.id}>{villa.name}</option>
+                ))}
+              </select>
 
-                {/* Date Filter */}
-                <select
-                  value={taskDateFilter}
-                  onChange={(e) => setTaskDateFilter(e.target.value)}
-                  className="px-1.5 py-2 bg-[#2a2f3a] text-white rounded-lg text-xs border border-gray-700 focus:border-orange-500 outline-none"
-                >
-                  <option value="all">Dates</option>
-                  <option value="today">Today</option>
-                  <option value="week">Week</option>
-                  <option value="month">Month</option>
-                  <option value="custom">Custom</option>
-                </select>
+              {/* Category Filter */}
+              <select
+                value={taskCategoryFilter}
+                onChange={(e) => setTaskCategoryFilter(e.target.value)}
+                className="px-3 py-2.5 bg-[#2a2f3a] text-white rounded-xl text-sm border border-orange-500/30 focus:border-orange-500 outline-none min-w-[130px]"
+              >
+                <option value="all">All Categories</option>
+                <option value="housekeeping">Housekeeping</option>
+                <option value="engineering">Engineering</option>
+                <option value="outdoor">Outdoor</option>
+                <option value="guest_request">Guest Request</option>
+                <option value="operations">Operations</option>
+              </select>
 
-                {/* Category Filter */}
-                <select
-                  value={taskCategoryFilter}
-                  onChange={(e) => setTaskCategoryFilter(e.target.value)}
-                  className="px-1.5 py-2 bg-[#2a2f3a] text-white rounded-lg text-xs border border-gray-700 focus:border-orange-500 outline-none"
-                >
-                  <option value="all">Categories</option>
-                  <option value="housekeeping">Housekeeping</option>
-                  <option value="engineering">Engineering</option>
-                  <option value="outdoor">Outdoor</option>
-                  <option value="guest_request">Guest Request</option>
-                  <option value="operations">Operations</option>
-                </select>
+              {/* Type Filter */}
+              <select
+                value={taskTypeFilter}
+                onChange={(e) => setTaskTypeFilter(e.target.value)}
+                className="px-3 py-2.5 bg-[#2a2f3a] text-white rounded-xl text-sm border border-orange-500/30 focus:border-orange-500 outline-none min-w-[130px]"
+              >
+                <option value="all">All Types</option>
+                <option value="cleaning">Cleaning</option>
+                <option value="deep_cleaning">Deep Clean</option>
+                <option value="maintenance">Maintenance</option>
+                <option value="repair">Repair</option>
+                <option value="inspection">Inspection</option>
+                <option value="restocking">Restocking</option>
+                <option value="guest_request">Guest Request</option>
+                <option value="other">Other</option>
+              </select>
 
-                {/* Type Filter */}
-                <select
-                  value={taskTypeFilter}
-                  onChange={(e) => setTaskTypeFilter(e.target.value)}
-                  className="px-1.5 py-2 bg-[#2a2f3a] text-white rounded-lg text-xs border border-gray-700 focus:border-orange-500 outline-none"
-                >
-                  <option value="all">Types</option>
-                  <option value="cleaning">Cleaning</option>
-                  <option value="deep_cleaning">Deep Clean</option>
-                  <option value="maintenance">Maintenance</option>
-                  <option value="repair">Repair</option>
-                  <option value="inspection">Inspection</option>
-                  <option value="restocking">Restocking</option>
-                  <option value="guest_request">Guest Req</option>
-                  <option value="other">Other</option>
-                </select>
+              {/* Status Filter */}
+              <select
+                value={taskStatusFilter}
+                onChange={(e) => setTaskStatusFilter(e.target.value)}
+                className="px-3 py-2.5 bg-[#2a2f3a] text-white rounded-xl text-sm border border-orange-500/30 focus:border-orange-500 outline-none min-w-[120px]"
+              >
+                <option value="all">All Status</option>
+                <option value="open">Open</option>
+                <option value="assigned">Assigned</option>
+                <option value="in_progress">In Progress</option>
+                <option value="completed">Completed</option>
+                <option value="cancelled">Cancelled</option>
+              </select>
 
-                {/* Status Filter */}
-                <select
-                  value={taskStatusFilter}
-                  onChange={(e) => setTaskStatusFilter(e.target.value)}
-                  className="px-1.5 py-2 bg-[#2a2f3a] text-white rounded-lg text-xs border border-gray-700 focus:border-orange-500 outline-none"
-                >
-                  <option value="all">Status</option>
-                  <option value="open">Open</option>
-                  <option value="assigned">Assigned</option>
-                  <option value="in_progress">In Progress</option>
-                  <option value="completed">Completed</option>
-                  <option value="cancelled">Cancelled</option>
-                </select>
+              {/* Priority Filter */}
+              <select
+                value={taskPriorityFilter}
+                onChange={(e) => setTaskPriorityFilter(e.target.value)}
+                className="px-3 py-2.5 bg-[#2a2f3a] text-white rounded-xl text-sm border border-orange-500/30 focus:border-orange-500 outline-none min-w-[110px]"
+              >
+                <option value="all">All Priority</option>
+                <option value="low">Low</option>
+                <option value="medium">Medium</option>
+                <option value="high">High</option>
+                <option value="urgent">Urgent</option>
+              </select>
 
-                {/* Priority Filter */}
-                <select
-                  value={taskPriorityFilter}
-                  onChange={(e) => setTaskPriorityFilter(e.target.value)}
-                  className="px-1.5 py-2 bg-[#2a2f3a] text-white rounded-lg text-xs border border-gray-700 focus:border-orange-500 outline-none"
-                >
-                  <option value="all">Priority</option>
-                  <option value="low">Low</option>
-                  <option value="medium">Medium</option>
-                  <option value="high">High</option>
-                  <option value="urgent">Urgent</option>
-                </select>
+              {/* Assignee Filter (Staff) - Predefined list */}
+              <select
+                value={taskAssigneeFilter}
+                onChange={(e) => setTaskAssigneeFilter(e.target.value)}
+                className="px-3 py-2.5 bg-[#2a2f3a] text-white rounded-xl text-sm border border-orange-500/30 focus:border-orange-500 outline-none min-w-[120px]"
+              >
+                <option value="all">All Staff</option>
+                <option value="Kadek">Kadek</option>
+                <option value="Wayan">Wayan</option>
+                <option value="Made">Made</option>
+                <option value="Nyoman">Nyoman</option>
+                <option value="Ketut">Ketut</option>
+                <option value="Putu">Putu</option>
+                <option value="Gede">Gede</option>
+                <option value="Komang">Komang</option>
+              </select>
+            </div>
 
-                {/* Assignee Filter (Staff) */}
-                <select
-                  value={taskAssigneeFilter}
-                  onChange={(e) => setTaskAssigneeFilter(e.target.value)}
-                  className="px-1.5 py-2 bg-[#2a2f3a] text-white rounded-lg text-xs border border-gray-700 focus:border-orange-500 outline-none"
-                >
-                  <option value="all">All Staff</option>
-                  {[...new Set(tasks.map(t => t.assignee).filter(Boolean))].sort().map(assignee => (
-                    <option key={assignee} value={assignee}>{assignee}</option>
-                  ))}
-                </select>
+            {/* Row 2: Date Range From/To (always visible) */}
+            <div className="flex flex-wrap gap-3 items-center">
+              {/* Date From Filter */}
+              <div className="flex items-center gap-2">
+                <span className="text-gray-400 text-sm w-10">From</span>
+                <input
+                  type="date"
+                  value={taskCustomStartDate}
+                  onChange={(e) => setTaskCustomStartDate(e.target.value)}
+                  className="px-3 py-2.5 bg-[#2a2f3a] text-white rounded-xl text-sm border border-orange-500/30 focus:border-orange-500 outline-none"
+                />
               </div>
 
-              {/* Custom Date Range (if selected) */}
-              {taskDateFilter === 'custom' && (
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="text-xs text-gray-400 mb-1 block">From</label>
-                    <input
-                      type="date"
-                      value={taskCustomStartDate}
-                      onChange={(e) => setTaskCustomStartDate(e.target.value)}
-                      className="w-full px-3 py-2 bg-[#2a2f3a] text-white rounded-lg text-sm border border-gray-700 focus:border-orange-500 outline-none"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-xs text-gray-400 mb-1 block">To</label>
-                    <input
-                      type="date"
-                      value={taskCustomEndDate}
-                      onChange={(e) => setTaskCustomEndDate(e.target.value)}
-                      className="w-full px-3 py-2 bg-[#2a2f3a] text-white rounded-lg text-sm border border-gray-700 focus:border-orange-500 outline-none"
-                    />
-                  </div>
-                </div>
-              )}
-
-              {/* Clear Filters Button */}
-              <button
-                onClick={() => {
-                  setTaskVillaFilter('all');
-                  setTaskDateFilter('all');
-                  setTaskCustomStartDate('');
-                  setTaskCustomEndDate('');
-                  setTaskTypeFilter('all');
-                  setTaskStatusFilter('all');
-                  setTaskPriorityFilter('all');
-                  setTaskCategoryFilter('all');
-                  setTaskAssigneeFilter('all');
-                }}
-                className="w-full px-3 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg text-sm font-bold transition-all"
-              >
-                Clear Filters
-              </button>
+              {/* Date To Filter */}
+              <div className="flex items-center gap-2">
+                <span className="text-gray-400 text-sm w-6">To</span>
+                <input
+                  type="date"
+                  value={taskCustomEndDate}
+                  onChange={(e) => setTaskCustomEndDate(e.target.value)}
+                  className="px-3 py-2.5 bg-[#2a2f3a] text-white rounded-xl text-sm border border-orange-500/30 focus:border-orange-500 outline-none"
+                />
+              </div>
             </div>
+
+            {/* Clear Filters Button */}
+            <button
+              onClick={() => {
+                setTaskVillaFilter('all');
+                setTaskDateFilter('all');
+                setTaskCustomStartDate('');
+                setTaskCustomEndDate('');
+                setTaskTypeFilter('all');
+                setTaskStatusFilter('all');
+                setTaskPriorityFilter('all');
+                setTaskCategoryFilter('all');
+                setTaskAssigneeFilter('all');
+              }}
+              className="w-full px-3 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg text-sm font-bold transition-all mt-3"
+            >
+              Clear Filters
+            </button>
+          </div>
 
           {loadingTasks ? (
             <div className="text-center py-8">
@@ -5381,6 +5393,15 @@ const Autopilot = ({ onBack }) => {
                   <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
                     {/* Main Info */}
                     <div className="flex-1 cursor-pointer touch-manipulation">
+                      {/* Booking Code Badge (if linked) */}
+                      {issue.booking?.confirmation_code && (
+                        <div className="mb-2">
+                          <span className="inline-flex items-center px-2 py-1 bg-orange-500 rounded text-white text-xs font-bold">
+                            {issue.booking.confirmation_code}
+                          </span>
+                        </div>
+                      )}
+
                       {/* Title and Priority */}
                       <div className="flex items-center gap-2 mb-2">
                         <h4 className="text-white font-bold">{issue.title}</h4>
