@@ -44,8 +44,9 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 
-const Sidebar = ({ currentView, onNavigate, isOpen, onClose }) => {
+const Sidebar = ({ currentView, onNavigate, isOpen, onClose, userData, collapsed, onToggleCollapse }) => {
   const { signOut } = useAuth();
+  const isAdmin = userData?.is_admin === true;
   const [expandedSections, setExpandedSections] = useState({
     'overview': true,
     'operations': false,
@@ -103,6 +104,7 @@ const Sidebar = ({ currentView, onNavigate, isOpen, onClose }) => {
         { id: 'daily-operations', label: 'Daily Operations', icon: Clock, indent: true },
         { id: 'issues-tasks', label: 'Issues & Tasks', icon: AlertCircle, indent: true },
         { id: 'messages', label: 'Messages', icon: MessageSquare, indent: true },
+        { id: 'owner-messages', label: 'Messages (new)', icon: MessageSquare, indent: true },
 
         // Revenue & Pricing sub-section (MOVED from main menu)
         { id: 'revenue-pricing-header', label: 'Revenue & Pricing', isSubHeader: true, icon: DollarSign },
@@ -209,10 +211,14 @@ const Sidebar = ({ currentView, onNavigate, isOpen, onClose }) => {
       {/* Sidebar */}
       <div
         className={`
-          fixed lg:static inset-y-0 left-0 z-50
+          inset-y-0 left-0 z-50
           w-80 bg-[#2a2f3a] h-screen flex flex-col border-r border-white/10
-          transform transition-transform duration-300 ease-in-out
-          ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+          transform transition-all duration-300 ease-in-out
+          fixed
+          ${isOpen ? 'translate-x-0' : '-translate-x-full'}
+          ${collapsed
+            ? 'lg:-translate-x-full'
+            : 'lg:translate-x-0 lg:static lg:flex-shrink-0'}
         `}
       >
         {/* Header */}
@@ -272,6 +278,11 @@ const Sidebar = ({ currentView, onNavigate, isOpen, onClose }) => {
                   {section.items.map((item) => {
                     const Icon = item.icon;
                     const isActive = currentView === item.id;
+
+                    // Skip admin-only items for non-admin users
+                    if (item.adminOnly && !isAdmin) {
+                      return null;
+                    }
 
                     // Render sub-header
                     if (item.isSubHeader) {

@@ -73,6 +73,7 @@ import BanyuTemplates from './components/BANYU/BanyuTemplates';
 import BanyuLogs from './components/BANYU/BanyuLogs';
 import ManualDataEntry from './components/ManualDataEntry/ManualDataEntry';
 import Autopilot from './components/Autopilot/Autopilot';
+import OwnerMessages from './components/OwnerMessages/OwnerMessages';
 
 // ==================== FLOATING ICON COMPONENT ====================
 const FloatingIcon = ({ icon: Icon, className, delay }) => (
@@ -184,6 +185,7 @@ export default function App() {
   // Simplified state: just track current view
   const [currentView, setCurrentView] = useState('overview'); // 'overview' is the default after login
   const [isSidebarOpen, setIsSidebarOpen] = useState(false); // Sidebar state for mobile
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false); // Sidebar collapsed state for desktop
   const [isAgentCenterOpen, setIsAgentCenterOpen] = useState(false); // Agent Center drawer state
 
   // Reset view when user changes (login/logout)
@@ -230,6 +232,9 @@ export default function App() {
 
       case 'messages':
         return <Messages key="messages" onBack={() => setCurrentView('overview')} />;
+
+      case 'owner-messages':
+        return <OwnerMessages key="owner-messages" onBack={() => setCurrentView('overview')} userData={userData} setSidebarCollapsed={setSidebarCollapsed} sidebarCollapsed={sidebarCollapsed} />;
 
       case 'calendar':
         return <PMSCalendar onBack={() => setCurrentView('overview')} />;
@@ -927,6 +932,9 @@ export default function App() {
         onNavigate={setCurrentView}
         isOpen={isSidebarOpen}
         onClose={() => setIsSidebarOpen(false)}
+        userData={userData}
+        collapsed={sidebarCollapsed}
+        onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
       />
 
       {/* Main Content Container */}
