@@ -20,7 +20,7 @@ export const dataService = {
   },
 
   // Obtener estadísticas del dashboard
-  async getDashboardStats(tenantId = 'c24393db-d318-4d75-8bbf-0fa240b9c1db') {
+  async getDashboardStats(tenantId) {
     const { data, error } = await supabase
       .rpc('get_dashboard_stats', { p_tenant_id: tenantId });
 
@@ -48,7 +48,7 @@ export const dataService = {
   },
 
   // Check-ins de hoy
-  async getTodayCheckIns(tenantId = 'c24393db-d318-4d75-8bbf-0fa240b9c1db') {
+  async getTodayCheckIns(tenantId) {
     const { data, error } = await supabase
       .rpc('get_today_checkins', { p_tenant_id: tenantId });
 
@@ -61,7 +61,7 @@ export const dataService = {
   },
 
   // Check-outs de hoy
-  async getTodayCheckOuts(tenantId = 'c24393db-d318-4d75-8bbf-0fa240b9c1db') {
+  async getTodayCheckOuts(tenantId) {
     const { data, error } = await supabase
       .rpc('get_today_checkouts', { p_tenant_id: tenantId });
 
@@ -74,7 +74,7 @@ export const dataService = {
   },
 
   // Alertas activas
-  async getActiveAlerts(tenantId = 'c24393db-d318-4d75-8bbf-0fa240b9c1db') {
+  async getActiveAlerts(tenantId) {
     const { data, error } = await supabase
       .rpc('get_active_alerts', { p_tenant_id: tenantId });
 
@@ -137,7 +137,7 @@ export const dataService = {
   // ===== AI AGENTS STATS =====
 
   // LUMINA.AI Stats (Sales & Leads)
-  async getLuminaStats(tenantId = 'c24393db-d318-4d75-8bbf-0fa240b9c1db') {
+  async getLuminaStats(tenantId) {
     const { data, error } = await supabase
       .rpc('get_lumina_stats', { p_tenant_id: tenantId });
 
@@ -150,7 +150,7 @@ export const dataService = {
   },
 
   // BANYU.AI Stats (WhatsApp Concierge)
-  async getBanyuStats(tenantId = 'c24393db-d318-4d75-8bbf-0fa240b9c1db') {
+  async getBanyuStats(tenantId) {
     const { data, error } = await supabase
       .rpc('get_banyu_stats', { p_tenant_id: tenantId });
 
@@ -163,7 +163,7 @@ export const dataService = {
   },
 
   // KORA.AI Stats (Voice Concierge)
-  async getKoraStats(tenantId = 'c24393db-d318-4d75-8bbf-0fa240b9c1db') {
+  async getKoraStats(tenantId) {
     const { data, error } = await supabase
       .rpc('get_kora_stats', { p_tenant_id: tenantId });
 
@@ -176,7 +176,7 @@ export const dataService = {
   },
 
   // OSIRIS.AI Stats (Operations & Control)
-  async getOsirisStats(tenantId = 'c24393db-d318-4d75-8bbf-0fa240b9c1db') {
+  async getOsirisStats(tenantId) {
     const { data, error } = await supabase
       .rpc('get_osiris_stats', { p_tenant_id: tenantId });
 
@@ -236,7 +236,7 @@ export const dataService = {
   // ===== REPORTS & ANALYTICS =====
 
   // Get monthly analytics (last 12 months)
-  async getMonthlyAnalytics(tenantId = 'c24393db-d318-4d75-8bbf-0fa240b9c1db') {
+  async getMonthlyAnalytics(tenantId) {
     try {
       // Get all bookings from last 12 months
       const twelveMonthsAgo = new Date();
@@ -316,7 +316,7 @@ export const dataService = {
   },
 
   // Get recent clients (last bookings)
-  async getRecentClients(tenantId = 'c24393db-d318-4d75-8bbf-0fa240b9c1db', limit = 4) {
+  async getRecentClients(tenantId, limit = 4) {
     const { data, error } = await supabase
       .from('bookings')
       .select(`
@@ -343,7 +343,7 @@ export const dataService = {
   },
 
   // Get top guests by total revenue
-  async getTopGuests(tenantId = 'c24393db-d318-4d75-8bbf-0fa240b9c1db', limit = 4) {
+  async getTopGuests(tenantId, limit = 4) {
     const { data, error } = await supabase
       .from('guest_contacts')
       .select('*')
@@ -360,7 +360,7 @@ export const dataService = {
   },
 
   // Get bookings distribution by property
-  async getPropertyDistribution(tenantId = 'c24393db-d318-4d75-8bbf-0fa240b9c1db') {
+  async getPropertyDistribution(tenantId) {
     try {
       const { data: bookings, error } = await supabase
         .from('bookings')
@@ -404,7 +404,7 @@ export const dataService = {
   // ============================================
 
   // Get pricing data for all properties with dynamic calculations
-  async getPricingData(tenantId = 'c24393db-d318-4d75-8bbf-0fa240b9c1db') {
+  async getPricingData(tenantId) {
     try {
       console.log('📊 Fetching pricing data for tenant:', tenantId);
 
@@ -521,7 +521,7 @@ export const dataService = {
   },
 
   // Get overall pricing statistics
-  async getPricingStats(tenantId = 'c24393db-d318-4d75-8bbf-0fa240b9c1db') {
+  async getPricingStats(tenantId) {
     try {
       console.log('📊 Fetching pricing stats for tenant:', tenantId);
 
@@ -632,7 +632,7 @@ export const dataService = {
   // ============================================
 
   // Get multichannel integration data
-  async getMultichannelData(tenantId = 'c24393db-d318-4d75-8bbf-0fa240b9c1db') {
+  async getMultichannelData(tenantId) {
     try {
       console.log('📊 Fetching multichannel data for tenant:', tenantId);
 
@@ -785,7 +785,7 @@ export const dataService = {
   },
 
   // Get multichannel summary stats
-  async getMultichannelStats(tenantId = 'c24393db-d318-4d75-8bbf-0fa240b9c1db') {
+  async getMultichannelStats(tenantId) {
     try {
       const channels = await this.getMultichannelData(tenantId);
 

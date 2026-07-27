@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Building2, ChevronLeft, LayoutDashboard, Calendar, Home, CreditCard, MessageSquare, Sparkles, DollarSign, Megaphone, Share2, Workflow, BarChart3, Smartphone, Repeat, Star, Phone, Globe, ClipboardList, User, LogOut, Wifi, Shield, Zap, Bell, Search, CalendarDays, Settings, ArrowLeftRight, Rocket, Users, Menu, X, CheckCircle, Clock, AlertCircle } from 'lucide-react';
 import ModuleGridCard from './components/common/ModuleGridCard';
+import { ErrorBoundary } from './components/common';
 import { useAuth } from './contexts/AuthContext';
 import LoginPage from './components/Auth/LoginPage';
 
@@ -946,7 +947,9 @@ export default function App() {
         </div>
 
         {/* Content Area */}
-        {renderContent()}
+        <ErrorBoundary key={currentView}>
+          {renderContent()}
+        </ErrorBoundary>
       </div>
 
       {/* Voice Assistant - Solo visible en Overview */}

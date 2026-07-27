@@ -21,16 +21,6 @@ const GuestKPIs = ({ stats, guest, currency = 'USD' }) => {
       value: stats?.avgTicket || 0,
       format: 'currency',
     },
-    {
-      label: 'Rating',
-      value: stats?.avgRating || 0,
-      format: 'rating',
-    },
-    {
-      label: 'Customer Since',
-      value: guest?.created_at,
-      format: 'date',
-    },
   ];
 
   const formatValue = (value, format) => {
@@ -52,7 +42,7 @@ const GuestKPIs = ({ stats, guest, currency = 'USD' }) => {
   };
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+    <div className="grid grid-cols-3 gap-3">
       {kpis.map((kpi, index) => (
         <div
           key={index}

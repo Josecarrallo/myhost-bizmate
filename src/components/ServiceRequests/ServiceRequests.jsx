@@ -768,6 +768,7 @@ const ServiceRequests = ({ onBack }) => {
 
   // Format price
   const formatPrice = (price, currency) => {
+    if (price == null) return '—';
     if (currency === 'IDR') {
       return `IDR ${price.toLocaleString('id-ID')}`;
     }

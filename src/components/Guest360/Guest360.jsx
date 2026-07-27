@@ -339,16 +339,6 @@ const Guest360 = ({
             {/* Spacer to align with "All Bookings" title */}
             <div className="hidden md:block h-6" />
 
-            {/* Digital Checkin */}
-            <div className="bg-[#333b47] rounded-2xl border border-white/10 p-5">
-              <h3 className="text-sm font-semibold text-white mb-3">Digital Check-in</h3>
-              {digitalCheckin ? (
-                <p className="text-green-400 text-sm">Verified</p>
-              ) : (
-                <p className="text-[#6d7683] text-sm">Not completed</p>
-              )}
-            </div>
-
             {/* Guest Notes - from guest profile or bookings */}
             <div className="bg-[#333b47] rounded-2xl border border-white/10 p-5">
               <h3 className="text-sm font-semibold text-white mb-3">Guest Notes</h3>
