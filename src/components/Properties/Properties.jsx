@@ -24,7 +24,9 @@ import {
   Camera,
   Upload,
   Save,
-  Trash2
+  Trash2,
+  Menu,
+  PanelLeftOpen
 } from 'lucide-react';
 import { StatCard } from '../common';
 import { dataService } from '../../services/data';
@@ -33,9 +35,22 @@ import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import n8nService from '../../services/n8n';
 
-const Properties = ({ onBack }) => {
+const Properties = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
   const { user } = useAuth();
   const tenantId = user?.id;
+
+  // Auto-collapse sidebar on mount for full-screen view
+  useEffect(() => {
+    if (setSidebarCollapsed) {
+      setSidebarCollapsed(true);
+    }
+    // Restore sidebar when leaving this view
+    return () => {
+      if (setSidebarCollapsed) {
+        setSidebarCollapsed(false);
+      }
+    };
+  }, [setSidebarCollapsed]);
 
   const [viewMode, setViewMode] = useState('grid'); // 'grid' or 'table'
   const [selectedProperty, setSelectedProperty] = useState(null);
@@ -598,9 +613,26 @@ const Properties = ({ onBack }) => {
       <div className="max-w-7xl mx-auto relative z-10">
         {/* Header */}
         <div className="flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-4 mb-4 sm:mb-6">
-          <button onClick={onBack} className="lg:hidden self-start p-2 sm:p-3 bg-[#1f2937]/95 backdrop-blur-sm rounded-2xl hover:bg-[#1f2937] transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 border-2 border-[#d85a2a]/20">
-            <ChevronLeft className="w-5 h-5 sm:w-6 sm:h-6 text-[#FF8C42]" />
-          </button>
+          <div className="flex items-center gap-2 self-start">
+            {/* Sidebar toggle button (desktop only) */}
+            {setSidebarCollapsed && (
+              <button
+                onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+                className="hidden lg:flex p-2 sm:p-3 bg-[#1f2937]/95 backdrop-blur-sm rounded-2xl hover:bg-[#1f2937] transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 border-2 border-[#d85a2a]/20"
+                title={sidebarCollapsed ? 'Show menu' : 'Hide menu'}
+              >
+                {sidebarCollapsed ? (
+                  <Menu className="w-5 h-5 sm:w-6 sm:h-6 text-[#FF8C42]" />
+                ) : (
+                  <PanelLeftOpen className="w-5 h-5 sm:w-6 sm:h-6 text-[#93A4B8]" />
+                )}
+              </button>
+            )}
+            {/* Back button */}
+            <button onClick={onBack} className="p-2 sm:p-3 bg-[#1f2937]/95 backdrop-blur-sm rounded-2xl hover:bg-[#1f2937] transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 border-2 border-[#d85a2a]/20">
+              <ChevronLeft className="w-5 h-5 sm:w-6 sm:h-6 text-[#FF8C42]" />
+            </button>
+          </div>
           <div className="text-center flex-1">
             <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-black text-white drop-shadow-2xl">Properties</h2>
           </div>

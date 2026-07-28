@@ -29,15 +29,29 @@ import {
   Coffee,
   Palmtree,
   FileText,
-  Trash2
+  Trash2,
+  Menu,
+  PanelLeftOpen
 } from 'lucide-react';
 import { StatCard } from '../common';
 import { dataService } from '../../services/data';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
 
-const ServiceRequests = ({ onBack }) => {
+const ServiceRequests = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
   const { user, userData } = useAuth();
+
+  // Auto-collapse sidebar on mount for full-screen view
+  useEffect(() => {
+    if (setSidebarCollapsed) {
+      setSidebarCollapsed(true);
+    }
+    return () => {
+      if (setSidebarCollapsed) {
+        setSidebarCollapsed(false);
+      }
+    };
+  }, [setSidebarCollapsed]);
 
   // State for service requests data
   const [allRequests, setAllRequests] = useState([]);
@@ -865,6 +879,20 @@ const ServiceRequests = ({ onBack }) => {
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-4">
+          {/* Sidebar toggle button (desktop only) */}
+          {setSidebarCollapsed && (
+            <button
+              onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+              className="hidden lg:flex p-2 bg-[#1f2937]/95 backdrop-blur-sm rounded-xl hover:bg-[#1f2937] transition-all border border-[#d85a2a]/20"
+              title={sidebarCollapsed ? 'Show menu' : 'Hide menu'}
+            >
+              {sidebarCollapsed ? (
+                <Menu className="w-6 h-6 text-[#FF8C42]" />
+              ) : (
+                <PanelLeftOpen className="w-6 h-6 text-[#93A4B8]" />
+              )}
+            </button>
+          )}
           <button
             onClick={onBack}
             className="p-2 bg-[#1f2937]/95 backdrop-blur-sm rounded-xl hover:bg-orange-500 transition-all border border-[#d85a2a]/20"

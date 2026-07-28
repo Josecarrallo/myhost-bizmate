@@ -14,15 +14,29 @@ import {
   Home,
   CreditCard,
   AlertCircle,
-  ArrowLeft
+  ArrowLeft,
+  Menu,
+  PanelLeftOpen
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabaseService } from '../../services/supabase';
 import { supabase } from '../../lib/supabase';
 
-const ManualDataEntry = ({ onBack }) => {
+const ManualDataEntry = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
   const { user, userData } = useAuth();
   const [activeTab, setActiveTab] = useState('view-bookings'); // Start with view mode
+
+  // Auto-collapse sidebar on mount for full-screen view
+  useEffect(() => {
+    if (setSidebarCollapsed) {
+      setSidebarCollapsed(true);
+    }
+    return () => {
+      if (setSidebarCollapsed) {
+        setSidebarCollapsed(false);
+      }
+    };
+  }, [setSidebarCollapsed]);
 
   // UI states for loading and messages
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -1322,9 +1336,25 @@ const ManualDataEntry = ({ onBack }) => {
       <div className="w-full h-full relative z-10">
         {/* Header */}
         <div className="flex items-center justify-between mb-4">
-          <button onClick={onBack} className="p-2 bg-[#1f2937]/95 backdrop-blur-sm rounded-xl hover:bg-orange-500 transition-all border border-[#d85a2a]/20">
-            <ArrowLeft className="w-5 h-5 text-[#FF8C42]" />
-          </button>
+          <div className="flex items-center gap-2">
+            {/* Sidebar toggle button (desktop only) */}
+            {setSidebarCollapsed && (
+              <button
+                onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+                className="hidden lg:flex p-2 bg-[#1f2937]/95 backdrop-blur-sm rounded-xl hover:bg-[#1f2937] transition-all border border-[#d85a2a]/20"
+                title={sidebarCollapsed ? 'Show menu' : 'Hide menu'}
+              >
+                {sidebarCollapsed ? (
+                  <Menu className="w-5 h-5 text-[#FF8C42]" />
+                ) : (
+                  <PanelLeftOpen className="w-5 h-5 text-[#93A4B8]" />
+                )}
+              </button>
+            )}
+            <button onClick={onBack} className="p-2 bg-[#1f2937]/95 backdrop-blur-sm rounded-xl hover:bg-orange-500 transition-all border border-[#d85a2a]/20">
+              <ArrowLeft className="w-5 h-5 text-[#FF8C42]" />
+            </button>
+          </div>
           <div className="text-center">
             <h2 className="text-3xl font-black text-white drop-shadow-2xl">AUTOPILOT - Manual Data Entry</h2>
           </div>

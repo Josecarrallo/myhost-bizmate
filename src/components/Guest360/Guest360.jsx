@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { ArrowLeft, RefreshCw } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { ArrowLeft, RefreshCw, Menu, PanelLeftOpen } from 'lucide-react';
 
 // Hooks
 import useGuest360Data from './hooks/useGuest360Data';
@@ -41,9 +41,23 @@ const Guest360 = ({
   bookingId = null,
   userRole = 'owner',
   onBack,
+  setSidebarCollapsed,
+  sidebarCollapsed,
 }) => {
   // Internal guest phone state (allows selection from GuestSelector)
   const [selectedPhone, setSelectedPhone] = useState(initialGuestPhone);
+
+  // Auto-collapse sidebar on mount for full-screen view
+  useEffect(() => {
+    if (setSidebarCollapsed) {
+      setSidebarCollapsed(true);
+    }
+    return () => {
+      if (setSidebarCollapsed) {
+        setSidebarCollapsed(false);
+      }
+    };
+  }, [setSidebarCollapsed]);
 
   // Use selected phone or initial prop
   const guestPhone = selectedPhone || initialGuestPhone;
@@ -78,6 +92,8 @@ const Guest360 = ({
         tenantId={tenantId}
         onSelectGuest={(phone) => setSelectedPhone(phone)}
         onBack={onBack}
+        setSidebarCollapsed={setSidebarCollapsed}
+        sidebarCollapsed={sidebarCollapsed}
       />
     );
   }
@@ -162,6 +178,20 @@ const Guest360 = ({
 
         {/* Breadcrumb */}
         <div className="flex items-center gap-2 text-sm text-[#6d7683] mb-4">
+          {/* Sidebar toggle button (desktop only) */}
+          {setSidebarCollapsed && (
+            <button
+              onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+              className="hidden lg:flex p-2 bg-[#1f2937]/80 hover:bg-[#1f2937] rounded-xl transition-all mr-2"
+              title={sidebarCollapsed ? 'Show menu' : 'Hide menu'}
+            >
+              {sidebarCollapsed ? (
+                <Menu className="w-5 h-5 text-[#FF8C42]" />
+              ) : (
+                <PanelLeftOpen className="w-5 h-5 text-[#93A4B8]" />
+              )}
+            </button>
+          )}
           <button
             onClick={handleBack}
             className="flex items-center gap-1 hover:text-[#aab2bf] transition-colors"

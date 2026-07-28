@@ -7,6 +7,8 @@ import {
   ArrowLeft,
   RefreshCw,
   Users,
+  Menu,
+  PanelLeftOpen,
 } from 'lucide-react';
 import { supabase } from '../../../lib/supabase';
 import { LoadingSpinner, EmptyState } from './shared';
@@ -15,7 +17,7 @@ import { LoadingSpinner, EmptyState } from './shared';
  * GuestSelector - List of recent guests/bookings to select from
  * Shows when Guest360 is accessed without a specific guestPhone
  */
-const GuestSelector = ({ tenantId, onSelectGuest, onBack }) => {
+const GuestSelector = ({ tenantId, onSelectGuest, onBack, setSidebarCollapsed, sidebarCollapsed }) => {
   const [loading, setLoading] = useState(true);
   const [guests, setGuests] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -264,6 +266,20 @@ const GuestSelector = ({ tenantId, onSelectGuest, onBack }) => {
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
+            {/* Sidebar toggle button (desktop only) */}
+            {setSidebarCollapsed && (
+              <button
+                onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+                className="hidden lg:flex p-2 rounded-lg bg-[#333b47] hover:bg-[#3a434f] transition-colors"
+                title={sidebarCollapsed ? 'Show menu' : 'Hide menu'}
+              >
+                {sidebarCollapsed ? (
+                  <Menu className="w-5 h-5 text-[#FF8C42]" />
+                ) : (
+                  <PanelLeftOpen className="w-5 h-5 text-[#93A4B8]" />
+                )}
+              </button>
+            )}
             <button
               onClick={onBack}
               className="p-2 rounded-lg bg-[#333b47] hover:bg-[#3a434f] text-[#aab2bf] hover:text-white transition-colors"

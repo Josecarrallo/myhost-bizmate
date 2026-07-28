@@ -14,12 +14,26 @@ import {
   ThumbsDown,
   Calendar,
   MapPin,
-  TrendingUp
+  TrendingUp,
+  Menu,
+  PanelLeftOpen
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 
-const DecisionIntelligence = ({ onBack, tenantId }) => {
+const DecisionIntelligence = ({ onBack, tenantId, setSidebarCollapsed, sidebarCollapsed }) => {
   const [loading, setLoading] = useState(true);
+
+  // Auto-collapse sidebar on mount for full-screen view
+  useEffect(() => {
+    if (setSidebarCollapsed) {
+      setSidebarCollapsed(true);
+    }
+    return () => {
+      if (setSidebarCollapsed) {
+        setSidebarCollapsed(false);
+      }
+    };
+  }, [setSidebarCollapsed]);
   const [decisions, setDecisions] = useState([]);
   const [decisionContexts, setDecisionContexts] = useState({});
   const [autoResolvedExpanded, setAutoResolvedExpanded] = useState(true);
@@ -485,6 +499,20 @@ const DecisionIntelligence = ({ onBack, tenantId }) => {
   return (
     <div className="flex-1 h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black p-4 relative overflow-auto">
       <div className="flex items-center gap-4 mb-6">
+        {/* Sidebar toggle button (desktop only) */}
+        {setSidebarCollapsed && (
+          <button
+            onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+            className="hidden lg:flex p-3 bg-gray-800 hover:bg-gray-700 rounded-2xl transition-all"
+            title={sidebarCollapsed ? 'Show menu' : 'Hide menu'}
+          >
+            {sidebarCollapsed ? (
+              <Menu className="w-6 h-6 text-[#FF8C42]" />
+            ) : (
+              <PanelLeftOpen className="w-6 h-6 text-[#93A4B8]" />
+            )}
+          </button>
+        )}
         <button
           onClick={onBack}
           className="p-3 bg-gray-800 hover:bg-gray-700 rounded-2xl transition-all"
