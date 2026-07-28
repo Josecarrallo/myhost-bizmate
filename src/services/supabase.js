@@ -866,7 +866,7 @@ export const supabaseService = {
     return data;
   },
 
-  async getWhatsAppConversationsList(tenantId = null) {
+  async getWhatsAppConversationsList(tenantId = null, dateFrom = null, dateTo = null) {
     // Get all messages grouped by phone_number to build conversation list
     // Filter by tenant_id for multi-tenant security
     let query = supabase
@@ -879,7 +879,17 @@ export const supabaseService = {
       query = query.eq('tenant_id', tenantId);
     }
 
+    // Date range filters (only if provided)
+    if (dateFrom) {
+      query = query.gte('created_at', dateFrom);
+    }
+    if (dateTo) {
+      query = query.lte('created_at', dateTo + 'T23:59:59');
+    }
+
     const { data, error } = await query;
+
+    console.log('[getWhatsAppConversationsList] tenantId:', tenantId, 'dateFrom:', dateFrom, 'dateTo:', dateTo, 'results:', data?.length || 0);
 
     if (error) throw new Error('Failed to fetch conversations');
 
@@ -917,6 +927,72 @@ export const supabaseService = {
     // Convert to array and sort by last message date
     return Array.from(conversationsMap.values())
       .sort((a, b) => new Date(b.last_message.created_at) - new Date(a.last_message.created_at));
+  },
+
+  // Search conversations by phone number OR guest name (ignores date range)
+  async searchWhatsAppConversations(tenantId, searchQuery) {
+    const { data, error } = await supabase
+      .from('whatsapp_messages_v2')
+      .select('*')
+      .eq('tenant_id', tenantId)
+      .or(`phone_number.ilike.%${searchQuery}%,guest_name.ilike.%${searchQuery}%`)
+      .order('created_at', { ascending: false })
+      .limit(500);
+
+    if (error) throw new Error('Failed to search conversations');
+
+    // Group by phone_number (same logic as getWhatsAppConversationsList)
+    const conversationsMap = new Map();
+
+    (data || []).forEach(msg => {
+      const key = msg.phone_number;
+      if (!conversationsMap.has(key)) {
+        conversationsMap.set(key, {
+          phone_number: msg.phone_number,
+          channels: [msg.channel],
+          guest_name: msg.guest_name,
+          language_detected: msg.language_detected,
+          last_message: msg,
+          messages: [msg],
+          unread_count: 0
+        });
+      } else {
+        const conv = conversationsMap.get(key);
+        conv.messages.push(msg);
+        if (!conv.channels.includes(msg.channel)) {
+          conv.channels.push(msg.channel);
+        }
+        if (msg.language_detected && !conv.language_detected) {
+          conv.language_detected = msg.language_detected;
+        }
+      }
+    });
+
+    return Array.from(conversationsMap.values())
+      .sort((a, b) => new Date(b.last_message.created_at) - new Date(a.last_message.created_at));
+  },
+
+  // Delete a single WhatsApp message by ID
+  async deleteWhatsAppMessage(messageId) {
+    const { error } = await supabase
+      .from('whatsapp_messages_v2')
+      .delete()
+      .eq('id', messageId);
+
+    if (error) throw new Error(error.message || 'Failed to delete message');
+    return true;
+  },
+
+  // Delete entire conversation (all messages for a phone number)
+  async deleteWhatsAppConversation(phoneNumber, tenantId) {
+    const { error } = await supabase
+      .from('whatsapp_messages_v2')
+      .delete()
+      .eq('phone_number', phoneNumber)
+      .eq('tenant_id', tenantId);
+
+    if (error) throw new Error(error.message || 'Failed to delete conversation');
+    return true;
   },
 
   // =====================================================
@@ -1024,6 +1100,39 @@ export const supabaseService = {
                   }
                 });
               }
+            }
+          });
+        }
+      }
+
+      // Step 3: For phones STILL not found, try whatsapp_messages_v2.guest_name (WhatsApp profile name)
+      const stillMissingPhones = phoneNumbers.filter(p => !result[p]);
+      if (stillMissingPhones.length > 0) {
+        let waQuery = supabase
+          .from('whatsapp_messages_v2')
+          .select('phone_number, guest_name')
+          .not('guest_name', 'is', null);
+
+        if (tenantId) {
+          waQuery = waQuery.eq('tenant_id', tenantId);
+        }
+
+        const { data: waMessages } = await waQuery;
+
+        if (waMessages) {
+          waMessages.forEach(msg => {
+            if (msg.phone_number && msg.guest_name && msg.guest_name !== 'Guest') {
+              const normalizedWaPhone = (msg.phone_number || '').replace(/\D/g, '');
+              stillMissingPhones.forEach(mp => {
+                if (!result[mp]) {
+                  const normalizedMp = (mp || '').replace(/\D/g, '');
+                  if (normalizedWaPhone === normalizedMp ||
+                      normalizedWaPhone.endsWith(normalizedMp) ||
+                      normalizedMp.endsWith(normalizedWaPhone)) {
+                    result[mp] = msg.guest_name;
+                  }
+                }
+              });
             }
           });
         }
