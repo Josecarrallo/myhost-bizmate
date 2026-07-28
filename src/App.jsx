@@ -907,7 +907,7 @@ export default function App() {
         return <ManualDataEntry key="manual-entry" onBack={() => setCurrentView('overview')} />;
 
       case 'autopilot':
-        return <Autopilot key="autopilot" onBack={() => setCurrentView('overview')} />;
+        return <Autopilot key="autopilot" onBack={() => setCurrentView('overview')} setSidebarCollapsed={setSidebarCollapsed} sidebarCollapsed={sidebarCollapsed} />;
 
       case 'settings':
         // Placeholder for settings

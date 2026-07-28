@@ -59,6 +59,7 @@ import SpecializedReports from './SpecializedReports';
 import OwnerHome from './OwnerHome';
 import DecisionIntelligence from './DecisionIntelligence';
 import Guest360 from '../Guest360';
+import OwnerMessages from '../OwnerMessages/OwnerMessages';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
 import { generateReportHTML } from '../../services/generateReportHTML';
@@ -68,7 +69,7 @@ import { tasksService } from '../../services/tasksService';
 import { ownerDecisionsService } from '../../services/ownerDecisionsService';
 import { ownerSummariesService } from '../../services/ownerSummariesService';
 
-const Autopilot = ({ onBack }) => {
+const Autopilot = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
   const { userData } = useAuth();
 
   // Helper function to extract refund % from description and append to title
@@ -793,6 +794,13 @@ const Autopilot = ({ onBack }) => {
       name: 'Maintenance & Tasks',
       icon: Wrench,
       description: 'Operations',
+      badge: null
+    },
+    {
+      id: 'owner-messages',
+      name: 'Customer Communication',
+      icon: MessageSquare,
+      description: 'WhatsApp & KORA conversations',
       badge: null
     },
     {
@@ -10555,6 +10563,7 @@ const Autopilot = ({ onBack }) => {
           {activeSection === 'communication' && renderCommunicationSection()}
           {activeSection === 'website' && renderWebsiteSection()}
           {activeSection === 'tasks' && renderTasksSection()}
+          {activeSection === 'owner-messages' && <OwnerMessages onBack={() => setActiveSection('menu')} userData={userData} setSidebarCollapsed={setSidebarCollapsed} sidebarCollapsed={sidebarCollapsed} />}
           {activeSection === 'service-requests' && <ServiceRequests onBack={() => setActiveSection('menu')} />}
           {activeSection === 'decisions' && (
             ocsView === null ? renderOCSMenu() :

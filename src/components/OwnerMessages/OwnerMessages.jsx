@@ -590,17 +590,23 @@ const OwnerMessages = ({ onBack, userData, setSidebarCollapsed, sidebarCollapsed
     );
   };
 
-  // Loading state
-  if (loading) {
-    return (
-      <div className="flex-1 h-screen bg-[#0E1621] flex items-center justify-center">
-        <div className="text-center">
-          <RefreshCw className="w-8 h-8 text-[#F26F21] animate-spin mx-auto mb-4" />
-          <p className="text-[#EAF0F7] font-medium">Loading messages...</p>
+  // Skeleton loading component for conversations list
+  const ConversationSkeleton = () => (
+    <div className="animate-pulse">
+      {[1, 2, 3, 4, 5].map((i) => (
+        <div key={i} className="p-4 border-b border-[#212E40]">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 rounded-full bg-[#212E40]" />
+            <div className="flex-1">
+              <div className="h-4 bg-[#212E40] rounded w-32 mb-2" />
+              <div className="h-3 bg-[#212E40] rounded w-48" />
+            </div>
+            <div className="h-3 bg-[#212E40] rounded w-12" />
+          </div>
         </div>
-      </div>
-    );
-  }
+      ))}
+    </div>
+  );
 
   return (
     <div className="flex-1 h-screen bg-[#0E1621] flex flex-col overflow-hidden">
@@ -630,6 +636,7 @@ const OwnerMessages = ({ onBack, userData, setSidebarCollapsed, sidebarCollapsed
               <ChevronLeft className="w-5 h-5 text-[#93A4B8]" />
             </button>
             <h1 className="text-xl md:text-2xl font-bold text-[#F26F21]">Messages</h1>
+            {loading && <RefreshCw className="w-4 h-4 text-[#F26F21] animate-spin ml-2" />}
           </div>
 
           {/* Right side - Tenant filter (admin only) + New messages notification */}
@@ -930,7 +937,9 @@ const OwnerMessages = ({ onBack, userData, setSidebarCollapsed, sidebarCollapsed
 
           {/* Conversation list */}
           <div className="flex-1 overflow-y-auto">
-            {error ? (
+            {loading ? (
+              <ConversationSkeleton />
+            ) : error ? (
               <div className="p-4 text-center">
                 <AlertCircle className="w-8 h-8 text-red-400 mx-auto mb-2" />
                 <p className="text-sm text-red-400">{error}</p>

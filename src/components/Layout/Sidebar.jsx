@@ -104,7 +104,6 @@ const Sidebar = ({ currentView, onNavigate, isOpen, onClose, userData, collapsed
         { id: 'daily-operations', label: 'Daily Operations', icon: Clock, indent: true },
         { id: 'issues-tasks', label: 'Issues & Tasks', icon: AlertCircle, indent: true },
         { id: 'messages', label: 'Messages', icon: MessageSquare, indent: true },
-        { id: 'owner-messages', label: 'Messages (new)', icon: MessageSquare, indent: true },
 
         // Revenue & Pricing sub-section (MOVED from main menu)
         { id: 'revenue-pricing-header', label: 'Revenue & Pricing', isSubHeader: true, icon: DollarSign },
