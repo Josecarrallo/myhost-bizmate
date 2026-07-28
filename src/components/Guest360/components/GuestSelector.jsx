@@ -305,20 +305,25 @@ const GuestSelector = ({ tenantId, onSelectGuest, onBack, setSidebarCollapsed, s
           </button>
         </div>
 
-        {/* Filters - Row 1: Villa, Status, Search */}
-        <div className="flex flex-wrap gap-3 mb-3 items-center">
-          {/* Villa Filter */}
+        {/* Villa/Room Type Filter - Prominent first filter */}
+        <div className="mb-4">
+          <label className="text-xs text-[#8a93a1] uppercase tracking-wider mb-2 block font-semibold">
+            Select Villa / Room Type
+          </label>
           <select
             value={filterVilla}
             onChange={(e) => setFilterVilla(e.target.value)}
-            className="px-4 py-2.5 bg-[#333b47] border border-white/10 rounded-xl text-white text-sm focus:outline-none focus:border-[#f5791f]/50"
+            className="w-full md:w-auto md:min-w-[300px] px-4 py-3 bg-[#333b47] border-2 border-[#f5791f]/30 rounded-xl text-white text-base font-medium focus:outline-none focus:border-[#f5791f] transition-colors"
           >
-            <option value="">All Villas</option>
+            <option value="">All Villas / All Room Types</option>
             {villas.map(v => (
               <option key={v.id} value={v.id}>{v.name}</option>
             ))}
           </select>
+        </div>
 
+        {/* Filters - Row 1: Status + Search */}
+        <div className="flex flex-wrap gap-3 mb-3 items-center">
           {/* Status Filter */}
           <select
             value={filterStatus}
