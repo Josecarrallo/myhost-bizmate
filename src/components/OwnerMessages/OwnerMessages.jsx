@@ -30,7 +30,8 @@ import {
   Home,
   CreditCard,
   Headphones,
-  ExternalLink
+  ExternalLink,
+  Info
 } from 'lucide-react';
 import { supabaseService } from '../../services/supabase';
 import { supabase } from '../../lib/supabase';
@@ -103,6 +104,7 @@ const OwnerMessages = ({ onBack, userData, setSidebarCollapsed, sidebarCollapsed
     loading: false
   });
   const [showGuestPanel, setShowGuestPanel] = useState(false); // Panel colapsado por defecto - más espacio para conversación
+  const [showMobileGuestDrawer, setShowMobileGuestDrawer] = useState(false); // Drawer for mobile guest info
 
   // Filters
   const [searchQuery, setSearchQuery] = useState('');
@@ -1473,24 +1475,28 @@ const OwnerMessages = ({ onBack, userData, setSidebarCollapsed, sidebarCollapsed
                   </div>
 
                   {/* Info */}
-                  <div className="flex-1">
-                    <h2 className="font-semibold text-[#EAF0F7]">
+                  <div className="flex-1 min-w-0">
+                    <h2 className="font-semibold text-[#EAF0F7] truncate">
                       {selectedConversation.guest_name || 'Guest'}
                     </h2>
-                    <p className="text-xs text-[#93A4B8] flex items-center gap-2">
-                      {formatPhone(selectedConversation.phone_number)}
-                      {selectedConversation.language_detected && (
-                        <>
-                          <span>·</span>
-                          <Globe className="w-3 h-3" />
-                          <span>{selectedConversation.language_detected}</span>
-                        </>
-                      )}
-                      <span>·</span>
-                      <Bot className="w-3 h-3 text-[#F7B678]" />
-                      <span className="text-[#F7B678]">BANYU</span>
+                    <p className="text-xs text-[#93A4B8] flex items-center gap-2 flex-nowrap overflow-hidden">
+                      <span className="whitespace-nowrap">{formatPhone(selectedConversation.phone_number)}</span>
+                      <span className="hidden sm:inline">·</span>
+                      <span className="hidden sm:flex items-center gap-1">
+                        <Bot className="w-3 h-3 text-[#F7B678]" />
+                        <span className="text-[#F7B678]">BANYU</span>
+                      </span>
                     </p>
                   </div>
+
+                  {/* Guest info button (mobile only) */}
+                  <button
+                    onClick={() => setShowMobileGuestDrawer(true)}
+                    className="md:hidden p-2 text-[#93A4B8] hover:text-[#F26F21] hover:bg-[#212E40] rounded-lg transition-colors"
+                    title="Guest info"
+                  >
+                    <Info className="w-5 h-5" />
+                  </button>
 
                   {/* Delete conversation button */}
                   <button
@@ -1862,6 +1868,172 @@ const OwnerMessages = ({ onBack, userData, setSidebarCollapsed, sidebarCollapsed
                   </>
                 )}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Mobile Guest Info Drawer */}
+      {showMobileGuestDrawer && selectedConversation && (
+        <div className="fixed inset-0 z-50 md:hidden">
+          {/* Backdrop */}
+          <div
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            onClick={() => setShowMobileGuestDrawer(false)}
+          />
+
+          {/* Drawer - slides from right */}
+          <div className="absolute right-0 top-0 bottom-0 w-[85%] max-w-sm bg-[#0E1621] shadow-2xl overflow-y-auto animate-slideInRight">
+            {/* Header */}
+            <div className="sticky top-0 bg-[#172234] border-b border-[#212E40] p-4 flex items-center justify-between">
+              <h3 className="text-lg font-semibold text-[#EAF0F7]">Guest Info</h3>
+              <button
+                onClick={() => setShowMobileGuestDrawer(false)}
+                className="p-2 hover:bg-[#212E40] rounded-lg transition-colors"
+              >
+                <X className="w-5 h-5 text-[#93A4B8]" />
+              </button>
+            </div>
+
+            {/* Guest Header */}
+            <div className="p-4 border-b border-[#1e2a44]">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#F26F21] to-[#E15E12] flex items-center justify-center text-[#0E1621] font-bold">
+                  {selectedConversation.guest_name?.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) || 'GU'}
+                </div>
+                <div>
+                  <h4 className="font-semibold text-[#EAF0F7]">{selectedConversation.guest_name || 'Guest'}</h4>
+                  <p className="text-xs text-[#93A4B8]">{formatPhone(selectedConversation.phone_number)}</p>
+                </div>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {selectedConversation.language_detected && (
+                  <span className="px-2 py-0.5 bg-[#212E40] text-[#93A4B8] rounded text-[10px] font-medium flex items-center gap-1">
+                    <Globe className="w-3 h-3" />
+                    {selectedConversation.language_detected}
+                  </span>
+                )}
+                <span className="px-2 py-1 bg-[#1c3129] text-[#7FBE9E] rounded text-xs font-medium flex items-center gap-1.5">
+                  <WhatsAppLogo className="w-5 h-5" />
+                  WhatsApp
+                </span>
+                {conversationStatus[selectedConversation.phone_number]?.hasBooking ? (
+                  <span className="px-2 py-0.5 bg-[#1c3129] text-[#7FBE9E] rounded text-[10px] font-medium">Booking</span>
+                ) : conversationStatus[selectedConversation.phone_number]?.hasPendingRequest ? (
+                  <span className="px-2 py-0.5 bg-[#3E3115] text-[#F0C674] rounded text-[10px] font-medium">Needs action</span>
+                ) : (
+                  <span className="px-2 py-0.5 bg-[#212E40] text-[#93A4B8] rounded text-[10px] font-medium">Inquiry</span>
+                )}
+              </div>
+            </div>
+
+            {/* Current Reservation */}
+            <div className="p-4 border-b border-[#1e2a44]">
+              <p className="text-[10px] font-medium text-[#93A4B8] uppercase tracking-wider mb-3">
+                {guestContext.booking ? 'Current Reservation' : 'No Reservation Yet'}
+              </p>
+              {guestContext.booking ? (
+                <div className="space-y-2">
+                  <div className="flex justify-between">
+                    <span className="text-xs text-[#93A4B8]">Booking</span>
+                    <span className="text-xs font-mono text-[#7FBE9E] font-medium">{guestContext.booking.booking_code || '—'}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-xs text-[#93A4B8]">Villa</span>
+                    <span className="text-xs font-mono text-[#EAF0F7]">{guestContext.booking.villas?.name || guestContext.booking.villa_name || '—'}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-xs text-[#93A4B8]">Dates</span>
+                    <span className="text-xs font-mono text-[#EAF0F7]">
+                      {guestContext.booking.check_in ? new Date(guestContext.booking.check_in).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '—'}
+                      {' - '}
+                      {guestContext.booking.check_out ? new Date(guestContext.booking.check_out).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '—'}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-xs text-[#93A4B8]">Guests</span>
+                    <span className="text-xs font-mono text-[#EAF0F7]">{guestContext.booking.guests || guestContext.booking.num_guests || '—'}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-xs text-[#93A4B8]">Total</span>
+                    <span className="text-xs font-mono text-[#EAF0F7]">
+                      {formatPrice(guestContext.booking.total_price, guestContext.booking)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-xs text-[#93A4B8]">Status</span>
+                    <span className={`text-xs font-medium ${
+                      guestContext.booking.status === 'confirmed' ? 'text-[#7FBE9E]' :
+                      guestContext.booking.status === 'pending' ? 'text-[#F0C674]' :
+                      'text-[#93A4B8]'
+                    }`}>
+                      {guestContext.booking.status ? guestContext.booking.status.charAt(0).toUpperCase() + guestContext.booking.status.slice(1) : '—'}
+                    </span>
+                  </div>
+                </div>
+              ) : (
+                <div className="text-xs text-[#6d7c96]">
+                  <p className="mb-1">Source: {selectedConversation.channel || 'WhatsApp'}</p>
+                  <p>Status: Inquiry</p>
+                </div>
+              )}
+            </div>
+
+            {/* Channels Used */}
+            <div className="p-4 border-b border-[#1e2a44]">
+              <p className="text-[10px] font-medium text-[#93A4B8] uppercase tracking-wider mb-3">Channels Used by Guest</p>
+              {guestContext.channelsUsed.length > 0 ? (
+                <div className="space-y-2">
+                  {guestContext.channelsUsed.map((ch, idx) => (
+                    <div key={idx} className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        {getChannelIcon(ch.channel)}
+                        <span className="text-xs text-[#EAF0F7] capitalize">{ch.channel}</span>
+                      </div>
+                      <span className="text-[10px] text-[#6d7c96] font-mono">{formatTimeAgo(ch.lastUsed)}</span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <WhatsAppLogo className="w-6 h-6" />
+                  <span className="text-sm text-[#EAF0F7]">WhatsApp</span>
+                  <span className="text-xs text-[#6d7c96] font-mono ml-auto">Active</span>
+                </div>
+              )}
+            </div>
+
+            {/* Service Requests */}
+            <div className="p-4">
+              <p className="text-[10px] font-medium text-[#93A4B8] uppercase tracking-wider mb-3">Service Requests</p>
+              {guestContext.serviceRequests.length > 0 ? (
+                <div className="space-y-2">
+                  {guestContext.serviceRequests.map((req, idx) => (
+                    <div key={idx} className="p-3 bg-[#172234] rounded-lg border border-[#26314b]">
+                      <div className="flex items-start justify-between mb-1">
+                        <span className="text-xs font-medium text-[#EAF0F7]">{req.service_type || req.title || 'Service'}</span>
+                        <span className={`px-1.5 py-0.5 rounded text-[9px] font-medium ${
+                          req.status === 'pending' ? 'bg-[#3E3115] text-[#F0C674]' :
+                          req.status === 'completed' ? 'bg-[#1c3129] text-[#7FBE9E]' :
+                          'bg-[#212E40] text-[#93A4B8]'
+                        }`}>
+                          {req.status?.toUpperCase() || 'INFO'}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between text-[10px] text-[#6d7c96]">
+                        <span>{req.created_at ? new Date(req.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '—'}</span>
+                        <span className="font-mono">
+                          {formatPrice(req.price, guestContext.booking)}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="p-3 border border-dashed border-[#26314b] rounded-lg text-center">
+                  <p className="text-xs text-[#6d7c96]">No service requests for this guest</p>
+                </div>
+              )}
             </div>
           </div>
         </div>
