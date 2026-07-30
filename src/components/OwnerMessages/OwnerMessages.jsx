@@ -1,6 +1,7 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react'; // V2 Design
 import {
   ChevronLeft,
+  ChevronRight,
   Search,
   MessageSquare,
   Phone,
@@ -15,8 +16,6 @@ import {
   Clock,
   CheckCheck,
   AlertCircle,
-  Instagram,
-  Facebook,
   Monitor,
   Bell,
   Menu,
@@ -26,29 +25,19 @@ import {
   AlertTriangle,
   Send,
   Hand,
-  ArrowLeftRight
+  ArrowLeftRight,
+  Users,
+  Home,
+  CreditCard,
+  Headphones,
+  ExternalLink
 } from 'lucide-react';
 import { supabaseService } from '../../services/supabase';
 import { supabase } from '../../lib/supabase';
 
-// Real brand SVG logos
-const WhatsAppLogo = ({ className }) => (
-  <svg className={className} viewBox="0 0 24 24" fill="currentColor">
-    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
-  </svg>
-);
-
-const InstagramLogo = ({ className }) => (
-  <svg className={className} viewBox="0 0 24 24" fill="currentColor">
-    <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
-  </svg>
-);
-
-const FacebookLogo = ({ className }) => (
-  <svg className={className} viewBox="0 0 24 24" fill="currentColor">
-    <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
-  </svg>
-);
+// V2 Design - Official channel logos as local SVG components
+// Instagram: official camera icon, Facebook: official F logo
+import { WhatsAppLogo, InstagramLogo, FacebookLogo } from './icons';
 
 /**
  * OwnerMessages V1 - Read-only view of WhatsApp conversations
@@ -105,6 +94,15 @@ const OwnerMessages = ({ onBack, userData, setSidebarCollapsed, sidebarCollapsed
   const [takeoverLoading, setTakeoverLoading] = useState(false);
   const [takeoverError, setTakeoverError] = useState(null);
   const [countdownSeconds, setCountdownSeconds] = useState(0); // Seconds until takeover expires
+
+  // V2 Design - Guest context panel (right column)
+  const [guestContext, setGuestContext] = useState({
+    booking: null,
+    serviceRequests: [],
+    channelsUsed: [],
+    loading: false
+  });
+  const [showGuestPanel, setShowGuestPanel] = useState(false); // Panel colapsado por defecto - más espacio para conversación
 
   // Filters
   const [searchQuery, setSearchQuery] = useState('');
@@ -319,6 +317,8 @@ const OwnerMessages = ({ onBack, userData, setSidebarCollapsed, sidebarCollapsed
     loadConversationThread(conv.phone_number, null);
     // Check for active takeover (V1.5)
     checkTakeover(conv.phone_number);
+    // V2 Design - Load guest context for right panel
+    loadGuestContext(conv.phone_number, conv.guest_name);
   };
 
   // Open delete modal for conversation
@@ -416,6 +416,101 @@ const OwnerMessages = ({ onBack, userData, setSidebarCollapsed, sidebarCollapsed
     } catch (err) {
       console.error('Error checking takeover:', err);
       setActiveTakeover(null);
+    }
+  };
+
+  // V2 Design - Load guest context for right panel
+  const loadGuestContext = async (phoneNumber, guestName) => {
+    setGuestContext(prev => ({ ...prev, loading: true }));
+
+    try {
+      const tenantId = isAdmin ? selectedTenant : userData?.id;
+
+      // 1. Find booking by guest phone (with + prefix handling)
+      // Create unique variants (deduplicated)
+      const rawVariants = [phoneNumber, phoneNumber.replace(/^\+/, ''), `+${phoneNumber.replace(/^\+/, '')}`];
+      const phoneVariants = [...new Set(rawVariants.filter(p => p && p.length > 5))];
+
+      let booking = null;
+      for (const phone of phoneVariants) {
+        const { data: bookings } = await supabase
+          .from('bookings')
+          .select('*, villas(name, currency, property_id, properties(currency))')
+          .eq('tenant_id', tenantId)
+          .or(`guest_phone.eq.${phone},guest_name.ilike.%${guestName || ''}%`)
+          .order('check_in', { ascending: false })
+          .limit(1);
+
+        if (bookings && bookings.length > 0) {
+          booking = bookings[0];
+          break;
+        }
+      }
+
+      // 2. Get service requests for this booking or guest
+      let serviceRequests = [];
+      if (booking?.id) {
+        const { data: requests } = await supabase
+          .from('service_requests')
+          .select('*')
+          .eq('booking_id', booking.id)
+          .order('created_at', { ascending: false });
+
+        serviceRequests = requests || [];
+      }
+
+      // 3. Get channels used by this guest (from their messages)
+      // Filter out empty variants and use .or() instead of .in() for better compatibility
+      const validPhones = phoneVariants.filter(p => p && p.length > 5);
+      let channelData = [];
+      if (validPhones.length > 0) {
+        const orFilter = validPhones.map(p => `channel_user_id.eq.${p}`).join(',');
+        const { data } = await supabase
+          .from('whatsapp_messages_v2')
+          .select('channel, created_at')
+          .eq('tenant_id', tenantId)
+          .or(orFilter)
+          .order('created_at', { ascending: false });
+        channelData = data || [];
+      }
+
+      // Group by channel with last used time
+      const channelMap = {};
+      (channelData || []).forEach(msg => {
+        if (!channelMap[msg.channel]) {
+          channelMap[msg.channel] = msg.created_at;
+        }
+      });
+
+      const channelsUsed = Object.entries(channelMap).map(([channel, lastUsed]) => ({
+        channel,
+        lastUsed
+      }));
+
+      // Debug: log booking data to see currency fields
+      console.log('Guest context booking data:', {
+        booking_currency: booking?.currency,
+        villa_currency: booking?.villas?.currency,
+        property_currency: booking?.villas?.properties?.currency,
+        total_price: booking?.total_price,
+        booking_code: booking?.booking_code,
+        full_booking: booking
+      });
+
+      setGuestContext({
+        booking,
+        serviceRequests,
+        channelsUsed,
+        loading: false
+      });
+    } catch (err) {
+      console.error('Error loading guest context:', err);
+      setGuestContext({
+        booking: null,
+        serviceRequests: [],
+        channelsUsed: [],
+        loading: false
+      });
     }
   };
 
@@ -620,6 +715,64 @@ const OwnerMessages = ({ onBack, userData, setSidebarCollapsed, sidebarCollapsed
     return phone;
   };
 
+  // V2 Design - Format time ago for channels used
+  const formatTimeAgo = (dateStr) => {
+    if (!dateStr) return '';
+    const date = new Date(dateStr);
+    const now = new Date();
+    const diffMs = now - date;
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+
+    if (diffMins < 1) return 'Just now';
+    if (diffMins < 60) return `${diffMins} min ago`;
+    if (diffHours < 24) return `${diffHours}h ago`;
+    if (diffDays === 1) return 'Yesterday';
+    if (diffDays < 7) return `${diffDays} days ago`;
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  };
+
+  // V2 Design - Get channel icon component (logos have built-in colors)
+  const getChannelIcon = (channel) => {
+    switch (channel?.toLowerCase()) {
+      case 'whatsapp':
+        return <WhatsAppLogo className="w-6 h-6" />;
+      case 'instagram':
+        return <InstagramLogo className="w-6 h-6" />;
+      case 'facebook':
+        return <FacebookLogo className="w-6 h-6" />;
+      case 'voice':
+      case 'kora':
+        return <Headphones className="w-6 h-6 text-[#2dd4bf]" />;
+      case 'web':
+        return <Monitor className="w-6 h-6 text-[#8b9bf5]" />;
+      default:
+        return <MessageSquare className="w-4 h-4 text-[#93A4B8]" />;
+    }
+  };
+
+  // V2 Design - Format price with correct currency
+  const formatPrice = (amount, booking) => {
+    if (amount === null || amount === undefined) return '—';
+    if (amount === 0) return 'No cost';
+
+    // Get currency from villa > property > booking (villa/property are more reliable)
+    const currency = booking?.villas?.currency || booking?.villas?.properties?.currency || booking?.currency || 'USD';
+
+    // Format based on currency
+    if (currency === 'IDR') {
+      // Indonesian Rupiah - format as "Rp 7,650,000" or "7.65M IDR" for large amounts
+      if (amount >= 1000000) {
+        return `${(amount / 1000000).toFixed(1)}M IDR`;
+      }
+      return `Rp ${amount.toLocaleString('id-ID')}`;
+    } else {
+      // USD and other currencies
+      return `$${amount.toLocaleString()}`;
+    }
+  };
+
   // Format snippet for conversation list (fixes bug b + c from spec 6.3)
   const formatSnippet = (msg) => {
     if (!msg) return 'No messages';
@@ -658,18 +811,6 @@ const OwnerMessages = ({ onBack, userData, setSidebarCollapsed, sidebarCollapsed
 
     // Inbound messages (from guest) - no prefix
     return msg.message_text || 'No messages';
-  };
-
-  // Get channel icon
-  const getChannelIcon = (channel) => {
-    switch (channel) {
-      case 'whatsapp':
-        return <MessageSquare className="w-3 h-3 text-[#25A56A]" />;
-      case 'voice':
-        return <Phone className="w-3 h-3 text-[#0EA5A5]" />;
-      default:
-        return <MessageSquare className="w-3 h-3 text-gray-400" />;
-    }
   };
 
   // Render message bubble
@@ -935,26 +1076,26 @@ const OwnerMessages = ({ onBack, userData, setSidebarCollapsed, sidebarCollapsed
         <div className="overflow-x-auto mt-3 pb-1 -mx-4 px-4">
           <div className="flex items-center gap-2 min-w-max">
             {/* Active channels */}
-            <div className="flex items-center gap-1.5 px-2.5 py-1.5 bg-[#25D366]/20 border border-[#25D366]/40 rounded-lg">
-              <WhatsAppLogo className="w-4 h-4 text-[#25D366]" />
-              <span className="text-xs font-bold text-[#25D366]">WhatsApp</span>
+            <div className="flex items-center gap-2 px-3 py-2 bg-[#25D366]/20 border border-[#25D366]/50 rounded-lg">
+              <WhatsAppLogo className="w-6 h-6" />
+              <span className="text-sm font-extrabold text-white tracking-wide">BANYU</span>
             </div>
-            <div className="flex items-center gap-1.5 px-2.5 py-1.5 bg-[#0EA5A5]/20 border border-[#0EA5A5]/40 rounded-lg">
-              <Phone className="w-4 h-4 text-[#0EA5A5]" />
-              <span className="text-xs font-bold text-[#0EA5A5]">KORA</span>
+            <div className="flex items-center gap-2 px-3 py-2 bg-[#0EA5A5]/20 border border-[#0EA5A5]/50 rounded-lg">
+              <Phone className="w-6 h-6 text-[#0EA5A5]" />
+              <span className="text-sm font-extrabold text-white tracking-wide">KORA</span>
             </div>
             {/* Coming soon channels */}
-            <div className="flex items-center gap-1.5 px-2.5 py-1.5 bg-gradient-to-r from-[#833AB4]/10 via-[#E1306C]/10 to-[#F77737]/10 border border-[#E1306C]/30 rounded-lg opacity-60">
-              <InstagramLogo className="w-4 h-4 text-[#E1306C]" />
-              <span className="text-xs font-medium text-[#E1306C]">Instagram</span>
+            <div className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-[#833AB4]/15 via-[#E1306C]/15 to-[#F77737]/15 border border-[#E1306C]/40 rounded-lg opacity-70">
+              <InstagramLogo className="w-6 h-6" />
+              <span className="text-sm font-bold text-white/90 tracking-wide">Instagram</span>
             </div>
-            <div className="flex items-center gap-1.5 px-2.5 py-1.5 bg-[#1877F2]/10 border border-[#1877F2]/30 rounded-lg opacity-60">
-              <FacebookLogo className="w-4 h-4 text-[#1877F2]" />
-              <span className="text-xs font-medium text-[#1877F2]">Facebook</span>
+            <div className="flex items-center gap-2 px-3 py-2 bg-[#1877F2]/15 border border-[#1877F2]/40 rounded-lg opacity-70">
+              <FacebookLogo className="w-6 h-6" />
+              <span className="text-sm font-bold text-white/90 tracking-wide">Facebook</span>
             </div>
-            <div className="flex items-center gap-1.5 px-2.5 py-1.5 bg-[#5A6BF0]/10 border border-[#5A6BF0]/30 rounded-lg opacity-60">
-              <Globe className="w-4 h-4 text-[#5A6BF0]" />
-              <span className="text-xs font-medium text-[#5A6BF0]">Web</span>
+            <div className="flex items-center gap-2 px-3 py-2 bg-[#5A6BF0]/15 border border-[#5A6BF0]/40 rounded-lg opacity-70">
+              <Globe className="w-6 h-6 text-[#5A6BF0]" />
+              <span className="text-sm font-bold text-white/90 tracking-wide">Web</span>
             </div>
           </div>
         </div>
@@ -1468,6 +1609,173 @@ const OwnerMessages = ({ onBack, userData, setSidebarCollapsed, sidebarCollapsed
             </div>
           )}
         </div>
+
+        {/* Toggle button for Guest Panel - Always visible when conversation selected */}
+        {selectedConversation && (
+          <button
+            onClick={() => setShowGuestPanel(!showGuestPanel)}
+            className="hidden md:flex items-center justify-center w-6 bg-[#1a2332] hover:bg-[#212E40] border-l border-[#212E40] transition-colors"
+            title={showGuestPanel ? 'Hide guest info' : 'Show guest info'}
+          >
+            <ChevronRight className={`w-4 h-4 text-[#93A4B8] transition-transform ${showGuestPanel ? 'rotate-180' : ''}`} />
+          </button>
+        )}
+
+        {/* V2 Design - Right panel - Guest context (316px, collapsible) */}
+        {selectedConversation && showGuestPanel && (
+          <div className="hidden md:flex flex-col w-[316px] min-w-[316px] border-l border-[#212E40] bg-[#0E1621] overflow-y-auto">
+            {guestContext.loading ? (
+              <div className="flex items-center justify-center h-32">
+                <RefreshCw className="w-5 h-5 text-[#F26F21] animate-spin" />
+              </div>
+            ) : (
+              <>
+                {/* GUEST Section */}
+                <div className="p-4 border-b border-[#1e2a44]">
+                  <p className="text-[10px] font-medium text-[#93A4B8] uppercase tracking-wider mb-3">Guest</p>
+                  <div className="flex items-center gap-3 mb-3">
+                    {/* Avatar naranja con iniciales blancas */}
+                    <div className="w-12 h-12 rounded-full bg-[#F26F21] flex items-center justify-center text-white font-bold text-base">
+                      {selectedConversation.guest_name?.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) || 'GU'}
+                    </div>
+                    <div>
+                      <p className="font-semibold text-[#EAF0F7]">{selectedConversation.guest_name || 'Guest'}</p>
+                      <p className="text-xs text-[#93A4B8] font-mono">{formatPhone(selectedConversation.phone_number)}</p>
+                    </div>
+                  </div>
+                  {/* Mini tags */}
+                  <div className="flex flex-wrap gap-1.5">
+                    {selectedConversation.language_detected && (
+                      <span className="px-2 py-0.5 bg-[#212E40] rounded text-[10px] font-medium text-[#93A4B8]">
+                        {selectedConversation.language_detected.toUpperCase()}
+                      </span>
+                    )}
+                    <span className="px-2 py-1 bg-[#1c3129] text-[#7FBE9E] rounded text-xs font-medium flex items-center gap-1.5">
+                      <WhatsAppLogo className="w-5 h-5" />
+                      WhatsApp
+                    </span>
+                    {conversationStatus[selectedConversation.phone_number]?.hasBooking ? (
+                      <span className="px-2 py-0.5 bg-[#1c3129] text-[#7FBE9E] rounded text-[10px] font-medium">Booking</span>
+                    ) : conversationStatus[selectedConversation.phone_number]?.hasPendingRequest ? (
+                      <span className="px-2 py-0.5 bg-[#3E3115] text-[#F0C674] rounded text-[10px] font-medium">Needs action</span>
+                    ) : (
+                      <span className="px-2 py-0.5 bg-[#212E40] text-[#93A4B8] rounded text-[10px] font-medium">Inquiry</span>
+                    )}
+                  </div>
+                </div>
+
+                {/* CURRENT RESERVATION Section */}
+                <div className="p-4 border-b border-[#1e2a44]">
+                  <p className="text-[10px] font-medium text-[#93A4B8] uppercase tracking-wider mb-3">
+                    {guestContext.booking ? 'Current Reservation' : 'No Reservation Yet'}
+                  </p>
+                  {guestContext.booking ? (
+                    <div className="space-y-2">
+                      <div className="flex justify-between">
+                        <span className="text-xs text-[#93A4B8]">Booking</span>
+                        <span className="text-xs font-mono text-[#7FBE9E] font-medium">{guestContext.booking.booking_code || '—'}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-xs text-[#93A4B8]">Villa</span>
+                        <span className="text-xs font-mono text-[#EAF0F7]">{guestContext.booking.villas?.name || guestContext.booking.villa_name || '—'}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-xs text-[#93A4B8]">Dates</span>
+                        <span className="text-xs font-mono text-[#EAF0F7]">
+                          {guestContext.booking.check_in ? new Date(guestContext.booking.check_in).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '—'}
+                          {' - '}
+                          {guestContext.booking.check_out ? new Date(guestContext.booking.check_out).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '—'}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-xs text-[#93A4B8]">Guests</span>
+                        <span className="text-xs font-mono text-[#EAF0F7]">{guestContext.booking.guests || guestContext.booking.num_guests || '—'}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-xs text-[#93A4B8]">Total</span>
+                        <span className="text-xs font-mono text-[#EAF0F7]">
+                          {formatPrice(guestContext.booking.total_price, guestContext.booking)}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-xs text-[#93A4B8]">Status</span>
+                        <span className={`text-xs font-medium ${
+                          guestContext.booking.status === 'confirmed' ? 'text-[#7FBE9E]' :
+                          guestContext.booking.status === 'pending' ? 'text-[#F0C674]' :
+                          'text-[#93A4B8]'
+                        }`}>
+                          {guestContext.booking.status ? guestContext.booking.status.charAt(0).toUpperCase() + guestContext.booking.status.slice(1) : '—'}
+                        </span>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="text-xs text-[#6d7c96]">
+                      <p className="mb-1">Source: {selectedConversation.channel || 'WhatsApp'}</p>
+                      <p>Status: Inquiry</p>
+                    </div>
+                  )}
+                </div>
+
+                {/* CHANNELS USED BY GUEST Section */}
+                <div className="p-4 border-b border-[#1e2a44]">
+                  <p className="text-[10px] font-medium text-[#93A4B8] uppercase tracking-wider mb-3">Channels Used by Guest</p>
+                  {guestContext.channelsUsed.length > 0 ? (
+                    <div className="space-y-2">
+                      {guestContext.channelsUsed.map((ch, idx) => (
+                        <div key={idx} className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            {getChannelIcon(ch.channel)}
+                            <span className="text-xs text-[#EAF0F7] capitalize">{ch.channel}</span>
+                          </div>
+                          <span className="text-[10px] text-[#6d7c96] font-mono">{formatTimeAgo(ch.lastUsed)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <WhatsAppLogo className="w-6 h-6" />
+                      <span className="text-sm text-[#EAF0F7]">WhatsApp</span>
+                      <span className="text-xs text-[#6d7c96] font-mono ml-auto">Active</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* SERVICE REQUESTS Section */}
+                <div className="p-4">
+                  <p className="text-[10px] font-medium text-[#93A4B8] uppercase tracking-wider mb-3">Service Requests</p>
+                  {guestContext.serviceRequests.length > 0 ? (
+                    <div className="space-y-2">
+                      {guestContext.serviceRequests.map((req, idx) => (
+                        <div key={idx} className="p-3 bg-[#172234] rounded-lg border border-[#26314b]">
+                          <div className="flex items-start justify-between mb-1">
+                            <span className="text-xs font-medium text-[#EAF0F7]">{req.service_type || req.title || 'Service'}</span>
+                            <span className={`px-1.5 py-0.5 rounded text-[9px] font-medium ${
+                              req.status === 'pending' ? 'bg-[#3E3115] text-[#F0C674]' :
+                              req.status === 'completed' ? 'bg-[#1c3129] text-[#7FBE9E]' :
+                              'bg-[#212E40] text-[#93A4B8]'
+                            }`}>
+                              {req.status?.toUpperCase() || 'INFO'}
+                            </span>
+                          </div>
+                          <div className="flex items-center justify-between text-[10px] text-[#6d7c96]">
+                            <span>{req.created_at ? new Date(req.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '—'}</span>
+                            <span className="font-mono">
+                              {formatPrice(req.price, guestContext.booking)}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="p-3 border border-dashed border-[#26314b] rounded-lg text-center">
+                      <p className="text-xs text-[#6d7c96]">No service requests for this guest</p>
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Delete Confirmation Modal */}
