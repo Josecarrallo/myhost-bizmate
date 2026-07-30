@@ -1012,23 +1012,60 @@ export const supabaseService = {
   },
 
   async updateConversationReadState(channel, channelUserId, tenantId) {
-    const { data, error } = await supabase
-      .from('conversation_read_state')
-      .upsert({
-        tenant_id: tenantId,
-        channel: channel,
-        channel_user_id: channelUserId,
-        user_id: tenantId,
-        last_read_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      }, {
-        onConflict: 'tenant_id,channel,channel_user_id,user_id'
-      })
-      .select()
-      .single();
+    try {
+      // First try to update existing record
+      const { data: existing } = await supabase
+        .from('conversation_read_state')
+        .select('id')
+        .eq('tenant_id', tenantId)
+        .eq('channel', channel)
+        .eq('channel_user_id', channelUserId)
+        .maybeSingle();
 
-    if (error) throw new Error(error.message || 'Failed to update read state');
-    return data;
+      const now = new Date().toISOString();
+
+      if (existing) {
+        // Update existing
+        const { data, error } = await supabase
+          .from('conversation_read_state')
+          .update({
+            last_read_at: now,
+            updated_at: now
+          })
+          .eq('id', existing.id)
+          .select()
+          .single();
+
+        if (error) {
+          console.error('Error updating read state:', error);
+          return null;
+        }
+        return data;
+      } else {
+        // Insert new
+        const { data, error } = await supabase
+          .from('conversation_read_state')
+          .insert({
+            tenant_id: tenantId,
+            channel: channel,
+            channel_user_id: channelUserId,
+            user_id: tenantId,
+            last_read_at: now,
+            updated_at: now
+          })
+          .select()
+          .single();
+
+        if (error) {
+          console.error('Error inserting read state:', error);
+          return null;
+        }
+        return data;
+      }
+    } catch (err) {
+      console.error('Error in updateConversationReadState:', err);
+      return null;
+    }
   },
 
   // Resolve guest names from bookings/guests by phone numbers
@@ -1197,6 +1234,125 @@ export const supabaseService = {
 
     if (error) throw new Error(error.message || 'Failed to release takeover');
     return data;
+  },
+
+  // =====================================================
+  // CONVERSATION STATUS - Get booking/service_request status by phone
+  // Used for status chips in OwnerMessages (Needs action / Booking / Inquiry)
+  // =====================================================
+
+  async getConversationStatusData(phoneNumbers, tenantId) {
+    if (!phoneNumbers || phoneNumbers.length === 0) return {};
+
+    const result = {};
+    const today = new Date().toISOString().split('T')[0];
+
+    // Normalize phone numbers for matching
+    const normalizedPhones = phoneNumbers.map(p => (p || '').replace(/\D/g, ''));
+
+    try {
+      // 1. Get pending service_requests
+      let srQuery = supabase
+        .from('service_requests')
+        .select('guest_phone, status')
+        .eq('status', 'pending')
+        .not('guest_phone', 'is', null);
+
+      if (tenantId) {
+        srQuery = srQuery.eq('tenant_id', tenantId);
+      }
+
+      const { data: serviceRequests } = await srQuery;
+
+      // 2. Get active/future bookings (check_out >= today)
+      let bookingsQuery = supabase
+        .from('bookings')
+        .select('guest_phone, check_in, check_out, status')
+        .gte('check_out', today)
+        .not('guest_phone', 'is', null)
+        .neq('status', 'cancelled');
+
+      if (tenantId) {
+        bookingsQuery = bookingsQuery.eq('tenant_id', tenantId);
+      }
+
+      const { data: bookings } = await bookingsQuery;
+
+      // Initialize all phones as "inquiry" (default)
+      phoneNumbers.forEach(phone => {
+        result[phone] = { hasBooking: false, hasPendingRequest: false };
+      });
+
+      // Match service requests by phone
+      if (serviceRequests) {
+        serviceRequests.forEach(sr => {
+          const normalizedSrPhone = (sr.guest_phone || '').replace(/\D/g, '');
+          normalizedPhones.forEach((np, idx) => {
+            if (normalizedSrPhone === np ||
+                normalizedSrPhone.endsWith(np) ||
+                np.endsWith(normalizedSrPhone)) {
+              result[phoneNumbers[idx]].hasPendingRequest = true;
+            }
+          });
+        });
+      }
+
+      // Match bookings by phone
+      if (bookings) {
+        bookings.forEach(b => {
+          const normalizedBookingPhone = (b.guest_phone || '').replace(/\D/g, '');
+          normalizedPhones.forEach((np, idx) => {
+            if (normalizedBookingPhone === np ||
+                normalizedBookingPhone.endsWith(np) ||
+                np.endsWith(normalizedBookingPhone)) {
+              result[phoneNumbers[idx]].hasBooking = true;
+            }
+          });
+        });
+      }
+    } catch (err) {
+      console.error('Error fetching conversation status data:', err);
+    }
+
+    return result;
+  },
+
+  // =====================================================
+  // BATCH READ STATE - Get read state for multiple conversations
+  // Returns { phoneNumber: { lastReadAt, isUnread } }
+  // =====================================================
+
+  async getConversationReadStates(phoneNumbers, tenantId) {
+    if (!phoneNumbers || phoneNumbers.length === 0) return {};
+
+    const result = {};
+
+    // Initialize all as "never read"
+    phoneNumbers.forEach(phone => {
+      result[phone] = { lastReadAt: null, isUnread: true };
+    });
+
+    try {
+      // Get read states for this tenant/user
+      const { data: readStates } = await supabase
+        .from('conversation_read_state')
+        .select('channel_user_id, last_read_at')
+        .eq('tenant_id', tenantId)
+        .eq('channel', 'whatsapp')
+        .in('channel_user_id', phoneNumbers);
+
+      if (readStates) {
+        readStates.forEach(rs => {
+          if (rs.channel_user_id && result[rs.channel_user_id]) {
+            result[rs.channel_user_id].lastReadAt = rs.last_read_at;
+          }
+        });
+      }
+    } catch (err) {
+      console.error('Error fetching read states:', err);
+    }
+
+    return result;
   },
 
   subscribeToWhatsAppMessages(callback, tenantId = null) {

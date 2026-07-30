@@ -22,7 +22,8 @@ import {
   Menu,
   PanelLeftOpen,
   Trash2,
-  MoreVertical
+  MoreVertical,
+  AlertTriangle
 } from 'lucide-react';
 import { supabaseService } from '../../services/supabase';
 
@@ -72,7 +73,17 @@ const OwnerMessages = ({ onBack, userData, setSidebarCollapsed, sidebarCollapsed
 
   // State
   const [conversations, setConversations] = useState([]);
+  const [conversationStatus, setConversationStatus] = useState({}); // { phoneNumber: { hasBooking, hasPendingRequest } }
+  const [readStates, setReadStates] = useState({}); // { phoneNumber: { lastReadAt } }
   const [selectedConversation, setSelectedConversation] = useState(null);
+
+  // Delete confirmation modal state
+  const [deleteModal, setDeleteModal] = useState({
+    isOpen: false,
+    type: null, // 'conversation' or 'message'
+    target: null, // the conversation or message to delete
+    loading: false
+  });
   const [conversationThread, setConversationThread] = useState([]);
   const [loading, setLoading] = useState(true);
   const [threadLoading, setThreadLoading] = useState(false);
@@ -203,7 +214,17 @@ const OwnerMessages = ({ onBack, userData, setSidebarCollapsed, sidebarCollapsed
       // (so if user searches "Guest", they see "Guest" not the resolved name)
       if (data && data.length > 0) {
         const phoneNumbers = data.map(c => c.phone_number).filter(Boolean);
-        const guestNames = await supabaseService.resolveGuestNamesByPhone(phoneNumbers, tenantId);
+
+        // Fetch guest names, conversation status, and read states in parallel
+        const [guestNames, statusData, readStateData] = await Promise.all([
+          supabaseService.resolveGuestNamesByPhone(phoneNumbers, tenantId),
+          supabaseService.getConversationStatusData(phoneNumbers, tenantId),
+          supabaseService.getConversationReadStates(phoneNumbers, tenantId)
+        ]);
+
+        // Store status data for chips
+        setConversationStatus(statusData);
+        setReadStates(readStateData);
 
         // Enrich conversations with real names
         const searchLower = searchMode ? searchQuery.trim().toLowerCase() : '';
@@ -262,7 +283,13 @@ const OwnerMessages = ({ onBack, userData, setSidebarCollapsed, sidebarCollapsed
 
       // Mark as read - use 'whatsapp' as default channel for read state
       if (userData?.id) {
-        await supabaseService.updateConversationReadState('whatsapp', phoneNumber, userData.id);
+        const tenantForRead = isAdmin ? selectedTenant : userData.id;
+        await supabaseService.updateConversationReadState('whatsapp', phoneNumber, tenantForRead);
+        // Update local state to remove "New" badge immediately
+        setReadStates(prev => ({
+          ...prev,
+          [phoneNumber]: { lastReadAt: new Date().toISOString() }
+        }));
       }
     } catch (err) {
       console.error('Error loading thread:', err);
@@ -277,68 +304,81 @@ const OwnerMessages = ({ onBack, userData, setSidebarCollapsed, sidebarCollapsed
     loadConversationThread(conv.phone_number, null);
   };
 
-  // Delete entire conversation
-  const handleDeleteConversation = async (conv, e) => {
+  // Open delete modal for conversation
+  const handleDeleteConversation = (conv, e) => {
     e.stopPropagation(); // Don't select the conversation
-    const guestDisplay = conv.guest_name || conv.phone_number;
-    const confirmDelete = window.confirm(
-      `Delete conversation with ${guestDisplay}?\n\nThis will remove all messages from your records. The guest will still have the messages on their phone.`
-    );
-    if (!confirmDelete) return;
+    setDeleteModal({
+      isOpen: true,
+      type: 'conversation',
+      target: conv,
+      loading: false
+    });
+  };
+
+  // Open delete modal for message
+  const handleDeleteMessage = (msg) => {
+    setDeleteModal({
+      isOpen: true,
+      type: 'message',
+      target: msg,
+      loading: false
+    });
+  };
+
+  // Execute the delete action
+  const executeDelete = async () => {
+    setDeleteModal(prev => ({ ...prev, loading: true }));
 
     try {
-      const tenantId = isAdmin ? selectedTenant : userData?.id;
-      console.log('Deleting conversation:', { phone: conv.phone_number, tenantId });
+      if (deleteModal.type === 'conversation') {
+        const conv = deleteModal.target;
+        const tenantId = isAdmin ? selectedTenant : userData?.id;
 
-      const result = await supabaseService.deleteWhatsAppConversation(conv.phone_number, tenantId);
-      console.log('Delete result:', result);
+        await supabaseService.deleteWhatsAppConversation(conv.phone_number, tenantId);
 
-      // Remove from local state
-      setConversations(prev => prev.filter(c => c.phone_number !== conv.phone_number));
+        // Remove from local state
+        setConversations(prev => prev.filter(c => c.phone_number !== conv.phone_number));
 
-      // Clear selection if this was the selected conversation
-      if (selectedConversation?.phone_number === conv.phone_number) {
-        setSelectedConversation(null);
-        setConversationThread([]);
+        // Clear selection if this was the selected conversation
+        if (selectedConversation?.phone_number === conv.phone_number) {
+          setSelectedConversation(null);
+          setConversationThread([]);
+        }
+      } else if (deleteModal.type === 'message') {
+        const msg = deleteModal.target;
+
+        await supabaseService.deleteWhatsAppMessage(msg.id);
+
+        // Remove from thread
+        setConversationThread(prev => prev.filter(m => m.id !== msg.id));
+
+        // Update conversation list
+        setConversations(prev => prev.map(conv => {
+          if (conv.phone_number === selectedConversation?.phone_number) {
+            const updatedMessages = conv.messages.filter(m => m.id !== msg.id);
+            return {
+              ...conv,
+              messages: updatedMessages,
+              last_message: updatedMessages[0] || null
+            };
+          }
+          return conv;
+        }));
       }
+
+      // Close modal on success
+      setDeleteModal({ isOpen: false, type: null, target: null, loading: false });
     } catch (err) {
-      console.error('Error deleting conversation:', err);
-      // Show the actual error message
-      const errorMsg = err?.message || 'Unknown error';
-      alert(`Error deleting conversation:\n${errorMsg}`);
+      console.error('Error deleting:', err);
+      setDeleteModal(prev => ({ ...prev, loading: false }));
+      // Keep modal open to show error - user can try again or cancel
     }
   };
 
-  // Delete single message
-  const handleDeleteMessage = async (msg) => {
-    const confirmDelete = window.confirm(
-      'Delete this message?\n\nThe guest will still have this message on their phone.'
-    );
-    if (!confirmDelete) return;
-
-    try {
-      console.log('Deleting message:', msg.id);
-      await supabaseService.deleteWhatsAppMessage(msg.id);
-
-      // Remove from thread
-      setConversationThread(prev => prev.filter(m => m.id !== msg.id));
-
-      // Update conversation list (update last_message if needed)
-      setConversations(prev => prev.map(conv => {
-        if (conv.phone_number === selectedConversation?.phone_number) {
-          const updatedMessages = conv.messages.filter(m => m.id !== msg.id);
-          return {
-            ...conv,
-            messages: updatedMessages,
-            last_message: updatedMessages[0] || null
-          };
-        }
-        return conv;
-      }));
-    } catch (err) {
-      console.error('Error deleting message:', err);
-      const errorMsg = err?.message || 'Unknown error';
-      alert(`Error deleting message:\n${errorMsg}`);
+  // Close delete modal
+  const closeDeleteModal = () => {
+    if (!deleteModal.loading) {
+      setDeleteModal({ isOpen: false, type: null, target: null, loading: false });
     }
   };
 
@@ -1012,7 +1052,46 @@ const OwnerMessages = ({ onBack, userData, setSidebarCollapsed, sidebarCollapsed
                         </p>
 
                         {/* Badges */}
-                        <div className="flex items-center gap-2 mt-2">
+                        <div className="flex items-center gap-2 mt-2 flex-wrap">
+                          {/* Unread badge - show if last_message is newer than lastReadAt */}
+                          {(() => {
+                            const readState = readStates[conv.phone_number];
+                            const lastMsgTime = conv.last_message?.created_at;
+                            const lastReadTime = readState?.lastReadAt;
+                            // Show "New" if never read OR last message is newer than last read
+                            const isUnread = lastMsgTime && (!lastReadTime || new Date(lastMsgTime) > new Date(lastReadTime));
+                            if (isUnread) {
+                              return (
+                                <span className="text-[10px] px-1.5 py-0.5 bg-[#F26F21] text-white rounded font-bold animate-pulse">
+                                  New
+                                </span>
+                              );
+                            }
+                            return null;
+                          })()}
+                          {/* Status chip - Priority: Needs action > Booking > Inquiry */}
+                          {(() => {
+                            const status = conversationStatus[conv.phone_number];
+                            if (status?.hasPendingRequest) {
+                              return (
+                                <span className="text-[10px] px-1.5 py-0.5 bg-[#3E3115] text-[#F0C674] rounded font-medium">
+                                  Needs action
+                                </span>
+                              );
+                            } else if (status?.hasBooking) {
+                              return (
+                                <span className="text-[10px] px-1.5 py-0.5 bg-[#1E3A2A] text-[#6FCF97] rounded font-medium">
+                                  Booking
+                                </span>
+                              );
+                            } else {
+                              return (
+                                <span className="text-[10px] px-1.5 py-0.5 bg-[#212E40] text-[#93A4B8] rounded">
+                                  Inquiry
+                                </span>
+                              );
+                            }
+                          })()}
                           {conv.language_detected && (
                             <span className="text-[10px] px-1.5 py-0.5 bg-[#212E40] text-[#93A4B8] rounded">
                               {conv.language_detected.toUpperCase()}
@@ -1146,6 +1225,78 @@ const OwnerMessages = ({ onBack, userData, setSidebarCollapsed, sidebarCollapsed
           )}
         </div>
       </div>
+
+      {/* Delete Confirmation Modal */}
+      {deleteModal.isOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          {/* Backdrop */}
+          <div
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            onClick={closeDeleteModal}
+          />
+
+          {/* Modal */}
+          <div className="relative bg-[#172234] border border-[#212E40] rounded-2xl shadow-2xl w-full max-w-md mx-4 overflow-hidden">
+            {/* Header */}
+            <div className="flex items-center gap-3 p-5 border-b border-[#212E40]">
+              <div className="w-10 h-10 rounded-full bg-red-500/20 flex items-center justify-center">
+                <AlertTriangle className="w-5 h-5 text-red-400" />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-[#EAF0F7]">
+                  {deleteModal.type === 'conversation' ? 'Delete Conversation' : 'Delete Message'}
+                </h3>
+                <p className="text-xs text-[#93A4B8]">This action cannot be undone</p>
+              </div>
+            </div>
+
+            {/* Body */}
+            <div className="p-5">
+              {deleteModal.type === 'conversation' ? (
+                <p className="text-sm text-[#93A4B8]">
+                  Are you sure you want to delete the entire conversation with{' '}
+                  <span className="text-[#EAF0F7] font-medium">
+                    {deleteModal.target?.guest_name || deleteModal.target?.phone_number}
+                  </span>
+                  ? All messages will be removed from your records. The guest will still have the messages on their phone.
+                </p>
+              ) : (
+                <p className="text-sm text-[#93A4B8]">
+                  Are you sure you want to delete this message? The guest will still have this message on their phone.
+                </p>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="flex items-center justify-end gap-3 p-5 border-t border-[#212E40] bg-[#0E1621]">
+              <button
+                onClick={closeDeleteModal}
+                disabled={deleteModal.loading}
+                className="px-4 py-2 text-sm font-medium text-[#93A4B8] hover:text-[#EAF0F7] hover:bg-[#212E40] rounded-lg transition-colors disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={executeDelete}
+                disabled={deleteModal.loading}
+                className="px-4 py-2 text-sm font-medium text-white bg-red-500 hover:bg-red-600 rounded-lg transition-colors disabled:opacity-50 flex items-center gap-2"
+              >
+                {deleteModal.loading ? (
+                  <>
+                    <RefreshCw className="w-4 h-4 animate-spin" />
+                    Deleting...
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="w-4 h-4" />
+                    Delete
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
