@@ -7,6 +7,8 @@ import {
   ArrowLeft,
   RefreshCw,
   Users,
+  Menu,
+  PanelLeftOpen,
 } from 'lucide-react';
 import { supabase } from '../../../lib/supabase';
 import { LoadingSpinner, EmptyState } from './shared';
@@ -15,7 +17,7 @@ import { LoadingSpinner, EmptyState } from './shared';
  * GuestSelector - List of recent guests/bookings to select from
  * Shows when Guest360 is accessed without a specific guestPhone
  */
-const GuestSelector = ({ tenantId, onSelectGuest, onBack }) => {
+const GuestSelector = ({ tenantId, onSelectGuest, onBack, setSidebarCollapsed, sidebarCollapsed }) => {
   const [loading, setLoading] = useState(true);
   const [guests, setGuests] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -264,6 +266,20 @@ const GuestSelector = ({ tenantId, onSelectGuest, onBack }) => {
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
+            {/* Sidebar toggle button (desktop only) */}
+            {setSidebarCollapsed && (
+              <button
+                onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+                className="hidden lg:flex p-2 rounded-lg bg-[#333b47] hover:bg-[#3a434f] transition-colors"
+                title={sidebarCollapsed ? 'Show menu' : 'Hide menu'}
+              >
+                {sidebarCollapsed ? (
+                  <Menu className="w-5 h-5 text-[#FF8C42]" />
+                ) : (
+                  <PanelLeftOpen className="w-5 h-5 text-[#93A4B8]" />
+                )}
+              </button>
+            )}
             <button
               onClick={onBack}
               className="p-2 rounded-lg bg-[#333b47] hover:bg-[#3a434f] text-[#aab2bf] hover:text-white transition-colors"
@@ -289,20 +305,25 @@ const GuestSelector = ({ tenantId, onSelectGuest, onBack }) => {
           </button>
         </div>
 
-        {/* Filters - Row 1: Villa, Status, Search */}
-        <div className="flex flex-wrap gap-3 mb-3 items-center">
-          {/* Villa Filter */}
+        {/* Villa/Room Type Filter - Prominent first filter */}
+        <div className="mb-4">
+          <label className="text-xs text-[#8a93a1] uppercase tracking-wider mb-2 block font-semibold">
+            Select Villa / Room Type
+          </label>
           <select
             value={filterVilla}
             onChange={(e) => setFilterVilla(e.target.value)}
-            className="px-4 py-2.5 bg-[#333b47] border border-white/10 rounded-xl text-white text-sm focus:outline-none focus:border-[#f5791f]/50"
+            className="w-full md:w-auto md:min-w-[300px] px-4 py-3 bg-[#333b47] border-2 border-[#f5791f]/30 rounded-xl text-white text-base font-medium focus:outline-none focus:border-[#f5791f] transition-colors"
           >
-            <option value="">All Villas</option>
+            <option value="">All Villas / All Room Types</option>
             {villas.map(v => (
               <option key={v.id} value={v.id}>{v.name}</option>
             ))}
           </select>
+        </div>
 
+        {/* Filters - Row 1: Status + Search */}
+        <div className="flex flex-wrap gap-3 mb-3 items-center">
           {/* Status Filter */}
           <select
             value={filterStatus}

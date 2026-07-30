@@ -16,15 +16,29 @@ import {
   Lock,
   Save,
   CheckCircle,
-  AlertCircle
+  AlertCircle,
+  Menu,
+  PanelLeftOpen
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
 import { supabaseService } from '../../services/supabase';
 import TimelineView from './TimelineView';
 
-const MasterCalendar = ({ onBack }) => {
+const MasterCalendar = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
   const { user, userData } = useAuth();
+
+  // Auto-collapse sidebar on mount for full-screen view
+  useEffect(() => {
+    if (setSidebarCollapsed) {
+      setSidebarCollapsed(true);
+    }
+    return () => {
+      if (setSidebarCollapsed) {
+        setSidebarCollapsed(false);
+      }
+    };
+  }, [setSidebarCollapsed]);
 
   // View mode
   const [viewMode, setViewMode] = useState('month'); // 'month' or 'timeline'
@@ -683,6 +697,20 @@ const MasterCalendar = ({ onBack }) => {
       <div className="bg-[#1f2937] border-b border-[#d85a2a]/20 px-3 md:px-6 py-3 md:py-4 flex-shrink-0">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 md:gap-0 mb-4">
           <div className="flex items-center gap-3 md:gap-4">
+            {/* Sidebar toggle button (desktop only) */}
+            {setSidebarCollapsed && (
+              <button
+                onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+                className="hidden lg:flex p-2 hover:bg-white/10 rounded-lg"
+                title={sidebarCollapsed ? 'Show menu' : 'Hide menu'}
+              >
+                {sidebarCollapsed ? (
+                  <Menu className="w-4 h-4 md:w-5 md:h-5 text-[#d85a2a]" />
+                ) : (
+                  <PanelLeftOpen className="w-4 h-4 md:w-5 md:h-5 text-white/60" />
+                )}
+              </button>
+            )}
             <button onClick={onBack} className="p-2 hover:bg-white/10 rounded-lg">
               <ArrowLeft className="w-4 h-4 md:w-5 md:h-5 text-white" />
             </button>

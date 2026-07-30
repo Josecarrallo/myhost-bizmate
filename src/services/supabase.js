@@ -810,6 +810,573 @@ export const supabaseService = {
 
     if (error) throw new Error(error.message || 'Failed to delete maintenance issue');
     return { success: true };
+  },
+
+  // =====================================================
+  // WHATSAPP MESSAGES V2 - Owner Messages (READ ONLY)
+  // =====================================================
+
+  async getWhatsAppMessages(filters = {}) {
+    let query = supabase
+      .from('whatsapp_messages_v2')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (filters.channel) {
+      query = query.eq('channel', filters.channel);
+    }
+    if (filters.phone_number) {
+      query = query.eq('phone_number', filters.phone_number);
+    }
+    if (filters.direction) {
+      query = query.eq('direction', filters.direction);
+    }
+    if (filters.from_date) {
+      query = query.gte('created_at', filters.from_date);
+    }
+    if (filters.to_date) {
+      query = query.lte('created_at', filters.to_date);
+    }
+    if (filters.limit) {
+      query = query.limit(filters.limit);
+    }
+
+    const { data, error } = await query;
+    if (error) throw new Error('Failed to fetch WhatsApp messages');
+    return data;
+  },
+
+  async getWhatsAppConversation(phoneNumber, channel = null, tenantId = null) {
+    // Get ALL messages for this phone number (WhatsApp + KORA unified)
+    // channel parameter kept for backwards compatibility but not used
+    let query = supabase
+      .from('whatsapp_messages_v2')
+      .select('*')
+      .eq('phone_number', phoneNumber)
+      .order('created_at', { ascending: true });
+
+    // IMPORTANT: Filter by tenant_id if provided
+    if (tenantId) {
+      query = query.eq('tenant_id', tenantId);
+    }
+
+    const { data, error } = await query;
+
+    if (error) throw new Error('Failed to fetch conversation');
+    return data;
+  },
+
+  async getWhatsAppConversationsList(tenantId = null, dateFrom = null, dateTo = null) {
+    // Get all messages grouped by phone_number to build conversation list
+    // Filter by tenant_id for multi-tenant security
+    let query = supabase
+      .from('whatsapp_messages_v2')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    // IMPORTANT: Filter by tenant_id if provided
+    if (tenantId) {
+      query = query.eq('tenant_id', tenantId);
+    }
+
+    // Date range filters (only if provided)
+    if (dateFrom) {
+      query = query.gte('created_at', dateFrom);
+    }
+    if (dateTo) {
+      query = query.lte('created_at', dateTo + 'T23:59:59');
+    }
+
+    const { data, error } = await query;
+
+    console.log('[getWhatsAppConversationsList] tenantId:', tenantId, 'dateFrom:', dateFrom, 'dateTo:', dateTo, 'results:', data?.length || 0);
+
+    if (error) throw new Error('Failed to fetch conversations');
+
+    // Group by phone_number ONLY to unify WhatsApp + KORA in same conversation
+    // (Changed from phone_number + channel per user request 27-Jul-2026)
+    const conversationsMap = new Map();
+
+    (data || []).forEach(msg => {
+      const key = msg.phone_number;
+      if (!conversationsMap.has(key)) {
+        conversationsMap.set(key, {
+          phone_number: msg.phone_number,
+          // channels: array of unique channels in this conversation
+          channels: [msg.channel],
+          guest_name: msg.guest_name,
+          language_detected: msg.language_detected,
+          last_message: msg,
+          messages: [msg],
+          unread_count: 0
+        });
+      } else {
+        const conv = conversationsMap.get(key);
+        conv.messages.push(msg);
+        // Track unique channels
+        if (!conv.channels.includes(msg.channel)) {
+          conv.channels.push(msg.channel);
+        }
+        // Update language if this message has one and current doesn't
+        if (msg.language_detected && !conv.language_detected) {
+          conv.language_detected = msg.language_detected;
+        }
+      }
+    });
+
+    // Convert to array and sort by last message date
+    return Array.from(conversationsMap.values())
+      .sort((a, b) => new Date(b.last_message.created_at) - new Date(a.last_message.created_at));
+  },
+
+  // Search conversations by phone number OR guest name (ignores date range)
+  async searchWhatsAppConversations(tenantId, searchQuery) {
+    const { data, error } = await supabase
+      .from('whatsapp_messages_v2')
+      .select('*')
+      .eq('tenant_id', tenantId)
+      .or(`phone_number.ilike.%${searchQuery}%,guest_name.ilike.%${searchQuery}%`)
+      .order('created_at', { ascending: false })
+      .limit(500);
+
+    if (error) throw new Error('Failed to search conversations');
+
+    // Group by phone_number (same logic as getWhatsAppConversationsList)
+    const conversationsMap = new Map();
+
+    (data || []).forEach(msg => {
+      const key = msg.phone_number;
+      if (!conversationsMap.has(key)) {
+        conversationsMap.set(key, {
+          phone_number: msg.phone_number,
+          channels: [msg.channel],
+          guest_name: msg.guest_name,
+          language_detected: msg.language_detected,
+          last_message: msg,
+          messages: [msg],
+          unread_count: 0
+        });
+      } else {
+        const conv = conversationsMap.get(key);
+        conv.messages.push(msg);
+        if (!conv.channels.includes(msg.channel)) {
+          conv.channels.push(msg.channel);
+        }
+        if (msg.language_detected && !conv.language_detected) {
+          conv.language_detected = msg.language_detected;
+        }
+      }
+    });
+
+    return Array.from(conversationsMap.values())
+      .sort((a, b) => new Date(b.last_message.created_at) - new Date(a.last_message.created_at));
+  },
+
+  // Delete a single WhatsApp message by ID
+  async deleteWhatsAppMessage(messageId) {
+    const { error } = await supabase
+      .from('whatsapp_messages_v2')
+      .delete()
+      .eq('id', messageId);
+
+    if (error) throw new Error(error.message || 'Failed to delete message');
+    return true;
+  },
+
+  // Delete entire conversation (all messages for a phone number)
+  async deleteWhatsAppConversation(phoneNumber, tenantId) {
+    const { error } = await supabase
+      .from('whatsapp_messages_v2')
+      .delete()
+      .eq('phone_number', phoneNumber)
+      .eq('tenant_id', tenantId);
+
+    if (error) throw new Error(error.message || 'Failed to delete conversation');
+    return true;
+  },
+
+  // =====================================================
+  // CONVERSATION READ STATE - Track read messages
+  // =====================================================
+
+  async getConversationReadState(channel, channelUserId) {
+    const { data, error } = await supabase
+      .from('conversation_read_state')
+      .select('*')
+      .eq('channel', channel)
+      .eq('channel_user_id', channelUserId)
+      .maybeSingle();
+
+    if (error) throw new Error('Failed to fetch read state');
+    return data;
+  },
+
+  async updateConversationReadState(channel, channelUserId, tenantId) {
+    try {
+      // First try to update existing record
+      const { data: existing } = await supabase
+        .from('conversation_read_state')
+        .select('id')
+        .eq('tenant_id', tenantId)
+        .eq('channel', channel)
+        .eq('channel_user_id', channelUserId)
+        .maybeSingle();
+
+      const now = new Date().toISOString();
+
+      if (existing) {
+        // Update existing
+        const { data, error } = await supabase
+          .from('conversation_read_state')
+          .update({
+            last_read_at: now,
+            updated_at: now
+          })
+          .eq('id', existing.id)
+          .select()
+          .single();
+
+        if (error) {
+          console.error('Error updating read state:', error);
+          return null;
+        }
+        return data;
+      } else {
+        // Insert new
+        const { data, error } = await supabase
+          .from('conversation_read_state')
+          .insert({
+            tenant_id: tenantId,
+            channel: channel,
+            channel_user_id: channelUserId,
+            user_id: tenantId,
+            last_read_at: now,
+            updated_at: now
+          })
+          .select()
+          .single();
+
+        if (error) {
+          console.error('Error inserting read state:', error);
+          return null;
+        }
+        return data;
+      }
+    } catch (err) {
+      console.error('Error in updateConversationReadState:', err);
+      return null;
+    }
+  },
+
+  // Resolve guest names from bookings/guests by phone numbers
+  // Returns a map: { phoneNumber: guestName }
+  async resolveGuestNamesByPhone(phoneNumbers, tenantId = null) {
+    if (!phoneNumbers || phoneNumbers.length === 0) return {};
+
+    const result = {};
+
+    // Normalize phone numbers (remove non-digits for matching)
+    const normalizedPhones = phoneNumbers.map(p => (p || '').replace(/\D/g, ''));
+
+    try {
+      // First, try to get names from bookings (most reliable source)
+      let bookingsQuery = supabase
+        .from('bookings')
+        .select('guest_phone, guest_name')
+        .not('guest_phone', 'is', null)
+        .not('guest_name', 'is', null);
+
+      if (tenantId) {
+        bookingsQuery = bookingsQuery.eq('tenant_id', tenantId);
+      }
+
+      const { data: bookings } = await bookingsQuery;
+
+      if (bookings) {
+        bookings.forEach(b => {
+          if (b.guest_phone && b.guest_name && b.guest_name !== 'Guest') {
+            const normalizedBookingPhone = (b.guest_phone || '').replace(/\D/g, '');
+            // Match if phones are equal or one contains the other (for prefix variations)
+            normalizedPhones.forEach((np, idx) => {
+              if (normalizedBookingPhone === np ||
+                  normalizedBookingPhone.endsWith(np) ||
+                  np.endsWith(normalizedBookingPhone)) {
+                result[phoneNumbers[idx]] = b.guest_name;
+              }
+            });
+          }
+        });
+      }
+
+      // For phones not found in bookings, try guests table
+      const missingPhones = phoneNumbers.filter(p => !result[p]);
+      if (missingPhones.length > 0) {
+        let guestsQuery = supabase
+          .from('guests')
+          .select('phone, name, full_name')
+          .not('phone', 'is', null);
+
+        if (tenantId) {
+          guestsQuery = guestsQuery.eq('tenant_id', tenantId);
+        }
+
+        const { data: guests } = await guestsQuery;
+
+        if (guests) {
+          guests.forEach(g => {
+            if (g.phone) {
+              const guestName = g.full_name || g.name;
+              if (guestName && guestName !== 'Guest') {
+                const normalizedGuestPhone = (g.phone || '').replace(/\D/g, '');
+                missingPhones.forEach(mp => {
+                  const normalizedMp = (mp || '').replace(/\D/g, '');
+                  if (normalizedGuestPhone === normalizedMp ||
+                      normalizedGuestPhone.endsWith(normalizedMp) ||
+                      normalizedMp.endsWith(normalizedGuestPhone)) {
+                    result[mp] = guestName;
+                  }
+                });
+              }
+            }
+          });
+        }
+      }
+
+      // Step 3: For phones STILL not found, try whatsapp_messages_v2.guest_name (WhatsApp profile name)
+      const stillMissingPhones = phoneNumbers.filter(p => !result[p]);
+      if (stillMissingPhones.length > 0) {
+        let waQuery = supabase
+          .from('whatsapp_messages_v2')
+          .select('phone_number, guest_name')
+          .not('guest_name', 'is', null);
+
+        if (tenantId) {
+          waQuery = waQuery.eq('tenant_id', tenantId);
+        }
+
+        const { data: waMessages } = await waQuery;
+
+        if (waMessages) {
+          waMessages.forEach(msg => {
+            if (msg.phone_number && msg.guest_name && msg.guest_name !== 'Guest') {
+              const normalizedWaPhone = (msg.phone_number || '').replace(/\D/g, '');
+              stillMissingPhones.forEach(mp => {
+                if (!result[mp]) {
+                  const normalizedMp = (mp || '').replace(/\D/g, '');
+                  if (normalizedWaPhone === normalizedMp ||
+                      normalizedWaPhone.endsWith(normalizedMp) ||
+                      normalizedMp.endsWith(normalizedWaPhone)) {
+                    result[mp] = msg.guest_name;
+                  }
+                }
+              });
+            }
+          });
+        }
+      }
+    } catch (err) {
+      console.error('Error resolving guest names:', err);
+    }
+
+    return result;
+  },
+
+  // =====================================================
+  // CONVERSATION TAKEOVER - Owner intervention (V1.5)
+  // =====================================================
+
+  async getConversationTakeover(channel, channelUserId) {
+    const { data, error } = await supabase
+      .from('conversation_takeover')
+      .select('*')
+      .eq('channel', channel)
+      .eq('channel_user_id', channelUserId)
+      .eq('active', true)
+      .gt('expires_at', new Date().toISOString())
+      .maybeSingle();
+
+    if (error) throw new Error('Failed to fetch takeover state');
+    return data;
+  },
+
+  async createConversationTakeover(channel, channelUserId, tenantId) {
+    const expiresAt = new Date();
+    expiresAt.setMinutes(expiresAt.getMinutes() + 30); // 30 min TTL
+
+    const { data, error } = await supabase
+      .from('conversation_takeover')
+      .insert({
+        tenant_id: tenantId,
+        channel: channel,
+        channel_user_id: channelUserId,
+        taken_by: tenantId,
+        active: true,
+        started_at: new Date().toISOString(),
+        expires_at: expiresAt.toISOString()
+      })
+      .select()
+      .single();
+
+    if (error) throw new Error(error.message || 'Failed to create takeover');
+    return data;
+  },
+
+  async releaseConversationTakeover(takeoverId) {
+    const { data, error } = await supabase
+      .from('conversation_takeover')
+      .update({
+        active: false,
+        released_at: new Date().toISOString()
+      })
+      .eq('id', takeoverId)
+      .select()
+      .single();
+
+    if (error) throw new Error(error.message || 'Failed to release takeover');
+    return data;
+  },
+
+  // =====================================================
+  // CONVERSATION STATUS - Get booking/service_request status by phone
+  // Used for status chips in OwnerMessages (Needs action / Booking / Inquiry)
+  // =====================================================
+
+  async getConversationStatusData(phoneNumbers, tenantId) {
+    if (!phoneNumbers || phoneNumbers.length === 0) return {};
+
+    const result = {};
+    const today = new Date().toISOString().split('T')[0];
+
+    // Normalize phone numbers for matching
+    const normalizedPhones = phoneNumbers.map(p => (p || '').replace(/\D/g, ''));
+
+    try {
+      // 1. Get pending service_requests
+      let srQuery = supabase
+        .from('service_requests')
+        .select('guest_phone, status')
+        .eq('status', 'pending')
+        .not('guest_phone', 'is', null);
+
+      if (tenantId) {
+        srQuery = srQuery.eq('tenant_id', tenantId);
+      }
+
+      const { data: serviceRequests } = await srQuery;
+
+      // 2. Get active/future bookings (check_out >= today)
+      let bookingsQuery = supabase
+        .from('bookings')
+        .select('guest_phone, check_in, check_out, status')
+        .gte('check_out', today)
+        .not('guest_phone', 'is', null)
+        .neq('status', 'cancelled');
+
+      if (tenantId) {
+        bookingsQuery = bookingsQuery.eq('tenant_id', tenantId);
+      }
+
+      const { data: bookings } = await bookingsQuery;
+
+      // Initialize all phones as "inquiry" (default)
+      phoneNumbers.forEach(phone => {
+        result[phone] = { hasBooking: false, hasPendingRequest: false };
+      });
+
+      // Match service requests by phone
+      if (serviceRequests) {
+        serviceRequests.forEach(sr => {
+          const normalizedSrPhone = (sr.guest_phone || '').replace(/\D/g, '');
+          normalizedPhones.forEach((np, idx) => {
+            if (normalizedSrPhone === np ||
+                normalizedSrPhone.endsWith(np) ||
+                np.endsWith(normalizedSrPhone)) {
+              result[phoneNumbers[idx]].hasPendingRequest = true;
+            }
+          });
+        });
+      }
+
+      // Match bookings by phone
+      if (bookings) {
+        bookings.forEach(b => {
+          const normalizedBookingPhone = (b.guest_phone || '').replace(/\D/g, '');
+          normalizedPhones.forEach((np, idx) => {
+            if (normalizedBookingPhone === np ||
+                normalizedBookingPhone.endsWith(np) ||
+                np.endsWith(normalizedBookingPhone)) {
+              result[phoneNumbers[idx]].hasBooking = true;
+            }
+          });
+        });
+      }
+    } catch (err) {
+      console.error('Error fetching conversation status data:', err);
+    }
+
+    return result;
+  },
+
+  // =====================================================
+  // BATCH READ STATE - Get read state for multiple conversations
+  // Returns { phoneNumber: { lastReadAt, isUnread } }
+  // =====================================================
+
+  async getConversationReadStates(phoneNumbers, tenantId) {
+    if (!phoneNumbers || phoneNumbers.length === 0) return {};
+
+    const result = {};
+
+    // Initialize all as "never read"
+    phoneNumbers.forEach(phone => {
+      result[phone] = { lastReadAt: null, isUnread: true };
+    });
+
+    try {
+      // Get read states for this tenant/user
+      const { data: readStates } = await supabase
+        .from('conversation_read_state')
+        .select('channel_user_id, last_read_at')
+        .eq('tenant_id', tenantId)
+        .eq('channel', 'whatsapp')
+        .in('channel_user_id', phoneNumbers);
+
+      if (readStates) {
+        readStates.forEach(rs => {
+          if (rs.channel_user_id && result[rs.channel_user_id]) {
+            result[rs.channel_user_id].lastReadAt = rs.last_read_at;
+          }
+        });
+      }
+    } catch (err) {
+      console.error('Error fetching read states:', err);
+    }
+
+    return result;
+  },
+
+  subscribeToWhatsAppMessages(callback, tenantId = null) {
+    const channelConfig = {
+      event: 'INSERT',
+      schema: 'public',
+      table: 'whatsapp_messages_v2'
+    };
+
+    // Add tenant filter if provided
+    if (tenantId) {
+      channelConfig.filter = `tenant_id=eq.${tenantId}`;
+    }
+
+    const channel = supabase
+      .channel('whatsapp-messages-changes')
+      .on('postgres_changes', channelConfig, (payload) => {
+        callback(payload);
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }
 };
 

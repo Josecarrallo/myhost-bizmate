@@ -5,6 +5,7 @@ import {
   Zap,
   Calendar,
   TrendingUp,
+  Building2,
   AlertCircle,
   CheckCircle,
   CheckCircle2,
@@ -50,7 +51,9 @@ import {
   X,
   Save,
   User,
-  Edit3
+  Edit3,
+  Menu,
+  PanelLeftOpen
 } from 'lucide-react';
 import ManualDataEntry from '../ManualDataEntry/ManualDataEntry';
 import MasterCalendar from '../MasterCalendar/MasterCalendar';
@@ -59,6 +62,8 @@ import SpecializedReports from './SpecializedReports';
 import OwnerHome from './OwnerHome';
 import DecisionIntelligence from './DecisionIntelligence';
 import Guest360 from '../Guest360';
+import OwnerMessages from '../OwnerMessages/OwnerMessages';
+import Properties from '../Properties/Properties';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
 import { generateReportHTML } from '../../services/generateReportHTML';
@@ -68,7 +73,7 @@ import { tasksService } from '../../services/tasksService';
 import { ownerDecisionsService } from '../../services/ownerDecisionsService';
 import { ownerSummariesService } from '../../services/ownerSummariesService';
 
-const Autopilot = ({ onBack }) => {
+const Autopilot = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
   const { userData } = useAuth();
 
   // Helper function to extract refund % from description and append to title
@@ -88,6 +93,17 @@ const Autopilot = ({ onBack }) => {
   // Navigation between 9 sections
   const [activeSection, setActiveSection] = useState('menu'); // Start with menu visible
   const [activeView, setActiveView] = useState('daily'); // for Overview section
+
+  // Auto-collapse sidebar when entering any section (except menu)
+  useEffect(() => {
+    if (setSidebarCollapsed) {
+      if (activeSection !== 'menu') {
+        setSidebarCollapsed(true);
+      } else {
+        setSidebarCollapsed(false);
+      }
+    }
+  }, [activeSection, setSidebarCollapsed]);
   const [isGeneratingSummary, setIsGeneratingSummary] = useState(false);
   const [lastSummaryGenerated, setLastSummaryGenerated] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -758,8 +774,15 @@ const Autopilot = ({ onBack }) => {
   // DYNAMIC TENANT ID - Use logged in user's ID
   const TENANT_ID = userData?.id || 'c24393db-d318-4d75-8bbf-0fa240b9c1db'; // Fallback to Jose for backwards compatibility
 
-  // AUTOPILOT MENU - 11 Sections
+  // AUTOPILOT MENU - 12 Sections
   const menuSections = [
+    {
+      id: 'properties',
+      name: 'Properties',
+      icon: Building2,
+      description: 'Manage your villas and properties',
+      badge: null
+    },
     {
       id: 'all-data',
       name: 'All Information',
@@ -796,6 +819,13 @@ const Autopilot = ({ onBack }) => {
       badge: null
     },
     {
+      id: 'owner-messages',
+      name: 'Customer Communication',
+      icon: MessageSquare,
+      description: 'WhatsApp & KORA conversations',
+      badge: null
+    },
+    {
       id: 'decisions',
       name: 'Owner Control System',
       icon: ClipboardCheck,
@@ -821,13 +851,6 @@ const Autopilot = ({ onBack }) => {
       name: 'My Villa Website',
       icon: Globe,
       description: 'Public landing page',
-      badge: null
-    },
-    {
-      id: 'communication',
-      name: 'Customer Communication',
-      icon: Mail,
-      description: 'Unified inbox',
       badge: null
     },
     {
@@ -2465,7 +2488,7 @@ const Autopilot = ({ onBack }) => {
   };
 
   const renderDataEntrySection = () => {
-    return <ManualDataEntry onBack={() => setActiveSection('menu')} />;
+    return <ManualDataEntry onBack={() => setActiveSection('menu')} setSidebarCollapsed={setSidebarCollapsed} sidebarCollapsed={sidebarCollapsed} />;
   };
 
   const renderAllDataSection = () => {
@@ -2541,6 +2564,20 @@ const Autopilot = ({ onBack }) => {
         <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-3xl p-4 md:p-6 shadow-2xl border-2 border-[#d85a2a]/20">
           {/* Top Row: Back Button + Title */}
           <div className="flex items-center mb-4 gap-3">
+            {/* Sidebar toggle button (desktop only) */}
+            {setSidebarCollapsed && (
+              <button
+                onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+                className="hidden lg:flex p-2 bg-[#1f2937]/95 backdrop-blur-sm rounded-xl hover:bg-[#1f2937] transition-all border border-[#d85a2a]/20"
+                title={sidebarCollapsed ? 'Show menu' : 'Hide menu'}
+              >
+                {sidebarCollapsed ? (
+                  <Menu className="w-5 h-5 text-[#FF8C42]" />
+                ) : (
+                  <PanelLeftOpen className="w-5 h-5 text-[#93A4B8]" />
+                )}
+              </button>
+            )}
             <button
               onClick={() => setActiveSection('menu')}
               className="p-2 bg-[#1f2937]/95 backdrop-blur-sm rounded-xl hover:bg-orange-500 transition-all border border-[#d85a2a]/20"
@@ -3084,7 +3121,21 @@ const Autopilot = ({ onBack }) => {
     return (
       <div className="space-y-6">
         <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-3xl p-6 shadow-2xl border-2 border-[#d85a2a]/20">
-          <div className="flex items-center mb-3">
+          <div className="flex items-center gap-2 mb-3">
+            {/* Sidebar toggle button (desktop only) */}
+            {setSidebarCollapsed && (
+              <button
+                onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+                className="hidden lg:flex p-2 bg-[#1f2937]/95 backdrop-blur-sm rounded-xl hover:bg-[#1f2937] transition-all border border-[#d85a2a]/20"
+                title={sidebarCollapsed ? 'Show menu' : 'Hide menu'}
+              >
+                {sidebarCollapsed ? (
+                  <Menu className="w-5 h-5 text-[#FF8C42]" />
+                ) : (
+                  <PanelLeftOpen className="w-5 h-5 text-[#93A4B8]" />
+                )}
+              </button>
+            )}
             <button
               onClick={() => setActiveSection('menu')}
               className="p-2 bg-[#1f2937]/95 backdrop-blur-sm rounded-xl hover:bg-orange-500 transition-all border border-[#d85a2a]/20"
@@ -4120,12 +4171,28 @@ const Autopilot = ({ onBack }) => {
     <div className="space-y-6">
       <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-3xl p-6 shadow-2xl border-2 border-[#d85a2a]/20">
         <div className="flex items-center justify-between mb-4">
-          <button
-            onClick={() => setActiveSection('menu')}
-            className="p-2 bg-[#1f2937]/95 backdrop-blur-sm rounded-xl hover:bg-orange-500 transition-all border border-[#d85a2a]/20"
-          >
-            <ArrowLeft className="w-5 h-5 text-[#FF8C42]" />
-          </button>
+          <div className="flex items-center gap-2">
+            {/* Sidebar toggle button (desktop only) */}
+            {setSidebarCollapsed && (
+              <button
+                onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+                className="hidden lg:flex p-2 bg-[#1f2937]/95 backdrop-blur-sm rounded-xl hover:bg-[#1f2937] transition-all border border-[#d85a2a]/20"
+                title={sidebarCollapsed ? 'Show menu' : 'Hide menu'}
+              >
+                {sidebarCollapsed ? (
+                  <Menu className="w-5 h-5 text-[#FF8C42]" />
+                ) : (
+                  <PanelLeftOpen className="w-5 h-5 text-[#93A4B8]" />
+                )}
+              </button>
+            )}
+            <button
+              onClick={() => setActiveSection('menu')}
+              className="p-2 bg-[#1f2937]/95 backdrop-blur-sm rounded-xl hover:bg-orange-500 transition-all border border-[#d85a2a]/20"
+            >
+              <ArrowLeft className="w-5 h-5 text-[#FF8C42]" />
+            </button>
+          </div>
           <h3 className="text-2xl font-black text-[#FF8C42] flex items-center gap-2">
             <Globe className="w-6 h-6" />
             My Villa Website
@@ -4853,12 +4920,28 @@ const Autopilot = ({ onBack }) => {
     <div className="space-y-6">
       <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-3xl p-6 shadow-2xl border-2 border-[#d85a2a]/20">
         <div className="flex items-center justify-between mb-4">
-          <button
-            onClick={() => setActiveSection('menu')}
-            className="p-2 bg-[#1f2937]/95 backdrop-blur-sm rounded-xl hover:bg-orange-500 transition-all border border-[#d85a2a]/20"
-          >
-            <ArrowLeft className="w-5 h-5 text-[#FF8C42]" />
-          </button>
+          <div className="flex items-center gap-2">
+            {/* Sidebar toggle button (desktop only) */}
+            {setSidebarCollapsed && (
+              <button
+                onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+                className="hidden lg:flex p-2 bg-[#1f2937]/95 backdrop-blur-sm rounded-xl hover:bg-[#1f2937] transition-all border border-[#d85a2a]/20"
+                title={sidebarCollapsed ? 'Show menu' : 'Hide menu'}
+              >
+                {sidebarCollapsed ? (
+                  <Menu className="w-5 h-5 text-[#FF8C42]" />
+                ) : (
+                  <PanelLeftOpen className="w-5 h-5 text-[#93A4B8]" />
+                )}
+              </button>
+            )}
+            <button
+              onClick={() => setActiveSection('menu')}
+              className="p-2 bg-[#1f2937]/95 backdrop-blur-sm rounded-xl hover:bg-orange-500 transition-all border border-[#d85a2a]/20"
+            >
+              <ArrowLeft className="w-5 h-5 text-[#FF8C42]" />
+            </button>
+          </div>
           <div className="text-center flex-1">
             <h3 className="text-2xl font-black text-[#FF8C42] flex items-center justify-center gap-2">
               <Wrench className="w-6 h-6" />
@@ -5505,6 +5588,20 @@ const Autopilot = ({ onBack }) => {
         <div className="space-y-6">
           <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-3xl p-6 shadow-2xl border-2 border-[#d85a2a]/20">
             <div className="flex items-center mb-6 gap-4">
+              {/* Sidebar toggle button (desktop only) */}
+              {setSidebarCollapsed && (
+                <button
+                  onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+                  className="hidden lg:flex p-2 bg-[#1f2937]/95 backdrop-blur-sm rounded-xl hover:bg-[#1f2937] transition-all border border-[#d85a2a]/20"
+                  title={sidebarCollapsed ? 'Show menu' : 'Hide menu'}
+                >
+                  {sidebarCollapsed ? (
+                    <Menu className="w-5 h-5 text-[#FF8C42]" />
+                  ) : (
+                    <PanelLeftOpen className="w-5 h-5 text-[#93A4B8]" />
+                  )}
+                </button>
+              )}
               <button
                 onClick={() => setActiveSection('menu')}
                 className="p-2 bg-[#1f2937]/95 backdrop-blur-sm rounded-xl hover:bg-orange-500 transition-all border border-[#d85a2a]/20"
@@ -5990,12 +6087,28 @@ const Autopilot = ({ onBack }) => {
       {/* View Selector */}
       <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-2xl p-3 shadow-lg border-2 border-[#d85a2a]/20">
         <div className="flex items-center justify-between mb-3">
-          <button
-            onClick={() => setActiveSection('menu')}
-            className="p-2 bg-[#1f2937]/95 backdrop-blur-sm rounded-xl hover:bg-orange-500 transition-all border border-[#d85a2a]/20"
-          >
-            <ArrowLeft className="w-5 h-5 text-[#FF8C42]" />
-          </button>
+          <div className="flex items-center gap-2">
+            {/* Sidebar toggle button (desktop only) */}
+            {setSidebarCollapsed && (
+              <button
+                onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+                className="hidden lg:flex p-2 bg-[#1f2937]/95 backdrop-blur-sm rounded-xl hover:bg-[#1f2937] transition-all border border-[#d85a2a]/20"
+                title={sidebarCollapsed ? 'Show menu' : 'Hide menu'}
+              >
+                {sidebarCollapsed ? (
+                  <Menu className="w-5 h-5 text-[#FF8C42]" />
+                ) : (
+                  <PanelLeftOpen className="w-5 h-5 text-[#93A4B8]" />
+                )}
+              </button>
+            )}
+            <button
+              onClick={() => setActiveSection('menu')}
+              className="p-2 bg-[#1f2937]/95 backdrop-blur-sm rounded-xl hover:bg-orange-500 transition-all border border-[#d85a2a]/20"
+            >
+              <ArrowLeft className="w-5 h-5 text-[#FF8C42]" />
+            </button>
+          </div>
           <h3 className="text-xl font-black text-[#FF8C42]">Overview</h3>
           <div className="w-12"></div>
         </div>
@@ -7043,6 +7156,20 @@ const Autopilot = ({ onBack }) => {
       <div className="p-6 space-y-6">
         {/* Header */}
         <div className="flex items-center gap-3 mb-2">
+          {/* Sidebar toggle button (desktop only) */}
+          {setSidebarCollapsed && (
+            <button
+              onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+              className="hidden lg:flex p-2 rounded-xl hover:bg-white/10 text-gray-400 hover:text-white transition-colors"
+              title={sidebarCollapsed ? 'Show menu' : 'Hide menu'}
+            >
+              {sidebarCollapsed ? (
+                <Menu className="w-5 h-5 text-[#FF8C42]" />
+              ) : (
+                <PanelLeftOpen className="w-5 h-5" />
+              )}
+            </button>
+          )}
           <button onClick={() => setActiveSection('menu')} className="p-2 rounded-xl hover:bg-white/10 text-gray-400 hover:text-white transition-colors">
             <ArrowLeft className="w-5 h-5" />
           </button>
@@ -7204,6 +7331,20 @@ const Autopilot = ({ onBack }) => {
       <div className="space-y-6">
         {/* Back Button */}
         <div className="flex items-center gap-3 mb-4">
+          {/* Sidebar toggle button (desktop only) */}
+          {setSidebarCollapsed && (
+            <button
+              onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+              className="hidden lg:flex p-2 bg-[#1f2937]/95 backdrop-blur-sm rounded-xl hover:bg-[#1f2937] transition-all border border-[#d85a2a]/20"
+              title={sidebarCollapsed ? 'Show menu' : 'Hide menu'}
+            >
+              {sidebarCollapsed ? (
+                <Menu className="w-5 h-5 text-[#FF8C42]" />
+              ) : (
+                <PanelLeftOpen className="w-5 h-5 text-[#93A4B8]" />
+              )}
+            </button>
+          )}
           <button
             onClick={() => setActiveSection('menu')}
             className="p-2 bg-[#1f2937]/95 backdrop-blur-sm rounded-xl hover:bg-orange-500 transition-all border border-[#d85a2a]/20"
@@ -7374,12 +7515,28 @@ const Autopilot = ({ onBack }) => {
         {/* OWNER DECISIONS */}
         <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-3xl p-6 shadow-2xl border-2 border-[#d85a2a]/20">
           <div className="flex items-center justify-between mb-4">
-            <button
-              onClick={() => setOcsView(null)}
-              className="p-2 bg-[#1f2937]/95 backdrop-blur-sm rounded-xl hover:bg-orange-500 transition-all border border-[#d85a2a]/20"
-            >
-              <ArrowLeft className="w-5 h-5 text-[#FF8C42]" />
-            </button>
+            <div className="flex items-center gap-2">
+              {/* Sidebar toggle button (desktop only) */}
+              {setSidebarCollapsed && (
+                <button
+                  onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+                  className="hidden lg:flex p-2 bg-[#1f2937]/95 backdrop-blur-sm rounded-xl hover:bg-[#1f2937] transition-all border border-[#d85a2a]/20"
+                  title={sidebarCollapsed ? 'Show menu' : 'Hide menu'}
+                >
+                  {sidebarCollapsed ? (
+                    <Menu className="w-5 h-5 text-[#FF8C42]" />
+                  ) : (
+                    <PanelLeftOpen className="w-5 h-5 text-[#93A4B8]" />
+                  )}
+                </button>
+              )}
+              <button
+                onClick={() => setOcsView(null)}
+                className="p-2 bg-[#1f2937]/95 backdrop-blur-sm rounded-xl hover:bg-orange-500 transition-all border border-[#d85a2a]/20"
+              >
+                <ArrowLeft className="w-5 h-5 text-[#FF8C42]" />
+              </button>
+            </div>
             <h3 className="text-2xl font-black text-[#FF8C42] flex items-center gap-2">
               <CheckCircle className="w-6 h-6 text-[#FF8C42]" />
               Owner Decisions ({filteredDecisions.length})
@@ -10551,11 +10708,13 @@ const Autopilot = ({ onBack }) => {
           {activeSection === 'business-reports' && renderBusinessReportsSection()}
           {activeSection === 'all-data' && renderAllDataSection()}
           {activeSection === 'availability' && renderAvailabilitySection()}
-          {activeSection === 'master-calendar' && <MasterCalendar onBack={() => setActiveSection('menu')} />}
+          {activeSection === 'master-calendar' && <MasterCalendar onBack={() => setActiveSection('menu')} setSidebarCollapsed={setSidebarCollapsed} sidebarCollapsed={sidebarCollapsed} />}
           {activeSection === 'communication' && renderCommunicationSection()}
           {activeSection === 'website' && renderWebsiteSection()}
           {activeSection === 'tasks' && renderTasksSection()}
-          {activeSection === 'service-requests' && <ServiceRequests onBack={() => setActiveSection('menu')} />}
+          {activeSection === 'properties' && <Properties onBack={() => setActiveSection('menu')} setSidebarCollapsed={setSidebarCollapsed} sidebarCollapsed={sidebarCollapsed} />}
+          {activeSection === 'owner-messages' && <OwnerMessages onBack={() => setActiveSection('menu')} userData={userData} setSidebarCollapsed={setSidebarCollapsed} sidebarCollapsed={sidebarCollapsed} />}
+          {activeSection === 'service-requests' && <ServiceRequests onBack={() => setActiveSection('menu')} setSidebarCollapsed={setSidebarCollapsed} sidebarCollapsed={sidebarCollapsed} />}
           {activeSection === 'decisions' && (
             ocsView === null ? renderOCSMenu() :
             ocsView === 'owner-decisions' ? renderDecisionsSection() :
@@ -10564,6 +10723,8 @@ const Autopilot = ({ onBack }) => {
                 onBack={() => setOcsView(null)}
                 propertyId={propertyId}
                 tenantId={userData?.id}
+                setSidebarCollapsed={setSidebarCollapsed}
+                sidebarCollapsed={sidebarCollapsed}
               />
             ) :
             ocsView === 'ocs-360' ? (
@@ -10571,6 +10732,8 @@ const Autopilot = ({ onBack }) => {
                 tenantId={userData?.id}
                 userRole="owner"
                 onBack={() => setOcsView(null)}
+                setSidebarCollapsed={setSidebarCollapsed}
+                sidebarCollapsed={sidebarCollapsed}
               />
             ) : null
           )}

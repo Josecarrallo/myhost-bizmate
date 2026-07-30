@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Building2, ChevronLeft, LayoutDashboard, Calendar, Home, CreditCard, MessageSquare, Sparkles, DollarSign, Megaphone, Share2, Workflow, BarChart3, Smartphone, Repeat, Star, Phone, Globe, ClipboardList, User, LogOut, Wifi, Shield, Zap, Bell, Search, CalendarDays, Settings, ArrowLeftRight, Rocket, Users, Menu, X, CheckCircle, Clock, AlertCircle } from 'lucide-react';
 import ModuleGridCard from './components/common/ModuleGridCard';
+import { ErrorBoundary } from './components/common';
 import { useAuth } from './contexts/AuthContext';
 import LoginPage from './components/Auth/LoginPage';
 
@@ -72,6 +73,7 @@ import BanyuTemplates from './components/BANYU/BanyuTemplates';
 import BanyuLogs from './components/BANYU/BanyuLogs';
 import ManualDataEntry from './components/ManualDataEntry/ManualDataEntry';
 import Autopilot from './components/Autopilot/Autopilot';
+import OwnerMessages from './components/OwnerMessages/OwnerMessages';
 
 // ==================== FLOATING ICON COMPONENT ====================
 const FloatingIcon = ({ icon: Icon, className, delay }) => (
@@ -183,6 +185,7 @@ export default function App() {
   // Simplified state: just track current view
   const [currentView, setCurrentView] = useState('overview'); // 'overview' is the default after login
   const [isSidebarOpen, setIsSidebarOpen] = useState(false); // Sidebar state for mobile
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false); // Sidebar collapsed state for desktop
   const [isAgentCenterOpen, setIsAgentCenterOpen] = useState(false); // Agent Center drawer state
 
   // Reset view when user changes (login/logout)
@@ -229,6 +232,9 @@ export default function App() {
 
       case 'messages':
         return <Messages key="messages" onBack={() => setCurrentView('overview')} />;
+
+      case 'owner-messages':
+        return <OwnerMessages key="owner-messages" onBack={() => setCurrentView('overview')} userData={userData} setSidebarCollapsed={setSidebarCollapsed} sidebarCollapsed={sidebarCollapsed} />;
 
       case 'calendar':
         return <PMSCalendar onBack={() => setCurrentView('overview')} />;
@@ -901,7 +907,7 @@ export default function App() {
         return <ManualDataEntry key="manual-entry" onBack={() => setCurrentView('overview')} />;
 
       case 'autopilot':
-        return <Autopilot key="autopilot" onBack={() => setCurrentView('overview')} />;
+        return <Autopilot key="autopilot" onBack={() => setCurrentView('overview')} setSidebarCollapsed={setSidebarCollapsed} sidebarCollapsed={sidebarCollapsed} />;
 
       case 'settings':
         // Placeholder for settings
@@ -926,6 +932,9 @@ export default function App() {
         onNavigate={setCurrentView}
         isOpen={isSidebarOpen}
         onClose={() => setIsSidebarOpen(false)}
+        userData={userData}
+        collapsed={sidebarCollapsed}
+        onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
       />
 
       {/* Main Content Container */}
@@ -946,7 +955,9 @@ export default function App() {
         </div>
 
         {/* Content Area */}
-        {renderContent()}
+        <ErrorBoundary key={currentView}>
+          {renderContent()}
+        </ErrorBoundary>
       </div>
 
       {/* Voice Assistant - Solo visible en Overview */}

@@ -8,3 +8,4 @@ export { default as PropertyCard } from './PropertyCard';
 export { default as PricingCard } from './PricingCard';
 export { default as CampaignCard } from './CampaignCard';
 export { default as WorkflowCard } from './WorkflowCard';
+export { default as ErrorBoundary } from './ErrorBoundary';

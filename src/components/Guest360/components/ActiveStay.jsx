@@ -211,9 +211,7 @@ const ActiveStay = ({ booking, currency = 'USD', serviceRequests = [], journeyEv
                   <p className="text-[#6d7683] text-xs mt-1">
                     📅 {new Date(service.scheduled_date).toLocaleDateString('en-US', {
                       month: 'short',
-                      day: 'numeric',
-                      hour: '2-digit',
-                      minute: '2-digit'
+                      day: 'numeric'
                     })}
                   </p>
                 )}
