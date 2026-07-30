@@ -23,9 +23,13 @@ import {
   PanelLeftOpen,
   Trash2,
   MoreVertical,
-  AlertTriangle
+  AlertTriangle,
+  Send,
+  Hand,
+  ArrowLeftRight
 } from 'lucide-react';
 import { supabaseService } from '../../services/supabase';
+import { supabase } from '../../lib/supabase';
 
 // Real brand SVG logos
 const WhatsAppLogo = ({ className }) => (
@@ -93,6 +97,14 @@ const OwnerMessages = ({ onBack, userData, setSidebarCollapsed, sidebarCollapsed
   const [newMessagesCount, setNewMessagesCount] = useState(0);
   const [newMessagesByChannel, setNewMessagesByChannel] = useState({ whatsapp: 0, voice: 0 });
   const [showNewMessagesDropdown, setShowNewMessagesDropdown] = useState(false);
+
+  // V1.5 - Owner intervention state
+  const [activeTakeover, setActiveTakeover] = useState(null); // Current takeover for selected conversation
+  const [messageText, setMessageText] = useState(''); // Composer input
+  const [sendingMessage, setSendingMessage] = useState(false);
+  const [takeoverLoading, setTakeoverLoading] = useState(false);
+  const [takeoverError, setTakeoverError] = useState(null);
+  const [countdownSeconds, setCountdownSeconds] = useState(0); // Seconds until takeover expires
 
   // Filters
   const [searchQuery, setSearchQuery] = useState('');
@@ -300,8 +312,13 @@ const OwnerMessages = ({ onBack, userData, setSidebarCollapsed, sidebarCollapsed
 
   const handleSelectConversation = (conv) => {
     setSelectedConversation(conv);
+    // Reset V1.5 state
+    setMessageText('');
+    setTakeoverError(null);
     // No channel filter - load all messages (WhatsApp + KORA unified)
     loadConversationThread(conv.phone_number, null);
+    // Check for active takeover (V1.5)
+    checkTakeover(conv.phone_number);
   };
 
   // Open delete modal for conversation
@@ -379,6 +396,155 @@ const OwnerMessages = ({ onBack, userData, setSidebarCollapsed, sidebarCollapsed
   const closeDeleteModal = () => {
     if (!deleteModal.loading) {
       setDeleteModal({ isOpen: false, type: null, target: null, loading: false });
+    }
+  };
+
+  // =====================================================
+  // V1.5 - OWNER INTERVENTION FUNCTIONS
+  // =====================================================
+
+  // Check for active takeover when selecting a conversation
+  const checkTakeover = async (phoneNumber) => {
+    try {
+      const takeover = await supabaseService.getConversationTakeover('whatsapp', phoneNumber);
+      setActiveTakeover(takeover);
+      if (takeover?.expires_at) {
+        updateCountdown(takeover.expires_at);
+      } else {
+        setCountdownSeconds(0);
+      }
+    } catch (err) {
+      console.error('Error checking takeover:', err);
+      setActiveTakeover(null);
+    }
+  };
+
+  // Update countdown timer
+  const updateCountdown = (expiresAt) => {
+    const expiresDate = new Date(expiresAt);
+    const now = new Date();
+    const diffMs = expiresDate - now;
+    const diffSeconds = Math.max(0, Math.floor(diffMs / 1000));
+    setCountdownSeconds(diffSeconds);
+  };
+
+  // Countdown timer effect
+  useEffect(() => {
+    if (!activeTakeover || countdownSeconds <= 0) return;
+
+    const timer = setInterval(() => {
+      setCountdownSeconds(prev => {
+        if (prev <= 1) {
+          // Takeover expired - release it
+          handleReleaseTakeover(true);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [activeTakeover, countdownSeconds]);
+
+  // Format countdown as MM:SS
+  const formatCountdown = (seconds) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  // Start intervention (create takeover)
+  const handleIntervene = async () => {
+    if (!selectedConversation) return;
+
+    setTakeoverLoading(true);
+    setTakeoverError(null);
+
+    try {
+      const tenantId = isAdmin ? selectedTenant : userData?.id;
+      const phoneNumber = selectedConversation.phone_number;
+
+      const takeover = await supabaseService.createConversationTakeover('whatsapp', phoneNumber, tenantId);
+      setActiveTakeover(takeover);
+
+      if (takeover?.expires_at) {
+        updateCountdown(takeover.expires_at);
+      }
+    } catch (err) {
+      console.error('Error creating takeover:', err);
+      setTakeoverError(err.message || 'Failed to take over conversation');
+    } finally {
+      setTakeoverLoading(false);
+    }
+  };
+
+  // Release takeover (return to BANYU)
+  const handleReleaseTakeover = async (isExpired = false) => {
+    if (!activeTakeover) return;
+
+    try {
+      await supabaseService.releaseConversationTakeover(activeTakeover.id);
+      setActiveTakeover(null);
+      setCountdownSeconds(0);
+      setMessageText('');
+    } catch (err) {
+      console.error('Error releasing takeover:', err);
+      if (!isExpired) {
+        setTakeoverError(err.message || 'Failed to release takeover');
+      }
+    }
+  };
+
+  // Send message via OWNER-SEND workflow
+  const handleSendMessage = async () => {
+    if (!messageText.trim() || !selectedConversation || sendingMessage) return;
+
+    setSendingMessage(true);
+    setTakeoverError(null);
+
+    try {
+      // Get access token from Supabase session
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        throw new Error('Session expired - please login again');
+      }
+
+      const response = await fetch('https://n8n-production-bb2d.up.railway.app/webhook/owner-send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          access_token: session.access_token,
+          guest_phone: selectedConversation.phone_number,
+          text: messageText.trim()
+        })
+      });
+
+      const result = await response.json();
+
+      if (!response.ok || result.error) {
+        // Handle specific errors
+        if (result.error === 'window_closed_24h') {
+          throw new Error("This guest hasn't written in the last 24h — free text can't be delivered");
+        }
+        throw new Error(result.error || 'Failed to send message');
+      }
+
+      // Success - clear input and update countdown
+      setMessageText('');
+
+      // Refresh the thread to show the new message
+      loadConversationThread(selectedConversation.phone_number, null);
+
+      // Update countdown from response
+      if (result.expires_at) {
+        updateCountdown(result.expires_at);
+        setActiveTakeover(prev => prev ? { ...prev, expires_at: result.expires_at } : prev);
+      }
+    } catch (err) {
+      console.error('Error sending message:', err);
+      setTakeoverError(err.message || 'Failed to send message');
+    } finally {
+      setSendingMessage(false);
     }
   };
 
@@ -1208,11 +1374,89 @@ const OwnerMessages = ({ onBack, userData, setSidebarCollapsed, sidebarCollapsed
                 )}
               </div>
 
-              {/* V1 Footer - Read only notice */}
-              <div className="bg-[#172234] border-t border-[#212E40] px-4 py-3 text-center">
-                <p className="text-xs text-[#93A4B8]">
-                  Read-only view — BANYU replies to guests automatically, and you get owner alerts on your WhatsApp
-                </p>
+              {/* V1.5 Footer - Intervention controls */}
+              <div className="bg-[#172234] border-t border-[#212E40]">
+                {/* Error message */}
+                {takeoverError && (
+                  <div className="px-4 py-2 bg-red-500/20 border-b border-red-500/30">
+                    <p className="text-xs text-red-400 text-center">{takeoverError}</p>
+                  </div>
+                )}
+
+                {activeTakeover ? (
+                  /* Owner has control - Show banner + composer */
+                  <>
+                    {/* Amber countdown banner */}
+                    <div className="px-4 py-2.5 bg-gradient-to-r from-amber-500/20 to-orange-500/20 border-b border-amber-500/30 flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Hand className="w-4 h-4 text-amber-400" />
+                        <span className="text-sm text-amber-200">
+                          You're handling this · BANYU paused
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <span className="text-sm font-mono font-bold text-amber-300">
+                          {formatCountdown(countdownSeconds)}
+                        </span>
+                        <button
+                          onClick={() => handleReleaseTakeover(false)}
+                          className="flex items-center gap-1.5 px-3 py-1.5 bg-[#212E40] hover:bg-[#26344A] text-[#93A4B8] hover:text-[#EAF0F7] text-xs font-medium rounded-lg transition-colors"
+                        >
+                          <ArrowLeftRight className="w-3.5 h-3.5" />
+                          Return to BANYU
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Composer */}
+                    <div className="px-4 py-3 flex items-end gap-3">
+                      <textarea
+                        value={messageText}
+                        onChange={(e) => setMessageText(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' && !e.shiftKey) {
+                            e.preventDefault();
+                            handleSendMessage();
+                          }
+                        }}
+                        placeholder="Type a message as owner..."
+                        rows={1}
+                        className="flex-1 px-4 py-3 bg-[#212E40] border border-[#93A4B8]/20 rounded-xl text-sm text-[#EAF0F7] placeholder-[#93A4B8] focus:outline-none focus:border-[#F26F21] resize-none"
+                        style={{ minHeight: '44px', maxHeight: '120px' }}
+                      />
+                      <button
+                        onClick={handleSendMessage}
+                        disabled={!messageText.trim() || sendingMessage}
+                        className="flex-shrink-0 w-11 h-11 flex items-center justify-center bg-[#F26F21] hover:bg-[#E15E12] disabled:bg-[#212E40] disabled:cursor-not-allowed rounded-xl transition-colors"
+                      >
+                        {sendingMessage ? (
+                          <RefreshCw className="w-5 h-5 text-white animate-spin" />
+                        ) : (
+                          <Send className="w-5 h-5 text-white" />
+                        )}
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  /* BANYU has control - Show intervene button */
+                  <div className="px-4 py-3 flex items-center justify-between">
+                    <p className="text-xs text-[#93A4B8]">
+                      BANYU replies automatically · You get alerts on WhatsApp
+                    </p>
+                    <button
+                      onClick={handleIntervene}
+                      disabled={takeoverLoading}
+                      className="flex items-center gap-2 px-4 py-2 bg-[#212E40] hover:bg-[#26344A] text-[#EAF0F7] text-sm font-medium rounded-lg transition-colors disabled:opacity-50"
+                    >
+                      {takeoverLoading ? (
+                        <RefreshCw className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <Hand className="w-4 h-4" />
+                      )}
+                      Intervene
+                    </button>
+                  </div>
+                )}
               </div>
             </>
           ) : (
