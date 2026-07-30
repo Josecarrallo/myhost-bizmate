@@ -310,12 +310,14 @@ const OwnerMessages = ({ onBack, userData, setSidebarCollapsed, sidebarCollapsed
 
   const handleSelectConversation = (conv) => {
     setSelectedConversation(conv);
-    // Reset V1.5 state
+    // Reset V1.5 state IMMEDIATELY - critical to prevent showing previous conversation's takeover state
+    setActiveTakeover(null);
+    setCountdownSeconds(0);
     setMessageText('');
     setTakeoverError(null);
     // No channel filter - load all messages (WhatsApp + KORA unified)
     loadConversationThread(conv.phone_number, null);
-    // Check for active takeover (V1.5)
+    // Check for active takeover (V1.5) - this is async, so we reset state first
     checkTakeover(conv.phone_number);
     // V2 Design - Load guest context for right panel
     loadGuestContext(conv.phone_number, conv.guest_name);
@@ -407,15 +409,30 @@ const OwnerMessages = ({ onBack, userData, setSidebarCollapsed, sidebarCollapsed
   const checkTakeover = async (phoneNumber) => {
     try {
       const takeover = await supabaseService.getConversationTakeover('whatsapp', phoneNumber);
-      setActiveTakeover(takeover);
+
+      // Only set active takeover if it exists AND has not expired
       if (takeover?.expires_at) {
-        updateCountdown(takeover.expires_at);
+        const expiresDate = new Date(takeover.expires_at);
+        const now = new Date();
+
+        if (expiresDate > now) {
+          // Takeover is still valid
+          setActiveTakeover(takeover);
+          updateCountdown(takeover.expires_at);
+        } else {
+          // Takeover has expired - don't activate owner control
+          setActiveTakeover(null);
+          setCountdownSeconds(0);
+        }
       } else {
+        // No takeover found
+        setActiveTakeover(null);
         setCountdownSeconds(0);
       }
     } catch (err) {
       console.error('Error checking takeover:', err);
       setActiveTakeover(null);
+      setCountdownSeconds(0);
     }
   };
 
