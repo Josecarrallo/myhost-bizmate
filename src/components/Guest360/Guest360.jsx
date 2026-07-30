@@ -10,21 +10,18 @@ import { LoadingSpinner, EmptyState } from './components/shared';
 // Constants
 import { GUEST_TABS, formatCurrency } from './constants';
 
-// Sub-components - Phase 2
+// Sub-components
 import GuestHeader from './components/GuestHeader';
 import GuestKPIs from './components/GuestKPIs';
 import ActiveStay from './components/ActiveStay';
+import GuestTabs from './components/GuestTabs';
+import JourneyTimeline from './components/JourneyTimeline';
+
+// Tab content components
+import { PaymentsTab, ServicesTab } from './components/tabs';
 
 // Guest selector for when no phone is provided
 import GuestSelector from './components/GuestSelector';
-
-// Sub-components (se crearán en fases siguientes)
-// import OCSDecisions from './components/OCSDecisions';
-// import GuestTabs from './components/GuestTabs';
-// import DigitalCheckin from './components/sidebar/DigitalCheckin';
-// import NusantaraContext from './components/sidebar/NusantaraContext';
-// import GuestNotes from './components/sidebar/GuestNotes';
-// import QuickActions from './components/sidebar/QuickActions';
 
 /**
  * Guest 360 - Vista unificada de perfil de huésped
@@ -210,21 +207,6 @@ const Guest360 = ({
           <GuestHeader
             guest={guest}
             bookings={bookings}
-            onMessageWhatsApp={() => {
-              // TODO: Integrate with WhatsApp
-              const phone = guest?.phone || guestPhone;
-              if (phone) {
-                window.open(`https://wa.me/${phone.replace(/\D/g, '')}`, '_blank');
-              }
-            }}
-            onNewBooking={() => {
-              // TODO: Navigate to new booking form
-              console.log('New booking for guest:', guestPhone);
-            }}
-            onMoreActions={() => {
-              // TODO: Show more actions menu
-              console.log('More actions for guest:', guestPhone);
-            }}
           />
         </div>
 
@@ -362,88 +344,71 @@ const Guest360 = ({
             })()}
 
           </div>
+        </div>
 
-          {/* Sidebar column */}
-          <div className="w-full md:w-[340px] md:max-w-[380px] space-y-5">
-
-            {/* Spacer to align with "All Bookings" title */}
-            <div className="hidden md:block h-6" />
-
-            {/* Guest Notes - from guest profile or bookings */}
-            <div className="bg-[#333b47] rounded-2xl border border-white/10 p-5">
-              <h3 className="text-sm font-semibold text-white mb-3">Guest Notes</h3>
-              {(() => {
-                // Check guest notes first, then booking notes
-                const guestNotes = guest?.notes || guest?.special_requests;
-                const bookingNotes = bookings.find(b => b.notes || b.special_requests);
-                const notes = guestNotes || bookingNotes?.notes || bookingNotes?.special_requests;
-
-                return notes ? (
-                  <p className="text-[#aab2bf] text-sm whitespace-pre-wrap">{notes}</p>
-                ) : (
-                  <p className="text-[#6d7683] text-sm">No notes</p>
-                );
-              })()}
-            </div>
-
-            {/* Quick Actions */}
-            <div className="bg-[#333b47] rounded-2xl border border-white/10 p-5">
-              <h3 className="text-sm font-semibold text-white mb-3">Quick Actions</h3>
-              <div className="space-y-2">
-                {/* Send WhatsApp Message */}
-                <button
-                  onClick={() => {
-                    const phone = guest?.phone || guestPhone;
-                    if (phone) {
-                      const cleanPhone = phone.replace(/\D/g, '');
-                      window.open(`https://wa.me/${cleanPhone}`, '_blank');
-                    }
-                  }}
-                  className="w-full flex items-center justify-between p-3 rounded-xl bg-[#2c333e] hover:bg-[#3a434f] text-[#aab2bf] hover:text-white transition-colors text-sm"
-                >
-                  <span>Send WhatsApp Message</span>
-                  <span className="text-[#25D366]">→</span>
-                </button>
-
-                {/* Edit Booking - goes to active/latest booking */}
-                <button
-                  onClick={() => {
-                    const bookingToEdit = activeBooking || bookings[0];
-                    if (bookingToEdit) {
-                      // Navigate to Bookings module with this booking selected
-                      const code = bookingToEdit.confirmation_code || bookingToEdit.reservation_id?.split('@')[0]?.slice(-12);
-                      console.log('Edit booking:', bookingToEdit.id, code);
-                      alert(`Navigate to edit booking: ${code || bookingToEdit.id}`);
-                    }
-                  }}
-                  className="w-full flex items-center justify-between p-3 rounded-xl bg-[#2c333e] hover:bg-[#3a434f] text-[#aab2bf] hover:text-white transition-colors text-sm"
-                >
-                  <span>Edit Booking</span>
-                  <span className="text-[#f5791f]">→</span>
-                </button>
-
-                {/* View Service Requests */}
-                <button
-                  onClick={() => {
-                    // Navigate to Service Requests view
-                    console.log('View service requests for guest:', guestPhone);
-                    alert(`View ${serviceRequests.length} service requests for this guest`);
-                  }}
-                  className="w-full flex items-center justify-between p-3 rounded-xl bg-[#2c333e] hover:bg-[#3a434f] text-[#aab2bf] hover:text-white transition-colors text-sm"
-                >
-                  <span>Service Requests ({serviceRequests.length})</span>
-                  <span className="text-[#f5791f]">→</span>
-                </button>
-              </div>
-            </div>
-
+        {/* Full-width Journey Timeline for active booking */}
+        {activeBooking && (
+          <div className="mt-5">
+            <JourneyTimeline
+              journeyEvents={journeyEvents.filter(je => je.booking_id === activeBooking.id)}
+              booking={activeBooking}
+            />
           </div>
+        )}
+
+        {/* Tab Navigation */}
+        <div className="mt-5">
+          <GuestTabs
+            activeTab={activeTab}
+            onTabChange={setActiveTab}
+            counts={{
+              bookings: bookings.length,
+              payments: bookings.length,
+              services: serviceRequests.length,
+            }}
+          />
+        </div>
+
+        {/* Tab Content */}
+        <div className="mt-5">
+          {activeTab === 'bookings' && (
+            <div className="space-y-4">
+              {bookings.length === 0 ? (
+                <div className="bg-[#333b47] rounded-2xl border border-white/10 p-5">
+                  <EmptyState
+                    title="No Bookings"
+                    description="No booking history for this guest"
+                  />
+                </div>
+              ) : (
+                [...bookings]
+                  .sort((a, b) => new Date(b.check_in) - new Date(a.check_in))
+                  .map((booking) => (
+                    <ActiveStay
+                      key={booking.id}
+                      booking={booking}
+                      currency={currency}
+                      serviceRequests={serviceRequests.filter(sr => sr.booking_id === booking.id)}
+                      journeyEvents={journeyEvents.filter(je => je.booking_id === booking.id)}
+                    />
+                  ))
+              )}
+            </div>
+          )}
+
+          {activeTab === 'payments' && (
+            <PaymentsTab bookings={bookings} currency={currency} />
+          )}
+
+          {activeTab === 'services' && (
+            <ServicesTab serviceRequests={serviceRequests} bookings={bookings} />
+          )}
         </div>
 
         {/* Footer */}
         <div className="mt-8 py-4 border-t border-white/10 text-center">
           <p className="text-[10px] text-[#5f6874] uppercase tracking-wider">
-            Guest 360 · MY HOST BizMate
+            OCS 360 · MY HOST BizMate
           </p>
         </div>
       </div>

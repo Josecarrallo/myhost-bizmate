@@ -1,8 +1,5 @@
 import React from 'react';
 import {
-  MessageCircle,
-  Plus,
-  MoreHorizontal,
   Phone,
   Mail,
   Globe,
@@ -11,14 +8,11 @@ import {
 import { Badge } from './shared';
 
 /**
- * Guest Header - Avatar + name + badges + contact + actions
+ * Guest Header - Avatar + name + badges + contact (simplified per Gita feedback)
  */
 const GuestHeader = ({
   guest,
   bookings = [],
-  onMessageWhatsApp,
-  onNewBooking,
-  onMoreActions,
 }) => {
   // Guest info
   const name = guest?.name || bookings[0]?.guest_name || 'Huésped';
@@ -42,129 +36,77 @@ const GuestHeader = ({
     .toUpperCase();
 
   return (
-    <div className="bg-[#333b47] rounded-2xl border border-white/80 p-5 md:p-6">
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-
-        {/* Left: Avatar + Info */}
-        <div className="flex items-start gap-4">
-          {/* Avatar */}
-          <div
-            className="w-14 h-14 md:w-16 md:h-16 rounded-2xl flex items-center justify-center text-white text-xl md:text-2xl font-bold flex-shrink-0"
-            style={{
-              background: 'linear-gradient(140deg, #f5791f 0%, #f2b04a 100%)',
-            }}
-          >
-            {initials}
-          </div>
-
-          {/* Name + Badges + Contact */}
-          <div className="flex-1 min-w-0">
-            {/* Name + Badges row */}
-            <div className="flex flex-wrap items-center gap-2 mb-2">
-              <h1 className="text-xl md:text-2xl font-bold text-white truncate">
-                {name}
-              </h1>
-
-              {/* VIP Badge */}
-              {isVIP && (
-                <Badge variant="accent" size="sm">
-                  VIP
-                </Badge>
-              )}
-
-              {/* Repeat guest badge */}
-              {isRepeat && (
-                <Badge variant="neutral" size="sm">
-                  Repeat · {stayNumber} stays
-                </Badge>
-              )}
-            </div>
-
-            {/* Contact line */}
-            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-[#aab2bf]">
-              {/* Phone */}
-              {phone && (
-                <span className="flex items-center gap-1.5 font-mono">
-                  <Phone className="w-3.5 h-3.5 text-[#6d7683]" />
-                  {phone}
-                </span>
-              )}
-
-              {/* Email */}
-              {email && (
-                <span className="flex items-center gap-1.5 truncate max-w-[200px]">
-                  <Mail className="w-3.5 h-3.5 text-[#6d7683]" />
-                  {email}
-                </span>
-              )}
-
-              {/* Nationality */}
-              {nationality && (
-                <span className="flex items-center gap-1.5">
-                  <Globe className="w-3.5 h-3.5 text-[#6d7683]" />
-                  {nationality}
-                </span>
-              )}
-
-              {/* Language with green dot */}
-              {language && (
-                <span className="flex items-center gap-1.5">
-                  <Languages className="w-3.5 h-3.5 text-[#6d7683]" />
-                  {language.toUpperCase()}
-                  <span className="w-2 h-2 rounded-full bg-green-400" />
-                </span>
-              )}
-            </div>
-          </div>
+    <div className="bg-[#333b47] rounded-2xl border border-white/10 p-5 md:p-6">
+      <div className="flex items-start gap-4 md:gap-5">
+        {/* Avatar - larger */}
+        <div
+          className="w-16 h-16 md:w-20 md:h-20 rounded-2xl flex items-center justify-center text-white text-2xl md:text-3xl font-bold flex-shrink-0 shadow-lg"
+          style={{
+            background: 'linear-gradient(140deg, #f5791f 0%, #f2b04a 100%)',
+          }}
+        >
+          {initials}
         </div>
 
-        {/* Right: Actions */}
-        <div className="flex items-center gap-2 flex-wrap md:flex-nowrap">
-          {/* Primary: WhatsApp */}
-          <button
-            onClick={onMessageWhatsApp}
-            className="
-              flex items-center gap-2 px-4 py-2.5
-              bg-[#f5791f] hover:bg-[#e06a10]
-              text-white font-semibold text-sm
-              rounded-xl transition-colors
-              min-h-[44px]
-            "
-          >
-            <MessageCircle className="w-4 h-4" />
-            <span>WhatsApp</span>
-          </button>
+        {/* Name + Badges + Contact */}
+        <div className="flex-1 min-w-0">
+          {/* Name - larger and more prominent */}
+          <h1 className="text-2xl md:text-3xl font-bold text-white mb-2 truncate">
+            {name}
+          </h1>
 
-          {/* Secondary: New booking */}
-          <button
-            onClick={onNewBooking}
-            className="
-              flex items-center gap-2 px-4 py-2.5
-              bg-transparent hover:bg-[#3a434f]
-              border border-white/50 hover:border-white/70
-              text-[#aab2bf] hover:text-white font-semibold text-sm
-              rounded-xl transition-colors
-              min-h-[44px]
-            "
-          >
-            <Plus className="w-4 h-4" />
-            <span>New Booking</span>
-          </button>
+          {/* Badges row */}
+          <div className="flex flex-wrap items-center gap-2 mb-3">
+            {/* VIP Badge */}
+            {isVIP && (
+              <Badge variant="accent" size="sm">
+                VIP
+              </Badge>
+            )}
 
-          {/* Icon: More */}
-          <button
-            onClick={onMoreActions}
-            className="
-              p-2.5
-              bg-[#3a434f] hover:bg-[#434d5a]
-              text-[#aab2bf] hover:text-white
-              rounded-xl transition-colors
-              min-h-[44px] min-w-[44px]
-              flex items-center justify-center
-            "
-          >
-            <MoreHorizontal className="w-5 h-5" />
-          </button>
+            {/* Repeat guest badge */}
+            {isRepeat && (
+              <Badge variant="neutral" size="sm">
+                {stayNumber} stays
+              </Badge>
+            )}
+          </div>
+
+          {/* Contact line */}
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-sm text-[#aab2bf]">
+            {/* Phone */}
+            {phone && (
+              <span className="flex items-center gap-1.5 font-mono">
+                <Phone className="w-4 h-4 text-[#6d7683]" />
+                {phone}
+              </span>
+            )}
+
+            {/* Email */}
+            {email && (
+              <span className="flex items-center gap-1.5 truncate max-w-[220px]">
+                <Mail className="w-4 h-4 text-[#6d7683]" />
+                {email}
+              </span>
+            )}
+
+            {/* Nationality */}
+            {nationality && (
+              <span className="flex items-center gap-1.5">
+                <Globe className="w-4 h-4 text-[#6d7683]" />
+                {nationality}
+              </span>
+            )}
+
+            {/* Language with green dot */}
+            {language && (
+              <span className="flex items-center gap-1.5">
+                <Languages className="w-4 h-4 text-[#6d7683]" />
+                {language.toUpperCase()}
+                <span className="w-2 h-2 rounded-full bg-green-400" />
+              </span>
+            )}
+          </div>
         </div>
       </div>
     </div>

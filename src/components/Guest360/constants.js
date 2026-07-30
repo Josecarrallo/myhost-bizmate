@@ -83,13 +83,11 @@ export const JOURNEY_STEPS = [
   { id: 'post_stay', label: 'Post-stay', event: 'post_stay_sent' },
 ];
 
-// Guest 360 Tabs
+// Guest 360 Tabs (solo los relevantes per Gita feedback)
 export const GUEST_TABS = [
   { id: 'bookings', label: 'Bookings' },
   { id: 'payments', label: 'Payments' },
   { id: 'services', label: 'Services' },
-  { id: 'whatsapp', label: 'WhatsApp' },
-  { id: 'reviews', label: 'Reviews' },
 ];
 
 // Helper: calcular si booking es pasada (NO usar status='completed')
