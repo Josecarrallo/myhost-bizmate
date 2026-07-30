@@ -1080,7 +1080,6 @@ const ServiceRequests = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
                 <th className="text-left py-3 px-3 text-gray-300 font-semibold text-xs">Title</th>
                 <th className="text-left py-3 px-3 text-gray-300 font-semibold text-xs">Guest</th>
                 <th className="text-left py-3 px-3 text-gray-300 font-semibold text-xs">Scheduled</th>
-                <th className="text-left py-3 px-3 text-gray-300 font-semibold text-xs">Duration</th>
                 <th className="text-left py-3 px-3 text-gray-300 font-semibold text-xs">Price</th>
                 <th className="text-left py-3 px-3 text-gray-300 font-semibold text-xs">Assigned To</th>
                 <th className="text-left py-3 px-3 text-gray-300 font-semibold text-xs">Created</th>
@@ -1090,13 +1089,13 @@ const ServiceRequests = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan="10" className="text-center py-12 text-gray-400">
+                  <td colSpan="9" className="text-center py-12 text-gray-400">
                     Loading service requests...
                   </td>
                 </tr>
               ) : filteredRequests.length === 0 ? (
                 <tr>
-                  <td colSpan="10" className="text-center py-12 text-gray-400">
+                  <td colSpan="9" className="text-center py-12 text-gray-400">
                     No service requests found
                   </td>
                 </tr>
@@ -1135,13 +1134,6 @@ const ServiceRequests = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
                         <div className="text-white/60 text-[10px]">{request.guest_phone}</div>
                       </td>
                       <td className="py-2.5 px-3 text-white text-xs">{formatDateTime(request.scheduled_at)}</td>
-                      <td className="py-2.5 px-3 text-white text-xs">
-                        {request.duration_minutes ?
-                          request.duration_minutes >= 60 ?
-                            `${Math.floor(request.duration_minutes / 60)}h` :
-                            `${request.duration_minutes} min`
-                          : '-'}
-                      </td>
                       <td className="py-2.5 px-3 text-white font-medium text-xs">{formatPrice(request.price, request.currency)}</td>
                       <td className="py-2.5 px-3">
                         {request.assigned_to ? (
@@ -1380,18 +1372,6 @@ const ServiceRequests = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
                   </div>
                 </div>
 
-                {/* Duration */}
-                <div>
-                  <label className="block text-sm font-semibold text-white mb-2">Duration (minutes)</label>
-                  <input
-                    type="number"
-                    value={formData.duration_minutes || ''}
-                    onChange={(e) => setFormData({...formData, duration_minutes: e.target.value})}
-                    placeholder="60"
-                    className="w-full px-4 py-2.5 bg-[#1f2937] border border-[#d85a2a]/30 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#d85a2a]/50"
-                  />
-                </div>
-
                 {/* Price */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
@@ -1604,17 +1584,6 @@ const ServiceRequests = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
                     value={utcToBaliLocal(editedRequest.scheduled_at)}
                     onChange={(e) => setEditedRequest({...editedRequest, scheduled_at: baliLocalToUTC(e.target.value)})}
                     className="w-full px-4 py-3 bg-[#1f2937] border border-[#d85a2a]/30 rounded-xl text-white focus:outline-none focus:border-[#d85a2a] focus:ring-2 focus:ring-[#d85a2a]/20"
-                  />
-                </div>
-
-                {/* Duration */}
-                <div>
-                  <label className="block text-sm font-semibold text-white mb-2">Duration (minutes)</label>
-                  <input
-                    type="number"
-                    value={editedRequest.duration_minutes || ''}
-                    onChange={(e) => setEditedRequest({...editedRequest, duration_minutes: parseInt(e.target.value) || null})}
-                    className="w-full px-4 py-3 bg-[#1f2937] border border-[#d85a2a]/30 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-[#d85a2a] focus:ring-2 focus:ring-[#d85a2a]/20"
                   />
                 </div>
 
