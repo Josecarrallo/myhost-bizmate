@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, RefreshCw, Menu, PanelLeftOpen } from 'lucide-react';
+import { ArrowLeft, RefreshCw, Menu, PanelLeftOpen, Calendar } from 'lucide-react';
 
 // Hooks
 import useGuest360Data from './hooks/useGuest360Data';
@@ -157,6 +157,16 @@ const Guest360 = ({
   // Guest name from guest profile or first booking
   const guestName = guest?.name || bookings[0]?.guest_name || 'Huésped';
 
+  // Report date (current date/time)
+  const reportDate = new Date().toLocaleDateString('en-US', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+
   // Handle back navigation - go to selector if we selected a guest, otherwise go to menu
   const handleBack = () => {
     if (selectedPhone && !initialGuestPhone) {
@@ -173,33 +183,47 @@ const Guest360 = ({
       {/* Main container */}
       <div className="w-full p-4 md:p-6">
 
-        {/* Breadcrumb */}
-        <div className="flex items-center gap-2 text-sm text-[#6d7683] mb-4">
-          {/* Sidebar toggle button (desktop only) */}
-          {setSidebarCollapsed && (
+        {/* Breadcrumb + Report Date */}
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2 text-sm text-[#6d7683]">
+            {/* Sidebar toggle button (desktop only) */}
+            {setSidebarCollapsed && (
+              <button
+                onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+                className="hidden lg:flex p-2 bg-[#1f2937]/80 hover:bg-[#1f2937] rounded-xl transition-all mr-2"
+                title={sidebarCollapsed ? 'Show menu' : 'Hide menu'}
+              >
+                {sidebarCollapsed ? (
+                  <Menu className="w-5 h-5 text-[#FF8C42]" />
+                ) : (
+                  <PanelLeftOpen className="w-5 h-5 text-[#93A4B8]" />
+                )}
+              </button>
+            )}
             <button
-              onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-              className="hidden lg:flex p-2 bg-[#1f2937]/80 hover:bg-[#1f2937] rounded-xl transition-all mr-2"
-              title={sidebarCollapsed ? 'Show menu' : 'Hide menu'}
+              onClick={handleBack}
+              className="flex items-center gap-1 hover:text-[#aab2bf] transition-colors"
             >
-              {sidebarCollapsed ? (
-                <Menu className="w-5 h-5 text-[#FF8C42]" />
-              ) : (
-                <PanelLeftOpen className="w-5 h-5 text-[#93A4B8]" />
-              )}
+              <ArrowLeft className="w-4 h-4" />
+              <span>{selectedPhone && !initialGuestPhone ? 'OCS 360' : 'MY HOST BizMate'}</span>
             </button>
-          )}
-          <button
-            onClick={handleBack}
-            className="flex items-center gap-1 hover:text-[#aab2bf] transition-colors"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            <span>{selectedPhone && !initialGuestPhone ? 'OCS 360' : 'MY HOST BizMate'}</span>
-          </button>
-          <span>/</span>
-          <span>Guests</span>
-          <span>/</span>
-          <span className="text-[#aab2bf]">{guestName}</span>
+            <span>/</span>
+            <span>Guests</span>
+            <span>/</span>
+            <span className="text-[#aab2bf]">{guestName}</span>
+          </div>
+
+          {/* Report Date */}
+          <div className="hidden md:flex items-center gap-2 text-xs text-[#6d7683]">
+            <Calendar className="w-3.5 h-3.5" />
+            <span>{reportDate}</span>
+          </div>
+        </div>
+
+        {/* Mobile Report Date */}
+        <div className="md:hidden flex items-center gap-2 text-xs text-[#6d7683] mb-4">
+          <Calendar className="w-3.5 h-3.5" />
+          <span>{reportDate}</span>
         </div>
 
         {/* Guest Header */}
@@ -219,145 +243,8 @@ const Guest360 = ({
           />
         </div>
 
-        {/* Two-column layout - starts after KPIs */}
-        <div className="flex flex-wrap gap-5">
-
-          {/* Main column */}
-          <div className="flex-1 min-w-[320px] space-y-5">
-
-            {/* All Bookings - Full cards sorted by check-in date */}
-            <div className="space-y-4">
-              <h3 className="text-sm font-semibold text-white uppercase tracking-wider">
-                All Bookings ({bookings.length})
-              </h3>
-              {[...bookings]
-                .sort((a, b) => new Date(a.check_in) - new Date(b.check_in))
-                .map((booking) => (
-                  <ActiveStay
-                    key={booking.id}
-                    booking={booking}
-                    currency={currency}
-                    serviceRequests={serviceRequests.filter(sr => sr.booking_id === booking.id)}
-                    journeyEvents={journeyEvents.filter(je => je.booking_id === booking.id)}
-                  />
-                ))
-              }
-            </div>
-
-            {/* Booking Summary */}
-            <div className="bg-[#333b47] rounded-2xl border border-white/10 p-5">
-              <h3 className="text-sm font-semibold text-white mb-4">Booking Summary</h3>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <p className="text-xs text-[#8a93a1] uppercase tracking-wider mb-1">Total Bookings</p>
-                  <p className="text-base md:text-2xl font-bold text-white">{bookings.length}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-[#8a93a1] uppercase tracking-wider mb-1">Total Revenue</p>
-                  <p className="text-xs md:text-2xl font-bold text-[#f5791f] font-mono overflow-hidden text-ellipsis">
-                    {formatCurrency(bookings.reduce((sum, b) => sum + (b.total_price || 0), 0), currency)}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* OCS Decisions - Only for this guest's bookings */}
-            {(() => {
-              // Get booking IDs for this guest
-              const guestBookingIds = bookings.map(b => b.id);
-              // Filter decisions that belong to this guest's bookings
-              const guestDecisions = decisions.filter(d =>
-                d.booking_id && guestBookingIds.includes(d.booking_id)
-              );
-              const pendingGuestDecisions = guestDecisions.filter(d => d.status === 'pending');
-              const resolvedGuestDecisions = guestDecisions.filter(d => d.status !== 'pending');
-
-              return (
-                <div className="bg-[#333b47] rounded-2xl border border-white/10 p-5">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-sm font-semibold text-white">Owner Decisions</h3>
-                    <span className="text-xs text-[#8a93a1]">
-                      {pendingGuestDecisions.length} pending · {resolvedGuestDecisions.length} resolved
-                    </span>
-                  </div>
-                  {pendingGuestDecisions.length > 0 ? (
-                    <div className="space-y-3">
-                      {pendingGuestDecisions
-                        .slice(0, 5)
-                        .map((decision) => {
-                          // Find the booking for this decision
-                          const decisionBooking = bookings.find(b => b.id === decision.booking_id);
-                          return (
-                            <div
-                              key={decision.id}
-                              className="p-3 bg-[#2c333e] rounded-xl border-l-4 border-[#e6b24d]"
-                            >
-                              <div className="flex items-start justify-between gap-2">
-                                <div className="flex-1 min-w-0">
-                                  <p className="text-white text-sm font-medium truncate">
-                                    {decision.title || decision.decision_type || 'Decision'}
-                                  </p>
-                                  {(decisionBooking?.confirmation_code || decisionBooking?.reservation_id) && (
-                                    <p className="text-[#f5791f] text-xs font-mono mt-1">
-                                      #{decisionBooking.confirmation_code || decisionBooking.reservation_id?.split('@')[0]?.slice(-12)}
-                                    </p>
-                                  )}
-                                  {decision.description && (
-                                    <p className="text-[#8a93a1] text-xs mt-1 line-clamp-2">
-                                      {decision.description}
-                                    </p>
-                                  )}
-                                  <p className="text-[#6d7683] text-xs mt-2">
-                                    {decision.created_at && new Date(decision.created_at).toLocaleDateString('en-US', {
-                                      month: 'short',
-                                      day: 'numeric',
-                                      hour: '2-digit',
-                                      minute: '2-digit'
-                                    })}
-                                  </p>
-                                </div>
-                                <span className={`text-xs px-2 py-1 rounded-full whitespace-nowrap ${
-                                  decision.priority === 'urgent' || decision.priority === 'high'
-                                    ? 'bg-red-500/20 text-red-400'
-                                    : decision.priority === 'medium'
-                                    ? 'bg-yellow-500/20 text-yellow-400'
-                                    : 'bg-blue-500/20 text-blue-400'
-                                }`}>
-                                  {decision.priority || 'normal'}
-                                </span>
-                              </div>
-                            </div>
-                          );
-                        })
-                      }
-                      {pendingGuestDecisions.length > 5 && (
-                        <p className="text-[#8a93a1] text-xs text-center">
-                          +{pendingGuestDecisions.length - 5} more decisions
-                        </p>
-                      )}
-                    </div>
-                  ) : (
-                    <p className="text-[#6d7683] text-sm">No pending decisions for this guest</p>
-                  )}
-                </div>
-              );
-            })()}
-
-          </div>
-        </div>
-
-        {/* Full-width Journey Timeline for active booking */}
-        {activeBooking && (
-          <div className="mt-5">
-            <JourneyTimeline
-              journeyEvents={journeyEvents.filter(je => je.booking_id === activeBooking.id)}
-              booking={activeBooking}
-            />
-          </div>
-        )}
-
-        {/* Tab Navigation */}
-        <div className="mt-5">
+        {/* Tab Navigation - Main content area */}
+        <div className="mb-4">
           <GuestTabs
             activeTab={activeTab}
             onTabChange={setActiveTab}
@@ -370,30 +257,144 @@ const Guest360 = ({
         </div>
 
         {/* Tab Content */}
-        <div className="mt-5">
+        <div className="space-y-5">
           {activeTab === 'bookings' && (
-            <div className="space-y-4">
-              {bookings.length === 0 ? (
-                <div className="bg-[#333b47] rounded-2xl border border-white/10 p-5">
-                  <EmptyState
-                    title="No Bookings"
-                    description="No booking history for this guest"
-                  />
-                </div>
-              ) : (
-                [...bookings]
-                  .sort((a, b) => new Date(b.check_in) - new Date(a.check_in))
-                  .map((booking) => (
-                    <ActiveStay
-                      key={booking.id}
-                      booking={booking}
-                      currency={currency}
-                      serviceRequests={serviceRequests.filter(sr => sr.booking_id === booking.id)}
-                      journeyEvents={journeyEvents.filter(je => je.booking_id === booking.id)}
+            <>
+              {/* Bookings list */}
+              <div className="space-y-4">
+                {bookings.length === 0 ? (
+                  <div className="bg-[#333b47] rounded-2xl border border-white/10 p-5">
+                    <EmptyState
+                      title="No Bookings"
+                      description="No booking history for this guest"
                     />
-                  ))
+                  </div>
+                ) : (
+                  [...bookings]
+                    .sort((a, b) => new Date(a.check_in) - new Date(b.check_in))
+                    .map((booking) => (
+                      <ActiveStay
+                        key={booking.id}
+                        booking={booking}
+                        currency={currency}
+                        serviceRequests={serviceRequests.filter(sr => sr.booking_id === booking.id)}
+                        journeyEvents={journeyEvents.filter(je => je.booking_id === booking.id)}
+                      />
+                    ))
+                )}
+              </div>
+
+              {/* Booking Summary */}
+              {bookings.length > 0 && (
+                <div className="bg-[#333b47] rounded-2xl border border-white/10 p-5">
+                  <h3 className="text-sm font-semibold text-white mb-4">Booking Summary</h3>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-xs text-[#8a93a1] uppercase tracking-wider mb-1">Total Bookings</p>
+                      <p className="text-base md:text-2xl font-bold text-white">{bookings.length}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-[#8a93a1] uppercase tracking-wider mb-1">Total Revenue</p>
+                      <p className="text-xs md:text-2xl font-bold text-[#f5791f] font-mono overflow-hidden text-ellipsis">
+                        {formatCurrency(bookings.reduce((sum, b) => sum + (b.total_price || 0), 0), currency)}
+                      </p>
+                    </div>
+                  </div>
+                </div>
               )}
-            </div>
+
+              {/* Journey Timeline for active booking */}
+              {activeBooking && (
+                <JourneyTimeline
+                  journeyEvents={journeyEvents.filter(je => je.booking_id === activeBooking.id)}
+                  booking={activeBooking}
+                />
+              )}
+
+              {/* OCS Decisions - Only for this guest's bookings */}
+              {(() => {
+                // Get booking IDs for this guest
+                const guestBookingIds = bookings.map(b => b.id);
+                // Filter decisions that belong to this guest's bookings
+                const guestDecisions = decisions.filter(d =>
+                  d.booking_id && guestBookingIds.includes(d.booking_id)
+                );
+                const pendingGuestDecisions = guestDecisions.filter(d => d.status === 'pending');
+                const resolvedGuestDecisions = guestDecisions.filter(d => d.status !== 'pending');
+
+                if (guestDecisions.length === 0) return null;
+
+                return (
+                  <div className="bg-[#333b47] rounded-2xl border border-white/10 p-5">
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="text-sm font-semibold text-white">Owner Decisions</h3>
+                      <span className="text-xs text-[#8a93a1]">
+                        {pendingGuestDecisions.length} pending · {resolvedGuestDecisions.length} resolved
+                      </span>
+                    </div>
+                    {pendingGuestDecisions.length > 0 ? (
+                      <div className="space-y-3">
+                        {pendingGuestDecisions
+                          .slice(0, 5)
+                          .map((decision) => {
+                            // Find the booking for this decision
+                            const decisionBooking = bookings.find(b => b.id === decision.booking_id);
+                            return (
+                              <div
+                                key={decision.id}
+                                className="p-3 bg-[#2c333e] rounded-xl border-l-4 border-[#e6b24d]"
+                              >
+                                <div className="flex items-start justify-between gap-2">
+                                  <div className="flex-1 min-w-0">
+                                    <p className="text-white text-sm font-medium truncate">
+                                      {decision.title || decision.decision_type || 'Decision'}
+                                    </p>
+                                    {(decisionBooking?.confirmation_code || decisionBooking?.reservation_id) && (
+                                      <p className="text-[#f5791f] text-xs font-mono mt-1">
+                                        #{decisionBooking.confirmation_code || decisionBooking.reservation_id?.split('@')[0]?.slice(-12)}
+                                      </p>
+                                    )}
+                                    {decision.description && (
+                                      <p className="text-[#8a93a1] text-xs mt-1 line-clamp-2">
+                                        {decision.description}
+                                      </p>
+                                    )}
+                                    <p className="text-[#6d7683] text-xs mt-2">
+                                      {decision.created_at && new Date(decision.created_at).toLocaleDateString('en-US', {
+                                        month: 'short',
+                                        day: 'numeric',
+                                        hour: '2-digit',
+                                        minute: '2-digit'
+                                      })}
+                                    </p>
+                                  </div>
+                                  <span className={`text-xs px-2 py-1 rounded-full whitespace-nowrap ${
+                                    decision.priority === 'urgent' || decision.priority === 'high'
+                                      ? 'bg-red-500/20 text-red-400'
+                                      : decision.priority === 'medium'
+                                      ? 'bg-yellow-500/20 text-yellow-400'
+                                      : 'bg-blue-500/20 text-blue-400'
+                                  }`}>
+                                    {decision.priority || 'normal'}
+                                  </span>
+                                </div>
+                              </div>
+                            );
+                          })
+                        }
+                        {pendingGuestDecisions.length > 5 && (
+                          <p className="text-[#8a93a1] text-xs text-center">
+                            +{pendingGuestDecisions.length - 5} more decisions
+                          </p>
+                        )}
+                      </div>
+                    ) : (
+                      <p className="text-[#6d7683] text-sm">No pending decisions for this guest</p>
+                    )}
+                  </div>
+                );
+              })()}
+            </>
           )}
 
           {activeTab === 'payments' && (

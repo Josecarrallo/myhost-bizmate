@@ -46,15 +46,15 @@ const GuestKPIs = ({ stats, guest, currency = 'USD' }) => {
       {kpis.map((kpi, index) => (
         <div
           key={index}
-          className="bg-[#333b47] rounded-xl border border-white/10 p-4 min-w-0"
+          className="bg-[#333b47] rounded-xl border border-white/10 p-3 md:p-4 min-w-0"
         >
           {/* Label */}
-          <p className="text-[10px] uppercase tracking-wider text-white font-semibold mb-2 whitespace-nowrap">
+          <p className="text-[10px] md:text-xs uppercase tracking-wider text-[#8a93a1] font-semibold mb-1.5 whitespace-nowrap">
             {kpi.label}
           </p>
 
-          {/* Value - single line, smaller on mobile for long currency values */}
-          <p className="text-[10px] md:text-sm font-mono font-semibold text-[#f5791f] truncate">
+          {/* Value */}
+          <p className="text-sm md:text-lg font-bold text-[#f5791f] truncate">
             {formatValue(kpi.value, kpi.format)}
           </p>
         </div>

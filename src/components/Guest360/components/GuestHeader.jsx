@@ -36,11 +36,11 @@ const GuestHeader = ({
     .toUpperCase();
 
   return (
-    <div className="bg-[#333b47] rounded-2xl border border-white/10 p-5 md:p-6">
-      <div className="flex items-start gap-4 md:gap-5">
-        {/* Avatar - larger */}
+    <div className="bg-[#333b47] rounded-2xl border border-white/10 p-4 md:p-5">
+      <div className="flex items-start gap-4">
+        {/* Avatar - consistent with GuestSelector (w-12 h-12) */}
         <div
-          className="w-16 h-16 md:w-20 md:h-20 rounded-2xl flex items-center justify-center text-white text-2xl md:text-3xl font-bold flex-shrink-0 shadow-lg"
+          className="w-12 h-12 md:w-14 md:h-14 rounded-xl flex items-center justify-center text-white text-lg md:text-xl font-bold flex-shrink-0"
           style={{
             background: 'linear-gradient(140deg, #f5791f 0%, #f2b04a 100%)',
           }}
@@ -50,13 +50,13 @@ const GuestHeader = ({
 
         {/* Name + Badges + Contact */}
         <div className="flex-1 min-w-0">
-          {/* Name - larger and more prominent */}
-          <h1 className="text-2xl md:text-3xl font-bold text-white mb-2 truncate">
+          {/* Name - consistent with GuestSelector title */}
+          <h1 className="text-xl md:text-2xl font-bold text-white mb-2 truncate">
             {name}
           </h1>
 
           {/* Badges row */}
-          <div className="flex flex-wrap items-center gap-2 mb-3">
+          <div className="flex flex-wrap items-center gap-2 mb-2">
             {/* VIP Badge */}
             {isVIP && (
               <Badge variant="accent" size="sm">
