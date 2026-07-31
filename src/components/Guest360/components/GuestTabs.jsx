@@ -22,7 +22,7 @@ const GuestTabs = ({ activeTab, onTabChange, counts = {} }) => {
   };
 
   return (
-    <div className="bg-[#333b47] rounded-2xl border border-white/10 p-2">
+    <div className="bg-[#333b47] rounded-xl border border-white/10 p-2">
       {/* Desktop: Horizontal tabs */}
       <div className="hidden md:flex items-center gap-1">
         {GUEST_TABS.map((tab) => {
