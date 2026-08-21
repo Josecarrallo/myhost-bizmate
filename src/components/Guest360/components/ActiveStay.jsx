@@ -181,47 +181,87 @@ const ActiveStay = ({ booking, currency = 'USD', serviceRequests = [], journeyEv
             </span>
           </div>
           <div className="space-y-2">
-            {serviceRequests.map((service) => (
-              <div
-                key={service.id}
-                className="p-3 bg-[#2c333e] rounded-lg"
-              >
-                <div className="flex items-center justify-between mb-1">
-                  <p className="text-white text-sm font-medium">
-                    {service.service_type || service.title || 'Service'}
-                  </p>
-                  <span className={`text-xs px-2 py-1 rounded-full ml-2 whitespace-nowrap ${
-                    service.status === 'completed' || service.status === 'done'
-                      ? 'bg-green-500/20 text-green-400'
-                      : service.status === 'in_progress' || service.status === 'assigned'
-                      ? 'bg-blue-500/20 text-blue-400'
-                      : service.status === 'cancelled'
-                      ? 'bg-red-500/20 text-red-400'
-                      : 'bg-yellow-500/20 text-yellow-400'
-                  }`}>
-                    {service.status || 'pending'}
-                  </span>
+            {serviceRequests.map((service) => {
+              // Format price with currency
+              const formatPrice = (price, curr) => {
+                if (!price) return null;
+                const currency = curr || 'IDR';
+                return new Intl.NumberFormat(currency === 'IDR' ? 'id-ID' : 'en-US', {
+                  style: 'currency',
+                  currency: currency,
+                  minimumFractionDigits: 0,
+                  maximumFractionDigits: 0,
+                }).format(price);
+              };
+
+              // Status display config
+              const statusDisplay = {
+                confirmed: { label: 'Confirmed', bg: 'bg-green-500/20', text: 'text-green-400' },
+                completed: { label: 'Completed', bg: 'bg-green-500/20', text: 'text-green-400' },
+                done: { label: 'Done', bg: 'bg-green-500/20', text: 'text-green-400' },
+                in_progress: { label: 'In Progress', bg: 'bg-blue-500/20', text: 'text-blue-400' },
+                assigned: { label: 'Assigned', bg: 'bg-blue-500/20', text: 'text-blue-400' },
+                cancelled: { label: 'Cancelled', bg: 'bg-red-500/20', text: 'text-red-400' },
+                pending: { label: 'Pending', bg: 'bg-yellow-500/20', text: 'text-yellow-400' },
+                pending_confirmation: { label: 'Pending', bg: 'bg-yellow-500/20', text: 'text-yellow-400' },
+              };
+
+              const status = statusDisplay[service.status] || statusDisplay.pending;
+
+              return (
+                <div
+                  key={service.id}
+                  className="p-3 bg-[#2c333e] rounded-lg"
+                >
+                  {/* Row 1: Title + Status */}
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-white text-sm font-medium">
+                      {service.title || service.type || 'Service'}
+                    </p>
+                    <span className={`text-xs px-2 py-1 rounded-full ml-2 whitespace-nowrap ${status.bg} ${status.text}`}>
+                      {status.label}
+                    </span>
+                  </div>
+
+                  {/* Row 2: Details (date, price, reference) */}
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-[#aab2bf]">
+                    {/* Scheduled date/time */}
+                    {service.scheduled_at && (
+                      <span className="flex items-center gap-1">
+                        <Calendar className="w-3 h-3 text-[#6d7683]" />
+                        {new Date(service.scheduled_at).toLocaleDateString('en-US', {
+                          month: 'short',
+                          day: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })}
+                      </span>
+                    )}
+
+                    {/* Price */}
+                    {service.price && (
+                      <span className="font-mono text-[#f5791f] font-medium">
+                        {formatPrice(service.price, service.currency)}
+                      </span>
+                    )}
+
+                    {/* Reference code */}
+                    {service.reference_code && (
+                      <span className="text-[#6d7683] font-mono">
+                        {service.reference_code}
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Row 3: Special requests / notes */}
+                  {service.special_requests && (
+                    <p className="text-[#8a93a1] text-xs mt-2 italic">
+                      {service.special_requests}
+                    </p>
+                  )}
                 </div>
-                {service.description && (
-                  <p className="text-[#aab2bf] text-xs mt-1">
-                    {service.description}
-                  </p>
-                )}
-                {service.scheduled_date && (
-                  <p className="text-[#6d7683] text-xs mt-1">
-                    📅 {new Date(service.scheduled_date).toLocaleDateString('en-US', {
-                      month: 'short',
-                      day: 'numeric'
-                    })}
-                  </p>
-                )}
-                {service.notes && (
-                  <p className="text-[#8a93a1] text-xs mt-1 italic">
-                    {service.notes}
-                  </p>
-                )}
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}
