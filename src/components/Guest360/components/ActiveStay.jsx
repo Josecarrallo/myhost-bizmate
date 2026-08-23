@@ -18,6 +18,29 @@ import { calculateStayProgress, formatDate, formatCurrency } from '../constants'
  * @param {array} serviceRequests - Service requests for this booking
  * @param {array} journeyEvents - Journey events for this booking
  */
+// Service type emojis (mismo mapa que ServicesTab.jsx)
+const serviceTypeEmojis = {
+  airport_transfer: '✈️',
+  transfer: '✈️',
+  tour: '🏔️',
+  spa: '💆',
+  private_chef: '👨‍🍳',
+  decoration: '🎂',
+  scooter_rental: '🛵',
+  scooter: '🛵',
+  scooter_small: '🛵',
+  car_rental: '🚗',
+  car: '🚗',
+  floating_breakfast: '🥞',
+  laundry: '🧺',
+  laundry_express: '🧺',
+  late_checkout: '🕐',
+  extra_guest: '👥',
+  photoshoot: '📸',
+  excursion: '🌴',
+  other: '📋',
+};
+
 const ActiveStay = ({ booking, currency = 'USD', serviceRequests = [], journeyEvents = [] }) => {
   // No active booking
   if (!booking) {
@@ -207,6 +230,7 @@ const ActiveStay = ({ booking, currency = 'USD', serviceRequests = [], journeyEv
               };
 
               const status = statusDisplay[service.status] || statusDisplay.pending;
+              const typeEmoji = serviceTypeEmojis[service.type] || '📋';
 
               return (
                 <div
@@ -216,6 +240,7 @@ const ActiveStay = ({ booking, currency = 'USD', serviceRequests = [], journeyEv
                   {/* Row 1: Title + Status */}
                   <div className="flex items-center justify-between mb-2">
                     <p className="text-white text-sm font-medium">
+                      <span className="mr-1.5">{typeEmoji}</span>
                       {service.title || service.type || 'Service'}
                     </p>
                     <span className={`text-xs px-2 py-1 rounded-full ml-2 whitespace-nowrap ${status.bg} ${status.text}`}>

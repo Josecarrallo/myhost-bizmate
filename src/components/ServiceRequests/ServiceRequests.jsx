@@ -31,7 +31,8 @@ import {
   FileText,
   Trash2,
   Menu,
-  PanelLeftOpen
+  PanelLeftOpen,
+  Shirt
 } from 'lucide-react';
 import { StatCard } from '../common';
 import { dataService } from '../../services/data';
@@ -522,6 +523,7 @@ const ServiceRequests = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
 
         switch (type) {
           case 'airport_transfer':
+          case 'transfer':           // Catálogo unificado
             return { ...baseDetails, transfer_type: 'pickup', vehicle_type: 'sedan', passengers: 2 };
           case 'tour':
             return { ...baseDetails, group_size: 2, guide_needed: true };
@@ -530,8 +532,11 @@ const ServiceRequests = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
           case 'private_chef':
             return { ...baseDetails, cuisine: 'Indonesian', guests_count: 2 };
           case 'scooter_rental':
+          case 'scooter':            // Catálogo unificado
+          case 'scooter_small':      // Catálogo unificado
             return { ...baseDetails, vehicle_type: 'Honda Scoopy', duration_days: 1 };
           case 'car_rental':
+          case 'car':                // Catálogo unificado
             return { ...baseDetails, vehicle_type: 'Toyota Avanza', duration_days: 1 };
           case 'floating_breakfast':
             return { ...baseDetails, guests_count: 2 };
@@ -539,6 +544,9 @@ const ServiceRequests = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
             return { ...baseDetails, occasion: 'Special Event', style: 'Romantic' };
           case 'excursion':
             return { ...baseDetails, group_size: 2, guide_needed: true };
+          case 'laundry':
+          case 'laundry_express':    // Catálogo unificado
+            return { ...baseDetails, items_count: 1 };
           default:
             return baseDetails;
         }
@@ -681,13 +689,19 @@ const ServiceRequests = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
   const getTypeIcon = (type) => {
     const icons = {
       airport_transfer: Plane,
+      transfer: Plane,              // Catálogo unificado
       tour: Mountain,
       spa: Sparkles,
       private_chef: ChefHat,
       decoration: Cake,
       scooter_rental: Bike,
+      scooter: Bike,                // Catálogo unificado
+      scooter_small: Bike,          // Catálogo unificado
       car_rental: Car,
+      car: Car,                     // Catálogo unificado
       floating_breakfast: Coffee,
+      laundry: Shirt,               // Catálogo unificado
+      laundry_express: Shirt,       // Catálogo unificado
       excursion: Palmtree,
       other: FileText
     };
@@ -698,13 +712,19 @@ const ServiceRequests = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
   const getTypeEmoji = (type) => {
     const emojis = {
       airport_transfer: '✈️',
+      transfer: '✈️',              // Catálogo unificado
       tour: '🏔️',
       spa: '💆',
       private_chef: '👨‍🍳',
       decoration: '🎂',
       scooter_rental: '🛵',
+      scooter: '🛵',               // Catálogo unificado
+      scooter_small: '🛵',         // Catálogo unificado
       car_rental: '🚗',
+      car: '🚗',                   // Catálogo unificado
       floating_breakfast: '🥞',
+      laundry: '🧺',               // Catálogo unificado
+      laundry_express: '🧺',       // Catálogo unificado
       excursion: '🌴',
       other: '📋'
     };
@@ -855,13 +875,19 @@ const ServiceRequests = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
   // Fixed list of all service types (always show all options)
   const allServiceTypes = [
     'airport_transfer',
+    'transfer',           // Catálogo unificado
     'tour',
     'spa',
     'private_chef',
     'decoration',
     'scooter_rental',
+    'scooter',            // Catálogo unificado
+    'scooter_small',      // Catálogo unificado
     'car_rental',
+    'car',                // Catálogo unificado
     'floating_breakfast',
+    'laundry',            // Catálogo unificado
+    'laundry_express',    // Catálogo unificado
     'excursion',
     'other'
   ];
