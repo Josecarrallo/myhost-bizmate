@@ -52,15 +52,44 @@ const ServicesTab = ({ serviceRequests = [], bookings = [] }) => {
   // Service type labels for display
   const serviceTypeLabels = {
     airport_transfer: 'Airport Transfer',
+    transfer: 'Airport Transfer',       // Catálogo unificado
     spa: 'Spa / Massage',
     scooter_rental: 'Scooter Rental',
+    scooter: 'Scooter Rental',           // Catálogo unificado
+    scooter_small: 'Scooter (Small)',    // Catálogo unificado
     floating_breakfast: 'Floating Breakfast',
     car_rental: 'Car Rental',
+    car: 'Car Rental',                   // Catálogo unificado
+    laundry: 'Laundry',                  // Catálogo unificado
+    laundry_express: 'Express Laundry',  // Catálogo unificado
     late_checkout: 'Late Checkout',
     extra_guest: 'Extra Guest',
     decoration: 'Decoration',
     private_chef: 'Private Chef',
     photoshoot: 'Photoshoot',
+  };
+
+  // Service type emojis (mismo mapa que ServiceRequests.jsx)
+  const serviceTypeEmojis = {
+    airport_transfer: '✈️',
+    transfer: '✈️',
+    tour: '🏔️',
+    spa: '💆',
+    private_chef: '👨‍🍳',
+    decoration: '🎂',
+    scooter_rental: '🛵',
+    scooter: '🛵',
+    scooter_small: '🛵',
+    car_rental: '🚗',
+    car: '🚗',
+    floating_breakfast: '🥞',
+    laundry: '🧺',
+    laundry_express: '🧺',
+    late_checkout: '🕐',
+    extra_guest: '👥',
+    photoshoot: '📸',
+    excursion: '🌴',
+    other: '📋',
   };
 
   // Get booking info helper
@@ -137,6 +166,7 @@ const ServicesTab = ({ serviceRequests = [], bookings = [] }) => {
               const StatusIcon = status.icon;
               const bookingInfo = getBookingInfo(service.booking_id);
               const typeLabel = serviceTypeLabels[service.type] || service.type || 'Service';
+              const typeEmoji = serviceTypeEmojis[service.type] || '📋';
 
               return (
                 <div key={service.id} className="px-5 py-4 hover:bg-[#3a434f]/30 transition-colors">
@@ -150,6 +180,7 @@ const ServicesTab = ({ serviceRequests = [], bookings = [] }) => {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
                         <p className="text-white font-medium">
+                          <span className="mr-1.5">{typeEmoji}</span>
                           {service.title || typeLabel}
                         </p>
                         <span className={`text-xs px-2 py-0.5 rounded-full ${status.bg} ${status.color}`}>
