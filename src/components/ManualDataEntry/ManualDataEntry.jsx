@@ -197,16 +197,29 @@ const ManualDataEntry = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
         }
 
         // Get unique property_ids
-        const propertyIds = [...new Set(bookings.map(b => b.property_id))];
+        const propertyIds = [...new Set(bookings.map(b => b.property_id).filter(Boolean))];
         console.log(`[ManualDataEntry] User has ${propertyIds.length} property_id(s):`, propertyIds);
 
-        // Create property entries showing owner name
-        const propertiesData = propertyIds.map((id) => ({
-          id: id,
-          name: `Owner - ${userData?.full_name || userData?.email || 'Property Owner'}`,
-          owner_id: tenantId
-        }));
-        setProperties(propertiesData);
+        // Fetch actual property data from properties table (including currency)
+        const { data: propertiesData, error: propertiesError } = await supabase
+          .from('properties')
+          .select('id, name, currency, owner_id')
+          .in('id', propertyIds);
+
+        if (propertiesError) {
+          console.error('[ManualDataEntry] Error loading properties:', propertiesError);
+          // Fallback: create synthetic entries but warn about missing currency
+          const fallbackProperties = propertyIds.map((id) => ({
+            id: id,
+            name: `Property ${id.slice(0, 8)}...`,
+            owner_id: tenantId,
+            currency: 'IDR' // Default for Indonesia properties
+          }));
+          setProperties(fallbackProperties);
+        } else {
+          console.log('[ManualDataEntry] Loaded properties with currency:', propertiesData);
+          setProperties(propertiesData || []);
+        }
 
         // 2. Get villas for ALL user's property_ids
         const { data: villasData, error: villasError } = await supabase
@@ -291,6 +304,30 @@ const ManualDataEntry = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
     }
   };
 
+  // Helper function to parse date string safely (YYYY-MM-DD format only)
+  // Avoids timezone issues by parsing as UTC
+  const parseDateISO = (dateStr) => {
+    if (!dateStr || typeof dateStr !== 'string') return null;
+    const match = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (!match) {
+      console.warn('[parseDateISO] Invalid date format, expected YYYY-MM-DD:', dateStr);
+      return null;
+    }
+    const [, year, month, day] = match;
+    // Create date at noon UTC to avoid any timezone edge cases
+    return new Date(Date.UTC(parseInt(year), parseInt(month) - 1, parseInt(day), 12, 0, 0));
+  };
+
+  // Calculate nights between two dates (returns null if invalid)
+  const calculateNights = (checkInStr, checkOutStr) => {
+    const checkInDate = parseDateISO(checkInStr);
+    const checkOutDate = parseDateISO(checkOutStr);
+    if (!checkInDate || !checkOutDate) return null;
+    const diffMs = checkOutDate.getTime() - checkInDate.getTime();
+    const nights = Math.round(diffMs / (1000 * 60 * 60 * 24));
+    return nights > 0 ? nights : null;
+  };
+
   // Auto-calculate total amount when villa, check-in, or check-out changes
   useEffect(() => {
     const { checkIn, checkOut, villaId } = bookingForm;
@@ -302,12 +339,10 @@ const ManualDataEntry = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
       return;
     }
 
-    // Calculate nights
-    const checkInDate = new Date(checkIn);
-    const checkOutDate = new Date(checkOut);
-    const nights = Math.ceil((checkOutDate - checkInDate) / (1000 * 60 * 60 * 24));
+    // Calculate nights using safe parser
+    const nights = calculateNights(checkIn, checkOut);
 
-    if (nights <= 0) {
+    if (!nights || nights <= 0) {
       console.log('[AutoCalculate] Invalid dates - nights:', nights);
       return;
     }
@@ -555,11 +590,10 @@ const ManualDataEntry = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
     if (!checkIn || !checkOut || !villaId) return null;
 
     try {
-      const checkInDate = new Date(checkIn);
-      const checkOutDate = new Date(checkOut);
-      const nights = Math.ceil((checkOutDate - checkInDate) / (1000 * 60 * 60 * 24));
+      // Use safe ISO date parser
+      const nights = calculateNights(checkIn, checkOut);
 
-      if (nights <= 0) return null;
+      if (!nights || nights <= 0) return null;
 
       // Get villa price from villas array
       const villa = villas.find(v => v.id === villaId);
@@ -778,18 +812,29 @@ const ManualDataEntry = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
         throw new Error('You must be logged in to create a booking');
       }
 
-      // Calculate number of nights
-      const checkInDate = new Date(bookingForm.checkIn);
-      const checkOutDate = new Date(bookingForm.checkOut);
-      const nights = Math.ceil((checkOutDate - checkInDate) / (1000 * 60 * 60 * 24));
+      // Calculate number of nights using safe ISO parser
+      const nights = calculateNights(bookingForm.checkIn, bookingForm.checkOut);
 
-      if (nights <= 0) {
+      if (!nights || nights <= 0) {
         throw new Error('Check-out date must be after check-in date');
       }
 
-      // Get property currency
+      // Validate check-in is not in the past
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const checkInDate = parseDateISO(bookingForm.checkIn);
+      if (checkInDate && checkInDate < today) {
+        throw new Error('Check-in date cannot be in the past. Please select a future date.');
+      }
+
+      // Get property currency from actual property data
       const selectedProperty = properties.find(p => p.id === bookingForm.propertyId);
-      const currency = selectedProperty?.currency || 'USD';
+      if (!selectedProperty) {
+        throw new Error('Please select a valid property');
+      }
+      // Use property's currency, fallback to IDR for Indonesia-based properties
+      const currency = selectedProperty.currency || 'IDR';
+      console.log(`[CreateBooking] Using currency: ${currency} (property: ${selectedProperty.name})`)
 
       // Prepare booking data for Supabase
       const bookingData = {
@@ -882,12 +927,10 @@ const ManualDataEntry = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
     setIsSavingEdit(true);
 
     try {
-      // Calculate number of nights
-      const checkInDate = new Date(editForm.checkIn);
-      const checkOutDate = new Date(editForm.checkOut);
-      const nights = Math.ceil((checkOutDate - checkInDate) / (1000 * 60 * 60 * 24));
+      // Calculate number of nights using safe ISO parser
+      const nights = calculateNights(editForm.checkIn, editForm.checkOut);
 
-      if (nights <= 0) {
+      if (!nights || nights <= 0) {
         throw new Error('Check-out date must be after check-in date');
       }
 
@@ -2131,9 +2174,10 @@ const ManualDataEntry = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
                 <input
                   type="date"
                   required
+                  min={new Date().toISOString().split('T')[0]}
                   value={bookingForm.checkIn}
                   onChange={(e) => setBookingForm({...bookingForm, checkIn: e.target.value})}
-                  className="w-full px-4 py-3 bg-white/10 border border-white/30 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-white/50"
+                  className="w-full px-4 py-3 bg-white/10 border border-white/30 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-white/50 [color-scheme:dark]"
                 />
               </div>
 
@@ -2143,28 +2187,65 @@ const ManualDataEntry = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
                 <input
                   type="date"
                   required
+                  min={bookingForm.checkIn || new Date().toISOString().split('T')[0]}
                   value={bookingForm.checkOut}
                   onChange={(e) => setBookingForm({...bookingForm, checkOut: e.target.value})}
-                  className="w-full px-4 py-3 bg-white/10 border border-white/30 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-white/50"
+                  className="w-full px-4 py-3 bg-white/10 border border-white/30 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-white/50 [color-scheme:dark]"
                 />
               </div>
 
-              {/* Date Validation Error Message */}
-              {bookingForm.checkIn && bookingForm.checkOut && new Date(bookingForm.checkOut) <= new Date(bookingForm.checkIn) && (
-                <div className="col-span-1 md:col-span-2 bg-red-500/20 border-2 border-red-500 rounded-xl p-4">
-                  <div className="flex items-start gap-3">
-                    <svg className="w-6 h-6 text-red-500 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                    </svg>
-                    <div>
-                      <h4 className="text-red-500 font-bold text-lg mb-1">Invalid Dates</h4>
-                      <p className="text-white text-sm">
-                        Check-out date must be AFTER check-in date. Please correct the dates to continue.
-                      </p>
+              {/* Nights Calculator Display - Shows calculated nights for verification */}
+              {bookingForm.checkIn && bookingForm.checkOut && (() => {
+                const nights = calculateNights(bookingForm.checkIn, bookingForm.checkOut);
+                const checkInDate = parseDateISO(bookingForm.checkIn);
+                const checkOutDate = parseDateISO(bookingForm.checkOut);
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                const isPastCheckIn = checkInDate && checkInDate < today;
+
+                if (!nights || nights <= 0) {
+                  return (
+                    <div className="col-span-1 md:col-span-2 bg-red-500/20 border-2 border-red-500 rounded-xl p-4">
+                      <div className="flex items-start gap-3">
+                        <svg className="w-6 h-6 text-red-500 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                        </svg>
+                        <div>
+                          <h4 className="text-red-500 font-bold text-lg mb-1">Invalid Dates</h4>
+                          <p className="text-white text-sm">
+                            Check-out date must be AFTER check-in date. Please correct the dates to continue.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                }
+
+                return (
+                  <div className={`col-span-1 md:col-span-2 ${isPastCheckIn ? 'bg-yellow-500/20 border-2 border-yellow-500' : 'bg-green-500/20 border-2 border-green-500'} rounded-xl p-4`}>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className={`w-12 h-12 ${isPastCheckIn ? 'bg-yellow-500' : 'bg-green-500'} rounded-full flex items-center justify-center`}>
+                          <span className="text-white font-bold text-xl">{nights}</span>
+                        </div>
+                        <div>
+                          <p className={`${isPastCheckIn ? 'text-yellow-400' : 'text-green-400'} font-bold text-lg`}>
+                            {nights} {nights === 1 ? 'Night' : 'Nights'}
+                          </p>
+                          <p className="text-gray-300 text-sm">
+                            {checkInDate?.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })} → {checkOutDate?.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })}
+                          </p>
+                        </div>
+                      </div>
+                      {isPastCheckIn && (
+                        <div className="text-yellow-400 text-sm font-medium">
+                          ⚠️ Check-in is in the past!
+                        </div>
+                      )}
                     </div>
                   </div>
-                </div>
-              )}
+                );
+              })()}
 
               {/* Guests */}
               <div>
