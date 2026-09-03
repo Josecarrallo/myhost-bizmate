@@ -53,6 +53,7 @@ const ManualDataEntry = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
   const [isLoadingBookings, setIsLoadingBookings] = useState(false);
   const [filterProperty, setFilterProperty] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
+  const [filterChannel, setFilterChannel] = useState('');
   const [filterDateRange, setFilterDateRange] = useState('all');
   const [customDateFrom, setCustomDateFrom] = useState('');
   const [customDateTo, setCustomDateTo] = useState('');
@@ -363,7 +364,7 @@ const ManualDataEntry = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
   }, [bookingForm.villaId, bookingForm.checkIn, bookingForm.checkOut, villas]);
 
   // Load bookings for the owner
-  const loadBookings = async (customVillaFilter = null, customStatusFilter = null, customDateFrom = null, customDateTo = null) => {
+  const loadBookings = async (customVillaFilter = null, customStatusFilter = null, customDateFrom = null, customDateTo = null, customChannelFilter = null) => {
     const tenantId = user?.id || userData?.id;
     if (!tenantId) {
       console.warn('❌ No user.id or userData.id - cannot load bookings');
@@ -446,8 +447,24 @@ const ManualDataEntry = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
         return booking;
       });
 
+      // Filter by channel if filterChannel is set
+      let filteredBookings = transformedBookings;
+      if (filterChannel) {
+        if (filterChannel === 'ical_sync') {
+          filteredBookings = transformedBookings.filter(b => b.source === 'ical_sync');
+        } else if (filterChannel === 'banyu') {
+          // BANYU: source=domus AND channel=direct
+          filteredBookings = transformedBookings.filter(b => b.source === 'domus' && b.channel === 'direct');
+        } else if (filterChannel === 'voice_ai') {
+          // KORA: channel=voice_ai
+          filteredBookings = transformedBookings.filter(b => b.channel === 'voice_ai');
+        } else {
+          filteredBookings = transformedBookings.filter(b => b.channel === filterChannel);
+        }
+      }
+
       // Sort bookings by check_in date (chronological order)
-      const sortedBookings = transformedBookings.sort((a, b) =>
+      const sortedBookings = filteredBookings.sort((a, b) =>
         new Date(a.check_in) - new Date(b.check_in)
       );
       setBookings(sortedBookings);
@@ -548,7 +565,7 @@ const ManualDataEntry = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
     if (activeTab === 'task') {
       loadTasks();
     }
-  }, [activeTab, filterProperty, filterStatus, searchGuest, filterTaskProperty, filterTaskStatus, userData]);
+  }, [activeTab, filterProperty, filterStatus, filterChannel, searchGuest, filterTaskProperty, filterTaskStatus, userData]);
 
   // Load leads when tab changes to lead
   useEffect(() => {
@@ -1511,6 +1528,21 @@ const ManualDataEntry = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
                   <option value="cancelled">Cancelled</option>
                 </select>
 
+                {/* Channel Filter */}
+                <select
+                  value={filterChannel}
+                  onChange={(e) => setFilterChannel(e.target.value)}
+                  className="px-4 py-2.5 bg-[#2a2f3a] border-2 border-gray-200 rounded-xl text-white focus:outline-none focus:border-orange-300"
+                >
+                  <option value="">All Channels</option>
+                  <option value="airbnb">Airbnb</option>
+                  <option value="booking">Booking.com</option>
+                  <option value="direct">Direct</option>
+                  <option value="voice_ai">KORA (Voice AI)</option>
+                  <option value="banyu">BANYU (WhatsApp)</option>
+                  <option value="ical_sync">iCal Sync</option>
+                </select>
+
                 {/* Search Guest (no auto-search to avoid CORS errors) */}
                 <input
                   type="text"
@@ -1532,7 +1564,7 @@ const ManualDataEntry = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
                     value={customDateFrom}
                     onChange={(e) => {
                       setCustomDateFrom(e.target.value);
-                      loadBookings(filterProperty || null, filterStatus || null, e.target.value || null, customDateTo || null);
+                      loadBookings(filterProperty || null, filterStatus || null, e.target.value || null, customDateTo || null, filterChannel || null);
                     }}
                     className="px-4 py-2.5 bg-[#2a2f3a] border-2 border-gray-200 rounded-xl text-white text-sm focus:outline-none focus:border-orange-300"
                   />
@@ -1546,7 +1578,7 @@ const ManualDataEntry = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
                     value={customDateTo}
                     onChange={(e) => {
                       setCustomDateTo(e.target.value);
-                      loadBookings(filterProperty || null, filterStatus || null, customDateFrom || null, e.target.value || null);
+                      loadBookings(filterProperty || null, filterStatus || null, customDateFrom || null, e.target.value || null, filterChannel || null);
                     }}
                     className="px-4 py-2.5 bg-[#2a2f3a] border-2 border-gray-200 rounded-xl text-white text-sm focus:outline-none focus:border-orange-300"
                   />
@@ -1599,14 +1631,15 @@ const ManualDataEntry = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
                             <th className="w-[70px] px-1 py-3 text-center text-white font-bold text-sm">Check-out</th>
                             <th className="w-[50px] px-1 py-3 text-center text-white font-bold text-sm">Nights</th>
                             <th className="w-[55px] px-1 py-3 text-center text-white font-bold text-sm">Status</th>
-                            <th className="w-[115px] px-2 py-3 text-right text-white font-bold text-sm">Price</th>
+                            <th className="w-[55px] px-1 py-3 text-center text-white font-bold text-sm">Source</th>
+                            <th className="w-[100px] px-2 py-3 text-right text-white font-bold text-sm">Price</th>
                             <th className="w-[35px] px-1 py-3 text-center text-white font-bold"></th>
                           </tr>
                         </thead>
                         <tbody>
                           {bookings.length === 0 ? (
                             <tr>
-                              <td colSpan="9" className="px-4 py-8 text-center text-gray-400">
+                              <td colSpan="10" className="px-4 py-8 text-center text-gray-400">
                                 No bookings found
                               </td>
                             </tr>
@@ -1647,6 +1680,25 @@ const ManualDataEntry = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
                                      booking.status === 'checked_in' ? 'in' :
                                      booking.status === 'checked_out' ? 'out' :
                                      booking.status}
+                                  </span>
+                                </td>
+                                <td className="px-1 py-3 text-center">
+                                  <span className={`px-1.5 py-0.5 rounded text-[8px] font-bold inline-block whitespace-nowrap ${
+                                    booking.channel === 'airbnb' ? 'bg-[#FF5A5F] text-white' :
+                                    booking.channel === 'booking' ? 'bg-[#003580] text-white' :
+                                    booking.channel === 'voice_ai' ? 'bg-cyan-500 text-white' :
+                                    (booking.channel === 'direct' && booking.source === 'domus') ? 'bg-teal-500 text-white' :
+                                    booking.channel === 'direct' ? 'bg-green-600 text-white' :
+                                    booking.source === 'ical_sync' ? 'bg-gray-500 text-white' :
+                                    'bg-purple-500 text-white'
+                                  }`}>
+                                    {booking.channel === 'airbnb' ? 'Airbnb' :
+                                     booking.channel === 'booking' ? 'Booking' :
+                                     booking.channel === 'voice_ai' ? 'KORA' :
+                                     (booking.channel === 'direct' && booking.source === 'domus') ? 'BANYU' :
+                                     booking.channel === 'direct' ? 'Direct' :
+                                     booking.source === 'ical_sync' ? 'iCal' :
+                                     booking.channel || 'API'}
                                   </span>
                                 </td>
                                 <td className="px-2 py-3 text-white text-sm text-right overflow-hidden">
@@ -2398,7 +2450,7 @@ const ManualDataEntry = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
                   setFilterStatus('');
                   setSearchGuest('');
                   setSearchInput('');
-                  loadBookings('', '');
+                  setFilterChannel(''); loadBookings('', '', null, null, '');
                 }}
                 className="px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-xl font-medium transition-all"
               >
@@ -2435,6 +2487,19 @@ const ManualDataEntry = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
                         <div className="flex justify-between items-start mb-3">
                           <div className="flex-1">
                             <h3 className="text-white font-bold text-lg">{booking.guest_name}</h3>
+                            {(booking.channel && booking.channel !== 'direct') && (
+                              <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold mt-1 ${
+                                booking.channel === 'airbnb' ? 'bg-[#FF5A5F] text-white' :
+                                booking.channel === 'booking' ? 'bg-[#003580] text-white' :
+                                booking.source === 'ical_sync' ? 'bg-gray-500 text-white' :
+                                booking.source === 'beds24_api' ? 'bg-purple-500 text-white' :
+                                'bg-orange-500 text-white'
+                              }`}>
+                                {booking.channel === 'airbnb' ? 'Airbnb' :
+                                 booking.channel === 'booking' ? 'Booking.com' :
+                                 booking.channel.charAt(0).toUpperCase() + booking.channel.slice(1)}
+                              </span>
+                            )}
                             <p className="text-gray-400 text-sm mt-1">
                               {villas.find(v => v.id === booking.villa_id)?.name || properties.find(p => p.id === booking.property_id)?.name || 'N/A'}
                             </p>
@@ -2539,6 +2604,20 @@ const ManualDataEntry = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
                             >
                               <td className="px-4 py-3 text-gray-300 text-sm overflow-hidden">
                                 <div className="truncate">{booking.guest_name}</div>
+
+                                {(booking.channel && booking.channel !== 'direct') && (
+                                  <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold mt-1 ${
+                                    booking.channel === 'airbnb' ? 'bg-[#FF5A5F] text-white' :
+                                    booking.channel === 'booking' ? 'bg-[#003580] text-white' :
+                                    booking.source === 'ical_sync' ? 'bg-gray-500 text-white' :
+                                    booking.source === 'beds24_api' ? 'bg-purple-500 text-white' :
+                                    'bg-orange-500 text-white'
+                                  }`}>
+                                    {booking.channel === 'airbnb' ? 'Airbnb' :
+                                     booking.channel === 'booking' ? 'Booking.com' :
+                                     booking.channel.charAt(0).toUpperCase() + booking.channel.slice(1)}
+                                  </span>
+                                )}
                               </td>
                               <td className="px-4 py-3 text-gray-300 text-sm overflow-hidden">
                                 <div className="truncate">{villas.find(v => v.id === booking.villa_id)?.name || properties.find(p => p.id === booking.property_id)?.name || 'N/A'}</div>
