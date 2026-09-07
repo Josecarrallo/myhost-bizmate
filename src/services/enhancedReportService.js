@@ -8,7 +8,7 @@ const OWNER_IDS = {
 // Call OSIRIS AI for business analysis
 async function callOSIRIS(tenantId, prompt) {
   try {
-    const response = await fetch('https://n8n-production-bb2d.up.railway.app/webhook/ai/chat-v2', {
+    const response = await fetch('https://n8n-production-bb2d.up.railway.app/webhook/ai/chat-v4', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
