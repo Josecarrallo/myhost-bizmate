@@ -1,5 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
+import { supabase } from '../../lib/supabase';
+import { supabaseService as dataService } from '../../services/supabase';
 import {
   generateMonthlyOccupancyReport,
   generateRevenueByChannelReport,
@@ -26,6 +28,41 @@ const SpecializedReports = () => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [reportHTML, setReportHTML] = useState('');
 
+  // Dynamic data loaded from Supabase (multi-tenant support)
+  const [ownerProperty, setOwnerProperty] = useState(null);
+  const [loadedVillas, setLoadedVillas] = useState([]);
+
+  // Load owner property and villas on mount
+  useEffect(() => {
+    const loadOwnerData = async () => {
+      if (!userData?.id) return;
+
+      try {
+        // Get user's property from properties table
+        const { data: userProperty } = await supabase
+          .from('properties')
+          .select('id, name')
+          .eq('owner_id', userData.id)
+          .single();
+
+        if (userProperty) {
+          setOwnerProperty(userProperty);
+        }
+
+        // Load all villas and filter by property_id
+        const allVillas = await dataService.getVillas();
+        if (userProperty?.id && allVillas) {
+          const userVillas = allVillas.filter(villa => villa.property_id === userProperty.id);
+          setLoadedVillas(userVillas);
+        }
+      } catch (error) {
+        console.error('Error loading owner data:', error);
+      }
+    };
+
+    loadOwnerData();
+  }, [userData]);
+
   const reportTypes = [
     { value: 'monthly_occupancy', label: 'Monthly Occupancy Report' },
     { value: 'revenue_by_channel', label: 'Revenue by Channel' },
@@ -35,32 +72,24 @@ const SpecializedReports = () => {
     { value: 'owner_decisions', label: 'Owner Decisions Report' }
   ];
 
-  // Hardcoded villas for now (will be dynamic later)
+  // Build villa options dynamically from loaded villas
   const villas = [
     { value: 'all', label: 'All Properties' },
-    { value: 'graha-uma', label: 'Graha Uma 1 Bedroom Pool Villa' },
-    { value: 'nismara-1br', label: 'Nismara 1BR Villa' },
-    { value: 'nismara-2br', label: 'NISMARA 2 BEDROOM POOL VILLA' }
+    ...loadedVillas.map(v => ({ value: v.id, label: v.name }))
   ];
 
   const handleGenerate = async () => {
     setIsGenerating(true);
 
     try {
-      // Owner data (hardcoded for now - matches businessReportService.js)
-      const ownerId = userData?.id || '1f32d384-4018-46a9-a6f9-058217e6924a'; // Gita's ID
-      const ownerName = 'Gita Pradnyana';
-      const propertyName = 'Nismara Uma Villa';
-      const currency = 'IDR';
+      // Owner data (dynamic from logged-in user - multi-tenant support)
+      const ownerId = userData?.id;
+      const ownerName = userData?.full_name || 'Owner';
+      const propertyName = ownerProperty?.name || 'Your Property';
+      const currency = loadedVillas[0]?.currency || 'USD';
 
-      // Map villa selection to villa_id (hardcoded for now)
-      const villaIdMap = {
-        'all': null,
-        'nismara': 'b1000001-0001-4001-8001-000000000001',
-        'uma': 'b2000002-0002-4002-8002-000000000002',
-        'santai': 'b3000003-0003-4003-8003-000000000003'
-      };
-      const villaId = villaIdMap[selectedVilla];
+      // Villa ID is the selected value ('all' = null, otherwise the villa UUID)
+      const villaId = selectedVilla === 'all' ? null : selectedVilla;
 
       let reportData;
       let htmlContent;

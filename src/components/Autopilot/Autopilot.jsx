@@ -172,6 +172,9 @@ const Autopilot = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
   // Property ID for multi-tenant support (used for creating decisions)
   const [propertyId, setPropertyId] = useState(null);
 
+  // Owner property info for Business Reports (multi-tenant support)
+  const [ownerProperty, setOwnerProperty] = useState(null);
+
   // OCS sub-navigation: null = show menu, 'owner-home' = Owner Home, 'owner-decisions' = Owner Decisions
   const [ocsView, setOcsView] = useState(null);
 
@@ -287,9 +290,9 @@ const Autopilot = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
     }
   };
 
-  // Load villas when entering Tasks or Decisions section
+  // Load villas when entering Tasks, Decisions or Business Reports section
   useEffect(() => {
-    if ((activeSection === 'tasks' || activeSection === 'decisions') && userData?.id) {
+    if ((activeSection === 'tasks' || activeSection === 'decisions' || activeSection === 'business-reports') && userData?.id) {
       const loadVillas = async () => {
         try {
           // Get user's property dynamically from properties table
@@ -301,6 +304,11 @@ const Autopilot = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
 
           const userPropertyId = userProperty?.id;
           console.log('🔍 [AUTOPILOT] User property:', userProperty?.name, 'id:', userPropertyId, 'for owner:', userData.id);
+
+          // Store property info for Business Reports
+          if (userProperty) {
+            setOwnerProperty(userProperty);
+          }
 
           // Load all villas and filter by property_id
           const allVillas = await dataService.getVillas();
@@ -5685,30 +5693,26 @@ const Autopilot = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
 
     // If 'enhanced' mode selected, show Enhanced Global Report
     if (businessReportMode === 'enhanced') {
-      // Get logged-in user data
-      const ownerId = userData?.id || '1f32d384-4018-46a9-a6f9-058217e6924a'; // Gita's ID as default
-      const ownerName = 'Gita Pradnyana';
-      const businessName = 'Nismara Uma Villa';
-      const currency = 'IDR';
+      // Get logged-in user data dynamically (multi-tenant support)
+      const ownerId = userData?.id;
+      const ownerName = userData?.full_name || 'Owner';
+      const businessName = ownerProperty?.name || 'Your Property';
+      const currency = villas[0]?.currency || 'USD';
 
-      // Villa selector options (exact Supabase names)
-      const villas = [
+      // Villa selector options built dynamically from loaded villas
+      const villaOptions = [
         { value: 'all', label: 'All Properties' },
-        { value: 'graha-uma', label: 'Graha Uma 1 Bedroom Pool Villa' },
-        { value: 'nismara-1br', label: 'Nismara 1BR Villa' },
-        { value: 'nismara-2br', label: 'NISMARA 2 BEDROOM POOL VILLA' }
+        ...villas.map(v => ({ value: v.id, label: v.name }))
       ];
 
-      // Villa ID mapping (exact Supabase names)
+      // Villa ID mapping built dynamically
       const villaIdMap = {
         'all': null,
-        'graha-uma': 'b2000002-0002-4002-8002-000000000002',      // Graha Uma 1 Bedroom Pool Villa (16 bookings)
-        'nismara-1br': 'b1000001-0001-4001-8001-000000000001',   // Nismara 1BR Villa (0 bookings)
-        'nismara-2br': 'b3000003-0003-4003-8003-000000000003'    // NISMARA 2 BEDROOM POOL VILLA (52 bookings)
+        ...villas.reduce((acc, v) => ({ ...acc, [v.id]: v.id }), {})
       };
 
       // Get current property name for display
-      const currentProperty = villas.find(v => v.value === enhancedSelectedVilla)?.label || 'All Properties';
+      const currentProperty = villaOptions.find(v => v.value === enhancedSelectedVilla)?.label || 'All Properties';
 
       const handleEnhancedPrint = () => {
         const iframe = document.getElementById('enhanced-report-frame');
@@ -5731,7 +5735,7 @@ const Autopilot = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
           // Determine property name for display
           const propertyName = enhancedSelectedVilla === 'all'
             ? businessName
-            : villas.find(v => v.value === enhancedSelectedVilla)?.label;
+            : villaOptions.find(v => v.value === enhancedSelectedVilla)?.label;
 
           // Use custom date range
           console.log(`📊 Generating Enhanced Report for ${propertyName} (${enhancedStartDate} to ${enhancedEndDate})...`);
@@ -5837,7 +5841,7 @@ const Autopilot = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
                   onChange={(e) => setEnhancedSelectedVilla(e.target.value)}
                   className="bg-[#374151] text-white px-4 py-2 rounded-lg border-2 border-orange-500/30 focus:border-orange-500 focus:outline-none hover:border-orange-500/50 transition-all cursor-pointer w-full"
                 >
-                  {villas.map(villa => (
+                  {villaOptions.map(villa => (
                     <option key={villa.value} value={villa.value}>
                       {villa.label}
                     </option>
@@ -5884,32 +5888,21 @@ const Autopilot = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
       );
     }
 
-    // If 'global' mode selected, show existing Global Report code (DO NOT MODIFY)
-    const owners = [
-      {
-        id: 'gita',
-        name: 'Gita Pradnyana',
-        email: 'nismaraumavilla@gmail.com',
-        property: 'Nismara Uma Villa',
-        villas: 1,
-        fileStatic: 'nismara-final.html',
-        fileDynamic: 'nismara-dynamic.html',
-        currency: 'IDR'
-      },
-      {
-        id: 'jose',
-        name: 'Jose Carrallo',
-        email: 'josecarrallodelafuente@gmail.com',
-        property: 'Izumi Hotel & Villas',
-        villas: 8,
-        fileStatic: 'izumi-final.html',
-        fileDynamic: 'izumi-dynamic.html',
-        currency: 'USD'
-      }
-    ];
+    // If 'global' mode selected, show Global Report for current logged-in user (multi-tenant)
+    // Build owner data dynamically from userData, ownerProperty, and villas state
+    const currentOwnerData = {
+      id: userData?.id || 'unknown',
+      name: userData?.full_name || 'Owner',
+      email: userData?.email || '',
+      property: ownerProperty?.name || 'Your Property',
+      villas: villas.length,
+      currency: villas[0]?.currency || 'USD'
+    };
 
-    const currentOwner = owners.find(o => o.id === selectedProperty);
-    const currentFile = currentOwner.fileDynamic; // Always use dynamic report
+    // Single-owner array for dropdown (shows only current logged-in user)
+    const owners = [currentOwnerData];
+
+    const currentOwner = currentOwnerData;
 
     const handlePrint = () => {
       const iframe = document.getElementById('business-report-frame');
@@ -5927,11 +5920,9 @@ const Autopilot = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
         const { generateBusinessReport } = await import('../../services/businessReportService');
         // generateReportHTML is now imported statically at the top
 
-        // Get owner data
-        const ownerData = owners.find(o => o.id === selectedProperty);
-        const ownerId = selectedProperty === 'gita'
-          ? '1f32d384-4018-46a9-a6f9-058217e6924a'
-          : 'c24393db-d318-4d75-8bbf-0fa240b9c1db';
+        // Get owner data (uses current logged-in user)
+        const ownerData = currentOwnerData;
+        const ownerId = userData?.id;
 
         // Calculate date range for selected period
         const { startDate, endDate } = getDateRange(selectedPeriod);

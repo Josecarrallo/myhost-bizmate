@@ -92,7 +92,10 @@ export async function generateBusinessReport(ownerId, ownerName, propertyName, c
   let totalChannelRevenue = 0;
 
   bookings.forEach(booking => {
-    let channel = (booking.source || 'direct').toLowerCase().trim().replace(/\s+/g, '');
+    // Use 'channel' field if available, fallback to 'source', then 'direct'
+    // 'channel' contains the actual OTA (airbnb, booking, agoda)
+    // 'source' contains the sync method (beds24_api, ical_sync, manual)
+    let channel = (booking.channel || booking.source || 'direct').toLowerCase().trim().replace(/\s+/g, '');
 
     // Consolidate Airbnb variants
     if (channel === 'airbnb' || channel === 'air-bnb' || channel.includes('airbnb')) {
@@ -101,6 +104,10 @@ export async function generateBusinessReport(ownerId, ownerName, propertyName, c
     // Consolidate Booking.com variants
     if (channel === 'booking.com' || channel === 'booking' || channel.includes('booking')) {
       channel = 'booking.com';
+    }
+    // Map sync source names to 'direct' if they don't indicate an OTA
+    if (channel.includes('beds24') || channel.includes('ical') || channel.includes('api') || channel === 'manual') {
+      channel = 'direct';
     }
 
     const revenue = booking.total_price || 0;
