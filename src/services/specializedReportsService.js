@@ -44,7 +44,12 @@ export async function generateMonthlyOccupancyReport(ownerId, ownerName, propert
     }
 
     const nights = Math.ceil((checkOut - checkIn) / (1000 * 60 * 60 * 24));
-    const channel = (booking.source || 'direct').toLowerCase();
+    // Use 'channel' field if available, fallback to 'source'
+    let channel = (booking.channel || booking.source || 'direct').toLowerCase();
+    // Map sync source names to 'direct' if they don't indicate an OTA
+    if (channel.includes('beds24') || channel.includes('ical') || channel.includes('api') || channel === 'manual') {
+      channel = 'direct';
+    }
 
     monthlyData[monthKey].bookings += 1;
     monthlyData[monthKey].nights += nights;
@@ -95,7 +100,13 @@ export async function generateRevenueByChannelReport(ownerId, ownerName, propert
   let totalRevenue = 0;
 
   bookings.forEach(booking => {
-    let channel = (booking.source || 'direct').toLowerCase().trim();
+    // Use 'channel' field if available, fallback to 'source'
+    let channel = (booking.channel || booking.source || 'direct').toLowerCase().trim();
+
+    // Map sync source names to 'direct' if they don't indicate an OTA
+    if (channel.includes('beds24') || channel.includes('ical') || channel.includes('api') || channel === 'manual') {
+      channel = 'direct';
+    }
 
     // Normalize channel names
     if (channel.includes('airbnb')) channel = 'airbnb';
@@ -275,7 +286,10 @@ export async function generateOwnerStatementReport(ownerId, ownerName, propertyN
     }
 
     const revenue = booking.total_price || 0;
-    const isOTA = booking.source && !['direct', 'gita'].includes(booking.source.toLowerCase());
+    // Use 'channel' field if available, fallback to 'source'
+    const bookingChannel = (booking.channel || booking.source || 'direct').toLowerCase();
+    // Check if it's an OTA (not direct, manual, or sync sources)
+    const isOTA = bookingChannel && !['direct', 'gita', 'manual', 'beds24_api', 'ical_sync'].includes(bookingChannel) && !bookingChannel.includes('api');
     const otaCommission = isOTA ? revenue * 0.15 : 0; // 15% OTA commission
     const managementFee = revenue * 0.20; // 20% management fee
     const netPayout = revenue - otaCommission - managementFee;

@@ -16,7 +16,7 @@ import Dashboard from './components/Dashboard/Dashboard';
 import Payments from './components/Payments/Payments';
 import Bookings from './components/Bookings/Bookings';
 import Messages from './components/Messages/Messages';
-import AIAssistant from './components/AIAssistant/AIAssistant';
+// AIAssistant removed - OpenAI credentials cleanup (07-Sep-2026)
 import Multichannel from './components/Multichannel/Multichannel';
 import Properties from './components/Properties/Properties';
 import Marketing from './components/Marketing/Marketing';
@@ -37,7 +37,7 @@ import PMSCalendar from './components/PMSCalendar/PMSCalendar';
 import CulturalIntelligence from './components/CulturalIntelligence/CulturalIntelligence';
 import GuestPortal from './components/GuestPortal/GuestPortal';
 import VoiceAssistant from './components/VoiceAssistant/VoiceAssistant';
-import AIAgentsMonitor from './components/AIAgentsMonitor/AIAgentsMonitor';
+// AIAgentsMonitor removed - n8n API key cleanup (07-Sep-2026)
 import MySite from './components/MySite/MySite';
 import Guests from './components/Guests/Guests';
 import AISystems from './components/AISystems/AISystems';
@@ -804,9 +804,7 @@ export default function App() {
       case 'bizmate-ai':
         return <AISystems onBack={() => setCurrentView('overview')} />;
 
-      // OSIRIS.AI (Operations & Control)
-      case 'ai-monitor':
-        return <AIAgentsMonitor onBack={() => setCurrentView('overview')} />;
+      // ai-monitor removed - n8n API key cleanup (07-Sep-2026)
 
       case 'osiris-alerts':
         return (
@@ -837,9 +835,7 @@ export default function App() {
           </div>
         );
 
-      // Legacy routes
-      case 'ai-assistant':
-        return <AIAssistant onBack={() => setCurrentView('overview')} />;
+      // ai-assistant removed - OpenAI credentials cleanup (07-Sep-2026)
 
       case 'ai-operator-demo':
         return <AIOperatorDemo onBack={() => setCurrentView('overview')} />;

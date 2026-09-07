@@ -8,7 +8,7 @@ const OWNER_IDS = {
 // Call OSIRIS AI for business analysis
 async function callOSIRIS(tenantId, prompt) {
   try {
-    const response = await fetch('https://n8n-production-bb2d.up.railway.app/webhook/ai/chat-v2', {
+    const response = await fetch('https://n8n-production-bb2d.up.railway.app/webhook/ai/chat-v4', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
@@ -163,7 +163,10 @@ export async function generateBusinessReport(ownerId, ownerName, propertyName, c
   let totalChannelRevenue = 0;
 
   bookings.forEach(booking => {
-    let channel = (booking.source || 'direct').toLowerCase().trim().replace(/\s+/g, '');
+    // Use 'channel' field if available, fallback to 'source', then 'direct'
+    // 'channel' contains the actual OTA (airbnb, booking, agoda)
+    // 'source' contains the sync method (beds24_api, ical_sync, manual)
+    let channel = (booking.channel || booking.source || 'direct').toLowerCase().trim().replace(/\s+/g, '');
 
     // Consolidate Airbnb variants
     if (channel === 'airbnb' || channel === 'air-bnb' || channel.includes('airbnb')) {
@@ -172,6 +175,10 @@ export async function generateBusinessReport(ownerId, ownerName, propertyName, c
     // Consolidate Booking.com variants
     if (channel === 'booking.com' || channel === 'booking' || channel.includes('booking')) {
       channel = 'booking.com';
+    }
+    // Map sync source names to 'direct' if they don't indicate an OTA
+    if (channel.includes('beds24') || channel.includes('ical') || channel.includes('api') || channel === 'manual') {
+      channel = 'direct';
     }
 
     const revenue = booking.total_price || 0;
@@ -346,7 +353,12 @@ export async function generateBusinessReport(ownerId, ownerName, propertyName, c
     const nights = booking.check_in && booking.check_out
       ? Math.ceil((new Date(booking.check_out) - new Date(booking.check_in)) / (1000 * 60 * 60 * 24))
       : 0;
-    const channel = (booking.source || 'direct').toLowerCase();
+    // Use 'channel' field if available, fallback to 'source'
+    let channel = (booking.channel || booking.source || 'direct').toLowerCase();
+    // Map sync source names to 'direct' if they don't indicate an OTA
+    if (channel.includes('beds24') || channel.includes('ical') || channel.includes('api') || channel === 'manual') {
+      channel = 'direct';
+    }
 
     monthlyData[monthKey].bookings += 1;
     monthlyData[monthKey].nights += nights;

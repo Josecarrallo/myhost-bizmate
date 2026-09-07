@@ -328,9 +328,9 @@ const AISystems = ({ onBack }) => {
     try {
       // OSIRIS: Call real n8n endpoint
       if (selectedAgent === 'osiris') {
-        // ✅ OSIRIS V3.2: Using /webhook/ai/chat-v3 (17 tools, 73% question coverage)
+        // ✅ OSIRIS V3.4: Using /webhook/ai/chat-v4 (Updated 07-Sep-2026) (17 tools, 73% question coverage)
         // ✅ Using authenticated user's ID (tenant_id)
-        const response = await fetch('https://n8n-production-bb2d.up.railway.app/webhook/ai/chat-v3', {
+        const response = await fetch('https://n8n-production-bb2d.up.railway.app/webhook/ai/chat-v4', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'
