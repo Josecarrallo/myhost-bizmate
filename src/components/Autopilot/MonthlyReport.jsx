@@ -25,7 +25,8 @@ const MonthlyReport = ({
   propertyName,
   tenantId,
   monthlySummary,
-  loading
+  loading,
+  liveDecisions = []  // LIVE decisions from owner_decisions table, not n8n pre-aggregated
 }) => {
   console.log('🔍 MonthlyReport props:', { propertyId, propertyName, tenantId, monthlySummary, loading });
 
@@ -74,7 +75,11 @@ const MonthlyReport = ({
         revenue
       }));
 
-  const decisionsList = summary.decisions_list || [];
+  // IMPORTANT: Use LIVE data from liveDecisions, not n8n pre-aggregated data
+  // n8n only updates summary tables on schedule, not when decisions are created manually
+  const decisionsList = liveDecisions.length > 0
+    ? liveDecisions
+    : (summary.decisions_list || []);
   const strategicRecs = summary.strategic_recommendations_json || [];
 
   // auto_resolved_summary is an object with {count, items, by_type}

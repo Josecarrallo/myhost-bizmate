@@ -7422,54 +7422,45 @@ const Autopilot = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
         const matchesAgent = filterDecisionAgent === 'All' || decision.generated_by_agent?.toUpperCase() === filterDecisionAgent;
         const matchesProperty = filterDecisionProperty === 'All' || decision.villa_name === filterDecisionProperty;
 
-        // Date filtering based on period (Daily/Weekly/Monthly) with Bali timezone (UTC+8)
+        // Date filtering based on period (Daily/Weekly/Monthly) using user's local timezone
         let matchesDate = true;
         if (decision.created_at && filterDecisionPeriod !== 'all') {
           const decisionDate = new Date(decision.created_at);
-
-          // Get current time in Bali (UTC+8)
           const now = new Date();
-          const baliTime = new Date(now.getTime() + (8 * 60 * 60 * 1000));
 
           if (filterDecisionPeriod === 'daily') {
-            // Today in Bali = midnight to 23:59:59
-            const startOfDayBali = new Date(baliTime);
-            startOfDayBali.setHours(0, 0, 0, 0);
-            const startOfDayUTC = new Date(startOfDayBali.getTime() - (8 * 60 * 60 * 1000));
+            // Today = midnight to 23:59:59 in user's local timezone
+            const startOfDay = new Date(now);
+            startOfDay.setHours(0, 0, 0, 0);
 
-            const endOfDayBali = new Date(baliTime);
-            endOfDayBali.setHours(23, 59, 59, 999);
-            const endOfDayUTC = new Date(endOfDayBali.getTime() - (8 * 60 * 60 * 1000));
+            const endOfDay = new Date(now);
+            endOfDay.setHours(23, 59, 59, 999);
 
-            matchesDate = decisionDate >= startOfDayUTC && decisionDate <= endOfDayUTC;
+            matchesDate = decisionDate >= startOfDay && decisionDate <= endOfDay;
           } else if (filterDecisionPeriod === 'weekly') {
-            // Current week in Bali (Sunday to Saturday)
-            const dayOfWeek = baliTime.getDay();
+            // Current week (Sunday to Saturday) in user's local timezone
+            const dayOfWeek = now.getDay();
 
-            const startOfWeekBali = new Date(baliTime);
-            startOfWeekBali.setDate(startOfWeekBali.getDate() - dayOfWeek);
-            startOfWeekBali.setHours(0, 0, 0, 0);
-            const startOfWeekUTC = new Date(startOfWeekBali.getTime() - (8 * 60 * 60 * 1000));
+            const startOfWeek = new Date(now);
+            startOfWeek.setDate(startOfWeek.getDate() - dayOfWeek);
+            startOfWeek.setHours(0, 0, 0, 0);
 
-            const endOfWeekBali = new Date(startOfWeekBali);
-            endOfWeekBali.setDate(endOfWeekBali.getDate() + 6);
-            endOfWeekBali.setHours(23, 59, 59, 999);
-            const endOfWeekUTC = new Date(endOfWeekBali.getTime() - (8 * 60 * 60 * 1000));
+            const endOfWeek = new Date(startOfWeek);
+            endOfWeek.setDate(endOfWeek.getDate() + 6);
+            endOfWeek.setHours(23, 59, 59, 999);
 
-            matchesDate = decisionDate >= startOfWeekUTC && decisionDate <= endOfWeekUTC;
+            matchesDate = decisionDate >= startOfWeek && decisionDate <= endOfWeek;
           } else if (filterDecisionPeriod === 'monthly') {
-            // Current month in Bali (1st to last day)
-            const startOfMonthBali = new Date(baliTime);
-            startOfMonthBali.setDate(1);
-            startOfMonthBali.setHours(0, 0, 0, 0);
-            const startOfMonthUTC = new Date(startOfMonthBali.getTime() - (8 * 60 * 60 * 1000));
+            // Current month (1st to last day) in user's local timezone
+            const startOfMonth = new Date(now);
+            startOfMonth.setDate(1);
+            startOfMonth.setHours(0, 0, 0, 0);
 
-            const endOfMonthBali = new Date(baliTime);
-            endOfMonthBali.setMonth(endOfMonthBali.getMonth() + 1, 0); // Last day of current month
-            endOfMonthBali.setHours(23, 59, 59, 999);
-            const endOfMonthUTC = new Date(endOfMonthBali.getTime() - (8 * 60 * 60 * 1000));
+            const endOfMonth = new Date(now);
+            endOfMonth.setMonth(endOfMonth.getMonth() + 1, 0); // Last day of current month
+            endOfMonth.setHours(23, 59, 59, 999);
 
-            matchesDate = decisionDate >= startOfMonthUTC && decisionDate <= endOfMonthUTC;
+            matchesDate = decisionDate >= startOfMonth && decisionDate <= endOfMonth;
           } else if (filterDecisionPeriod === 'custom') {
             // Custom date range
             if (customDecisionDateFrom && customDecisionDateTo) {
@@ -7702,11 +7693,64 @@ const Autopilot = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
                 <div className="w-12 h-12 border-4 border-orange-500/30 border-t-orange-500 rounded-full animate-spin mx-auto mb-3" />
                 <p className="text-gray-300 text-lg">Loading daily briefing...</p>
               </div>
-            ) : (!dailyBriefing && !dailySummaryAPI && (!pendingDecisions || pendingDecisions.length === 0)) ? (
+            ) : (!dailyBriefing && !dailySummaryAPI && (!pendingDecisions || pendingDecisions.length === 0) && filteredDecisions.length === 0) ? (
               <div className="text-center py-8 bg-[#2a2f3a] rounded-lg border-2 border-gray-700">
                 <CheckCircle className="w-12 h-12 text-green-500 mx-auto mb-3" />
                 <p className="text-gray-300 text-lg">No daily briefing available</p>
                 <p className="text-gray-500 text-sm mt-1">Daily briefing will appear here once generated</p>
+              </div>
+            ) : filteredDecisions.length > 0 && !dailySummaryAPI ? (
+              /* Show filtered decisions when API data is not available but decisions exist for today */
+              <div className="space-y-4">
+                <div className="bg-[#2a2f3a] rounded-lg p-4 border-2 border-[#FF8C42]/50">
+                  <h3 className="text-lg font-bold text-[#FF8C42] mb-2">
+                    📅 Today's Decisions ({filteredDecisions.length})
+                  </h3>
+                  <p className="text-gray-400 text-sm">
+                    {new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+                  </p>
+                </div>
+                {filteredDecisions.map((decision) => (
+                  <div
+                    key={decision.id}
+                    className="bg-[#2a2f3a] rounded-xl p-4 border border-[#d85a2a]/30 hover:border-[#d85a2a]/60 transition-all cursor-pointer"
+                    onClick={() => {
+                      setSelectedDecision(decision);
+                      setShowDecisionDetail(true);
+                    }}
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className={`px-2 py-0.5 rounded text-xs font-bold ${
+                            decision.priority === 'urgent' ? 'bg-red-500/20 text-red-400' :
+                            decision.priority === 'high' ? 'bg-orange-500/20 text-orange-400' :
+                            decision.priority === 'medium' ? 'bg-yellow-500/20 text-yellow-400' :
+                            'bg-green-500/20 text-green-400'
+                          }`}>
+                            {decision.priority?.toUpperCase()}
+                          </span>
+                          <span className="px-2 py-0.5 rounded text-xs bg-blue-500/20 text-blue-400">
+                            {decision.decision_type?.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}
+                          </span>
+                        </div>
+                        <h4 className="text-white font-semibold truncate">{decision.title}</h4>
+                        <p className="text-gray-400 text-sm truncate">{decision.summary}</p>
+                        {decision.guest_name && (
+                          <p className="text-gray-500 text-xs mt-1">👤 {decision.guest_name}</p>
+                        )}
+                      </div>
+                      <div className="text-right shrink-0">
+                        {decision.financial_impact_estimate > 0 && (
+                          <p className="text-green-400 font-bold">+${decision.financial_impact_estimate?.toLocaleString()}</p>
+                        )}
+                        <p className="text-gray-500 text-xs">
+                          {new Date(decision.created_at).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
               </div>
             ) : (
               <div className="bg-[#2a2f3a] rounded-lg p-6 border-2 border-[#FF8C42]/50 space-y-6">
@@ -8238,11 +8282,64 @@ const Autopilot = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
                 <div className="w-12 h-12 border-4 border-orange-500/30 border-t-orange-500 rounded-full animate-spin mx-auto mb-3" />
                 <p className="text-gray-300 text-lg">Loading weekly summaries...</p>
               </div>
-            ) : weeklySummaries.length === 0 ? (
+            ) : weeklySummaries.length === 0 && filteredDecisions.length === 0 ? (
               <div className="text-center py-8 bg-[#2a2f3a] rounded-lg border-2 border-gray-700">
                 <CheckCircle className="w-12 h-12 text-green-500 mx-auto mb-3" />
                 <p className="text-gray-300 text-lg">No weekly summaries available</p>
                 <p className="text-gray-500 text-sm mt-1">Weekly summaries will appear here once generated</p>
+              </div>
+            ) : weeklySummaries.length === 0 && filteredDecisions.length > 0 ? (
+              /* Show filtered decisions when weekly summary data is not available but decisions exist */
+              <div className="space-y-4">
+                <div className="bg-[#2a2f3a] rounded-lg p-4 border-2 border-[#FF8C42]/50">
+                  <h3 className="text-lg font-bold text-[#FF8C42] mb-2">
+                    📊 This Week's Decisions ({filteredDecisions.length})
+                  </h3>
+                  <p className="text-gray-400 text-sm">
+                    Week of {new Date(new Date().setDate(new Date().getDate() - new Date().getDay())).toLocaleDateString('en-GB', { day: 'numeric', month: 'long' })} - {new Date(new Date().setDate(new Date().getDate() - new Date().getDay() + 6)).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}
+                  </p>
+                </div>
+                {filteredDecisions.map((decision) => (
+                  <div
+                    key={decision.id}
+                    className="bg-[#2a2f3a] rounded-xl p-4 border border-[#d85a2a]/30 hover:border-[#d85a2a]/60 transition-all cursor-pointer"
+                    onClick={() => {
+                      setSelectedDecision(decision);
+                      setShowDecisionDetail(true);
+                    }}
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className={`px-2 py-0.5 rounded text-xs font-bold ${
+                            decision.priority === 'urgent' ? 'bg-red-500/20 text-red-400' :
+                            decision.priority === 'high' ? 'bg-orange-500/20 text-orange-400' :
+                            decision.priority === 'medium' ? 'bg-yellow-500/20 text-yellow-400' :
+                            'bg-green-500/20 text-green-400'
+                          }`}>
+                            {decision.priority?.toUpperCase()}
+                          </span>
+                          <span className="px-2 py-0.5 rounded text-xs bg-blue-500/20 text-blue-400">
+                            {decision.decision_type?.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}
+                          </span>
+                        </div>
+                        <h4 className="text-white font-semibold truncate">{decision.title}</h4>
+                        <p className="text-gray-400 text-sm truncate">{decision.summary}</p>
+                        {decision.guest_name && (
+                          <p className="text-gray-500 text-xs mt-1">👤 {decision.guest_name}</p>
+                        )}
+                      </div>
+                      <div className="text-right shrink-0">
+                        {decision.financial_impact_estimate > 0 && (
+                          <p className="text-green-400 font-bold">+${decision.financial_impact_estimate?.toLocaleString()}</p>
+                        )}
+                        <p className="text-gray-500 text-xs">
+                          {new Date(decision.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })} {new Date(decision.created_at).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
               </div>
             ) : (
               /* Show only the most recent week */
@@ -8279,7 +8376,11 @@ const Autopilot = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
                       revenue
                     }));
 
-                const decisionsList = filteredSummary.decisions_list || [];
+                // IMPORTANT: Use LIVE data from filteredDecisions, not n8n pre-aggregated data
+                // n8n only updates summary tables on schedule, not when decisions are created manually
+                const decisionsList = filteredDecisions.length > 0
+                  ? filteredDecisions
+                  : (filteredSummary.decisions_list || []);
                 const recommendations = summary.recommendations_json || [];
 
                 // auto_resolved_summary is an object with {count, items, by_type}
@@ -8787,14 +8888,81 @@ const Autopilot = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
               })()
             )
           ) : filterDecisionPeriod === 'monthly' ? (
-            /* MONTHLY REPORT - Using MonthlyReport.jsx component */
-            <MonthlyReport
-              propertyId={selectedProperty?.id}
-              propertyName={selectedProperty?.property_name || filterDecisionProperty}
-              tenantId={userData?.tenant_id}
-              monthlySummary={monthlySummaries.length > 0 ? monthlySummaries[0] : null}
-              loading={loadingSummaries}
-            />
+            /* MONTHLY REPORT - Using MonthlyReport.jsx component or fallback to filtered decisions */
+            loadingSummaries ? (
+              <div className="text-center py-8 bg-[#2a2f3a] rounded-lg border-2 border-gray-700">
+                <div className="w-12 h-12 border-4 border-orange-500/30 border-t-orange-500 rounded-full animate-spin mx-auto mb-3" />
+                <p className="text-gray-300 text-lg">Loading monthly report...</p>
+              </div>
+            ) : monthlySummaries.length === 0 && filteredDecisions.length === 0 ? (
+              <div className="text-center py-8 bg-[#2a2f3a] rounded-lg border-2 border-gray-700">
+                <CheckCircle className="w-12 h-12 text-green-500 mx-auto mb-3" />
+                <p className="text-gray-300 text-lg">No monthly report available</p>
+                <p className="text-gray-500 text-sm mt-1">Monthly report will appear here once generated</p>
+              </div>
+            ) : monthlySummaries.length === 0 && filteredDecisions.length > 0 ? (
+              /* Show filtered decisions when monthly summary data is not available but decisions exist */
+              <div className="space-y-4">
+                <div className="bg-[#2a2f3a] rounded-lg p-4 border-2 border-[#FF8C42]/50">
+                  <h3 className="text-lg font-bold text-[#FF8C42] mb-2">
+                    📈 This Month's Decisions ({filteredDecisions.length})
+                  </h3>
+                  <p className="text-gray-400 text-sm">
+                    {new Date().toLocaleDateString('en-GB', { month: 'long', year: 'numeric' })}
+                  </p>
+                </div>
+                {filteredDecisions.map((decision) => (
+                  <div
+                    key={decision.id}
+                    className="bg-[#2a2f3a] rounded-xl p-4 border border-[#d85a2a]/30 hover:border-[#d85a2a]/60 transition-all cursor-pointer"
+                    onClick={() => {
+                      setSelectedDecision(decision);
+                      setShowDecisionDetail(true);
+                    }}
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className={`px-2 py-0.5 rounded text-xs font-bold ${
+                            decision.priority === 'urgent' ? 'bg-red-500/20 text-red-400' :
+                            decision.priority === 'high' ? 'bg-orange-500/20 text-orange-400' :
+                            decision.priority === 'medium' ? 'bg-yellow-500/20 text-yellow-400' :
+                            'bg-green-500/20 text-green-400'
+                          }`}>
+                            {decision.priority?.toUpperCase()}
+                          </span>
+                          <span className="px-2 py-0.5 rounded text-xs bg-blue-500/20 text-blue-400">
+                            {decision.decision_type?.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}
+                          </span>
+                        </div>
+                        <h4 className="text-white font-semibold truncate">{decision.title}</h4>
+                        <p className="text-gray-400 text-sm truncate">{decision.summary}</p>
+                        {decision.guest_name && (
+                          <p className="text-gray-500 text-xs mt-1">👤 {decision.guest_name}</p>
+                        )}
+                      </div>
+                      <div className="text-right shrink-0">
+                        {decision.financial_impact_estimate > 0 && (
+                          <p className="text-green-400 font-bold">+${decision.financial_impact_estimate?.toLocaleString()}</p>
+                        )}
+                        <p className="text-gray-500 text-xs">
+                          {new Date(decision.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })} {new Date(decision.created_at).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <MonthlyReport
+                propertyId={selectedProperty?.id}
+                propertyName={selectedProperty?.property_name || filterDecisionProperty}
+                tenantId={userData?.tenant_id}
+                monthlySummary={monthlySummaries.length > 0 ? monthlySummaries[0] : null}
+                loading={loadingSummaries}
+                liveDecisions={filteredDecisions}
+              />
+            )
           ) : filterDecisionPeriod === 'monthly_OLD_BACKUP' ? (
             /* OLD MONTHLY SUMMARIES VIEW v4.3 - BACKUP */
             loadingSummaries ? (
