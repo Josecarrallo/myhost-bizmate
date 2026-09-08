@@ -11,10 +11,6 @@
 
 import { supabase } from '../lib/supabase';
 
-// Credentials from debug_claudecode.pdf
-const SUPABASE_URL = 'https://jjpscimtxrudtepzwhag.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpqcHNjaW10eHJ1ZHRlcHp3aGFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI5NDMyMzIsImV4cCI6MjA3ODUxOTIzMn0._U_HwdF5-yT8-prJLzkdO_rGbNuu7Z3gpUQW0Q8zxa0';
-
 // Decision Router API endpoint
 const OCS_ROUTER_ENDPOINT = 'https://n8n-production-bb2d.up.railway.app/webhook/autopilot/decision-action';
 

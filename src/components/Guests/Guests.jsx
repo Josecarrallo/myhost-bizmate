@@ -11,6 +11,7 @@ import {
 import { useAuth } from '../../contexts/AuthContext';
 import GuestProfile from './GuestProfile';
 import { dataService } from '../../services/data';
+import { supabase } from '../../lib/supabase';
 
 const Guests = ({ onBack }) => {
   const { user } = useAuth();
@@ -29,27 +30,14 @@ const Guests = ({ onBack }) => {
 
   const loadEmailStats = async () => {
     try {
-      const SUPABASE_URL = 'https://jjpscimtxrudtepzwhag.supabase.co';
-      const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpqcHNjaW10eHJ1ZHRlcHp3aGFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzMwODczOTcsImV4cCI6MjA0ODY2MzM5N30.2DxnLWdw6oGhNMKQM4THnpQD23vhxFGhz6rBXbdZPc0';
+      // Use centralized supabase client instead of hardcoded credentials
+      const { count, error } = await supabase
+        .from('communications_log')
+        .select('id', { count: 'exact', head: true })
+        .eq('channel', 'email');
 
-      const response = await fetch(
-        `${SUPABASE_URL}/rest/v1/communications_log?select=id&channel=eq.email`,
-        {
-          headers: {
-            'apikey': SUPABASE_ANON_KEY,
-            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-            'Content-Type': 'application/json',
-            'Prefer': 'count=exact'
-          }
-        }
-      );
-
-      if (response.ok) {
-        const count = response.headers.get('content-range');
-        if (count) {
-          const totalCount = parseInt(count.split('/')[1]);
-          setEmailsSent(totalCount);
-        }
+      if (!error && count !== null) {
+        setEmailsSent(count);
       }
     } catch (error) {
       console.error('Error loading email stats:', error);
