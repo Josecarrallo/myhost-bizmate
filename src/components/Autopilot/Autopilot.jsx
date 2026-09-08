@@ -7617,17 +7617,17 @@ const Autopilot = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
                 ))}
               </select>
 
-              {/* Period Filter */}
+              {/* Period/View Filter */}
               <select
                 value={filterDecisionPeriod}
                 onChange={(e) => setFilterDecisionPeriod(e.target.value)}
                 className="px-3 py-2.5 bg-[#1f2937] text-white rounded-xl text-sm border border-[#d85a2a]/30 focus:border-[#d85a2a] outline-none"
               >
-                <option value="all">All Periods</option>
-                <option value="daily">Daily</option>
-                <option value="weekly">Weekly</option>
-                <option value="monthly">Monthly</option>
-                <option value="custom">Custom Range</option>
+                <option value="all">📋 All Decisions</option>
+                <option value="daily">📅 Daily Briefing</option>
+                <option value="weekly">📊 Weekly Summary</option>
+                <option value="monthly">📈 Monthly Report</option>
+                <option value="custom">🔍 Custom Date Filter</option>
               </select>
 
               {/* Search */}
@@ -7645,25 +7645,32 @@ const Autopilot = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
 
             {/* Custom Date Range (if selected) */}
             {filterDecisionPeriod === 'custom' && (
-              <div className="grid grid-cols-2 gap-3 mt-3">
-                <div>
-                  <label className="text-xs text-gray-400 mb-1 block">From</label>
-                  <input
-                    type="date"
-                    value={customDecisionDateFrom}
-                    onChange={(e) => setCustomDecisionDateFrom(e.target.value)}
-                    className="w-full px-3 py-2 bg-[#1f2937] text-white rounded-lg text-sm border border-gray-700 focus:border-orange-500 outline-none"
-                  />
+              <div className="mt-3">
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs text-gray-400 mb-1 block">From</label>
+                    <input
+                      type="date"
+                      value={customDecisionDateFrom}
+                      onChange={(e) => setCustomDecisionDateFrom(e.target.value)}
+                      className="w-full px-3 py-2 bg-[#1f2937] text-white rounded-lg text-sm border border-gray-700 focus:border-orange-500 outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-gray-400 mb-1 block">To</label>
+                    <input
+                      type="date"
+                      value={customDecisionDateTo}
+                      onChange={(e) => setCustomDecisionDateTo(e.target.value)}
+                      className="w-full px-3 py-2 bg-[#1f2937] text-white rounded-lg text-sm border border-gray-700 focus:border-orange-500 outline-none"
+                    />
+                  </div>
                 </div>
-                <div>
-                  <label className="text-xs text-gray-400 mb-1 block">To</label>
-                  <input
-                    type="date"
-                    value={customDecisionDateTo}
-                    onChange={(e) => setCustomDecisionDateTo(e.target.value)}
-                    className="w-full px-3 py-2 bg-[#1f2937] text-white rounded-lg text-sm border border-gray-700 focus:border-orange-500 outline-none"
-                  />
-                </div>
+                {(!customDecisionDateFrom || !customDecisionDateTo) && (
+                  <p className="text-xs text-orange-400 mt-2">
+                    Select both dates to filter decisions by date range
+                  </p>
+                )}
               </div>
             )}
 
@@ -9217,9 +9224,23 @@ const Autopilot = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
               </div>
             ) : filteredDecisions.length === 0 ? (
               <div className="text-center py-8 bg-[#2a2f3a] rounded-lg border-2 border-gray-700">
-                <CheckCircle className="w-12 h-12 text-green-500 mx-auto mb-3" />
-                <p className="text-gray-300 text-lg">No decisions found</p>
-                <p className="text-gray-500 text-sm mt-1">Try adjusting your filters</p>
+                {ownerDecisions.length === 0 ? (
+                  // No decisions at all in database
+                  <>
+                    <CheckCircle className="w-12 h-12 text-green-500 mx-auto mb-3" />
+                    <p className="text-gray-300 text-lg">All caught up!</p>
+                    <p className="text-gray-500 text-sm mt-1">No pending decisions require your attention</p>
+                  </>
+                ) : (
+                  // Decisions exist but filters are too restrictive
+                  <>
+                    <Search className="w-12 h-12 text-gray-500 mx-auto mb-3" />
+                    <p className="text-gray-300 text-lg">No decisions match your filters</p>
+                    <p className="text-gray-500 text-sm mt-1">
+                      {ownerDecisions.length} decision{ownerDecisions.length !== 1 ? 's' : ''} available. Try adjusting your filters or click "Clear Filters"
+                    </p>
+                  </>
+                )}
               </div>
             ) : (
               filteredDecisions.map((decision) => {
