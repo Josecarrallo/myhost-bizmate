@@ -1525,6 +1525,7 @@ const ManualDataEntry = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
                   <option value="pending_payment">Pending Payment</option>
                   <option value="checked_in">Checked In</option>
                   <option value="checked_out">Checked Out</option>
+                  <option value="cancellation_requested">Cancel Requested</option>
                   <option value="cancelled">Cancelled</option>
                 </select>
 
@@ -1671,6 +1672,7 @@ const ManualDataEntry = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
                                   <span className={`px-1.5 py-0.5 rounded-full text-[9px] font-bold inline-block whitespace-nowrap ${
                                     booking.status === 'confirmed' ? 'bg-green-500 text-white' :
                                     booking.status === 'pending_payment' ? 'bg-yellow-500 text-black' :
+                                    booking.status === 'cancellation_requested' ? 'bg-orange-500 text-white animate-pulse' :
                                     booking.status === 'cancelled' ? 'bg-red-500 text-white' :
                                     booking.status === 'checked_in' ? 'bg-blue-500 text-white' :
                                     booking.status === 'checked_out' ? 'bg-purple-500 text-white' :
@@ -1679,6 +1681,7 @@ const ManualDataEntry = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
                                     {booking.status === 'pending_payment' ? 'pending' :
                                      booking.status === 'checked_in' ? 'in' :
                                      booking.status === 'checked_out' ? 'out' :
+                                     booking.status === 'cancellation_requested' ? 'CANCEL REQ' :
                                      booking.status}
                                   </span>
                                 </td>

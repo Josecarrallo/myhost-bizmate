@@ -68,7 +68,8 @@ export const supabaseService = {
     let query = supabase
       .from('bookings')
       .select('*')
-      .neq('status', 'cancelled') // Exclude cancelled bookings
+      // NOTE: Removed .neq('status', 'cancelled') - "All Status" must show ALL bookings
+      // Revenue calculations should exclude cancelled in frontend, not here
       .order('created_at', { ascending: false });
 
     if (filters.status) {
@@ -87,7 +88,8 @@ export const supabaseService = {
       query = query.eq('tenant_id', filters.tenant_id);
     }
     if (filters.guest_name) {
-      query = query.ilike('guest_name', `%${filters.guest_name}%`);
+      // Search in both guest_name AND confirmation_code (e.g., NIS-2026-0003)
+      query = query.or(`guest_name.ilike.%${filters.guest_name}%,confirmation_code.ilike.%${filters.guest_name}%`);
     }
     if (filters.check_in_gte) {
       query = query.gte('check_in', filters.check_in_gte);

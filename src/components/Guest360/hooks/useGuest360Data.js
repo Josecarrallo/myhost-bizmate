@@ -256,38 +256,43 @@ const useGuest360Data = (guestPhone, tenantId, bookingId = null) => {
       }
 
       // 9. Fetch owner decisions
-      // Incluir por booking_id O por guest_phone
-      let decisionsData = [];
-      if (bookingIds.length > 0) {
-        // For booking ID search or when we have bookings, query by booking_id
-        let decisionsQuery = supabase
-          .from('owner_decisions')
-          .select('*')
-          .eq('tenant_id', tenantId)
-          .order('created_at', { ascending: false });
+      // SIMPLIFIED: Fetch ALL decisions for this tenant, filter client-side
+      // This ensures KORA escalations are NEVER missed
+      console.log('🔍 [Hook] Fetching ALL owner_decisions for tenant:', tenantId);
+      const { data: allDecisions, error: decisionsError } = await supabase
+        .from('owner_decisions')
+        .select('*')
+        .eq('tenant_id', tenantId)
+        .order('created_at', { ascending: false })
+        .limit(100);
 
-        if (phoneSuffix) {
-          // Have both booking IDs and phone suffix
-          decisionsQuery = decisionsQuery.or(
-            `booking_id.in.(${bookingIds.join(',')}),guest_phone.like.%${phoneSuffix}`
-          );
-        } else {
-          // Only have booking IDs (OTA guest case)
-          decisionsQuery = decisionsQuery.in('booking_id', bookingIds);
-        }
-
-        const { data } = await decisionsQuery;
-        decisionsData = data || [];
-      } else if (phoneSuffix) {
-        // No bookings but have phone suffix
-        const { data } = await supabase
-          .from('owner_decisions')
-          .select('*')
-          .eq('tenant_id', tenantId)
-          .like('guest_phone', `%${phoneSuffix}`)
-          .order('created_at', { ascending: false });
-        decisionsData = data || [];
+      if (decisionsError) {
+        console.error('❌ [Hook] Error fetching decisions:', decisionsError);
       }
+
+      console.log('🔍 [Hook] ALL decisions fetched:', allDecisions?.length || 0);
+      console.log('🔍 [Hook] phoneSuffix for filtering:', phoneSuffix);
+      console.log('🔍 [Hook] bookingIds for filtering:', bookingIds);
+
+      // Filter client-side by booking_id OR guest_phone
+      const decisionsData = (allDecisions || []).filter(d => {
+        // Match by booking_id
+        if (d.booking_id && bookingIds.includes(d.booking_id)) {
+          console.log('✅ [Hook] Decision matched by booking_id:', d.title);
+          return true;
+        }
+        // Match by guest_phone (last 9 digits)
+        if (d.guest_phone && phoneSuffix) {
+          const decisionPhoneSuffix = d.guest_phone.replace(/\D/g, '').slice(-9);
+          if (decisionPhoneSuffix === phoneSuffix) {
+            console.log('✅ [Hook] Decision matched by phone:', d.title, decisionPhoneSuffix);
+            return true;
+          }
+        }
+        return false;
+      });
+
+      console.log('🔍 [Hook] Filtered decisions for guest:', decisionsData.length);
       setDecisions(decisionsData);
 
       // 10. Fetch lead (pre-booking) - only if we have phone suffix
