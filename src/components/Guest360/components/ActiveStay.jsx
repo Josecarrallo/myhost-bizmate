@@ -89,12 +89,18 @@ const ActiveStay = ({ booking, currency = 'USD', serviceRequests = [], journeyEv
   const checkInDate = formatDate(booking.check_in, 'short');
   const checkOutDate = formatDate(booking.check_out, 'short');
 
-  // Status badge config
+  // Status badge config - ALL booking statuses
   const statusConfig = {
+    inquiry: { variant: 'info', label: 'Inquiry' },
     confirmed: { variant: 'success', label: 'Confirmed' },
     checked_in: { variant: 'success', label: 'Checked In' },
+    checked_out: { variant: 'neutral', label: 'Checked Out' },
+    cancelled: { variant: 'danger', label: 'Cancelled' },
+    provisional: { variant: 'warning', label: 'Provisional' },
     pending_payment: { variant: 'warning', label: 'Payment Pending' },
+    expired: { variant: 'neutral', label: 'Expired' },
     partial_payment: { variant: 'warning', label: 'Partial Payment' },
+    cancellation_requested: { variant: 'danger', label: 'Cancel Requested' },
   };
 
   const statusInfo = statusConfig[booking.status] || { variant: 'neutral', label: booking.status };
@@ -127,7 +133,11 @@ const ActiveStay = ({ booking, currency = 'USD', serviceRequests = [], journeyEv
           </span>
         </div>
 
-        <Badge variant={statusInfo.variant} size="sm">
+        <Badge
+          variant={statusInfo.variant}
+          size={booking.status === 'cancelled' || booking.status === 'cancellation_requested' ? 'lg' : 'md'}
+          dot={booking.status === 'cancelled' || booking.status === 'cancellation_requested'}
+        >
           {statusInfo.label}
         </Badge>
       </div>

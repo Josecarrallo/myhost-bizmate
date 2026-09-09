@@ -62,6 +62,9 @@ const Guest360 = ({
   // Tab state
   const [activeTab, setActiveTab] = useState('bookings');
 
+  // Booking filter state
+  const [filterStatus, setFilterStatus] = useState('');
+
   // Fetch all data - MUST be called before any conditional returns (Rules of Hooks)
   const {
     guest,
@@ -260,19 +263,67 @@ const Guest360 = ({
         <div className="space-y-5">
           {activeTab === 'bookings' && (
             <>
+              {/* Booking Status Filter */}
+              <div className="flex items-center gap-3 mb-2">
+                <select
+                  value={filterStatus}
+                  onChange={(e) => setFilterStatus(e.target.value)}
+                  className="px-4 py-2 bg-[#333b47] border border-white/10 rounded-xl text-white text-sm focus:outline-none focus:border-[#f5791f]/50"
+                >
+                  <option value="">All Status</option>
+                  <option value="confirmed">Confirmed</option>
+                  <option value="pending_payment">Pending Payment</option>
+                  <option value="checked_in">Checked In</option>
+                  <option value="checked_out">Checked Out</option>
+                  <option value="cancellation_requested">Cancel Requested</option>
+                  <option value="cancelled">Cancelled</option>
+                </select>
+                {filterStatus && (
+                  <button
+                    onClick={() => setFilterStatus('')}
+                    className="text-xs text-[#f5791f] hover:text-[#ff9f4a]"
+                  >
+                    Clear filter
+                  </button>
+                )}
+                <span className={`ml-auto font-bold ${filterStatus ? 'text-sm text-[#f5791f] bg-[#f5791f]/10 px-3 py-1 rounded-full' : 'text-sm text-white'}`}>
+                  {filterStatus
+                    ? `${bookings.filter(b => b.status === filterStatus).length} of ${bookings.length} bookings`
+                    : `${bookings.length} bookings`
+                  }
+                </span>
+              </div>
+
               {/* Bookings list */}
               <div className="space-y-4">
-                {bookings.length === 0 ? (
-                  <div className="bg-[#333b47] rounded-2xl border border-white/10 p-5">
-                    <EmptyState
-                      title="No Bookings"
-                      description="No booking history for this guest"
-                    />
-                  </div>
-                ) : (
-                  [...bookings]
-                    .sort((a, b) => new Date(a.check_in) - new Date(b.check_in))
-                    .map((booking) => {
+                {(() => {
+                  const filteredBookings = bookings
+                    .filter(b => !filterStatus || b.status === filterStatus)
+                    .sort((a, b) => new Date(a.check_in) - new Date(b.check_in));
+
+                  if (bookings.length === 0) {
+                    return (
+                      <div className="bg-[#333b47] rounded-2xl border border-white/10 p-5">
+                        <EmptyState
+                          title="No Bookings"
+                          description="No booking history for this guest"
+                        />
+                      </div>
+                    );
+                  }
+
+                  if (filteredBookings.length === 0) {
+                    return (
+                      <div className="bg-[#333b47] rounded-2xl border border-white/10 p-5">
+                        <EmptyState
+                          title="No Results"
+                          description={`No bookings with status "${filterStatus}". Try clearing the filter.`}
+                        />
+                      </div>
+                    );
+                  }
+
+                  return filteredBookings.map((booking) => {
                       // Filter decisions for this specific booking
                       // Match by booking_id OR by confirmation code in title/description
                       const bookingDecisions = decisions.filter(d => {
@@ -297,8 +348,8 @@ const Guest360 = ({
                           decisions={bookingDecisions}
                         />
                       );
-                    })
-                )}
+                    });
+                })()}
               </div>
 
               {/* Booking Summary */}

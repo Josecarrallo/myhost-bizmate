@@ -68,7 +68,8 @@ export const supabaseService = {
     let query = supabase
       .from('bookings')
       .select('*')
-      .neq('status', 'cancelled') // Exclude cancelled bookings
+      // NOTE: Removed .neq('status', 'cancelled') - "All Status" must show ALL bookings
+      // Revenue calculations should exclude cancelled in frontend, not here
       .order('created_at', { ascending: false });
 
     if (filters.status) {
