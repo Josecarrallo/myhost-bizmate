@@ -272,15 +272,32 @@ const Guest360 = ({
                 ) : (
                   [...bookings]
                     .sort((a, b) => new Date(a.check_in) - new Date(b.check_in))
-                    .map((booking) => (
-                      <ActiveStay
-                        key={booking.id}
-                        booking={booking}
-                        currency={currency}
-                        serviceRequests={serviceRequests.filter(sr => sr.booking_id === booking.id)}
-                        journeyEvents={journeyEvents.filter(je => je.booking_id === booking.id)}
-                      />
-                    ))
+                    .map((booking) => {
+                      // Filter decisions for this specific booking
+                      // Match by booking_id OR by confirmation code in title/description
+                      const bookingDecisions = decisions.filter(d => {
+                        // Direct match by booking_id
+                        if (d.booking_id === booking.id) return true;
+                        // Match by confirmation code in title or description
+                        const confirmCode = booking.confirmation_code || booking.reservation_id?.split('@')[0]?.slice(-12);
+                        if (confirmCode && (
+                          d.title?.includes(confirmCode) ||
+                          d.description?.includes(confirmCode)
+                        )) return true;
+                        return false;
+                      });
+
+                      return (
+                        <ActiveStay
+                          key={booking.id}
+                          booking={booking}
+                          currency={currency}
+                          serviceRequests={serviceRequests.filter(sr => sr.booking_id === booking.id)}
+                          journeyEvents={journeyEvents.filter(je => je.booking_id === booking.id)}
+                          decisions={bookingDecisions}
+                        />
+                      );
+                    })
                 )}
               </div>
 
@@ -311,89 +328,7 @@ const Guest360 = ({
                 />
               )}
 
-              {/* OCS Decisions - Only for this guest's bookings */}
-              {(() => {
-                // Get booking IDs for this guest
-                const guestBookingIds = bookings.map(b => b.id);
-                // Filter decisions that belong to this guest's bookings
-                const guestDecisions = decisions.filter(d =>
-                  d.booking_id && guestBookingIds.includes(d.booking_id)
-                );
-                const pendingGuestDecisions = guestDecisions.filter(d => d.status === 'pending');
-                const resolvedGuestDecisions = guestDecisions.filter(d => d.status !== 'pending');
-
-                if (guestDecisions.length === 0) return null;
-
-                return (
-                  <div className="bg-[#333b47] rounded-2xl border border-white/10 p-5">
-                    <div className="flex items-center justify-between mb-4">
-                      <h3 className="text-sm font-semibold text-white">Owner Decisions</h3>
-                      <span className="text-xs text-[#8a93a1]">
-                        {pendingGuestDecisions.length} pending · {resolvedGuestDecisions.length} resolved
-                      </span>
-                    </div>
-                    {pendingGuestDecisions.length > 0 ? (
-                      <div className="space-y-3">
-                        {pendingGuestDecisions
-                          .slice(0, 5)
-                          .map((decision) => {
-                            // Find the booking for this decision
-                            const decisionBooking = bookings.find(b => b.id === decision.booking_id);
-                            return (
-                              <div
-                                key={decision.id}
-                                className="p-3 bg-[#2c333e] rounded-xl border-l-4 border-[#e6b24d]"
-                              >
-                                <div className="flex items-start justify-between gap-2">
-                                  <div className="flex-1 min-w-0">
-                                    <p className="text-white text-sm font-medium truncate">
-                                      {decision.title || decision.decision_type || 'Decision'}
-                                    </p>
-                                    {(decisionBooking?.confirmation_code || decisionBooking?.reservation_id) && (
-                                      <p className="text-[#f5791f] text-xs font-mono mt-1">
-                                        #{decisionBooking.confirmation_code || decisionBooking.reservation_id?.split('@')[0]?.slice(-12)}
-                                      </p>
-                                    )}
-                                    {decision.description && (
-                                      <p className="text-[#8a93a1] text-xs mt-1 line-clamp-2">
-                                        {decision.description}
-                                      </p>
-                                    )}
-                                    <p className="text-[#6d7683] text-xs mt-2">
-                                      {decision.created_at && new Date(decision.created_at).toLocaleDateString('en-US', {
-                                        month: 'short',
-                                        day: 'numeric',
-                                        hour: '2-digit',
-                                        minute: '2-digit'
-                                      })}
-                                    </p>
-                                  </div>
-                                  <span className={`text-xs px-2 py-1 rounded-full whitespace-nowrap ${
-                                    decision.priority === 'urgent' || decision.priority === 'high'
-                                      ? 'bg-red-500/20 text-red-400'
-                                      : decision.priority === 'medium'
-                                      ? 'bg-yellow-500/20 text-yellow-400'
-                                      : 'bg-blue-500/20 text-blue-400'
-                                  }`}>
-                                    {decision.priority || 'normal'}
-                                  </span>
-                                </div>
-                              </div>
-                            );
-                          })
-                        }
-                        {pendingGuestDecisions.length > 5 && (
-                          <p className="text-[#8a93a1] text-xs text-center">
-                            +{pendingGuestDecisions.length - 5} more decisions
-                          </p>
-                        )}
-                      </div>
-                    ) : (
-                      <p className="text-[#6d7683] text-sm">No pending decisions for this guest</p>
-                    )}
-                  </div>
-                );
-              })()}
+              {/* NOTE: Owner Decisions now appear integrated within each booking card (ActiveStay) */}
             </>
           )}
 

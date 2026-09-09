@@ -7,6 +7,9 @@ import {
   Clock,
   CheckCircle2,
   Wrench,
+  AlertTriangle,
+  XCircle,
+  Bell,
 } from 'lucide-react';
 import { ProgressBar, Badge, EmptyState } from './shared';
 import { calculateStayProgress, formatDate, formatCurrency } from '../constants';
@@ -17,6 +20,7 @@ import { calculateStayProgress, formatDate, formatCurrency } from '../constants'
  * @param {string} currency - Currency code
  * @param {array} serviceRequests - Service requests for this booking
  * @param {array} journeyEvents - Journey events for this booking
+ * @param {array} decisions - Owner decisions for this booking (KORA escalations, etc.)
  */
 // Service type emojis (mismo mapa que ServicesTab.jsx)
 const serviceTypeEmojis = {
@@ -41,7 +45,7 @@ const serviceTypeEmojis = {
   other: '📋',
 };
 
-const ActiveStay = ({ booking, currency = 'USD', serviceRequests = [], journeyEvents = [] }) => {
+const ActiveStay = ({ booking, currency = 'USD', serviceRequests = [], journeyEvents = [], decisions = [] }) => {
   // No active booking
   if (!booking) {
     return (
@@ -54,6 +58,20 @@ const ActiveStay = ({ booking, currency = 'USD', serviceRequests = [], journeyEv
       </div>
     );
   }
+
+  // Filter pending decisions for this booking (not yet resolved)
+  const pendingDecisions = decisions.filter(d =>
+    !d.status || d.status === 'pending' || d.status === 'escalated' || d.status === 'new'
+  );
+
+  // Check for critical decisions (cancellation, urgent)
+  const hasCancellationRequest = pendingDecisions.some(d =>
+    d.title?.toLowerCase().includes('cancel') ||
+    d.decision_type?.toLowerCase().includes('cancel')
+  );
+  const hasUrgentDecision = pendingDecisions.some(d =>
+    d.priority === 'urgent' || d.priority === 'high'
+  );
 
   // Calculate progress
   const { progress, daysIn, daysLeft, totalNights, phase } = calculateStayProgress(
@@ -125,6 +143,87 @@ const ActiveStay = ({ booking, currency = 'USD', serviceRequests = [], journeyEv
           </p>
         )}
       </div>
+
+      {/* CRITICAL: Owner Decisions / KORA Escalations for this booking - AFTER villa name */}
+      {pendingDecisions.length > 0 && (
+        <div className="mx-5 mb-4">
+          {pendingDecisions.map((decision) => {
+            const isCancellation = decision.title?.toLowerCase().includes('cancel') ||
+              decision.decision_type?.toLowerCase().includes('cancel');
+            const isUrgent = decision.priority === 'urgent' || decision.priority === 'high';
+
+            return (
+              <div
+                key={decision.id}
+                className={`p-4 rounded-xl border-l-4 mb-2 ${
+                  isCancellation
+                    ? 'bg-red-500/10 border-red-500'
+                    : isUrgent
+                    ? 'bg-orange-500/10 border-orange-500'
+                    : 'bg-yellow-500/10 border-yellow-500'
+                }`}
+              >
+                <div className="flex items-start gap-3">
+                  {/* Icon */}
+                  <div className={`p-2 rounded-lg ${
+                    isCancellation ? 'bg-red-500/20' : isUrgent ? 'bg-orange-500/20' : 'bg-yellow-500/20'
+                  }`}>
+                    {isCancellation ? (
+                      <XCircle className={`w-5 h-5 ${isCancellation ? 'text-red-400' : 'text-orange-400'}`} />
+                    ) : (
+                      <AlertTriangle className={`w-5 h-5 ${isUrgent ? 'text-orange-400' : 'text-yellow-400'}`} />
+                    )}
+                  </div>
+
+                  {/* Content */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className={`text-xs font-bold uppercase tracking-wider ${
+                        isCancellation ? 'text-red-400' : isUrgent ? 'text-orange-400' : 'text-yellow-400'
+                      }`}>
+                        {isCancellation ? 'CANCELLATION REQUEST' : isUrgent ? 'URGENT' : 'NEEDS ATTENTION'}
+                      </span>
+                      <span className={`text-[10px] px-1.5 py-0.5 rounded uppercase font-medium ${
+                        decision.priority === 'high' || decision.priority === 'urgent'
+                          ? 'bg-red-500/30 text-red-300'
+                          : 'bg-yellow-500/30 text-yellow-300'
+                      }`}>
+                        {decision.priority || 'medium'}
+                      </span>
+                      {decision.generated_by_agent && (
+                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-500/30 text-blue-300 uppercase font-medium">
+                          {decision.generated_by_agent}
+                        </span>
+                      )}
+                    </div>
+
+                    <p className={`text-sm font-semibold mb-1 ${
+                      isCancellation ? 'text-red-200' : isUrgent ? 'text-orange-200' : 'text-yellow-200'
+                    }`}>
+                      {decision.title || decision.decision_type || 'Owner Decision'}
+                    </p>
+
+                    {decision.description && (
+                      <p className="text-xs text-white/70 mb-2">
+                        {decision.description}
+                      </p>
+                    )}
+
+                    <p className="text-[10px] text-white/50">
+                      {decision.created_at && new Date(decision.created_at).toLocaleString('en-US', {
+                        month: 'short',
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      })}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
 
       {/* Info row */}
       <div className="px-5 pb-4 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-[#aab2bf]">
