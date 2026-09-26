@@ -40,7 +40,8 @@ import {
   Instagram,
   Mail,
   Zap,
-  ClipboardList
+  ClipboardList,
+  Sparkle
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -191,6 +192,15 @@ const Sidebar = ({ currentView, onNavigate, isOpen, onClose, userData, collapsed
       sectionId: 'settings',
       sectionLabel: 'SETTINGS',
       sectionIcon: Settings,
+      collapsible: false,
+      isDirectLink: true,
+      items: []
+    },
+    // 8. NEW DESIGN V2 (Demo)
+    {
+      sectionId: 'demo-v2',
+      sectionLabel: '✨ NEW DESIGN V2',
+      sectionIcon: Palette,
       collapsible: false,
       isDirectLink: true,
       items: []
