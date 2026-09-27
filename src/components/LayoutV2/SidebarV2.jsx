@@ -3,6 +3,7 @@ import {
   Home,
   Calendar,
   Users,
+  MessageSquare,
   Settings as SettingsIcon,
   Wrench,
   Briefcase,
@@ -32,7 +33,7 @@ const SidebarV2 = ({ currentView, onNavigate, isOpen, onClose, userData, collaps
   const mainNavItems = [
     { id: 'ai-home', label: 'Home', icon: Home },
     { id: 'bookings', label: 'Bookings', icon: Calendar },
-    { id: 'guests', label: 'Guests', icon: Users },
+    { id: 'communications', label: 'Communications', icon: MessageSquare },
     { id: 'operations', label: 'Operations', icon: Wrench },
     { id: 'services', label: 'Services', icon: Briefcase },
     { id: 'money', label: 'Money', icon: DollarSign },
