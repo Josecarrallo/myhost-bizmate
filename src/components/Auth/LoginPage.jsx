@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { Mail, Lock, AlertCircle, ArrowRight } from 'lucide-react';
+import { User, Lock, AlertCircle, ArrowRight } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 
 const LoginPage = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const { signIn } = useAuth();
@@ -25,142 +26,134 @@ const LoginPage = () => {
   };
 
   return (
-    <div className="relative min-h-screen w-full flex flex-col items-center overflow-hidden font-sans">
-      {/* Background Image */}
+    <div className="relative min-h-screen w-full flex flex-col overflow-hidden font-sans">
+      {/* Background Image - Luxury tropical resort at sunset */}
       <div
-        className="absolute inset-0 z-0 bg-gradient-to-br from-slate-800 via-slate-700 to-slate-900"
+        className="absolute inset-0 z-0"
         style={{
-          backgroundImage: 'url(/images/modern-bali-architecture-luxury-villa.jpg)',
+          backgroundImage: 'url(/images/login-background.png)',
           backgroundSize: 'cover',
           backgroundPosition: 'center',
         }}
       />
 
-      {/* Overlay */}
-      <div className="absolute inset-0 z-10 bg-black/50" />
+      {/* Dark gradient overlay for readability */}
+      <div className="absolute inset-0 z-10 bg-gradient-to-r from-black/70 via-black/50 to-black/30" />
 
-      {/* Content Container */}
-      <div className="relative z-20 w-full max-w-7xl mx-auto px-4 md:px-6 py-4 md:py-6 flex-grow flex flex-col items-center justify-center">
-        {/* Logo/Brand */}
-        <div className="mb-6 md:mb-8 text-center">
-          <span className="text-4xl md:text-5xl lg:text-7xl font-extrabold tracking-tighter text-[#FF8C42] drop-shadow-2xl">
-            MY HOST BizMate
-          </span>
-          <p className="text-white/40 text-xs mt-2">v2.0-mobile-dec31</p>
+      {/* Main Content */}
+      <div className="relative z-20 flex-1 flex flex-col justify-center px-8 md:px-16 lg:px-24 py-12">
+        {/* Logo */}
+        <div className="mb-8">
+          <h1 className="text-white text-3xl md:text-4xl font-bold tracking-wide">
+            MY HOST
+          </h1>
+          <p className="text-white/70 text-lg md:text-xl font-medium tracking-widest mt-1">
+            BIZMATE
+          </p>
         </div>
 
-        <div className="w-full flex flex-col md:flex-row items-center justify-between gap-6 md:gap-8">
-          {/* Left Side: Marketing Copy */}
-          <div className="w-full md:w-1/2 text-white text-center md:text-left space-y-3 md:space-y-4">
-            <h1 className="text-2xl md:text-3xl lg:text-5xl font-bold leading-tight">
-              Empowering Property Owners with Intelligence
-            </h1>
+        {/* Headline */}
+        <div className="mb-10 max-w-md">
+          <h2 className="text-white text-2xl md:text-3xl lg:text-4xl font-semibold leading-tight">
+            Your hospitality business.
+          </h2>
+          <h2 className="text-2xl md:text-3xl lg:text-4xl font-semibold leading-tight">
+            <span className="text-white">Now with an </span>
+            <span className="text-[#D7B46A]">AI team.</span>
+          </h2>
+        </div>
 
-            <div className="hidden md:block space-y-2">
-              <p className="text-base lg:text-lg font-normal opacity-90 leading-relaxed text-white">
-                An AI-powered operating system for modern property owners.
-              </p>
-              <p className="text-base lg:text-lg font-normal opacity-90 leading-relaxed text-white">
-                Manage operations, guests, marketing and AI agents from one intelligent platform.
-              </p>
-            </div>
-          </div>
+        {/* Login Form Card - Dark semi-transparent */}
+        <div className="w-full max-w-sm">
+          <div className="bg-black/40 backdrop-blur-sm rounded-2xl p-6 border border-white/10">
+            <form onSubmit={handleSubmit} className="space-y-4">
+              {/* Error Message */}
+              {error && (
+                <div className="bg-red-500/20 border border-red-500/30 rounded-lg p-3 flex items-start gap-2">
+                  <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
+                  <p className="text-sm text-red-300">{error}</p>
+                </div>
+              )}
 
-          {/* Right Side: Login Form */}
-          <div className="w-full md:w-auto flex justify-center md:justify-end">
-            <div className="md:bg-white md:rounded-2xl md:shadow-2xl p-0 md:p-6 w-full max-w-md transition-all duration-300 md:hover:shadow-2xl md:border md:border-white/20">
-              <div className="text-center mb-5">
-                <h2 className="text-3xl font-extrabold text-white md:text-slate-900 tracking-tight">Sign In</h2>
-                <div className="mt-2 h-1 w-12 bg-[#FF8C42] mx-auto rounded-full" />
+              {/* Email Field */}
+              <div className="relative">
+                <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/40" />
+                <input
+                  id="email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="Email address"
+                  className="w-full pl-12 pr-4 h-12 bg-white/10 border border-white/20 rounded-xl text-white placeholder-white/40 focus:border-[#D7B46A]/50 focus:ring-1 focus:ring-[#D7B46A]/30 focus:outline-none transition-all"
+                  required
+                  disabled={loading}
+                />
               </div>
 
-              <form onSubmit={handleSubmit} className="space-y-4">
-                {/* Error Message */}
-                {error && (
-                  <div className="bg-red-50 border border-red-200 rounded-lg p-3 flex items-start gap-2">
-                    <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
-                    <div>
-                      <p className="text-sm font-semibold text-red-800">Error</p>
-                      <p className="text-sm text-red-600">{error}</p>
-                    </div>
-                  </div>
-                )}
-
-                {/* Email Field */}
-                <div className="space-y-2">
-                  <label htmlFor="email" className="text-white md:text-slate-700 font-semibold ml-1 block text-base">
-                    Email Address
-                  </label>
-                  <div className="relative group">
-                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 group-focus-within:text-[#FF8C42] transition-colors" />
-                    <input
-                      id="email"
-                      type="email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      placeholder="jose@myhost.com"
-                      className="w-full pl-11 h-12 bg-white md:bg-slate-50 border border-white/30 md:border-slate-200 rounded-lg focus:border-[#FF8C42] focus:ring-2 focus:ring-[#FF8C42]/20 focus:outline-none text-base transition-all"
-                      required
-                      disabled={loading}
-                    />
-                  </div>
-                </div>
-
-                {/* Password Field */}
-                <div className="space-y-2">
-                  <label htmlFor="password" className="text-white md:text-slate-700 font-semibold ml-1 block text-base">
-                    Password
-                  </label>
-                  <div className="relative group">
-                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 group-focus-within:text-[#FF8C42] transition-colors" />
-                    <input
-                      id="password"
-                      type="password"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      placeholder="•••••••••"
-                      className="w-full pl-11 h-12 bg-white md:bg-slate-50 border border-white/30 md:border-slate-200 rounded-lg focus:border-[#FF8C42] focus:ring-2 focus:ring-[#FF8C42]/20 focus:outline-none text-base transition-all"
-                      required
-                      disabled={loading}
-                    />
-                  </div>
-                </div>
-
-                {/* Submit Button */}
-                <button
-                  type="submit"
+              {/* Password Field */}
+              <div className="relative">
+                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/40" />
+                <input
+                  id="password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Password"
+                  className="w-full pl-12 pr-4 h-12 bg-white/10 border border-white/20 rounded-xl text-white placeholder-white/40 focus:border-[#D7B46A]/50 focus:ring-1 focus:ring-[#D7B46A]/30 focus:outline-none transition-all"
+                  required
                   disabled={loading}
-                  className="w-full h-12 flex items-center justify-center text-base font-bold bg-[#FF8C42] hover:bg-[#E67E30] text-white rounded-lg transition-all shadow-lg shadow-orange-500/20 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {loading ? (
-                    <span className="flex items-center justify-center gap-2">
-                      <svg className="animate-spin h-6 w-6" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                      </svg>
-                      Signing in...
-                    </span>
-                  ) : (
-                    'Sign In'
-                  )}
-                </button>
+                />
+              </div>
 
-                {/* Footer */}
-                <div className="hidden md:block text-center pt-4 border-t border-slate-100">
-                  <p className="text-sm font-bold text-slate-400 uppercase tracking-wider">AI Powered · Secure · Private</p>
-                </div>
-              </form>
-            </div>
+              {/* Remember Me & Forgot Password */}
+              <div className="flex items-center justify-between text-sm">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={rememberMe}
+                    onChange={(e) => setRememberMe(e.target.checked)}
+                    className="w-4 h-4 rounded border-white/30 bg-white/10 text-[#B98A3D] focus:ring-[#B98A3D]/30 focus:ring-offset-0"
+                  />
+                  <span className="text-white/60">Remember me</span>
+                </label>
+                <button
+                  type="button"
+                  className="text-white/60 hover:text-[#D7B46A] transition-colors"
+                >
+                  Forgot password?
+                </button>
+              </div>
+
+              {/* Submit Button - Champagne/Gold */}
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full h-12 flex items-center justify-center gap-2 text-base font-semibold bg-gradient-to-r from-[#B98A3D] to-[#D7B46A] hover:from-[#A67A30] hover:to-[#C9A65C] text-white rounded-xl transition-all shadow-lg shadow-[#B98A3D]/20 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {loading ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                    </svg>
+                    Signing in...
+                  </span>
+                ) : (
+                  <>
+                    Enter My HOST
+                    <ArrowRight className="w-5 h-5" />
+                  </>
+                )}
+              </button>
+            </form>
           </div>
+
+          {/* Footer Text */}
+          <p className="text-center text-white/50 text-sm mt-6">
+            AI-powered hospitality operating system
+          </p>
         </div>
       </div>
-
-      {/* Footer Section */}
-      <footer className="relative z-20 w-full bg-black/40 backdrop-blur-sm border-t border-white/10 py-3 px-6">
-        <div className="max-w-7xl mx-auto text-center text-white/80 text-xs md:text-sm">
-          Built for property owners and operators to manage, communicate, and grow smarter with intelligent agents.
-        </div>
-      </footer>
     </div>
   );
 };

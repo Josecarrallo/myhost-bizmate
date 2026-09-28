@@ -74,6 +74,7 @@ import BanyuLogs from './components/BANYU/BanyuLogs';
 import ManualDataEntry from './components/ManualDataEntry/ManualDataEntry';
 import Autopilot from './components/Autopilot/Autopilot';
 import OwnerMessages from './components/OwnerMessages/OwnerMessages';
+import DemoV2 from './components/DashboardV2/DemoV2';
 
 // ==================== FLOATING ICON COMPONENT ====================
 const FloatingIcon = ({ icon: Icon, className, delay }) => (
@@ -914,10 +915,19 @@ export default function App() {
           </div>
         );
 
+      case 'demo-v2':
+        // New V2 Design Demo - Phase 1
+        return <DemoV2 key="demo-v2" onBack={() => setCurrentView('overview')} />;
+
       default:
         return <OwnerExecutiveSummary key="overview-default" userName={userData?.full_name || user?.email?.split('@')[0] || 'José'} />;
     }
   };
+
+  // FULL SCREEN for V2 Demo - No old sidebar
+  if (currentView === 'demo-v2') {
+    return <DemoV2 key="demo-v2-fullscreen" onBack={() => setCurrentView('overview')} />;
+  }
 
   // Main App Layout with Sidebar
   return (
