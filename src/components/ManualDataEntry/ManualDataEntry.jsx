@@ -74,6 +74,7 @@ const ManualDataEntry = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
   const [deletingBooking, setDeletingBooking] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isSavingEdit, setIsSavingEdit] = useState(false);
+  const [confirmingCancellation, setConfirmingCancellation] = useState(null); // For cancel confirmation modal
 
   // Edit/Delete leads modals
   const [editingLead, setEditingLead] = useState(null);
@@ -962,7 +963,10 @@ const ManualDataEntry = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
         nights: nights,
         total_price: parseFloat(editForm.totalAmount),
         status: editForm.status, // Direct mapping: pending_payment, partial_payment, confirmed
-        payment_status: editForm.status === 'confirmed' ? 'paid' : (editForm.status === 'partial_payment' ? 'partial' : 'pending'),
+        // Note: payment_status stays unchanged when cancelling (Supabase constraint doesn't allow 'cancelled' for payment_status)
+        ...(editForm.status !== 'cancelled' && {
+          payment_status: editForm.status === 'confirmed' ? 'paid' : (editForm.status === 'partial_payment' ? 'partial' : 'pending')
+        }),
         notes: editForm.notes || null,
         updated_at: new Date().toISOString()
       };
@@ -3142,12 +3146,24 @@ const ManualDataEntry = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
                   <select
                     required
                     value={editForm.status}
-                    onChange={(e) => setEditForm({...editForm, status: e.target.value})}
+                    onChange={(e) => {
+                      const newStatus = e.target.value;
+                      // If selecting "cancelled", show confirmation modal first
+                      if (newStatus === 'cancelled' && editForm.status !== 'cancelled') {
+                        setConfirmingCancellation({
+                          booking: editingBooking,
+                          previousStatus: editForm.status
+                        });
+                      } else {
+                        setEditForm({...editForm, status: newStatus});
+                      }
+                    }}
                     className="w-full px-4 py-3 bg-[#2a2f3a] border-2 border-gray-200 rounded-xl text-[#FF8C42] focus:outline-none focus:border-orange-300 [&>option]:bg-[#1f2937] [&>option]:text-white"
                   >
                     <option value="pending_payment">Hold - Pending Payment</option>
                     <option value="partial_payment">Partial - Deposit Received</option>
                     <option value="confirmed">Confirmed - Fully Paid</option>
+                    <option value="cancelled">Cancelled - Booking Cancelled</option>
                   </select>
                 </div>
 
@@ -3190,18 +3206,61 @@ const ManualDataEntry = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
         </div>
       )}
 
+      {/* Cancel Booking Confirmation Modal */}
+      {confirmingCancellation && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-[60] p-4">
+          <div className="bg-[#1f2937] rounded-2xl p-6 max-w-md w-full border-2 border-yellow-500">
+            <h3 className="text-2xl font-bold text-yellow-400 mb-4">⚠️ Confirm Cancellation</h3>
+            <p className="text-white mb-4">
+              Are you sure you want to cancel booking <span className="font-bold text-orange-400">{confirmingCancellation.booking?.confirmation_code || confirmingCancellation.booking?.id?.substring(0, 8)}</span>?
+            </p>
+            <p className="text-gray-300 mb-4 text-sm">
+              This will also cancel all pending tasks and service requests associated with this booking.
+            </p>
+            <div className="bg-[#2a2f3a] p-4 rounded-xl mb-6 space-y-2">
+              <p className="text-white"><span className="font-bold">Guest:</span> {confirmingCancellation.booking?.guest_name}</p>
+              <p className="text-gray-300"><span className="font-bold">Check-in:</span> {confirmingCancellation.booking?.check_in}</p>
+              <p className="text-gray-300"><span className="font-bold">Check-out:</span> {confirmingCancellation.booking?.check_out}</p>
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setConfirmingCancellation(null)}
+                className="flex-1 px-4 py-3 bg-gray-600 hover:bg-gray-700 text-white rounded-xl font-medium transition-all"
+              >
+                No, Keep Booking
+              </button>
+              <button
+                onClick={() => {
+                  setEditForm({...editForm, status: 'cancelled'});
+                  setConfirmingCancellation(null);
+                }}
+                className="flex-1 px-4 py-3 bg-yellow-500 hover:bg-yellow-600 text-black rounded-xl font-bold transition-all"
+              >
+                Yes, Cancel Booking
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Delete Confirmation Modal */}
       {deletingBooking && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
           <div className="bg-[#1f2937] rounded-2xl p-6 max-w-md w-full border-2 border-red-500">
-            <h3 className="text-2xl font-bold text-red-400 mb-4">Confirm Delete</h3>
-            <p className="text-white mb-2">Are you sure you want to delete this booking?</p>
-            <div className="bg-[#2a2f3a] p-4 rounded-xl mb-6 space-y-2">
+            <h3 className="text-2xl font-bold text-red-400 mb-4">⚠️ Permanent Delete</h3>
+            <p className="text-white mb-2">Are you sure you want to <span className="text-red-400 font-bold">permanently delete</span> this booking?</p>
+            <p className="text-yellow-400 mb-4 text-sm bg-yellow-500/10 p-3 rounded-lg">
+              💡 <strong>Tip:</strong> If you want to keep a record, use "Cancelled" status instead. This preserves booking history and analytics.
+            </p>
+            <div className="bg-[#2a2f3a] p-4 rounded-xl mb-4 space-y-2">
               <p className="text-white"><span className="font-bold">Guest:</span> {deletingBooking.guest_name}</p>
               <p className="text-gray-300"><span className="font-bold">Check-in:</span> {deletingBooking.check_in}</p>
               <p className="text-gray-300"><span className="font-bold">Check-out:</span> {deletingBooking.check_out}</p>
               <p className="text-green-400"><span className="font-bold">Price:</span> {deletingBooking.currency} {deletingBooking.total_price?.toLocaleString()}</p>
             </div>
+            <p className="text-red-300 text-xs mb-6">
+              ⚠️ This action will permanently delete the booking, all associated tasks, service requests, and payment records. This cannot be undone.
+            </p>
             <div className="flex gap-3">
               <button
                 onClick={() => setDeletingBooking(null)}
@@ -3217,7 +3276,7 @@ const ManualDataEntry = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
                   isDeleting ? 'opacity-50 cursor-not-allowed' : ''
                 }`}
               >
-                {isDeleting ? 'Deleting...' : 'Delete'}
+                {isDeleting ? 'Deleting...' : 'Delete Permanently'}
               </button>
             </div>
           </div>
