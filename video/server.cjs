@@ -8,6 +8,7 @@ const { createClient } = require('@supabase/supabase-js');
 const { S3Client, PutObjectCommand } = require('@aws-sdk/client-s3');
 const { renderVideoOnLambda } = require('./lambda-render.cjs');
 const { renderVideoLocally } = require('./local-render.cjs');
+const { setupExportRoutes } = require('./export-slideshow.cjs');
 require('dotenv').config();
 
 const app = express();
@@ -202,6 +203,8 @@ app.post('/api/generate-video', upload.single('image'), async (req, res) => {
     });
   }
 });
+
+setupExportRoutes(app);
 
 app.listen(PORT, () => {
   console.log(`\n🚀 Video Generation API Server running on http://localhost:${PORT}`);
