@@ -88,7 +88,17 @@ export const GUEST_TABS = [
   { id: 'bookings', label: 'Bookings' },
   { id: 'payments', label: 'Payments' },
   { id: 'services', label: 'Services' },
+  { id: 'tasks', label: 'Tasks' },
 ];
+
+// Task status mapping
+export const TASK_STATUS = {
+  open: { label: 'Open', bgClass: 'bg-yellow-500/20', textClass: 'text-yellow-400' },
+  assigned: { label: 'Assigned', bgClass: 'bg-purple-500/20', textClass: 'text-purple-400' },
+  in_progress: { label: 'In Progress', bgClass: 'bg-blue-500/20', textClass: 'text-blue-400' },
+  completed: { label: 'Completed', bgClass: 'bg-green-500/20', textClass: 'text-green-400' },
+  cancelled: { label: 'Cancelled', bgClass: 'bg-gray-500/20', textClass: 'text-gray-400' },
+};
 
 // Helper: calcular si booking es pasada (NO usar status='completed')
 export const isPastBooking = (booking) => {
