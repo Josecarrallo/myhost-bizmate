@@ -18,7 +18,7 @@ import GuestTabs from './components/GuestTabs';
 import JourneyTimeline from './components/JourneyTimeline';
 
 // Tab content components
-import { PaymentsTab, ServicesTab } from './components/tabs';
+import { PaymentsTab, ServicesTab, TasksTab } from './components/tabs';
 
 // Guest selector for when no phone is provided
 import GuestSelector from './components/GuestSelector';
@@ -72,6 +72,7 @@ const Guest360 = ({
     activeBooking,
     payments,
     serviceRequests,
+    tasks,
     conversations,
     decisions,
     journeyEvents,
@@ -389,6 +390,10 @@ const Guest360 = ({
 
           {activeTab === 'services' && (
             <ServicesTab serviceRequests={serviceRequests} bookings={bookings} />
+          )}
+
+          {activeTab === 'tasks' && (
+            <TasksTab tasks={tasks} bookings={bookings} />
           )}
         </div>
 

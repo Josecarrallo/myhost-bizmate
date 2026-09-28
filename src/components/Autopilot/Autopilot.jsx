@@ -5305,12 +5305,14 @@ const Autopilot = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
                         task.status === 'completed' ? 'bg-green-500/20 text-green-400' :
                         task.status === 'in_progress' ? 'bg-blue-500/20 text-blue-400' :
                         task.status === 'assigned' ? 'bg-purple-500/20 text-purple-400' :
+                        task.status === 'cancelled' ? 'bg-gray-500/20 text-gray-400' :
                         'bg-yellow-500/20 text-yellow-400'
                       }`}>
                         {isOverdue ? 'OVERDUE' :
                          task.status === 'in_progress' ? 'In Progress' :
                          task.status === 'assigned' ? 'Assigned' :
                          task.status === 'completed' ? 'Completed' :
+                         task.status === 'cancelled' ? 'Cancelled' :
                          'Open'}
                       </span>
                       <button

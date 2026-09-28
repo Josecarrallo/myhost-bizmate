@@ -19,6 +19,7 @@ const useGuest360Data = (guestPhone, tenantId, bookingId = null) => {
   const [activeBooking, setActiveBooking] = useState(null);
   const [payments, setPayments] = useState([]);
   const [serviceRequests, setServiceRequests] = useState([]);
+  const [tasks, setTasks] = useState([]);
   const [conversations, setConversations] = useState([]);
   const [decisions, setDecisions] = useState([]);
   const [journeyEvents, setJourneyEvents] = useState([]);
@@ -212,6 +213,14 @@ const useGuest360Data = (guestPhone, tenantId, bookingId = null) => {
           .in('booking_id', bookingIds)
           .order('created_at', { ascending: false });
         setServiceRequests(servicesData || []);
+
+        // 4b. Fetch tasks (maintenance & housekeeping)
+        const { data: tasksData } = await supabase
+          .from('tasks')
+          .select('*')
+          .in('booking_id', bookingIds)
+          .order('created_at', { ascending: false });
+        setTasks(tasksData || []);
 
         // 5. Fetch journey events
         const { data: journeyData } = await supabase
@@ -419,6 +428,7 @@ const useGuest360Data = (guestPhone, tenantId, bookingId = null) => {
     activeBooking,
     payments,
     serviceRequests,
+    tasks,
     conversations,
     decisions,
     journeyEvents,
