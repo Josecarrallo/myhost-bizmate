@@ -3,6 +3,8 @@
  *
  * This composition creates a video slideshow from property photos
  * with Ken Burns effect (zoom/pan), transitions, text overlays, and music.
+ *
+ * NEW ARCHITECTURE: OpenAI + MuAPI + Remotion (NOT LTX-2)
  */
 
 import React from 'react';
@@ -14,13 +16,64 @@ import {
   interpolate,
   Audio,
   Sequence,
+  staticFile,
 } from 'remotion';
+
+// =====================================================
+// INTERFACES
+// =====================================================
+
+interface SceneProps {
+  src: string;
+  startFrame: number;
+  durationFrames: number;
+  direction?: 'zoomIn' | 'zoomOut' | 'panLeft' | 'panRight' | 'panUp';
+}
+
+interface TextOverlayProps {
+  title?: string;
+  subtitle?: string;
+  position?: 'top' | 'center' | 'bottom';
+  startFrame: number;
+  durationFrames: number;
+}
+
+interface Scene {
+  id?: string;
+  photoUrl: string;
+  clipUrl?: string;
+  duration?: number;
+}
+
+interface TextSettings {
+  enabled?: boolean;
+  title?: string;
+  subtitle?: string;
+  position?: 'top' | 'center' | 'bottom';
+}
+
+interface MusicSettings {
+  enabled?: boolean;
+  track?: string;
+  volume?: number;
+}
+
+interface Settings {
+  text?: TextSettings;
+  music?: MusicSettings;
+}
+
+interface PropertyPromoProps {
+  scenes?: Scene[];
+  settings?: Settings;
+  format?: '9:16' | '16:9' | '1:1';
+}
 
 // =====================================================
 // SCENE COMPONENT - Single photo with Ken Burns effect
 // =====================================================
 
-const Scene = ({ src, startFrame, durationFrames, direction = 'zoomIn' }) => {
+const Scene: React.FC<SceneProps> = ({ src, startFrame, durationFrames, direction = 'zoomIn' }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
 
@@ -28,7 +81,7 @@ const Scene = ({ src, startFrame, durationFrames, direction = 'zoomIn' }) => {
   const progress = relativeFrame / durationFrames;
 
   // Ken Burns effect - different directions
-  let scale, translateX, translateY;
+  let scale: number, translateX: number, translateY: number;
 
   switch (direction) {
     case 'zoomIn':
@@ -63,7 +116,6 @@ const Scene = ({ src, startFrame, durationFrames, direction = 'zoomIn' }) => {
   }
 
   // Fade in only (no fade out to avoid black frame between scenes)
-  // The next scene will fade in on top, creating a crossfade effect
   const fadeIn = interpolate(relativeFrame, [0, fps * 0.3], [0, 1], { extrapolateRight: 'clamp' });
   const opacity = fadeIn;
 
@@ -86,11 +138,11 @@ const Scene = ({ src, startFrame, durationFrames, direction = 'zoomIn' }) => {
 // TEXT OVERLAY COMPONENT
 // =====================================================
 
-const TextOverlay = ({ title, subtitle }) => {
+const TextOverlay: React.FC<TextOverlayProps> = ({ title, subtitle }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
 
-  // Simple fade in at the start (first 0.5 seconds) - NO FADE OUT
+  // Simple fade in at the start (first 0.5 seconds)
   const opacity = interpolate(
     frame,
     [0, Math.floor(fps * 0.5)],
@@ -154,10 +206,22 @@ const TextOverlay = ({ title, subtitle }) => {
 };
 
 // =====================================================
+// MUSIC TRACK MAPPING (same as Lambda available files)
+// =====================================================
+
+const MUSIC_TRACKS: Record<string, string> = {
+  'ambient': 'bali-sunrise.mp3',
+  'upbeat': 'bali-sunrise.mp3',
+  'cinematic': 'background-music.mp3',
+  'tropical': 'bali-sunrise.mp3',
+  'lofi': 'background-music.mp3'
+};
+
+// =====================================================
 // MAIN COMPOSITION
 // =====================================================
 
-export const PropertyPromo = ({
+export const PropertyPromo: React.FC<PropertyPromoProps> = ({
   scenes = [],
   settings = {},
   format = '9:16',
@@ -165,7 +229,8 @@ export const PropertyPromo = ({
   const { fps, durationInFrames } = useVideoConfig();
 
   // Ken Burns directions to cycle through
-  const kenBurnsDirections = ['zoomIn', 'panRight', 'zoomOut', 'panLeft', 'panUp'];
+  const kenBurnsDirections: Array<'zoomIn' | 'zoomOut' | 'panLeft' | 'panRight' | 'panUp'> =
+    ['zoomIn', 'panRight', 'zoomOut', 'panLeft', 'panUp'];
 
   // Calculate frames per scene with overlap for crossfade
   const overlapFrames = Math.floor(fps * 0.3); // 0.3 seconds overlap
@@ -174,9 +239,15 @@ export const PropertyPromo = ({
     ? Math.floor((durationInFrames + totalOverlap) / scenes.length)
     : durationInFrames;
 
-  // Text settings
+  // Text settings - only show if explicitly enabled
   const textSettings = settings.text || {};
   const showText = textSettings.enabled && (textSettings.title || textSettings.subtitle);
+
+  // Music settings
+  const musicSettings = settings.music || {};
+  const musicFile = musicSettings.enabled && musicSettings.track
+    ? MUSIC_TRACKS[musicSettings.track] || 'bali-sunrise.mp3'
+    : null;
 
   return (
     <AbsoluteFill style={{ backgroundColor: '#000' }}>
@@ -193,7 +264,7 @@ export const PropertyPromo = ({
             durationInFrames={sceneDuration}
           >
             <Scene
-              src={scene.photoUrl || scene.clipUrl}
+              src={scene.photoUrl || scene.clipUrl || ''}
               startFrame={0}
               durationFrames={sceneDuration}
               direction={direction}
@@ -202,7 +273,7 @@ export const PropertyPromo = ({
         );
       })}
 
-      {/* Text overlay - show throughout */}
+      {/* Text overlay - only if enabled by user */}
       {showText && (
         <Sequence from={Math.floor(fps * 0.5)} durationInFrames={durationInFrames - fps}>
           <TextOverlay
@@ -215,11 +286,11 @@ export const PropertyPromo = ({
         </Sequence>
       )}
 
-      {/* Background music placeholder - would use actual audio file */}
-      {settings.music?.enabled && settings.music?.audioUrl && (
+      {/* Background music - only if enabled */}
+      {musicFile && (
         <Audio
-          src={settings.music.audioUrl}
-          volume={settings.music.volume || 0.7}
+          src={staticFile(musicFile)}
+          volume={musicSettings.volume || 0.7}
         />
       )}
     </AbsoluteFill>
@@ -230,7 +301,7 @@ export const PropertyPromo = ({
 // VIDEO DIMENSIONS BY FORMAT
 // =====================================================
 
-export const getVideoDimensions = (format) => {
+export const getVideoDimensions = (format: string) => {
   switch (format) {
     case '9:16':
       return { width: 1080, height: 1920 }; // Vertical (Reels/TikTok)

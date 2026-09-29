@@ -93,6 +93,9 @@ const ContentStudioV2 = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
   // Scenes/Clips (generated from photos)
   const [scenes, setScenes] = useState([]);
 
+  // Video URL (from export or loaded project)
+  const [videoUrl, setVideoUrl] = useState(null);
+
   // Editor controls
   const [editorSettings, setEditorSettings] = useState({
     text: {
@@ -136,14 +139,16 @@ const ContentStudioV2 = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
   // Export state
   const [isExporting, setIsExporting] = useState(false);
   const [exportProgress, setExportProgress] = useState(0);
+  const [exportJobId, setExportJobId] = useState(null); // Job ID for download
 
   // Project
   const [projectId, setProjectId] = useState(null);
   const [isSaved, setIsSaved] = useState(false);
+  const [isSaving, setIsSaving] = useState(false); // Prevent double-click
 
-  // Saved projects list
+  // Saved projects list - initialized empty, loaded from DB
   const [savedProjects, setSavedProjects] = useState([]);
-  const [loadingProjects, setLoadingProjects] = useState(false);
+  const [loadingProjects, setLoadingProjects] = useState(true); // Start loading
   const [showProjectsList, setShowProjectsList] = useState(false);
 
   // API Keys (from env or user settings)
@@ -253,12 +258,27 @@ const ContentStudioV2 = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
 
     setLoadingProjects(true);
     try {
+      // In this codebase, userData.id IS the tenant_id
       const projects = await contentStudioV2Service.getProjects(userData.id);
+      console.log('📁 Loaded projects from DB:', projects.length, projects);
       setSavedProjects(projects);
     } catch (error) {
       console.error('Error loading projects:', error);
+      setSavedProjects([]); // Reset to empty on error
     } finally {
       setLoadingProjects(false);
+    }
+  };
+
+  const handleDeleteProject = async (projectId) => {
+    if (!confirm('Are you sure you want to delete this project?')) return;
+
+    try {
+      await contentStudioV2Service.deleteProject(projectId);
+      setSavedProjects(prev => prev.filter(p => p.id !== projectId));
+    } catch (error) {
+      console.error('Error deleting project:', error);
+      alert('Failed to delete project');
     }
   };
 
@@ -267,13 +287,24 @@ const ContentStudioV2 = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
     setPrompt(project.prompt || '');
     setImprovedPrompt(project.improved_prompt || '');
     setEditorSettings(project.settings || editorSettings);
-    setScenes(project.scenes || []);
+    setVideoUrl(project.output_url || null);
 
-    // If project has scenes, go to editor
-    if (project.scenes && project.scenes.length > 0) {
+    const projectScenes = project.scenes || [];
+    setScenes(projectScenes);
+
+    // Restore photos from scenes if available
+    if (projectScenes.length > 0) {
+      const restoredPhotos = projectScenes.map((scene, index) => ({
+        id: scene.photoId || `photo-restored-${index}`,
+        url: scene.photoUrl,
+        name: `Photo ${index + 1}`
+      }));
+      setPhotos(restoredPhotos);
       setCurrentStep('editor');
     } else if (project.prompt) {
       setCurrentStep('prompt');
+    } else {
+      setCurrentStep('upload');
     }
 
     setShowProjectsList(false);
@@ -310,27 +341,32 @@ const ContentStudioV2 = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
     }
   };
 
-  const handleFiles = (files) => {
+  const handleFiles = async (files) => {
     const imageFiles = Array.from(files).filter(f => f.type.startsWith('image/'));
     const remaining = 3 - photos.length;
     const toAdd = imageFiles.slice(0, remaining);
 
-    const newPhotos = toAdd.map(file => ({
-      id: `photo-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-      file,
-      url: URL.createObjectURL(file),
-      name: file.name
+    // Convert files to base64 for persistence (blob URLs expire on page reload)
+    const newPhotos = await Promise.all(toAdd.map(async (file) => {
+      const base64 = await new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result);
+        reader.readAsDataURL(file);
+      });
+
+      return {
+        id: `photo-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        file,
+        url: base64, // Use base64 instead of blob URL
+        name: file.name
+      };
     }));
 
     setPhotos(prev => [...prev, ...newPhotos]);
   };
 
   const removePhoto = (photoId) => {
-    setPhotos(prev => {
-      const photo = prev.find(p => p.id === photoId);
-      if (photo?.url) URL.revokeObjectURL(photo.url);
-      return prev.filter(p => p.id !== photoId);
-    });
+    setPhotos(prev => prev.filter(p => p.id !== photoId));
   };
 
   const reorderPhotos = (fromIndex, toIndex) => {
@@ -442,22 +478,65 @@ const ContentStudioV2 = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
       // Get video server URL from env or default
       const videoServerUrl = import.meta.env.VITE_VIDEO_SERVER_URL || 'http://localhost:3001';
 
+      // First check if video server is available
+      try {
+        const healthCheck = await fetch(`${videoServerUrl}/api/health`, {
+          method: 'GET',
+          signal: AbortSignal.timeout(5000)
+        });
+        if (!healthCheck.ok) {
+          throw new Error('Video server not responding');
+        }
+      } catch (healthError) {
+        throw new Error('Video server is not running. Start it with: cd video && node server.cjs');
+      }
+
       setExportProgress(5);
 
-      // Upload blob URLs to Supabase Storage so Lambda can access them
+      // Convert blob URLs to base64 for server rendering
+      // Blob URLs are browser-local and cannot be accessed by the server
       const uploadedScenes = [];
       for (let i = 0; i < scenes.length; i++) {
         const scene = scenes[i];
         let photoUrl = scene.photoUrl;
 
-        // If it's a blob URL, upload to Supabase Storage
-        if (photoUrl.startsWith('blob:')) {
+        console.log(`Processing scene ${i + 1}: URL type = ${photoUrl?.substring(0, 30)}...`);
+
+        // If it's a blob URL (legacy), convert to base64
+        // Note: New uploads are already base64 (data:image)
+        if (photoUrl && photoUrl.startsWith('blob:')) {
           setExportProgress(5 + Math.round((i / scenes.length) * 10));
 
-          const file = await blobUrlToFile(photoUrl, `export-photo-${Date.now()}-${i}.jpg`);
-          const tenantId = userData?.tenant_id || 'default';
-          const uploaded = await contentStudioV2Service.uploadPhoto(tenantId, `export-${Date.now()}`, file);
-          photoUrl = uploaded.url;
+          try {
+            console.log(`Converting blob to base64 for scene ${i + 1}...`);
+            const response = await fetch(photoUrl);
+
+            if (!response.ok) {
+              throw new Error(`Failed to fetch blob: ${response.status}`);
+            }
+
+            const blob = await response.blob();
+            console.log(`Blob fetched, size: ${blob.size}, type: ${blob.type}`);
+
+            const base64 = await new Promise((resolve, reject) => {
+              const reader = new FileReader();
+              reader.onloadend = () => {
+                if (reader.result) {
+                  resolve(reader.result);
+                } else {
+                  reject(new Error('FileReader returned empty result'));
+                }
+              };
+              reader.onerror = () => reject(new Error('FileReader error'));
+              reader.readAsDataURL(blob);
+            });
+
+            console.log(`Base64 conversion successful, length: ${base64.length}`);
+            photoUrl = base64;
+          } catch (e) {
+            console.error(`Failed to convert blob to base64 for scene ${i + 1}:`, e);
+            throw new Error(`Failed to process image ${i + 1}: ${e.message}. Please try re-uploading the photos.`);
+          }
         }
 
         uploadedScenes.push({
@@ -465,6 +544,8 @@ const ContentStudioV2 = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
           duration: scene.duration
         });
       }
+
+      console.log(`All ${uploadedScenes.length} scenes processed. First scene URL type: ${uploadedScenes[0]?.photoUrl?.substring(0, 30)}...`);
 
       setExportProgress(20);
 
@@ -502,6 +583,7 @@ const ContentStudioV2 = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
 
       // Poll for progress
       const { jobId } = await response.json();
+      setExportJobId(jobId); // Save for download
       setExportProgress(30);
 
       // Poll progress until complete
@@ -524,54 +606,59 @@ const ContentStudioV2 = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
         }
       }
 
-      setExportProgress(95);
+      setExportProgress(92);
 
-      // Download the video
+      // Save the video URL
       if (videoUrl) {
-        const a = document.createElement('a');
-        a.href = videoUrl;
-        a.download = `property-video-${Date.now()}.mp4`;
-        a.target = '_blank';
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
+        console.log('Video URL generated:', videoUrl);
+        setVideoUrl(videoUrl);
+        setExportProgress(100);
+      } else {
+        setExportProgress(100);
       }
-
-      setExportProgress(100);
-      await mockDelay(500);
-
-      alert('Video exported successfully! Check your downloads folder.');
 
     } catch (error) {
       console.error('Export error:', error);
-      alert('Export failed: ' + error.message + '\n\nMake sure the video server is running (cd video && npm start)');
+      alert('Error generating video. Please try again.');
     } finally {
       setIsExporting(false);
       setExportProgress(0);
     }
   };
 
-  // Save project
+  // Save project (with double-click protection)
   const handleSave = async () => {
-    if (!userData?.id) return;
+    // Prevent double-click
+    if (isSaving) {
+      console.log('⚠️ Save already in progress, ignoring click');
+      return;
+    }
+
+    if (!userData?.id) {
+      alert('You must log in to save projects');
+      return;
+    }
+
+    setIsSaving(true); // Block further clicks
 
     try {
+      const projectData = {
+        prompt,
+        improved_prompt: improvedPrompt,
+        settings: editorSettings,
+        scenes,
+        output_url: videoUrl,
+        status: videoUrl ? 'exported' : 'draft'
+      };
+
       if (projectId) {
         // Update existing project
-        await contentStudioV2Service.updateProject(projectId, {
-          prompt,
-          improved_prompt: improvedPrompt,
-          settings: editorSettings,
-          scenes
-        });
+        await contentStudioV2Service.updateProject(projectId, projectData);
       } else {
-        // Create new project
+        // Create new project - userData.id IS the tenant_id in this codebase
         const project = await contentStudioV2Service.createProject(userData.id, {
           name: `Video ${new Date().toLocaleDateString()}`,
-          prompt,
-          improvedPrompt,
-          settings: editorSettings,
-          scenes,
+          ...projectData,
           format: editorSettings.format
         });
         setProjectId(project.id);
@@ -581,12 +668,13 @@ const ContentStudioV2 = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
       setTimeout(() => setIsSaved(false), 2000);
 
       // Refresh projects list
-      loadSavedProjects();
+      await loadSavedProjects();
+
     } catch (error) {
       console.error('Save error:', error);
-      // Still show saved for UX (will work when Supabase table exists)
-      setIsSaved(true);
-      setTimeout(() => setIsSaved(false), 2000);
+      alert('Error saving: ' + error.message);
+    } finally {
+      setIsSaving(false); // Re-enable button
     }
   };
 
@@ -1189,30 +1277,74 @@ const ContentStudioV2 = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
 
         {/* Actions */}
         <div className="pt-4 border-t border-gray-700 space-y-3">
+          {/* Save Project Button */}
           <button
             onClick={handleSave}
-            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-[#2a2f3a] text-white rounded-xl hover:bg-[#374151] transition-colors"
+            disabled={isExporting || isSaving}
+            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-[#2a2f3a] text-white rounded-xl hover:bg-[#374151] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {isSaved ? <Check className="w-4 h-4 text-green-500" /> : <Save className="w-4 h-4" />}
-            {isSaved ? 'Saved!' : 'Save Project'}
+            {isSaving ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : isSaved ? (
+              <Check className="w-4 h-4 text-green-500" />
+            ) : (
+              <Save className="w-4 h-4" />
+            )}
+            {isSaving ? 'Saving...' : isSaved ? 'Saved!' : 'Save Project'}
           </button>
 
+          {/* Generate Video Button */}
           <button
             onClick={handleExport}
-            disabled={isExporting}
+            disabled={isExporting || scenes.length === 0}
             className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-orange-500 to-pink-500 text-white font-bold rounded-xl hover:from-orange-600 hover:to-pink-600 transition-colors disabled:opacity-50"
           >
             {isExporting ? (
               <>
                 <Loader2 className="w-4 h-4 animate-spin" />
-                Exporting... {exportProgress}%
+                Generating Video... {exportProgress}%
               </>
             ) : (
               <>
-                <Download className="w-4 h-4" />
-                Export MP4
+                <Video className="w-4 h-4" />
+                Generate Video MP4
               </>
             )}
+          </button>
+
+          {/* Download Button */}
+          <button
+            onClick={async () => {
+              if (!videoUrl) {
+                alert('First generate the video with the "Generate Video MP4" button');
+                return;
+              }
+
+              // Use proxy download if jobId available (avoids CORS)
+              const videoServerUrl = import.meta.env.VITE_VIDEO_SERVER_URL || 'http://localhost:3001';
+
+              if (exportJobId) {
+                // Download via server proxy (triggers download)
+                const downloadUrl = `${videoServerUrl}/api/download-video/${exportJobId}`;
+                const link = document.createElement('a');
+                link.href = downloadUrl;
+                link.download = `property-video-${Date.now()}.mp4`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+              } else {
+                // Fallback: open S3 URL directly (may not download in some browsers)
+                window.open(videoUrl, '_blank');
+              }
+            }}
+            className={`w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl transition-colors ${
+              videoUrl
+                ? 'bg-green-500 text-white hover:bg-green-600'
+                : 'bg-gray-700 text-gray-400'
+            }`}
+          >
+            <Download className="w-4 h-4" />
+            {videoUrl ? 'Download Video' : 'Download'}
           </button>
         </div>
       </div>
@@ -1251,7 +1383,7 @@ const ContentStudioV2 = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
           >
             <FolderOpen className="w-4 h-4 text-orange-500" />
             <span className="text-gray-300">My Projects</span>
-            {savedProjects.length > 0 && (
+            {!loadingProjects && savedProjects.length > 0 && (
               <span className="px-1.5 py-0.5 bg-orange-500/20 text-orange-400 rounded text-xs">
                 {savedProjects.length}
               </span>
@@ -1312,26 +1444,42 @@ const ContentStudioV2 = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
           ) : (
             <div className="p-2 space-y-2">
               {savedProjects.map((project) => (
-                <button
+                <div
                   key={project.id}
-                  onClick={() => loadProject(project)}
-                  className="w-full p-3 bg-[#2a2f3a] hover:bg-[#374151] rounded-xl text-left transition-colors"
+                  className="w-full p-3 bg-[#2a2f3a] hover:bg-[#374151] rounded-xl transition-colors group"
                 >
-                  <p className="font-medium text-white text-sm truncate">{project.name}</p>
-                  <div className="flex items-center gap-2 mt-1">
-                    <span className={`text-xs px-1.5 py-0.5 rounded ${
-                      project.status === 'exported' ? 'bg-green-500/20 text-green-400' :
-                      project.status === 'ready' ? 'bg-blue-500/20 text-blue-400' :
-                      'bg-gray-500/20 text-gray-400'
-                    }`}>
-                      {project.status}
-                    </span>
-                    <span className="text-xs text-gray-500 flex items-center gap-1">
-                      <Clock className="w-3 h-3" />
-                      {new Date(project.updated_at).toLocaleDateString()}
-                    </span>
+                  <div className="flex items-start justify-between">
+                    <button
+                      onClick={() => loadProject(project)}
+                      className="flex-1 text-left"
+                    >
+                      <p className="font-medium text-white text-sm truncate">{project.name}</p>
+                      <div className="flex items-center gap-2 mt-1">
+                        <span className={`text-xs px-1.5 py-0.5 rounded ${
+                          project.status === 'exported' ? 'bg-green-500/20 text-green-400' :
+                          project.status === 'ready' ? 'bg-blue-500/20 text-blue-400' :
+                          'bg-gray-500/20 text-gray-400'
+                        }`}>
+                          {project.status}
+                        </span>
+                        <span className="text-xs text-gray-500 flex items-center gap-1">
+                          <Clock className="w-3 h-3" />
+                          {new Date(project.updated_at).toLocaleDateString()}
+                        </span>
+                      </div>
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeleteProject(project.id);
+                      }}
+                      className="p-1.5 text-gray-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg opacity-0 group-hover:opacity-100 transition-all"
+                      title="Delete project"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
                   </div>
-                </button>
+                </div>
               ))}
             </div>
           )}
