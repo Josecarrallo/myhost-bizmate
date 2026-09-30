@@ -207,6 +207,139 @@ app.post('/api/generate-video', upload.single('image'), async (req, res) => {
 
 setupExportRoutes(app);
 
+// =====================================================
+// MuAPI PROXY ENDPOINTS (bypass CORS)
+// =====================================================
+
+const MUAPI_BASE_URL = 'https://api.muapi.ai';
+
+/**
+ * Generate video clip using MuAPI Veo 3.1 Fast
+ * POST /api/muapi/generate-clip
+ *
+ * Veo 3.1 Fast produces better fluid/water animations than Seedance 2.5
+ * Fixed 8-second duration, supports 720p/1080p/4K
+ * Pricing: $0.60 (720p), $0.78 (1080p), $1.80 (4K)
+ */
+app.post('/api/muapi/generate-clip', async (req, res) => {
+  try {
+    const { imageUrl, prompt, apiKey, resolution = '1080p', aspectRatio = '16:9' } = req.body;
+
+    if (!imageUrl || !prompt || !apiKey) {
+      return res.status(400).json({ error: 'Missing required fields: imageUrl, prompt, apiKey' });
+    }
+
+    console.log('\n');
+    console.log('╔══════════════════════════════════════════════════════════════════╗');
+    console.log('║          SERVER: MUAPI VEO 3.1 PROXY - REQUEST RECEIVED          ║');
+    console.log('╚══════════════════════════════════════════════════════════════════╝');
+    console.log('\n🎬 ===== PROMPT RECEIVED FROM FRONTEND =====');
+    console.log(prompt);
+    console.log('🎬 ===== END PROMPT =====');
+    console.log('📊 Prompt length:', prompt.length, 'characters');
+    console.log('🖼️ Image URL:', imageUrl.substring(0, 100) + (imageUrl.length > 100 ? '...' : ''));
+    console.log('📐 Resolution:', resolution);
+    console.log('📐 Aspect Ratio:', aspectRatio);
+    console.log('⏱️ Duration: 8s (fixed by Veo 3.1)');
+    console.log('🔑 API Key:', apiKey ? `${apiKey.substring(0, 8)}...` : 'NOT PROVIDED');
+    console.log('\n📤 Forwarding to MuAPI...\n');
+
+    const axios = require('axios');
+    const response = await axios.post(
+      `${MUAPI_BASE_URL}/api/v1/veo3.1-fast-image-to-video`,
+      {
+        prompt,
+        image_url: imageUrl,
+        resolution,
+        duration: 8,
+        aspect_ratio: aspectRatio
+      },
+      {
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': apiKey
+        },
+        timeout: 30000
+      }
+    );
+
+    console.log('\n');
+    console.log('╔══════════════════════════════════════════════════════════════════╗');
+    console.log('║          SERVER: MUAPI VEO 3.1 RESPONSE RECEIVED                 ║');
+    console.log('╚══════════════════════════════════════════════════════════════════╝');
+    console.log('✅ Request ID:', response.data.request_id || response.data.id || 'N/A');
+    console.log('📊 Full response:', JSON.stringify(response.data, null, 2));
+    console.log('\n');
+    res.json(response.data);
+
+  } catch (error) {
+    console.error('❌ MuAPI error:', error.response?.data || error.message);
+    res.status(error.response?.status || 500).json({
+      error: error.response?.data?.message || error.message
+    });
+  }
+});
+
+/**
+ * Check video generation status from MuAPI
+ * GET /api/muapi/status/:requestId
+ */
+app.get('/api/muapi/status/:requestId', async (req, res) => {
+  try {
+    const { requestId } = req.params;
+    const apiKey = req.headers['x-api-key'];
+
+    if (!apiKey) {
+      return res.status(400).json({ error: 'Missing x-api-key header' });
+    }
+
+    const axios = require('axios');
+
+    // Retry logic with exponential backoff for transient errors
+    let lastError = null;
+    const maxRetries = 3;
+
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        const response = await axios.get(
+          `${MUAPI_BASE_URL}/api/v1/predictions/${requestId}/result`,
+          {
+            headers: {
+              'x-api-key': apiKey
+            },
+            timeout: 30000 // 30 seconds (increased from 10s)
+          }
+        );
+
+        console.log(`📊 MuAPI status for ${requestId}:`, response.data.status);
+        return res.json(response.data);
+
+      } catch (axiosError) {
+        lastError = axiosError;
+        const isRetryable = axiosError.code === 'ECONNRESET' ||
+                           axiosError.code === 'ETIMEDOUT' ||
+                           axiosError.response?.status === 502 ||
+                           axiosError.response?.status === 503 ||
+                           axiosError.response?.status === 504;
+
+        if (isRetryable && attempt < maxRetries) {
+          const delay = Math.pow(2, attempt) * 1000; // 2s, 4s, 8s
+          console.log(`⚠️ MuAPI status attempt ${attempt} failed (${axiosError.message}), retrying in ${delay/1000}s...`);
+          await new Promise(r => setTimeout(r, delay));
+        } else {
+          throw axiosError;
+        }
+      }
+    }
+
+  } catch (error) {
+    console.error('❌ MuAPI status error:', error.response?.data || error.message);
+    res.status(error.response?.status || 500).json({
+      error: error.response?.data?.message || error.message
+    });
+  }
+});
+
 app.listen(PORT, () => {
   console.log(`\n🚀 Video Generation API Server running on http://localhost:${PORT}`);
   console.log(`📊 Health check: http://localhost:${PORT}/api/health`);

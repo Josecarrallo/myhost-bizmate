@@ -113,6 +113,13 @@ function setupExportRoutes(app) {
           }
 
           console.log(`🎬 Using composition: ${compositionId} (${format})`);
+          console.log(`🎵 Music settings:`, JSON.stringify(settings?.music, null, 2));
+          console.log(`📦 Input props for Lambda:`, JSON.stringify({
+            scenesCount: uploadedScenes.length,
+            music: settings?.music,
+            text: settings?.text,
+            format
+          }, null, 2));
 
           // Calculate duration: 30fps, ~4.5 seconds per scene
           const fps = 30;

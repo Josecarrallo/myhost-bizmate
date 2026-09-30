@@ -14,23 +14,49 @@ import {
   delayRender,
 } from 'remotion';
 
+// Scene interface for slideshow mode
+interface Scene {
+  photoUrl: string;
+  duration?: number;
+}
+
 interface LtxPromoProps {
   title?: string;
   subtitle?: string;
   imageUrl?: string;
   ltxVideoUrl?: string;
   musicFile?: string;
+  // NEW: Support for multiple scenes (slideshow mode)
+  scenes?: Scene[];
 }
 
 export const LtxPromo: React.FC<LtxPromoProps> = ({
-  title = 'NISMARA UMA VILLA',
-  subtitle = 'Discover Your Balinese Sanctuary',
+  title = 'Property Video',
+  subtitle = '',
   imageUrl,
   ltxVideoUrl,
-  musicFile = 'background-music.mp3'
+  musicFile = 'background-music.mp3',
+  scenes = []
 }) => {
   const frame = useCurrentFrame();
   const { fps, durationInFrames } = useVideoConfig();
+
+  // Determine if we're in slideshow mode (multiple scenes)
+  const isSlideshowMode = scenes && scenes.length > 0;
+
+  // Calculate which scene to show in slideshow mode
+  const framesPerScene = isSlideshowMode ? Math.floor(durationInFrames / scenes.length) : durationInFrames;
+  const currentSceneIndex = isSlideshowMode ? Math.min(Math.floor(frame / framesPerScene), scenes.length - 1) : 0;
+  const currentScene = isSlideshowMode ? scenes[currentSceneIndex] : null;
+  const frameInScene = frame - (currentSceneIndex * framesPerScene);
+
+  // Ken Burns effect for slideshow
+  const kenBurnsScale = isSlideshowMode ? interpolate(
+    frameInScene,
+    [0, framesPerScene],
+    [1, 1.15],
+    { extrapolateRight: 'clamp' }
+  ) : 1;
 
   const fadeInOpacity = interpolate(
     frame,
@@ -88,10 +114,31 @@ export const LtxPromo: React.FC<LtxPromoProps> = ({
 
   const overallOpacity = Math.min(fadeInOpacity, fadeOutOpacity);
 
+  // Crossfade opacity for slideshow transitions
+  const crossfadeOpacity = isSlideshowMode ? interpolate(
+    frameInScene,
+    [0, 15, framesPerScene - 15, framesPerScene],
+    [0, 1, 1, 0],
+    { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' }
+  ) : 1;
+
   return (
     <AbsoluteFill style={{ backgroundColor: '#000' }}>
-      {/* BASE LAYER: LTX-2 cinematic video (URL publica S3) > imagen estatica > fallback local */}
-      {ltxVideoUrl ? (
+      {/* BASE LAYER: Slideshow mode (multiple scenes) OR single image/video mode */}
+      {isSlideshowMode ? (
+        // SLIDESHOW MODE: Render current scene with Ken Burns effect
+        <Img
+          src={currentScene?.photoUrl || ''}
+          style={{
+            width: '100%',
+            height: '100%',
+            objectFit: 'cover',
+            opacity: overallOpacity * crossfadeOpacity,
+            transform: `scale(${kenBurnsScale})`,
+          }}
+        />
+      ) : ltxVideoUrl ? (
+        // LTX VIDEO MODE: Use provided video URL
         <OffthreadVideo
           src={ltxVideoUrl}
           style={{
@@ -103,6 +150,7 @@ export const LtxPromo: React.FC<LtxPromoProps> = ({
           muted
         />
       ) : imageUrl ? (
+        // SINGLE IMAGE MODE: Use provided image URL
         <Img
           src={imageUrl}
           style={{
@@ -113,16 +161,12 @@ export const LtxPromo: React.FC<LtxPromoProps> = ({
           }}
         />
       ) : (
-        <OffthreadVideo
-          src={staticFile('ltx-video.mp4')}
-          style={{
-            width: '100%',
-            height: '100%',
-            objectFit: 'cover',
-            opacity: overallOpacity,
-          }}
-          muted
-        />
+        // FALLBACK: Black screen with error message (NO MORE OLD VIDEO!)
+        <AbsoluteFill style={{ backgroundColor: '#000', justifyContent: 'center', alignItems: 'center' }}>
+          <div style={{ color: '#ff6b6b', fontSize: 24, textAlign: 'center' }}>
+            No image or video provided
+          </div>
+        </AbsoluteFill>
       )}
 
       {/* BACKGROUND MUSIC */}

@@ -5,18 +5,18 @@
  * - Project CRUD (Supabase)
  * - Photo upload to Supabase Storage
  * - OpenAI integration (GPT-4o for image analysis and prompt improvement)
- * - MuAPI integration (Seedance 2.5 for video, ElevenLabs TTS Turbo 2.5 for voice)
+ * - MuAPI integration (Veo 3.1 Fast for video, ElevenLabs TTS Turbo 2.5 for voice)
  * - Remotion render status
  *
  * AI Models Used:
  * - Image Analysis: OpenAI GPT-4o (vision)
- * - Video Generation: MuAPI Seedance 2.5 Image-to-Video
+ * - Video Generation: MuAPI Veo 3.1 Fast Image-to-Video (8s clips, better water animation)
  * - Voice-over Primary: MuAPI ElevenLabs TTS Turbo 2.5
  * - Voice-over Fallback: OpenAI TTS-1
  * - Rendering: Remotion Lambda
  */
 
-import { supabase } from '../lib/supabase';
+import { supabase, supabaseAdmin } from '../lib/supabase';
 
 // =====================================================
 // CONFIGURATION
@@ -24,6 +24,9 @@ import { supabase } from '../lib/supabase';
 
 const MUAPI_BASE_URL = 'https://api.muapi.ai';
 const OPENAI_API_URL = 'https://api.openai.com/v1';
+
+// Backend proxy for MuAPI (to avoid CORS issues)
+const VIDEO_SERVER_URL = import.meta.env.VITE_VIDEO_SERVER_URL || 'http://localhost:3001';
 
 // Storage bucket name
 const STORAGE_BUCKET = 'content-studio';
@@ -88,6 +91,11 @@ export async function getProjects(tenantId) {
  * Update project
  */
 export async function updateProject(projectId, updates) {
+  console.log('=== SERVICE: updateProject ===');
+  console.log('Project ID:', projectId);
+  console.log('Updates being sent to Supabase:', JSON.stringify(updates, null, 2));
+  console.log('==============================');
+
   const { data, error } = await supabase
     .from('video_projects')
     .update({
@@ -98,7 +106,11 @@ export async function updateProject(projectId, updates) {
     .select()
     .single();
 
-  if (error) throw new Error(`Failed to update project: ${error.message}`);
+  if (error) {
+    console.error('Supabase update error:', error);
+    throw new Error(`Failed to update project: ${error.message}`);
+  }
+  console.log('Update successful, returned data:', JSON.stringify(data, null, 2));
   return data;
 }
 
@@ -162,6 +174,60 @@ export async function uploadPhoto(tenantId, projectId, file) {
 }
 
 /**
+ * Upload base64 image to Supabase Storage and get public URL
+ * This is needed because MuAPI requires a public URL, not base64
+ */
+export async function uploadBase64ToPublicUrl(base64Data, tenantId = 'temp') {
+  // Check if already a public URL (https://)
+  if (base64Data.startsWith('http://') || base64Data.startsWith('https://')) {
+    return base64Data;
+  }
+
+  // Extract the actual base64 data and mime type
+  const matches = base64Data.match(/^data:([^;]+);base64,(.+)$/);
+  if (!matches) {
+    throw new Error('Invalid base64 image format');
+  }
+
+  const mimeType = matches[1];
+  const base64Content = matches[2];
+  const extension = mimeType.split('/')[1] || 'jpg';
+
+  // Convert base64 to blob
+  const byteCharacters = atob(base64Content);
+  const byteNumbers = new Array(byteCharacters.length);
+  for (let i = 0; i < byteCharacters.length; i++) {
+    byteNumbers[i] = byteCharacters.charCodeAt(i);
+  }
+  const byteArray = new Uint8Array(byteNumbers);
+  const blob = new Blob([byteArray], { type: mimeType });
+
+  // Generate unique filename
+  const fileName = `muapi-temp/${tenantId}/${Date.now()}-${Math.random().toString(36).substr(2, 9)}.${extension}`;
+
+  // Upload to Supabase Storage using ADMIN client (bypasses RLS)
+  const { data, error } = await supabaseAdmin.storage
+    .from(STORAGE_BUCKET)
+    .upload(fileName, blob, {
+      contentType: mimeType,
+      cacheControl: '3600',
+      upsert: true
+    });
+
+  if (error) {
+    console.error('Supabase upload error:', error);
+    throw new Error(`Failed to upload image to Supabase: ${error.message}`);
+  }
+
+  // Get public URL
+  const { data: urlData } = supabaseAdmin.storage
+    .from(STORAGE_BUCKET)
+    .getPublicUrl(fileName);
+
+  return urlData.publicUrl;
+}
+
+/**
  * Delete photo from storage
  */
 export async function deletePhoto(photoPath) {
@@ -177,39 +243,199 @@ export async function deletePhoto(photoPath) {
 // OPENAI INTEGRATION
 // =====================================================
 
+// System prompt for BIZMATE AI Video Director
+// ChatGPT receives: SYSTEM PROMPT + USER PROMPT + IMAGE
+// ChatGPT returns: veoPrompt (ONLY this goes to Veo 3.1)
+const BIZMATE_VIDEO_DIRECTOR_PROMPT = `You are BIZMATE AI Video Director.
+
+You receive:
+1. The user's request (what they want to achieve)
+2. One or more property images (the visual source of truth)
+
+Your job is to act as a professional AI VIDEO DIRECTOR:
+- Analyze the uploaded image(s)
+- Understand the user's request
+- Combine both to create ONE SINGLE OPTIMIZED PROMPT for Veo 3.1
+
+==================================================
+PRIORITY OF INSTRUCTIONS
+==================================================
+
+1. PRESERVE THE ORIGINAL IMAGE - this is the highest priority
+2. RESPECT THE USER'S REQUEST - do not change their intention
+3. IMPROVE CINEMATICALLY - enhance with professional techniques
+4. AVOID DEFORMATION - protect architecture and geometry
+
+==================================================
+IMAGE IS THE SOURCE OF TRUTH
+==================================================
+
+The uploaded image is the absolute visual reference.
+
+You must NOT invent:
+- rooms, pools, furniture, buildings
+- doors, windows, gardens
+- people, animals, views, objects
+
+that do NOT appear in the image.
+
+Only mention elements that are VISIBLE in the image.
+
+==================================================
+RESPECT USER'S REQUEST
+==================================================
+
+If the user says "The main movement is the swimming pool water"
+→ Keep water as the primary motion
+
+If the user says "Keep all other elements stable"
+→ Respect this completely
+
+If the user says "slow camera push-in"
+→ Use slow camera push-in
+
+Do NOT override the user's intention.
+You can IMPROVE the request cinematically, but NOT CHANGE it.
+
+==================================================
+MOTION RULES
+==================================================
+
+Apply MINIMUM NECESSARY MOTION.
+
+Do not try to animate everything.
+
+PRIORITY:
+1. Natural motion (water ripples, reflections)
+2. Environmental motion (subtle leaf movement)
+3. Very subtle camera movement
+
+EXAMPLE FOR POOL:
+- PRIMARY: gentle water ripples, small calm waves, moving sunlight reflections
+- SECONDARY: very subtle movement of visible leaves/palm fronds
+- CAMERA: very slow stabilized cinematic push-in
+- EVERYTHING ELSE: STATIC
+
+==================================================
+CAMERA RULES
+==================================================
+
+Use smooth, controlled movements:
+- slow push-in
+- gentle dolly
+- subtle pan
+- almost locked camera
+
+AVOID:
+- aggressive zoom
+- fast pan
+- large orbit
+- dramatic drone movement
+- large perspective changes
+
+If there is risk of deforming architecture:
+→ USE ALMOST STATIC CAMERA
+
+Better to have water/vegetation motion with stable architecture
+than spectacular camera that deforms the villa.
+
+==================================================
+VEO PROMPT CREATION
+==================================================
+
+Create ONE optimized prompt for Veo 3.1 that:
+
+1. Preserves the original image composition
+2. Describes what should move and how
+3. Describes what must remain static
+4. Specifies camera movement (if any)
+5. Describes lighting naturally
+6. Explicitly states what to avoid
+
+The veoPrompt should be detailed but focused.
+Maximum 200 words.
+Do NOT include duration or aspect ratio in the prompt text.
+
+==================================================
+OUTPUT FORMAT
+==================================================
+
+Return ONLY valid JSON with this exact structure:
+
+{
+  "veoPrompt": "The complete prompt for Veo 3.1 - visual instructions only",
+  "durationSeconds": 5,
+  "aspectRatio": "16:9",
+  "musicPrompt": "Description for background music, or empty string",
+  "voiceScript": "Voice-over script if requested, or empty string"
+}
+
+RULES:
+- veoPrompt = ONLY visual/motion instructions for Veo 3.1
+- durationSeconds = extract from user request, default 5
+- aspectRatio = extract from user request, default "16:9"
+- musicPrompt = separate music instructions for Remotion (NOT for Veo)
+- voiceScript = only if user requests voice-over
+
+Do NOT include music instructions inside veoPrompt.
+Do NOT include duration/format inside veoPrompt.
+
+==================================================
+EXAMPLE
+==================================================
+
+USER REQUEST:
+"Create a short horizontal luxury-villa promotional video from the uploaded swimming pool image. Keep the original composition. The main movement is the swimming pool water. Animate the water with gentle ripples. Use a slow camera push-in. Add soft tropical background music. Duration: 5 seconds. Format: 16:9."
+
+YOUR OUTPUT:
+{
+  "veoPrompt": "Preserve the uploaded villa composition exactly, maintaining pool geometry, blue tiles, architecture, glass doors, roof, furniture and vegetation unchanged. Animate the swimming pool as primary motion with continuous gentle natural ripples and small calm waves, creating realistic moving sunlight reflections across the water surface and mosaic tiles. Add extremely subtle movement to visible tropical leaves from a light breeze. Use a very slow stabilized cinematic push-in toward the pool with minimal perspective change. Maintain realistic warm natural daylight. Keep all architectural elements completely stable. No people, animals, new objects, text, logos, warping, morphing or structural changes.",
+  "durationSeconds": 5,
+  "aspectRatio": "16:9",
+  "musicPrompt": "Soft relaxing cinematic tropical instrumental for luxury Bali villa, elegant, calm, warm, no vocals",
+  "voiceScript": ""
+}
+
+Return ONLY valid JSON. No markdown. No explanation.`;
+
 /**
- * Analyze images and improve prompt using OpenAI Vision
+ * Analyze images and generate veoPrompt using OpenAI Vision
+ *
+ * FLOW:
+ * SYSTEM PROMPT + USER PROMPT + IMAGE → ChatGPT → veoPrompt → Veo 3.1
+ *
+ * Returns { veoPrompt, durationSeconds, aspectRatio, musicPrompt, voiceScript }
  */
 export async function analyzeAndImprovePrompt(imageUrls, userPrompt, apiKey) {
   if (!apiKey) {
     // Return mock response if no API key
     return {
-      analysis: 'Beautiful property with modern architecture and tropical surroundings.',
-      improvedPrompt: `${userPrompt} Cinematic camera movements, smooth transitions between scenes, highlighting luxury amenities and natural beauty.`,
-      suggestedVoiceScript: `Welcome to this stunning property. ${userPrompt}`
+      veoPrompt: `Preserve the uploaded villa composition exactly. Animate the swimming pool as primary motion with continuous gentle natural ripples and small calm waves, creating realistic moving sunlight reflections across the water surface. Use a very slow stabilized cinematic push-in toward the pool. Keep all architectural elements completely stable. No people, animals, new objects, warping or structural changes.`,
+      durationSeconds: 5,
+      aspectRatio: '16:9',
+      musicPrompt: '',
+      voiceScript: ''
     };
   }
+
+  // Send the user's prompt EXACTLY as they wrote it
+  const userMessageText = userPrompt;
 
   const messages = [
     {
       role: 'system',
-      content: `You are a professional video director specializing in luxury property marketing videos.
-      Analyze the provided images and enhance the user's prompt to create compelling video content.
-      Return a JSON object with:
-      - analysis: Brief description of what you see in the images
-      - improvedPrompt: Enhanced prompt with cinematic directions
-      - suggestedVoiceScript: Optional voice-over script (2-3 sentences)`
+      content: BIZMATE_VIDEO_DIRECTOR_PROMPT
     },
     {
       role: 'user',
       content: [
         {
           type: 'text',
-          text: `User prompt: "${userPrompt}"\n\nAnalyze these property images and create an improved prompt for video generation:`
+          text: userMessageText
         },
-        ...imageUrls.map(url => ({
+        ...imageUrls.map((url, index) => ({
           type: 'image_url',
-          image_url: { url }
+          image_url: { url, detail: 'high' }
         }))
       ]
     }
@@ -225,7 +451,7 @@ export async function analyzeAndImprovePrompt(imageUrls, userPrompt, apiKey) {
       body: JSON.stringify({
         model: 'gpt-4o',
         messages,
-        max_tokens: 500,
+        max_tokens: 1000,
         response_format: { type: 'json_object' }
       })
     });
@@ -236,14 +462,18 @@ export async function analyzeAndImprovePrompt(imageUrls, userPrompt, apiKey) {
     }
 
     const data = await response.json();
-    return JSON.parse(data.choices[0].message.content);
+    const result = JSON.parse(data.choices[0].message.content);
+
+    return result;
   } catch (error) {
     console.error('OpenAI error:', error);
-    // Fallback to mock
+    // Fallback - use user's prompt directly if OpenAI fails
     return {
-      analysis: 'Property analysis unavailable',
-      improvedPrompt: `${userPrompt} with smooth cinematic transitions.`,
-      suggestedVoiceScript: userPrompt
+      veoPrompt: userPrompt,
+      durationSeconds: 5,
+      aspectRatio: '16:9',
+      musicPrompt: '',
+      voiceScript: ''
     };
   }
 }
@@ -398,13 +628,19 @@ export async function generateVoiceOver(script, apiKeys = {}, options = {}) {
 }
 
 // =====================================================
-// MUAPI INTEGRATION (Seedance 2.5 Image-to-Video)
+// MUAPI INTEGRATION (Veo 3.1 Fast Image-to-Video)
 // =====================================================
 
 /**
- * Generate video clip from image using MuAPI Seedance 2.5
- * Endpoint: POST https://api.muapi.ai/api/v1/seedance-2.5-image-to-video
- * Pricing: $0.34/sec (720p), $0.17/sec (480p), $0.85/sec (1080p)
+ * Generate video clip from image using MuAPI Veo 3.1 Fast
+ * Endpoint: POST https://api.muapi.ai/api/v1/veo3.1-fast-image-to-video
+ * Pricing: $0.60 (720p), $0.78 (1080p), $1.80 (4K) per 8-second clip
+ *
+ * Veo 3.1 Fast produces better fluid/water animations than Seedance 2.5
+ * Fixed 8-second duration per clip
+ *
+ * IMPORTANT: imageUrl must be a public URL (https://...), NOT base64.
+ * If base64 is provided, it will be uploaded to Supabase Storage first.
  */
 export async function generateVideoClip(imageUrl, prompt, apiKey, options = {}) {
   if (!apiKey) {
@@ -417,42 +653,49 @@ export async function generateVideoClip(imageUrl, prompt, apiKey, options = {}) 
   }
 
   const {
-    resolution = '720p', // 480p, 720p, 1080p, 4k
-    duration = 5,
-    seed = -1,
-    highBitrate = false
+    resolution = '1080p', // 720p, 1080p, 4k
+    aspectRatio = '16:9', // 16:9 or 9:16
+    tenantId = 'temp'
   } = options;
 
   try {
-    const response = await fetch(`${MUAPI_BASE_URL}/api/v1/seedance-2.5-image-to-video`, {
+    // CRITICAL: MuAPI requires a public URL, not base64
+    // If the image is base64, upload it to Supabase Storage first
+    let publicImageUrl = imageUrl;
+
+    if (imageUrl.startsWith('data:')) {
+      publicImageUrl = await uploadBase64ToPublicUrl(imageUrl, tenantId);
+    }
+
+    // Use backend proxy to avoid CORS issues
+    const response = await fetch(`${VIDEO_SERVER_URL}/api/muapi/generate-clip`, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': apiKey
+        'Content-Type': 'application/json'
       },
       body: JSON.stringify({
+        imageUrl: publicImageUrl,
         prompt,
-        image_url: imageUrl,
+        apiKey,
         resolution,
-        duration,
-        seed,
-        high_bitrate: highBitrate
+        aspectRatio
       })
     });
 
     if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || 'MuAPI Seedance 2.5 generation failed');
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || `MuAPI proxy failed with status ${response.status}`);
     }
 
     const data = await response.json();
+
     return {
       requestId: data.request_id,
       status: 'processing',
-      estimatedTime: duration * 12 // Estimate ~12 seconds processing per second of video
+      estimatedTime: 90 // Veo 3.1 Fast takes ~90 seconds
     };
   } catch (error) {
-    console.error('MuAPI Seedance 2.5 error:', error);
+    console.error('MuAPI Veo 3.1 Fast error:', error);
     throw error;
   }
 }
@@ -460,6 +703,7 @@ export async function generateVideoClip(imageUrl, prompt, apiKey, options = {}) 
 /**
  * Check video generation status from MuAPI
  * Endpoint: GET https://api.muapi.ai/api/v1/predictions/{request_id}/result
+ * Response: { status: "completed", outputs: { video: "url" } }
  */
 export async function checkVideoStatus(requestId, apiKey) {
   if (!apiKey || requestId.startsWith('mock-')) {
@@ -472,7 +716,8 @@ export async function checkVideoStatus(requestId, apiKey) {
   }
 
   try {
-    const response = await fetch(`${MUAPI_BASE_URL}/api/v1/predictions/${requestId}/result`, {
+    // Use backend proxy to avoid CORS issues
+    const response = await fetch(`${VIDEO_SERVER_URL}/api/muapi/status/${requestId}`, {
       headers: {
         'x-api-key': apiKey
       }
@@ -483,10 +728,29 @@ export async function checkVideoStatus(requestId, apiKey) {
     }
 
     const data = await response.json();
+
+    // MuAPI returns video URL in different formats depending on version:
+    // - outputs: ["https://..."] (array with URL)
+    // - outputs: { video: "https://..." } (object)
+    // - output: { video_url: "https://..." }
+    let videoUrl = null;
+
+    if (Array.isArray(data.outputs) && data.outputs.length > 0) {
+      // outputs is array - take first element
+      videoUrl = data.outputs[0];
+    } else if (data.outputs?.video) {
+      // outputs is object with video property
+      videoUrl = data.outputs.video;
+    } else if (data.output?.video_url) {
+      videoUrl = data.output.video_url;
+    } else if (data.video_url) {
+      videoUrl = data.video_url;
+    }
+
     return {
       status: data.status, // pending, processing, completed, failed
-      videoUrl: data.output?.video_url || data.video_url,
-      progress: data.progress || 0
+      videoUrl,
+      progress: data.progress || (data.status === 'completed' ? 100 : 50)
     };
   } catch (error) {
     console.error('Status check error:', error);
@@ -629,7 +893,7 @@ export async function generateVideo(
 
     // Update project with improved prompt
     await updateProject(project.id, {
-      improved_prompt: analysis.improvedPrompt
+      improved_prompt: analysis.veoPrompt
     });
 
     // Step 4: Generate clips with MuAPI
@@ -646,7 +910,7 @@ export async function generateVideo(
 
       const clipResult = await generateVideoClip(
         photo.url,
-        analysis.improvedPrompt,
+        analysis.veoPrompt,
         muapiKey,
         {
           aspectRatio: settings.format,
@@ -700,6 +964,7 @@ export const contentStudioV2Service = {
 
   // Photos
   uploadPhoto,
+  uploadBase64ToPublicUrl,
   deletePhoto,
 
   // OpenAI (GPT-4o Vision)
@@ -711,7 +976,7 @@ export const contentStudioV2Service = {
   generateVoiceOverOpenAI,     // OpenAI TTS-1 (fallback)
   checkTTSStatus,              // MuAPI TTS status polling
 
-  // MuAPI (Seedance 2.5 Image-to-Video)
+  // MuAPI (Veo 3.1 Fast Image-to-Video)
   generateVideoClip,
   checkVideoStatus,
 

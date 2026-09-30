@@ -1,16 +1,20 @@
 /**
  * Remotion Composition - Property Promo Video
  *
- * This composition creates a video slideshow from property photos
- * with Ken Burns effect (zoom/pan), transitions, text overlays, and music.
+ * This composition supports TWO modes:
+ * 1. VIDEO MODE: Uses AI-generated video clips (clipUrl) with real motion
+ * 2. SLIDESHOW MODE: Uses static photos (photoUrl) with Ken Burns effect
  *
- * NEW ARCHITECTURE: OpenAI + MuAPI + Remotion (NOT LTX-2)
+ * The component automatically detects which mode to use based on clipUrl availability.
+ *
+ * ARCHITECTURE: OpenAI + MuAPI + Remotion
  */
 
 import React from 'react';
 import {
   AbsoluteFill,
   Img,
+  Video,
   useCurrentFrame,
   useVideoConfig,
   interpolate,
@@ -23,8 +27,22 @@ import {
 // INTERFACES
 // =====================================================
 
-interface SceneProps {
+interface VideoSceneProps {
   src: string;
+  startFrame: number;
+  durationFrames: number;
+}
+
+interface ImageSceneProps {
+  src: string;
+  startFrame: number;
+  durationFrames: number;
+  direction?: 'zoomIn' | 'zoomOut' | 'panLeft' | 'panRight' | 'panUp';
+}
+
+interface SmartSceneProps {
+  clipUrl?: string;
+  photoUrl: string;
   startFrame: number;
   durationFrames: number;
   direction?: 'zoomIn' | 'zoomOut' | 'panLeft' | 'panRight' | 'panUp';
@@ -38,7 +56,7 @@ interface TextOverlayProps {
   durationFrames: number;
 }
 
-interface Scene {
+interface SceneData {
   id?: string;
   photoUrl: string;
   clipUrl?: string;
@@ -64,16 +82,44 @@ interface Settings {
 }
 
 interface PropertyPromoProps {
-  scenes?: Scene[];
+  scenes?: SceneData[];
   settings?: Settings;
   format?: '9:16' | '16:9' | '1:1';
 }
 
 // =====================================================
-// SCENE COMPONENT - Single photo with Ken Burns effect
+// VIDEO SCENE COMPONENT - AI-generated video clip
 // =====================================================
 
-const Scene: React.FC<SceneProps> = ({ src, startFrame, durationFrames, direction = 'zoomIn' }) => {
+const VideoScene: React.FC<VideoSceneProps> = ({ src, startFrame, durationFrames }) => {
+  const frame = useCurrentFrame();
+  const { fps } = useVideoConfig();
+
+  const relativeFrame = frame - startFrame;
+
+  // Fade in effect
+  const fadeIn = interpolate(relativeFrame, [0, fps * 0.3], [0, 1], { extrapolateRight: 'clamp' });
+  const opacity = fadeIn;
+
+  return (
+    <AbsoluteFill style={{ opacity }}>
+      <Video
+        src={src}
+        style={{
+          width: '100%',
+          height: '100%',
+          objectFit: 'cover',
+        }}
+      />
+    </AbsoluteFill>
+  );
+};
+
+// =====================================================
+// IMAGE SCENE COMPONENT - Static photo with Ken Burns effect
+// =====================================================
+
+const ImageScene: React.FC<ImageSceneProps> = ({ src, startFrame, durationFrames, direction = 'zoomIn' }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
 
@@ -131,6 +177,33 @@ const Scene: React.FC<SceneProps> = ({ src, startFrame, durationFrames, directio
         }}
       />
     </AbsoluteFill>
+  );
+};
+
+// =====================================================
+// SMART SCENE COMPONENT - Auto-detects video vs image
+// =====================================================
+
+const Scene: React.FC<SmartSceneProps> = ({ clipUrl, photoUrl, startFrame, durationFrames, direction = 'zoomIn' }) => {
+  // If we have a video clip URL, use VideoScene (AI-generated motion)
+  // Otherwise, use ImageScene with Ken Burns effect
+  if (clipUrl) {
+    return (
+      <VideoScene
+        src={clipUrl}
+        startFrame={startFrame}
+        durationFrames={durationFrames}
+      />
+    );
+  }
+
+  return (
+    <ImageScene
+      src={photoUrl}
+      startFrame={startFrame}
+      durationFrames={durationFrames}
+      direction={direction}
+    />
   );
 };
 
@@ -206,15 +279,17 @@ const TextOverlay: React.FC<TextOverlayProps> = ({ title, subtitle }) => {
 };
 
 // =====================================================
-// MUSIC TRACK MAPPING (same as Lambda available files)
+// MUSIC TRACK MAPPING - Using absolute S3 URLs
 // =====================================================
 
+const S3_BASE = 'https://remotionlambda-useast1-1w04idkkha.s3.us-east-1.amazonaws.com/sites/myhost-bizmate-video';
+
 const MUSIC_TRACKS: Record<string, string> = {
-  'ambient': 'bali-sunrise.mp3',
-  'upbeat': 'bali-sunrise.mp3',
-  'cinematic': 'background-music.mp3',
-  'tropical': 'bali-sunrise.mp3',
-  'lofi': 'background-music.mp3'
+  'ambient': `${S3_BASE}/ambient.mp3`,
+  'upbeat': `${S3_BASE}/upbeat.mp3`,
+  'cinematic': `${S3_BASE}/cinematic.mp3`,
+  'tropical': `${S3_BASE}/tropical.mp3`,
+  'lofi': `${S3_BASE}/lofi.mp3`
 };
 
 // =====================================================
@@ -264,7 +339,8 @@ export const PropertyPromo: React.FC<PropertyPromoProps> = ({
             durationInFrames={sceneDuration}
           >
             <Scene
-              src={scene.photoUrl || scene.clipUrl || ''}
+              clipUrl={scene.clipUrl}
+              photoUrl={scene.photoUrl}
               startFrame={0}
               durationFrames={sceneDuration}
               direction={direction}
@@ -289,7 +365,7 @@ export const PropertyPromo: React.FC<PropertyPromoProps> = ({
       {/* Background music - only if enabled */}
       {musicFile && (
         <Audio
-          src={staticFile(musicFile)}
+          src={musicFile}
           volume={musicSettings.volume || 0.7}
         />
       )}

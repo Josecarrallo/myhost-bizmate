@@ -1,14 +1,18 @@
 /**
  * Remotion Composition - Property Promo Video
  *
- * This composition creates a video slideshow from property photos
- * with Ken Burns effect (zoom/pan), transitions, text overlays, and music.
+ * This composition supports TWO modes:
+ * 1. VIDEO MODE: Uses AI-generated video clips (clipUrl) with real motion
+ * 2. SLIDESHOW MODE: Uses static photos (photoUrl) with Ken Burns effect
+ *
+ * The component automatically detects which mode to use based on clipUrl availability.
  */
 
 import React from 'react';
 import {
   AbsoluteFill,
   Img,
+  Video,
   useCurrentFrame,
   useVideoConfig,
   interpolate,
@@ -17,10 +21,38 @@ import {
 } from 'remotion';
 
 // =====================================================
-// SCENE COMPONENT - Single photo with Ken Burns effect
+// VIDEO SCENE COMPONENT - AI-generated video clip
 // =====================================================
 
-const Scene = ({ src, startFrame, durationFrames, direction = 'zoomIn' }) => {
+const VideoScene = ({ src, startFrame, durationFrames }) => {
+  const frame = useCurrentFrame();
+  const { fps } = useVideoConfig();
+
+  const relativeFrame = frame - startFrame;
+
+  // Fade in effect
+  const fadeIn = interpolate(relativeFrame, [0, fps * 0.3], [0, 1], { extrapolateRight: 'clamp' });
+  const opacity = fadeIn;
+
+  return (
+    <AbsoluteFill style={{ opacity }}>
+      <Video
+        src={src}
+        style={{
+          width: '100%',
+          height: '100%',
+          objectFit: 'cover',
+        }}
+      />
+    </AbsoluteFill>
+  );
+};
+
+// =====================================================
+// IMAGE SCENE COMPONENT - Static photo with Ken Burns effect
+// =====================================================
+
+const ImageScene = ({ src, startFrame, durationFrames, direction = 'zoomIn' }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
 
@@ -63,7 +95,6 @@ const Scene = ({ src, startFrame, durationFrames, direction = 'zoomIn' }) => {
   }
 
   // Fade in only (no fade out to avoid black frame between scenes)
-  // The next scene will fade in on top, creating a crossfade effect
   const fadeIn = interpolate(relativeFrame, [0, fps * 0.3], [0, 1], { extrapolateRight: 'clamp' });
   const opacity = fadeIn;
 
@@ -79,6 +110,33 @@ const Scene = ({ src, startFrame, durationFrames, direction = 'zoomIn' }) => {
         }}
       />
     </AbsoluteFill>
+  );
+};
+
+// =====================================================
+// SMART SCENE COMPONENT - Auto-detects video vs image
+// =====================================================
+
+const Scene = ({ clipUrl, photoUrl, startFrame, durationFrames, direction = 'zoomIn' }) => {
+  // If we have a video clip URL, use VideoScene (AI-generated motion)
+  // Otherwise, use ImageScene with Ken Burns effect
+  if (clipUrl) {
+    return (
+      <VideoScene
+        src={clipUrl}
+        startFrame={startFrame}
+        durationFrames={durationFrames}
+      />
+    );
+  }
+
+  return (
+    <ImageScene
+      src={photoUrl}
+      startFrame={startFrame}
+      durationFrames={durationFrames}
+      direction={direction}
+    />
   );
 };
 
@@ -193,7 +251,8 @@ export const PropertyPromo = ({
             durationInFrames={sceneDuration}
           >
             <Scene
-              src={scene.photoUrl || scene.clipUrl}
+              clipUrl={scene.clipUrl}
+              photoUrl={scene.photoUrl}
               startFrame={0}
               durationFrames={sceneDuration}
               direction={direction}
