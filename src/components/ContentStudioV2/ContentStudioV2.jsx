@@ -1315,36 +1315,55 @@ const ContentStudioV2 = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
           {/* Download Button */}
           <button
             onClick={async () => {
-              if (!videoUrl) {
-                alert('First generate the video with the "Generate Video MP4" button');
-                return;
-              }
-
-              // Use proxy download if jobId available (avoids CORS)
-              const videoServerUrl = import.meta.env.VITE_VIDEO_SERVER_URL || 'http://localhost:3001';
-
+              // Priority 1: Use exportJobId if available (video just generated in this session)
               if (exportJobId) {
-                // Download via server proxy (triggers download)
+                const videoServerUrl = import.meta.env.VITE_VIDEO_SERVER_URL || 'http://localhost:3001';
                 const downloadUrl = `${videoServerUrl}/api/download-video/${exportJobId}`;
+                console.log('📥 Downloading via proxy:', downloadUrl);
                 const link = document.createElement('a');
                 link.href = downloadUrl;
                 link.download = `property-video-${Date.now()}.mp4`;
                 document.body.appendChild(link);
                 link.click();
                 document.body.removeChild(link);
-              } else {
-                // Fallback: open S3 URL directly (may not download in some browsers)
-                window.open(videoUrl, '_blank');
+                return;
               }
+
+              // Priority 2: Use videoUrl if available (from saved project or previous export)
+              if (videoUrl) {
+                console.log('📥 Downloading from S3:', videoUrl);
+                // For S3 URLs, we need to fetch and create blob to force download
+                try {
+                  const response = await fetch(videoUrl);
+                  if (!response.ok) throw new Error('Failed to fetch video');
+                  const blob = await response.blob();
+                  const blobUrl = URL.createObjectURL(blob);
+                  const link = document.createElement('a');
+                  link.href = blobUrl;
+                  link.download = `property-video-${Date.now()}.mp4`;
+                  document.body.appendChild(link);
+                  link.click();
+                  document.body.removeChild(link);
+                  URL.revokeObjectURL(blobUrl);
+                } catch (err) {
+                  console.error('Download error:', err);
+                  // Fallback: open in new tab
+                  window.open(videoUrl, '_blank');
+                }
+                return;
+              }
+
+              // No video available
+              alert('First generate the video with the "Generate Video MP4" button');
             }}
             className={`w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl transition-colors ${
-              videoUrl
+              (videoUrl || exportJobId)
                 ? 'bg-green-500 text-white hover:bg-green-600'
                 : 'bg-gray-700 text-gray-400'
             }`}
           >
             <Download className="w-4 h-4" />
-            {videoUrl ? 'Download Video' : 'Download'}
+            {(videoUrl || exportJobId) ? 'Download Video' : 'Download'}
           </button>
         </div>
       </div>
