@@ -31,7 +31,13 @@ import {
 } from 'lucide-react';
 import { Player } from '@remotion/player';
 import { useAuth } from '../../contexts/AuthContext';
-import { contentStudioV2Service } from '../../services/contentStudioV2Service';
+import {
+  contentStudioV2Service,
+  generateVideoClip,
+  checkVideoStatus,
+  analyzeAndImprovePrompt,
+  uploadBase64ToPublicUrl
+} from '../../services/contentStudioV2Service';
 import { PropertyPromo, getVideoDimensions } from './remotion/PropertyPromo';
 
 // Royalty-free music tracks (local files in /public/audio/)
@@ -140,7 +146,6 @@ const ContentStudioV2 = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
   const [isExporting, setIsExporting] = useState(false);
   const [exportProgress, setExportProgress] = useState(0);
   const [exportJobId, setExportJobId] = useState(null); // Job ID for download
-  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false); // Track if settings changed after last export
 
   // Project
   const [projectId, setProjectId] = useState(null);
@@ -379,9 +384,9 @@ const ContentStudioV2 = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
     });
   };
 
-  // Generate video clips from photos
+  // Generate video clips from photos using MuAPI Veo 3.1
   const handleGenerate = async () => {
-    if (photos.length < 2) return;
+    if (photos.length < 1) return;
     if (!userData?.id) {
       setGenerationStatus('Error: User not authenticated');
       return;
@@ -391,27 +396,180 @@ const ContentStudioV2 = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
     setCurrentStep('generating');
     setGenerationProgress(0);
 
-    // Use mock generation directly to avoid Supabase RLS issues
-    // This allows testing the preview and music functionality
-    console.log('🎬 Starting mock generation (bypassing Supabase to avoid RLS issues)');
-    await handleMockGenerate();
-    setIsGenerating(false);
+    const muapiKey = apiKeys.muapiKey;
+    const openaiKey = apiKeys.openaiKey;
+
+    // Debug: Log API key status
+    console.log('🔑 API Keys status:');
+    console.log('  - MuAPI key:', muapiKey ? `${muapiKey.substring(0, 8)}...` : 'NOT SET');
+    console.log('  - OpenAI key:', openaiKey ? `${openaiKey.substring(0, 10)}...` : 'NOT SET');
+
+    // Check if MuAPI key is available
+    if (!muapiKey) {
+      console.log('⚠️ No MuAPI key - using demo mode');
+      await handleMockGenerate();
+      setIsGenerating(false);
+      return;
+    }
+
+    try {
+      console.log('🎬 Starting MuAPI Veo 3.1 generation...');
+      setGenerationStatus('Analyzing images with AI...');
+      setGenerationProgress(5);
+
+      // Step 1: Analyze and improve prompt with OpenAI (if available)
+      let finalPrompt = prompt || 'Cinematic video showcasing this beautiful property with smooth camera movements';
+      if (openaiKey && photos.length > 0) {
+        try {
+          const imageUrls = photos.map(p => p.url);
+          const result = await analyzeAndImprovePrompt(imageUrls, prompt, openaiKey);
+          if (result?.veoPrompt) {
+            finalPrompt = result.veoPrompt;
+            setImprovedPrompt(finalPrompt);
+            console.log('✨ Enhanced prompt:', finalPrompt);
+          }
+        } catch (e) {
+          console.log('OpenAI analysis skipped:', e.message);
+        }
+      }
+      setGenerationProgress(10);
+
+      // Step 2: Start video generation for each photo
+      const pendingClips = [];
+      const aspectRatio = editorSettings.format === '9:16' ? '9:16' : '16:9';
+
+      for (let i = 0; i < photos.length; i++) {
+        const photo = photos[i];
+        setGenerationStatus(`Starting Veo 3.1 for image ${i + 1}/${photos.length}...`);
+        setGenerationProgress(10 + (i * 5));
+
+        try {
+          // Upload blob URL to get public URL if needed
+          let publicUrl = photo.url;
+          if (photo.url.startsWith('blob:') || photo.url.startsWith('data:')) {
+            setGenerationStatus(`Uploading image ${i + 1} to cloud...`);
+            // Convert blob to base64 first
+            const response = await fetch(photo.url);
+            const blob = await response.blob();
+            const reader = new FileReader();
+            const base64 = await new Promise((resolve) => {
+              reader.onloadend = () => resolve(reader.result);
+              reader.readAsDataURL(blob);
+            });
+            publicUrl = await uploadBase64ToPublicUrl(base64, userData.tenant_id || 'temp');
+            console.log(`📤 Uploaded image ${i + 1}:`, publicUrl);
+          }
+
+          // Start MuAPI Veo 3.1 generation
+          const result = await generateVideoClip(publicUrl, finalPrompt, muapiKey, {
+            resolution: '1080p',
+            aspectRatio,
+            tenantId: userData.tenant_id || 'temp'
+          });
+
+          pendingClips.push({
+            index: i,
+            photoId: photo.id,
+            photoUrl: photo.url,
+            requestId: result.requestId,
+            status: 'processing'
+          });
+
+          console.log(`🎬 Started clip ${i + 1}, requestId: ${result.requestId}`);
+        } catch (error) {
+          console.error(`Error starting clip ${i + 1}:`, error);
+          pendingClips.push({
+            index: i,
+            photoId: photo.id,
+            photoUrl: photo.url,
+            requestId: null,
+            status: 'failed',
+            error: error.message
+          });
+        }
+      }
+
+      setGenerationProgress(25);
+      setGenerationStatus(`Generating ${pendingClips.length} clips with Veo 3.1... (this takes ~90 seconds per clip)`);
+
+      // Step 3: Poll for completion
+      const maxPollTime = 10 * 60 * 1000; // 10 minutes max
+      const pollInterval = 5000; // 5 seconds
+      const startTime = Date.now();
+
+      while (Date.now() - startTime < maxPollTime) {
+        const stillProcessing = pendingClips.filter(c => c.status === 'processing');
+        if (stillProcessing.length === 0) break;
+
+        await mockDelay(pollInterval);
+
+        for (const clip of stillProcessing) {
+          try {
+            const statusResult = await checkVideoStatus(clip.requestId, muapiKey);
+            console.log(`📊 Clip ${clip.index + 1} status:`, statusResult.status);
+
+            if (statusResult.status === 'completed' && statusResult.videoUrl) {
+              clip.status = 'completed';
+              clip.clipUrl = statusResult.videoUrl;
+              console.log(`✅ Clip ${clip.index + 1} ready:`, statusResult.videoUrl);
+            } else if (statusResult.status === 'failed') {
+              clip.status = 'failed';
+              console.error(`❌ Clip ${clip.index + 1} failed`);
+            }
+          } catch (e) {
+            console.log(`Status check error for clip ${clip.index + 1}:`, e.message);
+          }
+        }
+
+        // Update progress
+        const completed = pendingClips.filter(c => c.status === 'completed').length;
+        const progress = 25 + Math.round((completed / pendingClips.length) * 65);
+        setGenerationProgress(progress);
+        setGenerationStatus(`Veo 3.1: ${completed}/${pendingClips.length} clips ready...`);
+      }
+
+      // Step 4: Create scenes from results
+      const newScenes = pendingClips.map((clip, i) => ({
+        id: `scene-${i}`,
+        photoId: clip.photoId,
+        photoUrl: clip.photoUrl,
+        clipUrl: clip.clipUrl || null,
+        duration: 8, // Veo 3.1 generates 8-second clips
+        status: clip.status === 'completed' ? 'ready' : 'failed'
+      }));
+
+      setScenes(newScenes);
+      setGenerationProgress(100);
+
+      const successCount = newScenes.filter(s => s.status === 'ready').length;
+      setGenerationStatus(`Done! ${successCount}/${newScenes.length} clips generated`);
+
+      await mockDelay(500);
+      setCurrentStep('editor');
+
+    } catch (error) {
+      console.error('❌ Generation error:', error);
+      setGenerationStatus(`Error: ${error.message}`);
+      setGenerationProgress(0);
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   // Mock generation fallback (when API keys not available)
   const handleMockGenerate = async () => {
-    setGenerationStatus('Using demo mode...');
+    setGenerationStatus('Demo mode (no MuAPI key)...');
     setGenerationProgress(10);
     await mockDelay(1000);
 
-    setGenerationStatus('Analyzing images...');
+    setGenerationStatus('Preparing preview...');
     setGenerationProgress(30);
     await mockDelay(1500);
     setImprovedPrompt(prompt + ' (Enhanced with cinematic movements and smooth transitions)');
 
     const newScenes = [];
     for (let i = 0; i < photos.length; i++) {
-      setGenerationStatus(`Preparing clip ${i + 1} of ${photos.length}...`);
+      setGenerationStatus(`Preparing scene ${i + 1} of ${photos.length}...`);
       setGenerationProgress(40 + (i * 20));
       await mockDelay(1000);
 
@@ -427,7 +585,7 @@ const ContentStudioV2 = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
 
     setScenes(newScenes);
     setGenerationProgress(100);
-    setGenerationStatus('Ready!');
+    setGenerationStatus('Ready! (demo mode - add MuAPI key for AI video)');
     await mockDelay(500);
     setCurrentStep('editor');
   };
@@ -613,7 +771,6 @@ const ContentStudioV2 = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
       if (videoUrl) {
         console.log('Video URL generated:', videoUrl);
         setVideoUrl(videoUrl);
-        setHasUnsavedChanges(false); // Reset - video now matches current settings
         setExportProgress(100);
       } else {
         setExportProgress(100);
@@ -1220,16 +1377,10 @@ const ContentStudioV2 = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
             <div className="space-y-2 pl-6">
               <select
                 value={editorSettings.music.track}
-                onChange={(e) => {
-                  setEditorSettings(prev => ({
-                    ...prev,
-                    music: { ...prev.music, track: e.target.value }
-                  }));
-                  // Mark that we have changes that need re-export
-                  if (videoUrl || exportJobId) {
-                    setHasUnsavedChanges(true);
-                  }
-                }}
+                onChange={(e) => setEditorSettings(prev => ({
+                  ...prev,
+                  music: { ...prev.music, track: e.target.value }
+                }))}
                 className="w-full px-3 py-2 bg-[#2a2f3a] border border-gray-700 rounded-lg text-white text-sm focus:outline-none focus:border-orange-500"
               >
                 <option value="ambient">Ambient</option>
@@ -1302,32 +1453,15 @@ const ContentStudioV2 = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
           </button>
 
           {/* Generate Video Button */}
-          {/* Warning if settings changed after export */}
-          {hasUnsavedChanges && (
-            <div className="flex items-center gap-2 px-3 py-2 bg-yellow-500/20 border border-yellow-500/50 rounded-lg text-yellow-400 text-xs">
-              <AlertCircle className="w-4 h-4 flex-shrink-0" />
-              <span>Music changed - re-export to apply</span>
-            </div>
-          )}
-
           <button
             onClick={handleExport}
             disabled={isExporting || scenes.length === 0}
-            className={`w-full flex items-center justify-center gap-2 px-4 py-3 font-bold rounded-xl transition-colors disabled:opacity-50 ${
-              hasUnsavedChanges
-                ? 'bg-gradient-to-r from-yellow-500 to-orange-500 text-white hover:from-yellow-600 hover:to-orange-600'
-                : 'bg-gradient-to-r from-orange-500 to-pink-500 text-white hover:from-orange-600 hover:to-pink-600'
-            }`}
+            className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-orange-500 to-pink-500 text-white font-bold rounded-xl hover:from-orange-600 hover:to-pink-600 transition-colors disabled:opacity-50"
           >
             {isExporting ? (
               <>
                 <Loader2 className="w-4 h-4 animate-spin" />
                 Generating Video... {exportProgress}%
-              </>
-            ) : hasUnsavedChanges ? (
-              <>
-                <RefreshCw className="w-4 h-4" />
-                Re-Export with New Music
               </>
             ) : (
               <>
@@ -1340,55 +1474,36 @@ const ContentStudioV2 = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
           {/* Download Button */}
           <button
             onClick={async () => {
-              // Priority 1: Use exportJobId if available (video just generated in this session)
+              if (!videoUrl) {
+                alert('First generate the video with the "Generate Video MP4" button');
+                return;
+              }
+
+              // Use proxy download if jobId available (avoids CORS)
+              const videoServerUrl = import.meta.env.VITE_VIDEO_SERVER_URL || 'http://localhost:3001';
+
               if (exportJobId) {
-                const videoServerUrl = import.meta.env.VITE_VIDEO_SERVER_URL || 'http://localhost:3001';
+                // Download via server proxy (triggers download)
                 const downloadUrl = `${videoServerUrl}/api/download-video/${exportJobId}`;
-                console.log('📥 Downloading via proxy:', downloadUrl);
                 const link = document.createElement('a');
                 link.href = downloadUrl;
                 link.download = `property-video-${Date.now()}.mp4`;
                 document.body.appendChild(link);
                 link.click();
                 document.body.removeChild(link);
-                return;
+              } else {
+                // Fallback: open S3 URL directly (may not download in some browsers)
+                window.open(videoUrl, '_blank');
               }
-
-              // Priority 2: Use videoUrl if available (from saved project or previous export)
-              if (videoUrl) {
-                console.log('📥 Downloading from S3:', videoUrl);
-                // For S3 URLs, we need to fetch and create blob to force download
-                try {
-                  const response = await fetch(videoUrl);
-                  if (!response.ok) throw new Error('Failed to fetch video');
-                  const blob = await response.blob();
-                  const blobUrl = URL.createObjectURL(blob);
-                  const link = document.createElement('a');
-                  link.href = blobUrl;
-                  link.download = `property-video-${Date.now()}.mp4`;
-                  document.body.appendChild(link);
-                  link.click();
-                  document.body.removeChild(link);
-                  URL.revokeObjectURL(blobUrl);
-                } catch (err) {
-                  console.error('Download error:', err);
-                  // Fallback: open in new tab
-                  window.open(videoUrl, '_blank');
-                }
-                return;
-              }
-
-              // No video available
-              alert('First generate the video with the "Generate Video MP4" button');
             }}
             className={`w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl transition-colors ${
-              (videoUrl || exportJobId)
+              videoUrl
                 ? 'bg-green-500 text-white hover:bg-green-600'
                 : 'bg-gray-700 text-gray-400'
             }`}
           >
             <Download className="w-4 h-4" />
-            {(videoUrl || exportJobId) ? 'Download Video' : 'Download'}
+            {videoUrl ? 'Download Video' : 'Download'}
           </button>
         </div>
       </div>
