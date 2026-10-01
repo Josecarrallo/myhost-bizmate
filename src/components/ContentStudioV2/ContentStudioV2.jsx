@@ -140,6 +140,7 @@ const ContentStudioV2 = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
   const [isExporting, setIsExporting] = useState(false);
   const [exportProgress, setExportProgress] = useState(0);
   const [exportJobId, setExportJobId] = useState(null); // Job ID for download
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false); // Track if settings changed after last export
 
   // Project
   const [projectId, setProjectId] = useState(null);
@@ -612,6 +613,7 @@ const ContentStudioV2 = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
       if (videoUrl) {
         console.log('Video URL generated:', videoUrl);
         setVideoUrl(videoUrl);
+        setHasUnsavedChanges(false); // Reset - video now matches current settings
         setExportProgress(100);
       } else {
         setExportProgress(100);
@@ -1218,10 +1220,16 @@ const ContentStudioV2 = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
             <div className="space-y-2 pl-6">
               <select
                 value={editorSettings.music.track}
-                onChange={(e) => setEditorSettings(prev => ({
-                  ...prev,
-                  music: { ...prev.music, track: e.target.value }
-                }))}
+                onChange={(e) => {
+                  setEditorSettings(prev => ({
+                    ...prev,
+                    music: { ...prev.music, track: e.target.value }
+                  }));
+                  // Mark that we have changes that need re-export
+                  if (videoUrl || exportJobId) {
+                    setHasUnsavedChanges(true);
+                  }
+                }}
                 className="w-full px-3 py-2 bg-[#2a2f3a] border border-gray-700 rounded-lg text-white text-sm focus:outline-none focus:border-orange-500"
               >
                 <option value="ambient">Ambient</option>
@@ -1294,15 +1302,32 @@ const ContentStudioV2 = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
           </button>
 
           {/* Generate Video Button */}
+          {/* Warning if settings changed after export */}
+          {hasUnsavedChanges && (
+            <div className="flex items-center gap-2 px-3 py-2 bg-yellow-500/20 border border-yellow-500/50 rounded-lg text-yellow-400 text-xs">
+              <AlertCircle className="w-4 h-4 flex-shrink-0" />
+              <span>Music changed - re-export to apply</span>
+            </div>
+          )}
+
           <button
             onClick={handleExport}
             disabled={isExporting || scenes.length === 0}
-            className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-orange-500 to-pink-500 text-white font-bold rounded-xl hover:from-orange-600 hover:to-pink-600 transition-colors disabled:opacity-50"
+            className={`w-full flex items-center justify-center gap-2 px-4 py-3 font-bold rounded-xl transition-colors disabled:opacity-50 ${
+              hasUnsavedChanges
+                ? 'bg-gradient-to-r from-yellow-500 to-orange-500 text-white hover:from-yellow-600 hover:to-orange-600'
+                : 'bg-gradient-to-r from-orange-500 to-pink-500 text-white hover:from-orange-600 hover:to-pink-600'
+            }`}
           >
             {isExporting ? (
               <>
                 <Loader2 className="w-4 h-4 animate-spin" />
                 Generating Video... {exportProgress}%
+              </>
+            ) : hasUnsavedChanges ? (
+              <>
+                <RefreshCw className="w-4 h-4" />
+                Re-Export with New Music
               </>
             ) : (
               <>
