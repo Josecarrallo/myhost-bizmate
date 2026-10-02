@@ -8,6 +8,7 @@ import { OverviewDashboardVideo } from "./OverviewDashboardVideo";
 import { CompleteOverviewVideo } from "./CompleteOverviewVideo";
 import { NismaraVilla } from "./NismaraVilla";
 import { LtxPromo } from "./LtxPromo";
+import { PropertyPromo } from "./PropertyPromo"; // NEW: Content Studio V2 composition
 
 export const RemotionRoot: React.FC = () => {
   return (
@@ -207,6 +208,63 @@ export const RemotionRoot: React.FC = () => {
         height={1080}
         defaultProps={{
           musicFile: 'bali-sunrise.mp3',
+        }}
+      />
+
+      {/* ================================================= */}
+      {/* NEW: Property Promo - Content Studio V2 Slideshow */}
+      {/* Architecture: OpenAI + MuAPI + Remotion (NOT LTX-2) */}
+      {/* ================================================= */}
+      <Composition
+        id="PropertyPromo"
+        component={PropertyPromo}
+        durationInFrames={450}  // 15 seconds at 30 FPS (will be overridden by inputProps)
+        fps={30}
+        width={1080}
+        height={1920}  // Vertical by default (9:16)
+        defaultProps={{
+          scenes: [],
+          settings: {
+            text: { enabled: false },
+            music: { enabled: true, track: 'ambient', volume: 0.7 }
+          },
+          format: '9:16'
+        }}
+      />
+
+      {/* PropertyPromo - Horizontal (16:9) */}
+      <Composition
+        id="PropertyPromoHorizontal"
+        component={PropertyPromo}
+        durationInFrames={450}
+        fps={30}
+        width={1920}
+        height={1080}
+        defaultProps={{
+          scenes: [],
+          settings: {
+            text: { enabled: false },
+            music: { enabled: true, track: 'ambient', volume: 0.7 }
+          },
+          format: '16:9'
+        }}
+      />
+
+      {/* PropertyPromo - Square (1:1) */}
+      <Composition
+        id="PropertyPromoSquare"
+        component={PropertyPromo}
+        durationInFrames={450}
+        fps={30}
+        width={1080}
+        height={1080}
+        defaultProps={{
+          scenes: [],
+          settings: {
+            text: { enabled: false },
+            music: { enabled: true, track: 'ambient', volume: 0.7 }
+          },
+          format: '1:1'
         }}
       />
     </>

@@ -53,7 +53,8 @@ import {
   User,
   Edit3,
   Menu,
-  PanelLeftOpen
+  PanelLeftOpen,
+  Video
 } from 'lucide-react';
 import ManualDataEntry from '../ManualDataEntry/ManualDataEntry';
 import MasterCalendar from '../MasterCalendar/MasterCalendar';
@@ -64,6 +65,7 @@ import DecisionIntelligence from './DecisionIntelligence';
 import Guest360 from '../Guest360';
 import OwnerMessages from '../OwnerMessages/OwnerMessages';
 import Properties from '../Properties/Properties';
+import ContentStudioV2 from '../ContentStudioV2/ContentStudioV2';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
 import { generateReportHTML } from '../../services/generateReportHTML';
@@ -867,6 +869,13 @@ const Autopilot = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
       icon: Workflow,
       description: 'View all system automation workflows',
       badge: null
+    },
+    {
+      id: 'content-studio-v2',
+      name: 'Content Studio (AI Video) II',
+      icon: Video,
+      description: 'AI Video Generator - OpenAI + MuAPI + Remotion',
+      badge: 'NEW'
     }
   ];
 
@@ -10920,6 +10929,7 @@ const Autopilot = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
             ) : null
           )}
           {activeSection === 'data-export' && renderDataExportSection()}
+          {activeSection === 'content-studio-v2' && <ContentStudioV2 onBack={() => setActiveSection('menu')} setSidebarCollapsed={setSidebarCollapsed} sidebarCollapsed={sidebarCollapsed} />}
         </div>
       </div>
 
