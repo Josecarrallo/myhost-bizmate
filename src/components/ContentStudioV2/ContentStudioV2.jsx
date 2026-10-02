@@ -700,11 +700,13 @@ const ContentStudioV2 = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
 
         uploadedScenes.push({
           photoUrl,
+          clipUrl: scene.clipUrl || null,  // Include MuAPI video clip if available
           duration: scene.duration
         });
       }
 
       console.log(`All ${uploadedScenes.length} scenes processed. First scene URL type: ${uploadedScenes[0]?.photoUrl?.substring(0, 30)}...`);
+      console.log(`🎬 Scenes with clipUrl:`, uploadedScenes.map((s, i) => `Scene ${i+1}: ${s.clipUrl ? 'HAS VIDEO' : 'PHOTO ONLY'}`));
 
       setExportProgress(20);
 
@@ -809,6 +811,19 @@ const ContentStudioV2 = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
         output_url: videoUrl,
         status: videoUrl ? 'exported' : 'draft'
       };
+
+      // DEBUG: Log what we're saving
+      console.log('=== SAVE DEBUG ===');
+      console.log('projectId:', projectId);
+      console.log('scenes count:', scenes?.length);
+      console.log('scenes data:', JSON.stringify(scenes?.map(s => ({
+        id: s.id,
+        hasPhotoUrl: !!s.photoUrl,
+        photoUrlStart: s.photoUrl?.substring(0, 30),
+        clipUrl: s.clipUrl || 'NULL',
+        duration: s.duration
+      })), null, 2));
+      console.log('==================');
 
       if (projectId) {
         // Update existing project
@@ -952,10 +967,10 @@ const ContentStudioV2 = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
       <div className="flex justify-end">
         <button
           onClick={() => setCurrentStep('prompt')}
-          disabled={photos.length < 2}
+          disabled={photos.length < 1}
           className={`
             flex items-center gap-2 px-6 py-3 rounded-xl font-bold transition-all
-            ${photos.length >= 2
+            ${photos.length >= 1
               ? 'bg-orange-500 text-white hover:bg-orange-600'
               : 'bg-gray-700 text-gray-500 cursor-not-allowed'
             }

@@ -85,6 +85,7 @@ function setupExportRoutes(app) {
 
             uploadedScenes.push({
               photoUrl: photoUrl,
+              clipUrl: scenes[i].clipUrl || null,  // Include MuAPI video clip if available
               duration: scenes[i].duration || 4.5
             });
 
@@ -92,6 +93,9 @@ function setupExportRoutes(app) {
           }
 
           console.log(`✅ All ${uploadedScenes.length} images uploaded to S3`);
+          console.log(`🎬 Scenes with clipUrl:`, uploadedScenes.map((s, i) =>
+            `Scene ${i+1}: ${s.clipUrl ? 'HAS VIDEO (' + s.clipUrl.substring(0, 50) + '...)' : 'PHOTO ONLY'}`
+          ));
           exportJobs.get(jobId).progress = 0.15;
 
           const { renderMediaOnLambda, getRenderProgress } = require("@remotion/lambda/client");
