@@ -1488,28 +1488,13 @@ const ContentStudioV2 = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
 
           {/* Download Button */}
           <button
-            onClick={async () => {
+            onClick={() => {
               if (!videoUrl) {
                 alert('First generate the video with the "Generate Video MP4" button');
                 return;
               }
-
-              // Use proxy download if jobId available (avoids CORS)
-              const videoServerUrl = import.meta.env.VITE_VIDEO_SERVER_URL || 'http://localhost:3001';
-
-              if (exportJobId) {
-                // Download via server proxy (triggers download)
-                const downloadUrl = `${videoServerUrl}/api/download-video/${exportJobId}`;
-                const link = document.createElement('a');
-                link.href = downloadUrl;
-                link.download = `property-video-${Date.now()}.mp4`;
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-              } else {
-                // Fallback: open S3 URL directly (may not download in some browsers)
-                window.open(videoUrl, '_blank');
-              }
+              // Open S3 URL directly - works better than proxy
+              window.open(videoUrl, '_blank');
             }}
             className={`w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl transition-colors ${
               videoUrl
