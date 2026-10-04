@@ -26,7 +26,8 @@ const MUAPI_BASE_URL = 'https://api.muapi.ai';
 const OPENAI_API_URL = 'https://api.openai.com/v1';
 
 // Backend proxy for MuAPI (to avoid CORS issues)
-const VIDEO_SERVER_URL = import.meta.env.VITE_VIDEO_SERVER_URL || 'http://localhost:3001';
+// Uses VITE_API_URL (same as ContentStudio V1) which is configured in Vercel to point to Railway
+const VIDEO_SERVER_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
 // Storage bucket name
 const STORAGE_BUCKET = 'content-studio';

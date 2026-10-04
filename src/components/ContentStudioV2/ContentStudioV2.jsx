@@ -635,7 +635,8 @@ const ContentStudioV2 = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
 
     try {
       // Get video server URL from env or default
-      const videoServerUrl = import.meta.env.VITE_VIDEO_SERVER_URL || 'http://localhost:3001';
+      // Uses VITE_API_URL (same as ContentStudio V1) which is configured in Vercel to point to Railway
+      const videoServerUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
       // First check if video server is available
       try {
