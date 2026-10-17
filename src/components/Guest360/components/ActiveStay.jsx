@@ -45,7 +45,7 @@ const serviceTypeEmojis = {
   other: '📋',
 };
 
-const ActiveStay = ({ booking, currency = 'USD', serviceRequests = [], journeyEvents = [], decisions = [] }) => {
+const ActiveStay = ({ booking, currency = 'USD', serviceRequests = [], journeyEvents = [], decisions = [], dateConflict = null }) => {
   // No active booking
   if (!booking) {
     return (
@@ -141,6 +141,40 @@ const ActiveStay = ({ booking, currency = 'USD', serviceRequests = [], journeyEv
           {statusInfo.label}
         </Badge>
       </div>
+
+      {/* DATE CONFLICT WARNING (§72.6 nota A) */}
+      {dateConflict && (
+        <div className="mx-5 mb-3">
+          <div className="p-3 rounded-xl bg-red-500/20 border border-red-500/50">
+            <div className="flex items-start gap-2">
+              <AlertTriangle className="w-5 h-5 text-red-400 mt-0.5 flex-shrink-0" />
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-bold text-red-300">
+                  🚨 DATE CONFLICT DETECTED
+                </p>
+                <p className="text-xs text-red-200/80 mt-1">
+                  This booking overlaps with another reservation.
+                  Guest messages are paused until resolved.
+                </p>
+                {(() => {
+                  const details = dateConflict.details || {};
+                  const otherBooking = details.booking_a?.id === booking.id
+                    ? details.booking_b
+                    : details.booking_a;
+                  if (otherBooking?.confirmation_code) {
+                    return (
+                      <p className="text-xs text-red-300 mt-2 font-mono">
+                        Conflicts with: {otherBooking.confirmation_code}
+                      </p>
+                    );
+                  }
+                  return null;
+                })()}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Villa name + confirmation code */}
       <div className="px-5 pb-4">
@@ -264,44 +298,46 @@ const ActiveStay = ({ booking, currency = 'USD', serviceRequests = [], journeyEv
         )}
       </div>
 
-      {/* Progress bar section */}
-      <div className="px-5 pb-5">
-        <ProgressBar
-          progress={progress}
-          variant={phase === 'during' ? 'primary' : 'neutral'}
-          showLabel
-          markers={markers}
-        />
+      {/* Progress bar section - hide active journey for cancelled bookings (§72.6 nota A) */}
+      {booking.status !== 'cancelled' && (
+        <div className="px-5 pb-5">
+          <ProgressBar
+            progress={progress}
+            variant={phase === 'during' ? 'primary' : 'neutral'}
+            showLabel
+            markers={markers}
+          />
 
-        {/* Progress text */}
-        <div className="mt-2 flex items-center justify-between text-xs">
-          <span className="text-[#8a93a1]">
-            {phase === 'before' && (
-              <>
-                <Clock className="w-3 h-3 inline mr-1" />
-                Arrives in {Math.abs(daysIn)} days
-              </>
-            )}
-            {phase === 'during' && (
-              <>
-                Day {daysIn + 1} of {totalNights}
-              </>
-            )}
-            {phase === 'after' && (
-              <>
-                <CheckCircle2 className="w-3 h-3 inline mr-1 text-green-400" />
-                Completed
-              </>
-            )}
-          </span>
-
-          {phase === 'during' && daysLeft > 0 && (
-            <span className="text-[#f5791f] font-semibold">
-              {daysLeft} night{daysLeft !== 1 ? 's' : ''} left
+          {/* Progress text */}
+          <div className="mt-2 flex items-center justify-between text-xs">
+            <span className="text-[#8a93a1]">
+              {phase === 'before' && (
+                <>
+                  <Clock className="w-3 h-3 inline mr-1" />
+                  Arrives in {Math.abs(daysIn)} days
+                </>
+              )}
+              {phase === 'during' && (
+                <>
+                  Day {daysIn + 1} of {totalNights}
+                </>
+              )}
+              {phase === 'after' && (
+                <>
+                  <CheckCircle2 className="w-3 h-3 inline mr-1 text-green-400" />
+                  Completed
+                </>
+              )}
             </span>
-          )}
+
+            {phase === 'during' && daysLeft > 0 && (
+              <span className="text-[#f5791f] font-semibold">
+                {daysLeft} night{daysLeft !== 1 ? 's' : ''} left
+              </span>
+            )}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Service Requests for this booking */}
       {serviceRequests.length > 0 && (

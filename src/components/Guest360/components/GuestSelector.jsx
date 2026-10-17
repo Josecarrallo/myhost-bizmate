@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Search,
   Phone,
@@ -9,6 +9,8 @@ import {
   Users,
   Menu,
   PanelLeftOpen,
+  History,
+  UserCheck,
 } from 'lucide-react';
 import { supabase } from '../../../lib/supabase';
 import { LoadingSpinner, EmptyState } from './shared';
@@ -29,6 +31,9 @@ const GuestSelector = ({ tenantId, onSelectGuest, onBack, setSidebarCollapsed, s
   const [filterStatus, setFilterStatus] = useState('');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
+
+  // View mode: 'active' (default) or 'all' (history)
+  const [viewMode, setViewMode] = useState('active');
 
   useEffect(() => {
     fetchRecentGuests();
@@ -107,6 +112,10 @@ const GuestSelector = ({ tenantId, onSelectGuest, onBack, setSidebarCollapsed, s
           check_out,
           status,
           villa_id,
+          confirmation_code,
+          notes,
+          source,
+          channel,
           villas:villa_id (name)
         `)
         .eq('tenant_id', tenantId)
@@ -117,18 +126,32 @@ const GuestSelector = ({ tenantId, onSelectGuest, onBack, setSidebarCollapsed, s
       // Generic names that should NOT be grouped (each booking = separate guest)
       const genericNames = ['ota guest', 'guest', 'airbnb guest', 'booking.com guest', 'unknown', 'n/a', 'na', 'tba', 'tbd'];
 
-      // Group by guest_phone OR guest_name (for guests without phone)
+      // Helper: Normalize phone to digits only (e.g., '+34 619 79 46 04' → '34619794604')
+      const normalizePhone = (phone) => {
+        if (!phone) return null;
+        return phone.replace(/\D/g, '');
+      };
+
+      // Helper: Format phone for display (add + prefix if not present)
+      const formatPhoneDisplay = (phone) => {
+        if (!phone) return null;
+        const cleaned = phone.replace(/\D/g, '');
+        return phone.startsWith('+') ? phone : `+${cleaned}`;
+      };
+
+      // Group by NORMALIZED guest_phone OR guest_name (for guests without phone)
       // Exception: generic names are NOT grouped - each booking is a separate entry
       const guestMap = new Map();
       (data || []).forEach(booking => {
         const nameNormalized = (booking.guest_name || '').toLowerCase().trim();
         const isGenericName = genericNames.includes(nameNormalized);
+        const phoneNormalized = normalizePhone(booking.guest_phone);
 
-        // Use phone as primary key, fall back to name if no phone
+        // Use NORMALIZED phone as primary key, fall back to name if no phone
         // For generic names without phone, use booking ID to keep them separate
         let key;
-        if (booking.guest_phone) {
-          key = booking.guest_phone;
+        if (phoneNormalized) {
+          key = phoneNormalized; // Use digits-only phone as key
         } else if (isGenericName) {
           // Each booking with generic name is a separate "guest"
           key = `booking:${booking.id}`;
@@ -140,13 +163,30 @@ const GuestSelector = ({ tenantId, onSelectGuest, onBack, setSidebarCollapsed, s
 
         if (!guestMap.has(key)) {
           guestMap.set(key, {
-            phone: booking.guest_phone || null,
+            phone: formatPhoneDisplay(booking.guest_phone) || null, // Store formatted phone for display
+            phoneNormalized: phoneNormalized, // Store normalized phone for lookup
             name: booking.guest_name,
             email: booking.guest_email,
             bookings: [],
             lastBooking: booking,
             isGenericName: isGenericName,
           });
+        } else {
+          // Update name to most recent non-generic, non-TEST name
+          const existing = guestMap.get(key);
+          const currentName = (existing.name || '').toLowerCase();
+          const newName = (booking.guest_name || '').toLowerCase();
+          const isCurrentGeneric = genericNames.includes(currentName) || currentName.includes('test');
+          const isNewGeneric = genericNames.includes(newName) || newName.includes('test');
+
+          // Prefer non-generic, non-TEST name
+          if (isCurrentGeneric && !isNewGeneric) {
+            existing.name = booking.guest_name;
+          }
+          // Update phone display if current is missing or new one has + prefix
+          if (!existing.phone && booking.guest_phone) {
+            existing.phone = formatPhoneDisplay(booking.guest_phone);
+          }
         }
         guestMap.get(key).bookings.push(booking);
       });
@@ -165,17 +205,56 @@ const GuestSelector = ({ tenantId, onSelectGuest, onBack, setSidebarCollapsed, s
     }
   };
 
-  // Filter guests by all criteria
-  const filteredGuests = guests.filter(guest => {
-    // Search term filter
+  // Calculate cutoff date for "active" guests (today - 6 months)
+  const activeCutoffDate = useMemo(() => {
+    const date = new Date();
+    date.setMonth(date.getMonth() - 6);
+    date.setHours(0, 0, 0, 0);
+    return date;
+  }, []);
+
+  // Pre-filter guests based on view mode (active vs all)
+  const viewFilteredGuests = useMemo(() => {
+    return guests.filter(guest => {
+      // 1. Always hide guests whose ALL bookings are cancelled
+      const hasNonCancelledBooking = guest.bookings.some(b => b.status !== 'cancelled');
+      if (!hasNonCancelledBooking) return false;
+
+      // 2. In "active" mode, apply additional filters
+      if (viewMode === 'active') {
+        // Hide OTA Guest entries (generic names from iCal with no phone)
+        if (guest.isGenericName && !guest.phone) return false;
+
+        // Only show guests with at least one non-cancelled booking with check_out >= cutoff (today - 30 days)
+        const hasRecentOrFutureBooking = guest.bookings.some(b => {
+          if (b.status === 'cancelled') return false;
+          const checkOut = new Date(b.check_out);
+          return checkOut >= activeCutoffDate;
+        });
+        if (!hasRecentOrFutureBooking) return false;
+      }
+
+      return true;
+    });
+  }, [guests, viewMode, activeCutoffDate]);
+
+  // Filter guests by user-specified criteria (search, villa, status, dates)
+  const filteredGuests = viewFilteredGuests.filter(guest => {
+    // Search term filter - search by name, phone, email, confirmation_code, or notes (DATE CONFLICT)
     if (searchTerm) {
       const term = searchTerm.toLowerCase();
-      const matchesSearch = (
+      // Check guest-level fields
+      const matchesGuestFields = (
         guest.name?.toLowerCase().includes(term) ||
         guest.phone?.includes(term) ||
         guest.email?.toLowerCase().includes(term)
       );
-      if (!matchesSearch) return false;
+      // Check booking-level fields (confirmation_code, notes with DATE CONFLICT)
+      const matchesBookingFields = guest.bookings?.some(b =>
+        b.confirmation_code?.toLowerCase().includes(term) ||
+        b.notes?.toLowerCase().includes(term)
+      );
+      if (!matchesGuestFields && !matchesBookingFields) return false;
     }
 
     // Villa filter - check if any booking matches
@@ -221,6 +300,27 @@ const GuestSelector = ({ tenantId, onSelectGuest, onBack, setSidebarCollapsed, s
 
   // Check if any filters are active
   const hasActiveFilters = filterVilla || filterStatus || dateFrom || dateTo || searchTerm;
+
+  // Count total guests in each view for badges
+  const activeGuestsCount = useMemo(() => {
+    return guests.filter(guest => {
+      const hasNonCancelledBooking = guest.bookings.some(b => b.status !== 'cancelled');
+      if (!hasNonCancelledBooking) return false;
+      if (guest.isGenericName && !guest.phone) return false;
+      const hasRecentOrFutureBooking = guest.bookings.some(b => {
+        if (b.status === 'cancelled') return false;
+        const checkOut = new Date(b.check_out);
+        return checkOut >= activeCutoffDate;
+      });
+      return hasRecentOrFutureBooking;
+    }).length;
+  }, [guests, activeCutoffDate]);
+
+  const allGuestsCount = useMemo(() => {
+    return guests.filter(guest => {
+      return guest.bookings.some(b => b.status !== 'cancelled');
+    }).length;
+  }, [guests]);
 
   // Clear all filters
   const clearFilters = () => {
@@ -305,6 +405,42 @@ const GuestSelector = ({ tenantId, onSelectGuest, onBack, setSidebarCollapsed, s
           </button>
         </div>
 
+        {/* View Mode Toggle: Active vs All (History) */}
+        <div className="mb-4 flex gap-2">
+          <button
+            onClick={() => setViewMode('active')}
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-medium text-sm transition-all ${
+              viewMode === 'active'
+                ? 'bg-[#f5791f] text-white'
+                : 'bg-[#333b47] text-[#8a93a1] hover:bg-[#3a434f] hover:text-white'
+            }`}
+          >
+            <UserCheck className="w-4 h-4" />
+            Active Guests
+            <span className={`ml-1 px-1.5 py-0.5 rounded text-xs ${
+              viewMode === 'active' ? 'bg-white/20' : 'bg-[#f5791f]/20 text-[#f5791f]'
+            }`}>
+              {activeGuestsCount}
+            </span>
+          </button>
+          <button
+            onClick={() => setViewMode('all')}
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-medium text-sm transition-all ${
+              viewMode === 'all'
+                ? 'bg-[#f5791f] text-white'
+                : 'bg-[#333b47] text-[#8a93a1] hover:bg-[#3a434f] hover:text-white'
+            }`}
+          >
+            <History className="w-4 h-4" />
+            All Guests (History)
+            <span className={`ml-1 px-1.5 py-0.5 rounded text-xs ${
+              viewMode === 'all' ? 'bg-white/20' : 'bg-gray-500/20 text-gray-400'
+            }`}>
+              {allGuestsCount}
+            </span>
+          </button>
+        </div>
+
         {/* Villa/Room Type Filter - Prominent first filter */}
         <div className="mb-4">
           <label className="text-xs text-[#8a93a1] uppercase tracking-wider mb-2 block font-semibold">
@@ -343,7 +479,7 @@ const GuestSelector = ({ tenantId, onSelectGuest, onBack, setSidebarCollapsed, s
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#6d7683]" />
             <input
               type="text"
-              placeholder="Search guest..."
+              placeholder="Search by guest, booking code (NIS-...), or 'conflict'..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full pl-9 pr-4 py-2.5 bg-[#333b47] border border-white/10 rounded-xl text-white text-sm placeholder-[#6d7683] focus:outline-none focus:border-[#f5791f]/50"
@@ -387,7 +523,9 @@ const GuestSelector = ({ tenantId, onSelectGuest, onBack, setSidebarCollapsed, s
         {/* Results count */}
         <p className="text-[#8a93a1] text-sm mb-4">
           {filteredGuests.length} guest{filteredGuests.length !== 1 ? 's' : ''} found
-          {hasActiveFilters && ' (filtered)'}
+          {viewMode === 'active' && ' (recent/upcoming stays)'}
+          {viewMode === 'all' && ' (full history)'}
+          {hasActiveFilters && ' · filtered'}
         </p>
 
         {/* Error state */}
@@ -412,8 +550,9 @@ const GuestSelector = ({ tenantId, onSelectGuest, onBack, setSidebarCollapsed, s
           <div className="space-y-3">
             {filteredGuests.map((guest) => {
               // Determine the key for selecting this guest
-              const selectKey = guest.phone
-                ? guest.phone
+              // Use normalized phone (digits only) for lookup consistency
+              const selectKey = guest.phoneNormalized
+                ? guest.phoneNormalized
                 : guest.isGenericName
                   ? `booking:${guest.lastBooking.id}`
                   : `name:${guest.name}`;
@@ -467,6 +606,53 @@ const GuestSelector = ({ tenantId, onSelectGuest, onBack, setSidebarCollapsed, s
                       {guest.bookings.length} booking{guest.bookings.length !== 1 ? 's' : ''}
                     </span>
                   </div>
+
+                  {/* Channel badges - show unique channels from all bookings */}
+                  {(() => {
+                    // Use channel field (airbnb, direct, booking) NOT source (beds24_api, ical_sync)
+                    const channels = [...new Set(guest.bookings.map(b => b.channel).filter(Boolean))];
+                    if (channels.length === 0) return null;
+
+                    const channelColors = {
+                      'airbnb': 'bg-[#FF5A5F]/20 text-[#FF5A5F]',
+                      'booking': 'bg-[#003580]/20 text-[#4A90D9]',
+                      'booking.com': 'bg-[#003580]/20 text-[#4A90D9]',
+                      'direct': 'bg-green-500/20 text-green-400',
+                      'banyu': 'bg-purple-500/20 text-purple-400',
+                      'kora': 'bg-orange-500/20 text-orange-400',
+                      'voice_ai': 'bg-orange-500/20 text-orange-400',
+                      'whatsapp': 'bg-emerald-500/20 text-emerald-400',
+                    };
+
+                    const channelLabels = {
+                      'airbnb': 'Airbnb',
+                      'booking': 'Booking.com',
+                      'booking.com': 'Booking.com',
+                      'direct': 'Direct',
+                      'banyu': 'Banyu',
+                      'kora': 'Kora',
+                      'voice_ai': 'Kora',
+                      'whatsapp': 'WhatsApp',
+                    };
+
+                    return (
+                      <div className="flex flex-wrap gap-1 mt-1.5">
+                        {channels.map(channel => {
+                          const channelLower = channel.toLowerCase();
+                          const colorClass = channelColors[channelLower] || 'bg-gray-500/20 text-gray-400';
+                          const label = channelLabels[channelLower] || channel.charAt(0).toUpperCase() + channel.slice(1);
+                          return (
+                            <span
+                              key={channel}
+                              className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${colorClass}`}
+                            >
+                              {label}
+                            </span>
+                          );
+                        })}
+                      </div>
+                    );
+                  })()}
 
                   {/* Booking info */}
                   <div className="flex items-center gap-2 mt-1.5 text-xs text-[#6d7683]">

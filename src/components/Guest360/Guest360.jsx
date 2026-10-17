@@ -80,6 +80,7 @@ const Guest360 = ({
     digitalCheckin,
     stats,
     currency,
+    dateConflicts,
     loading,
     error,
     refresh,
@@ -300,7 +301,21 @@ const Guest360 = ({
                 {(() => {
                   const filteredBookings = bookings
                     .filter(b => !filterStatus || b.status === filterStatus)
-                    .sort((a, b) => new Date(a.check_in) - new Date(b.check_in));
+                    .sort((a, b) => {
+                      // Date conflicts first
+                      const aHasConflict = dateConflicts.some(c => {
+                        const details = c.details || {};
+                        return details.booking_a?.id === a.id || details.booking_b?.id === a.id;
+                      });
+                      const bHasConflict = dateConflicts.some(c => {
+                        const details = c.details || {};
+                        return details.booking_a?.id === b.id || details.booking_b?.id === b.id;
+                      });
+                      if (aHasConflict && !bHasConflict) return -1;
+                      if (!aHasConflict && bHasConflict) return 1;
+                      // Then by check_in date
+                      return new Date(a.check_in) - new Date(b.check_in);
+                    });
 
                   if (bookings.length === 0) {
                     return (
@@ -339,6 +354,12 @@ const Guest360 = ({
                         return false;
                       });
 
+                      // Find date conflict for this booking
+                      const bookingConflict = dateConflicts.find(conflict => {
+                        const details = conflict.details || {};
+                        return details.booking_a?.id === booking.id || details.booking_b?.id === booking.id;
+                      });
+
                       return (
                         <ActiveStay
                           key={booking.id}
@@ -347,6 +368,7 @@ const Guest360 = ({
                           serviceRequests={serviceRequests.filter(sr => sr.booking_id === booking.id)}
                           journeyEvents={journeyEvents.filter(je => je.booking_id === booking.id)}
                           decisions={bookingDecisions}
+                          dateConflict={bookingConflict}
                         />
                       );
                     });
@@ -372,8 +394,8 @@ const Guest360 = ({
                 </div>
               )}
 
-              {/* Journey Timeline for active booking */}
-              {activeBooking && (
+              {/* Journey Timeline for active booking - hide for cancelled bookings (§72.6 nota A) */}
+              {activeBooking && activeBooking.status !== 'cancelled' && (
                 <JourneyTimeline
                   journeyEvents={journeyEvents.filter(je => je.booking_id === activeBooking.id)}
                   booking={activeBooking}

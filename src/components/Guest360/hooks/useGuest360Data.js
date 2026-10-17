@@ -27,6 +27,7 @@ const useGuest360Data = (guestPhone, tenantId, bookingId = null) => {
   const [digitalCheckin, setDigitalCheckin] = useState(null);
   const [lead, setLead] = useState(null);
   const [currency, setCurrency] = useState('USD'); // Owner's currency
+  const [dateConflicts, setDateConflicts] = useState([]); // Date conflict alerts
 
   // Computed values
   const [stats, setStats] = useState({
@@ -317,6 +318,34 @@ const useGuest360Data = (guestPhone, tenantId, bookingId = null) => {
         setLead(null);
       }
 
+      // 11. Fetch date conflicts from autopilot_alerts
+      // Note: related_type='date_conflict', NOT alert_type (alert_type is 'urgent')
+      const bookingIdsForConflicts = (bookingsData || []).map(b => b.id);
+      if (bookingIdsForConflicts.length > 0) {
+        const { data: conflictsData, error: conflictsError } = await supabase
+          .from('autopilot_alerts')
+          .select('*')
+          .eq('tenant_id', tenantId)
+          .eq('related_type', 'date_conflict')
+          .eq('is_resolved', false);
+
+        if (!conflictsError && conflictsData) {
+          // Filter conflicts that involve any of this guest's bookings
+          const relevantConflicts = conflictsData.filter(conflict => {
+            const details = conflict.details || {};
+            const bookingAId = details.booking_a?.id;
+            const bookingBId = details.booking_b?.id;
+            return bookingIdsForConflicts.includes(bookingAId) || bookingIdsForConflicts.includes(bookingBId);
+          });
+          setDateConflicts(relevantConflicts);
+          console.log('📅 [Hook] Date conflicts for guest bookings:', relevantConflicts.length);
+        } else {
+          setDateConflicts([]);
+        }
+      } else {
+        setDateConflicts([]);
+      }
+
       // Calculate stats
       const totalSpent = (bookingsData || []).reduce((sum, b) => sum + (b.total_price || 0), 0);
       const totalBookings = (bookingsData || []).length;
@@ -437,6 +466,7 @@ const useGuest360Data = (guestPhone, tenantId, bookingId = null) => {
     lead,
     stats,
     currency,
+    dateConflicts,
 
     // State
     loading,

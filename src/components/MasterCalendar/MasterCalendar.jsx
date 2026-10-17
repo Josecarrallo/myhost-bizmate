@@ -17,6 +17,7 @@ import {
   Save,
   CheckCircle,
   AlertCircle,
+  AlertTriangle,
   Menu,
   PanelLeftOpen
 } from 'lucide-react';
@@ -85,6 +86,11 @@ const MasterCalendar = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
     status: 'hold',
     notes: ''
   });
+
+  // Conflict check modal state
+  const [conflictCheckResult, setConflictCheckResult] = useState(null);
+  const [pendingBookingData, setPendingBookingData] = useState(null);
+  const [isCheckingConflicts, setIsCheckingConflicts] = useState(false);
 
   // Load data when filters or month changes
   useEffect(() => {
@@ -468,6 +474,66 @@ const MasterCalendar = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
     setShowQuickBookingForm(true);
   };
 
+  // Check for booking conflicts using Supabase RPC
+  const checkBookingConflicts = async (villaId, checkIn, checkOut) => {
+    try {
+      const { data, error } = await supabase.rpc('check_booking_conflicts', {
+        p_villa_id: villaId,
+        p_check_in: checkIn,
+        p_check_out: checkOut,
+        p_exclude_booking_id: null
+      });
+
+      if (error) {
+        console.error('Error checking conflicts:', error);
+        return { success: false, error: error.message };
+      }
+
+      return { success: true, conflicts: data || [] };
+    } catch (err) {
+      console.error('Network error checking conflicts:', err);
+      return { success: false, error: err.message };
+    }
+  };
+
+  // Format date for conflict display
+  const formatConflictDate = (dateStr) => {
+    if (!dateStr) return '';
+    const date = new Date(dateStr);
+    return date.toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' });
+  };
+
+  // Handle save anyway (user confirmed despite conflicts)
+  const handleSaveAnyway = async () => {
+    if (!pendingBookingData) return;
+
+    setConflictCheckResult(null);
+
+    try {
+      await supabaseService.createBooking(pendingBookingData);
+      setSuccessMessage(`Booking created successfully! Guest: ${pendingBookingData.guest_name}, ${pendingBookingData.nights} nights`);
+      await loadData();
+      setTimeout(() => {
+        setSelectedDay(null);
+        setShowQuickBookingForm(false);
+        setSuccessMessage('');
+      }, 2000);
+    } catch (error) {
+      console.error('Error creating booking:', error);
+      setErrorMessage(error.message || 'Failed to create booking. Please try again.');
+    } finally {
+      setPendingBookingData(null);
+      setIsSubmitting(false);
+    }
+  };
+
+  // Handle cancel conflict modal
+  const handleCancelConflict = () => {
+    setConflictCheckResult(null);
+    setPendingBookingData(null);
+    setIsSubmitting(false);
+  };
+
   // Handle quick booking submit
   const handleQuickBookingSubmit = async (e) => {
     e.preventDefault();
@@ -520,6 +586,27 @@ const MasterCalendar = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
         updated_at: new Date().toISOString()
       };
 
+      // Check for conflicts before saving
+      setIsCheckingConflicts(true);
+      const conflictResult = await checkBookingConflicts(
+        bookingForm.villaId,
+        bookingForm.checkIn,
+        bookingForm.checkOut
+      );
+      setIsCheckingConflicts(false);
+
+      // If network error, warn but allow save
+      if (!conflictResult.success) {
+        console.warn('Could not check conflicts:', conflictResult.error);
+        // Proceed with save despite network error
+      } else if (conflictResult.conflicts && conflictResult.conflicts.length > 0) {
+        // Conflicts found - show warning modal
+        setConflictCheckResult(conflictResult.conflicts);
+        setPendingBookingData(bookingData);
+        return; // Don't save yet - wait for user decision
+      }
+
+      // No conflicts - proceed with save
       await supabaseService.createBooking(bookingData);
 
       setSuccessMessage(`Booking created successfully! Guest: ${bookingForm.guestName}, ${nights} nights`);
@@ -1531,6 +1618,71 @@ const MasterCalendar = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
                 className="w-full px-4 py-2 bg-[#d85a2a] hover:bg-[#c14e1e] text-white rounded-lg transition-all"
               >
                 Back to Calendar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Conflict Warning Modal */}
+      {conflictCheckResult && conflictCheckResult.length > 0 && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-[80] p-4">
+          <div className="bg-[#1f2937] rounded-2xl p-6 max-w-lg w-full border-2 border-yellow-500">
+            <div className="flex items-center gap-3 mb-4">
+              <AlertTriangle className="w-8 h-8 text-yellow-400" />
+              <h3 className="text-2xl font-bold text-yellow-400">These nights are already taken</h3>
+            </div>
+
+            <div className="bg-[#2a2f3a] p-4 rounded-xl mb-4 max-h-64 overflow-y-auto space-y-3">
+              {[...conflictCheckResult].sort((a, b) => {
+                // Beds24 blocks first, then bookings
+                if (a.kind === 'beds24_block' && b.kind !== 'beds24_block') return -1;
+                if (a.kind !== 'beds24_block' && b.kind === 'beds24_block') return 1;
+                return 0;
+              }).map((conflict, index) => (
+                <div key={index} className="flex items-start gap-3 p-3 bg-[#333b47] rounded-lg">
+                  <div className="w-2 h-2 rounded-full bg-yellow-400 mt-2 flex-shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    {conflict.kind === 'beds24_block' ? (
+                      <p className="text-white font-medium">
+                        Blocked in Beds24
+                      </p>
+                    ) : (
+                      <>
+                        <p className="text-white font-medium">
+                          {conflict.code || 'Unknown'}
+                          <span className="mx-2 text-gray-400">·</span>
+                          <span className="text-orange-400">{conflict.channel_label || conflict.channel || 'Unknown'}</span>
+                        </p>
+                        {conflict.guest_name && (
+                          <p className="text-gray-300 text-sm truncate">{conflict.guest_name}</p>
+                        )}
+                      </>
+                    )}
+                    <p className="text-gray-400 text-sm mt-1">
+                      {formatConflictDate(conflict.start_date)} → {formatConflictDate(conflict.end_date)}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <p className="text-gray-300 text-sm mb-6">
+              Do you want to save this booking anyway? The system will create a date conflict alert.
+            </p>
+
+            <div className="flex gap-3">
+              <button
+                onClick={handleCancelConflict}
+                className="flex-1 px-4 py-3 bg-gray-600 hover:bg-gray-700 text-white rounded-xl font-medium transition-all"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSaveAnyway}
+                className="flex-1 px-4 py-3 bg-yellow-500 hover:bg-yellow-600 text-black rounded-xl font-bold transition-all"
+              >
+                Save anyway
               </button>
             </div>
           </div>

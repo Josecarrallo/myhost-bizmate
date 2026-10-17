@@ -54,7 +54,8 @@ import {
   Edit3,
   Menu,
   PanelLeftOpen,
-  Video
+  Video,
+  AlertTriangle
 } from 'lucide-react';
 import ManualDataEntry from '../ManualDataEntry/ManualDataEntry';
 import MasterCalendar from '../MasterCalendar/MasterCalendar';
@@ -182,6 +183,7 @@ const Autopilot = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
 
   // Owner Decisions (OCS) states
   const [ownerDecisions, setOwnerDecisions] = useState([]);
+  const [dateConflicts, setDateConflicts] = useState([]); // Date conflicts from autopilot_alerts
   const [decisionBookings, setDecisionBookings] = useState({}); // Map booking_id -> {confirmation_code}
   const [decisionsSummary, setDecisionsSummary] = useState({
     pending: 0,
@@ -1687,6 +1689,22 @@ const Autopilot = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
       const summary = await ownerDecisionsService.getDecisionsSummary(userData.id);
       console.log('✅ Received summary:', summary);
       setDecisionsSummary(summary);
+
+      // Fetch date conflicts from autopilot_alerts (same as OCS-360)
+      const { data: conflictsData, error: conflictsError } = await supabase
+        .from('autopilot_alerts')
+        .select('*')
+        .eq('tenant_id', userData.id)
+        .eq('related_type', 'date_conflict')
+        .eq('is_resolved', false)
+        .order('created_at', { ascending: false });
+
+      if (conflictsError) {
+        console.error('❌ Error loading date conflicts:', conflictsError);
+      } else {
+        setDateConflicts(conflictsData || []);
+        console.log('✅ Loaded', conflictsData?.length || 0, 'date conflicts');
+      }
 
       // Fetch contexts and guest stats for Owner Decisions II
       if (decisionsData && decisionsData.length > 0) {
@@ -7420,14 +7438,18 @@ const Autopilot = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
     console.log('🔍 [FILTER DEBUG] filterDecisionDate:', filterDecisionDate);
     console.log('🔍 [FILTER DEBUG] filterDecisionPeriod:', filterDecisionPeriod);
 
-    const filteredDecisions = ownerDecisions
+    // IMPORTANT: Only show PENDING decisions in the main list
+    // approved, rejected, executed, expired go to History (not shown here)
+    const pendingDecisions = ownerDecisions.filter(d => d.status === 'pending');
+
+    const filteredDecisions = pendingDecisions
       .filter(decision => {
         const matchesSearch = decisionsSearchTerm === '' ||
           decision.guest_name?.toLowerCase().includes(decisionsSearchTerm.toLowerCase()) ||
           decision.title?.toLowerCase().includes(decisionsSearchTerm.toLowerCase()) ||
           decision.summary?.toLowerCase().includes(decisionsSearchTerm.toLowerCase());
 
-        const matchesStatus = filterDecisionStatus === 'All' || decision.status === filterDecisionStatus;
+        // Status filter no longer needed since we pre-filter to pending only
         const matchesPriority = filterDecisionPriority === 'All' || decision.priority === filterDecisionPriority;
         const matchesType = filterDecisionType === 'All' || decision.decision_type === filterDecisionType;
         const matchesAgent = filterDecisionAgent === 'All' || decision.generated_by_agent?.toUpperCase() === filterDecisionAgent;
@@ -7486,22 +7508,19 @@ const Autopilot = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
           }
         }
 
-        return matchesSearch && matchesStatus && matchesPriority && matchesType && matchesAgent && matchesProperty && matchesDate;
+        return matchesSearch && matchesPriority && matchesType && matchesAgent && matchesProperty && matchesDate;
       })
       .sort((a, b) => {
         // Sort by created_at (newest first)
         return new Date(b.created_at) - new Date(a.created_at);
       });
 
+    console.log('🔍 [FILTER DEBUG] pendingDecisions.length:', pendingDecisions.length);
     console.log('🔍 [FILTER DEBUG] filteredDecisions.length:', filteredDecisions.length);
-    if (filteredDecisions.length < ownerDecisions.length) {
-      console.log('⚠️ [FILTER DEBUG] Some decisions were filtered out!');
-      console.log('🔍 [FILTER DEBUG] Filtered decisions:', filteredDecisions.map(d => ({ title: d.title, status: d.status, priority: d.priority, villa_name: d.villa_name })));
-    }
 
-    // Get unique values for filter dropdowns
-    const uniqueTypes = [...new Set(ownerDecisions.map(d => d.decision_type))];
-    const uniqueAgents = [...new Set(ownerDecisions.map(d => d.generated_by_agent?.toUpperCase()).filter(Boolean))];
+    // Get unique values for filter dropdowns (from pending only)
+    const uniqueTypes = [...new Set(pendingDecisions.map(d => d.decision_type))];
+    const uniqueAgents = [...new Set(pendingDecisions.map(d => d.generated_by_agent?.toUpperCase()).filter(Boolean))];
 
     return (
       <div className="space-y-6">
@@ -7697,6 +7716,69 @@ const Autopilot = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
           </div>
 
         <div className="space-y-4">
+          {/* DATE CONFLICTS - CRITICAL - SHOWN FIRST */}
+          {dateConflicts.length > 0 && (
+            <div className="bg-red-900/30 rounded-xl border-2 border-red-600 overflow-hidden">
+              <div className="px-5 py-3 bg-red-800/50 flex items-center gap-3">
+                <AlertTriangle className="w-5 h-5 text-red-300" />
+                <h4 className="text-red-100 font-bold">🚨 Date Conflicts ({dateConflicts.length})</h4>
+              </div>
+              <div className="p-4 space-y-4">
+                {dateConflicts.map(conflict => {
+                  const details = conflict.details || {};
+                  const villaName = details.villa_name || 'Unknown Villa';
+                  const bookingA = details.booking_a || {};
+                  const bookingB = details.booking_b || {};
+                  return (
+                    <div key={conflict.id} className="bg-[#1f2937] rounded-lg p-4 border border-red-700">
+                      <div className="flex items-center gap-2 mb-3">
+                        <MapPin className="w-4 h-4 text-red-400" />
+                        <span className="text-white font-bold">{villaName}</span>
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
+                        <div className="bg-red-900/30 rounded-lg p-3 border border-red-600">
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-red-300 text-xs font-semibold">BOOKING A</span>
+                            {bookingA.channel && <span className="px-2 py-0.5 bg-red-800 text-red-200 text-xs rounded">{bookingA.channel}</span>}
+                          </div>
+                          <div className="text-[#f5791f] font-mono text-sm mb-1">{bookingA.code || 'N/A'}</div>
+                          <div className="text-white text-sm mb-1">{bookingA.guest || 'Unknown'}</div>
+                          <div className="text-red-300 text-xs">{bookingA.check_in} → {bookingA.check_out}</div>
+                        </div>
+                        <div className="bg-red-900/30 rounded-lg p-3 border border-red-600">
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-red-300 text-xs font-semibold">BOOKING B</span>
+                            {bookingB.channel && <span className="px-2 py-0.5 bg-red-800 text-red-200 text-xs rounded">{bookingB.channel}</span>}
+                          </div>
+                          <div className="text-[#f5791f] font-mono text-sm mb-1">{bookingB.code || 'N/A'}</div>
+                          <div className="text-white text-sm mb-1">{bookingB.guest || 'Unknown'}</div>
+                          <div className="text-red-300 text-xs">{bookingB.check_in} → {bookingB.check_out}</div>
+                        </div>
+                      </div>
+                      <p className="text-gray-400 text-sm italic mb-3">{conflict.message}</p>
+                      <button
+                        onClick={async () => {
+                          const { error } = await supabase
+                            .from('autopilot_alerts')
+                            .update({ is_resolved: true })
+                            .eq('id', conflict.id);
+                          if (!error) {
+                            setDateConflicts(prev => prev.filter(c => c.id !== conflict.id));
+                            setNotification({ type: 'success', message: 'Conflict marked as resolved' });
+                          }
+                        }}
+                        className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-all"
+                      >
+                        <CheckCircle className="w-4 h-4" />
+                        Mark Resolved
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           {/* DAILY BRIEFING VIEW */}
           {filterDecisionPeriod === 'daily' ? (
             loadingSummaries ? (
@@ -9403,20 +9485,20 @@ const Autopilot = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
               </div>
             ) : filteredDecisions.length === 0 ? (
               <div className="text-center py-8 bg-[#2a2f3a] rounded-lg border-2 border-gray-700">
-                {ownerDecisions.length === 0 ? (
-                  // No decisions at all in database
+                {pendingDecisions.length === 0 ? (
+                  // No pending decisions - all clear!
                   <>
                     <CheckCircle className="w-12 h-12 text-green-500 mx-auto mb-3" />
                     <p className="text-gray-300 text-lg">All caught up!</p>
                     <p className="text-gray-500 text-sm mt-1">No pending decisions require your attention</p>
                   </>
                 ) : (
-                  // Decisions exist but filters are too restrictive
+                  // Pending decisions exist but filters are too restrictive
                   <>
                     <Search className="w-12 h-12 text-gray-500 mx-auto mb-3" />
                     <p className="text-gray-300 text-lg">No decisions match your filters</p>
                     <p className="text-gray-500 text-sm mt-1">
-                      {ownerDecisions.length} decision{ownerDecisions.length !== 1 ? 's' : ''} available. Try adjusting your filters or click "Clear Filters"
+                      {pendingDecisions.length} pending decision{pendingDecisions.length !== 1 ? 's' : ''} available. Try adjusting your filters or click "Clear Filters"
                     </p>
                   </>
                 )}

@@ -18,7 +18,9 @@ import {
   ChevronDown,
   ChevronUp,
   MessageCircle,
-  ArrowRight
+  ArrowRight,
+  Calendar,
+  ExternalLink
 } from 'lucide-react';
 
 const OwnerHome = ({ onBack, tenantId: propTenantId }) => {
@@ -36,6 +38,7 @@ const OwnerHome = ({ onBack, tenantId: propTenantId }) => {
   const [rejectNotes, setRejectNotes] = useState('');
   const [modifyNotes, setModifyNotes] = useState('');
   const [toast, setToast] = useState(null);
+  const [dateConflicts, setDateConflicts] = useState([]);
 
   // Helper function to extract refund % from description and append to title
   const getRefundTitle = (decision) => {
@@ -238,6 +241,9 @@ const OwnerHome = ({ onBack, tenantId: propTenantId }) => {
         const uniquePhones = [...new Set(decisionsData.filter(d => d.guest_phone).map(d => d.guest_phone))];
         await fetchGuestStatsForPhones(tid, uniquePhones);
       }
+
+      // 5. Fetch date conflicts from autopilot_alerts
+      await fetchDateConflicts(tid);
     } catch (err) {
       console.error('❌ [OWNER HOME] Error fetching data:', err);
       setError(err.message);
@@ -308,6 +314,34 @@ const OwnerHome = ({ onBack, tenantId: propTenantId }) => {
     });
 
     setGuestStats(statsMap);
+  };
+
+  // Fetch date conflict alerts from autopilot_alerts
+  // Note: related_type='date_conflict', NOT alert_type (alert_type is 'urgent')
+  const fetchDateConflicts = async (tid) => {
+    try {
+      console.log('📅 [OWNER HOME] Fetching date conflicts for tenant_id:', tid);
+
+      const { data, error } = await supabase
+        .from('autopilot_alerts')
+        .select('*')
+        .eq('tenant_id', tid)
+        .eq('related_type', 'date_conflict')
+        .eq('is_resolved', false)
+        .order('created_at', { ascending: false });
+
+      console.log('📅 [OWNER HOME] Query result:', { data, error, count: data?.length });
+
+      if (error) {
+        console.error('❌ [OWNER HOME] Error fetching date conflicts:', error);
+        return;
+      }
+
+      setDateConflicts(data || []);
+      console.log('📅 [OWNER HOME] Date conflicts loaded:', data?.length || 0);
+    } catch (err) {
+      console.error('❌ [OWNER HOME] Exception fetching date conflicts:', err);
+    }
   };
 
   const handleApprove = async (decision) => {
@@ -618,6 +652,120 @@ const OwnerHome = ({ onBack, tenantId: propTenantId }) => {
           </span>
         </h2>
       </div>
+
+      {/* ========== DATE CONFLICTS BLOCK (§72.6 nota A) ========== */}
+      {dateConflicts.length > 0 && (
+        <div className="bg-red-900 rounded-xl shadow-xl overflow-hidden mb-6 border-2 border-red-600">
+          {/* Header */}
+          <div className="px-6 py-4 flex items-center justify-between bg-red-800">
+            <div className="flex items-center gap-3">
+              <AlertTriangle className="w-6 h-6 text-red-200" />
+              <h3 className="text-white font-bold text-lg">
+                🚨 Date Conflicts ({dateConflicts.length})
+              </h3>
+            </div>
+            <span className="text-red-200 text-sm">Requires immediate attention</span>
+          </div>
+
+          {/* Conflict Cards */}
+          <div className="p-4 space-y-4">
+            {dateConflicts.map(conflict => {
+              // Parse details from the alert
+              const details = conflict.details || {};
+              const villaName = details.villa_name || 'Unknown Villa';
+              const bookingA = details.booking_a || {};
+              const bookingB = details.booking_b || {};
+
+              const formatConflictDate = (dateStr) => {
+                if (!dateStr) return 'N/A';
+                return new Date(dateStr).toLocaleDateString('en-GB', {
+                  day: '2-digit', month: 'short', year: '2-digit'
+                });
+              };
+
+              return (
+                <div key={conflict.id} className="bg-red-950 rounded-lg p-4 border border-red-700">
+                  {/* Villa Name */}
+                  <div className="flex items-center gap-2 mb-3">
+                    <MapPin className="w-4 h-4 text-red-400" />
+                    <span className="text-red-100 font-bold">{villaName}</span>
+                  </div>
+
+                  {/* Two Bookings Side by Side */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {/* Booking A */}
+                    <div className="bg-red-900/50 rounded-lg p-3 border border-red-600">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-red-300 text-xs font-semibold uppercase">Booking 1</span>
+                        {bookingA.channel && (
+                          <span className="px-2 py-0.5 bg-red-800 text-red-200 text-xs rounded font-medium capitalize">
+                            {bookingA.channel}
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-white font-bold text-sm mb-1">
+                        {bookingA.code || bookingA.confirmation_code || 'N/A'}
+                      </div>
+                      <div className="text-red-200 text-xs mb-1">
+                        {bookingA.guest || bookingA.guest_name || 'Unknown Guest'}
+                      </div>
+                      <div className="flex items-center gap-1 text-red-300 text-xs">
+                        <Calendar className="w-3 h-3" />
+                        {formatConflictDate(bookingA.check_in)} → {formatConflictDate(bookingA.check_out)}
+                      </div>
+                    </div>
+
+                    {/* Booking B */}
+                    <div className="bg-red-900/50 rounded-lg p-3 border border-red-600">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-red-300 text-xs font-semibold uppercase">Booking 2</span>
+                        {bookingB.channel && (
+                          <span className="px-2 py-0.5 bg-red-800 text-red-200 text-xs rounded font-medium capitalize">
+                            {bookingB.channel}
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-white font-bold text-sm mb-1">
+                        {bookingB.code || bookingB.confirmation_code || 'N/A'}
+                      </div>
+                      <div className="text-red-200 text-xs mb-1">
+                        {bookingB.guest || bookingB.guest_name || 'Unknown Guest'}
+                      </div>
+                      <div className="flex items-center gap-1 text-red-300 text-xs">
+                        <Calendar className="w-3 h-3" />
+                        {formatConflictDate(bookingB.check_in)} → {formatConflictDate(bookingB.check_out)}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Alert Message */}
+                  {conflict.message && (
+                    <div className="mt-3 text-red-200 text-sm">
+                      {conflict.message}
+                    </div>
+                  )}
+
+                  {/* Created timestamp */}
+                  <div className="mt-2 text-red-400 text-xs">
+                    Detected: {new Date(conflict.created_at).toLocaleString('en-GB', {
+                      day: '2-digit', month: 'short', year: 'numeric',
+                      hour: '2-digit', minute: '2-digit'
+                    })}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Footer hint */}
+          <div className="px-6 py-3 bg-red-800/50 border-t border-red-700">
+            <p className="text-red-200 text-xs">
+              ⚠️ Messages to affected guests are paused until conflicts are resolved.
+              Cancel or change dates on one of the bookings to resolve.
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* ========== COMMAND CENTER HEADER ========== */}
       <div className="bg-white rounded-xl shadow-xl overflow-hidden mb-6 border-2 border-gray-200">

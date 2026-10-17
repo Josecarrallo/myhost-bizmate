@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   ClipboardList,
   UserPlus,
@@ -16,7 +16,8 @@ import {
   AlertCircle,
   ArrowLeft,
   Menu,
-  PanelLeftOpen
+  PanelLeftOpen,
+  AlertTriangle
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabaseService } from '../../services/supabase';
@@ -87,6 +88,12 @@ const ManualDataEntry = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
   const [isAddingPayment, setIsAddingPayment] = useState(false);
   const [paymentHistory, setPaymentHistory] = useState([]); // Previous payments for current booking
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+
+  // Conflict check modal state
+  const [conflictCheckResult, setConflictCheckResult] = useState(null); // Array of conflicts or null
+  const [pendingBookingData, setPendingBookingData] = useState(null); // Booking data waiting to save
+  const [pendingBookingAction, setPendingBookingAction] = useState(null); // 'create' or 'update'
+  const [isCheckingConflicts, setIsCheckingConflicts] = useState(false);
 
   // Edit form state
   const [editForm, setEditForm] = useState({
@@ -364,6 +371,21 @@ const ManualDataEntry = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
     setBookingForm(prev => ({ ...prev, totalAmount: totalAmount.toString() }));
   }, [bookingForm.villaId, bookingForm.checkIn, bookingForm.checkOut, villas]);
 
+  // Memoized nights calculation to avoid recalculating on every render
+  const nightsInfo = useMemo(() => {
+    if (!bookingForm.checkIn || !bookingForm.checkOut) {
+      return null;
+    }
+    const nights = calculateNights(bookingForm.checkIn, bookingForm.checkOut);
+    const checkInDate = parseDateISO(bookingForm.checkIn);
+    const checkOutDate = parseDateISO(bookingForm.checkOut);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const isPastCheckIn = checkInDate && checkInDate < today;
+
+    return { nights, checkInDate, checkOutDate, isPastCheckIn };
+  }, [bookingForm.checkIn, bookingForm.checkOut]);
+
   // Load bookings for the owner
   const loadBookings = async (customVillaFilter = null, customStatusFilter = null, customDateFrom = null, customDateTo = null, customChannelFilter = null) => {
     const tenantId = user?.id || userData?.id;
@@ -418,8 +440,10 @@ const ManualDataEntry = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
       const bookingsData = await supabaseService.getBookings(filters);
 
       console.log(`✅ Loaded ${bookingsData.length} bookings:`, bookingsData.map(b => ({
+        code: b.confirmation_code,
         guest: b.guest_name,
-        checkIn: b.check_in,
+        check_in: b.check_in,
+        check_out: b.check_out,
         tenant: b.tenant_id
       })));
 
@@ -636,11 +660,11 @@ const ManualDataEntry = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
       guestName: booking.guest_name || '',
       guestPhone: booking.guest_phone || '',
       guestEmail: booking.guest_email || '',
-      checkIn: booking.check_in || '',
-      checkOut: booking.check_out || '',
+      checkIn: booking.check_in?.split('T')[0] || '',
+      checkOut: booking.check_out?.split('T')[0] || '',
       guests: booking.guests?.toString() || '2',
       totalAmount: booking.total_price?.toString() || '',
-      status: booking.status || 'pending_payment', // Load status from DB: pending_payment, partial_payment, confirmed
+      status: booking.status || 'pending_payment',
       notes: booking.notes || ''
     });
   };
@@ -816,6 +840,154 @@ const ManualDataEntry = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
     }
   };
 
+  // Check for booking conflicts using Supabase RPC
+  const checkBookingConflicts = async (villaId, checkIn, checkOut, excludeBookingId = null) => {
+    try {
+      const { data, error } = await supabase.rpc('check_booking_conflicts', {
+        p_villa_id: villaId,
+        p_check_in: checkIn,
+        p_check_out: checkOut,
+        p_exclude_booking_id: excludeBookingId
+      });
+
+      if (error) {
+        console.error('Error checking conflicts:', error);
+        return { success: false, error: error.message };
+      }
+
+      return { success: true, conflicts: data || [] };
+    } catch (err) {
+      console.error('Network error checking conflicts:', err);
+      return { success: false, error: err.message };
+    }
+  };
+
+  // Format date for display in conflict modal
+  const formatConflictDate = (dateStr) => {
+    if (!dateStr) return '';
+    const date = new Date(dateStr);
+    return date.toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' });
+  };
+
+  // Handle "Save anyway" from conflict modal
+  const handleSaveAnyway = async () => {
+    if (!pendingBookingData || !pendingBookingAction) return;
+
+    setConflictCheckResult(null);
+
+    if (pendingBookingAction === 'create') {
+      await executeCreateBooking(pendingBookingData);
+    } else if (pendingBookingAction === 'update') {
+      await executeUpdateBooking(pendingBookingData);
+    }
+
+    setPendingBookingData(null);
+    setPendingBookingAction(null);
+  };
+
+  // Handle "Cancel" from conflict modal
+  const handleCancelConflict = () => {
+    setConflictCheckResult(null);
+    setPendingBookingData(null);
+    setPendingBookingAction(null);
+    setIsSubmitting(false);
+    setIsSavingEdit(false);
+  };
+
+  // Execute create booking (after conflict check passed or user chose "Save anyway")
+  const executeCreateBooking = async (bookingData) => {
+    try {
+      setIsSubmitting(true);
+      const result = await supabaseService.createBooking(bookingData);
+
+      console.log('✅ Booking created, result:', result);
+
+      // Send WhatsApp notification to guest for new manual booking
+      console.log('📄 Triggering PDF Booking Confirmation workflow for booking:', result.id);
+      fetch('https://n8n-production-bb2d.up.railway.app/webhook/pdf-booking-confirmation', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ booking_id: result.id })
+      }).catch(err => {
+        console.warn('⚠️ n8n webhook call failed (non-blocking):', err);
+      });
+
+      setSuccessMessage(`Booking created successfully! Guest: ${bookingData.guest_name}, ${bookingData.nights} nights`);
+
+      // Reload bookings if we're on view-bookings tab
+      if (activeTab === 'view-bookings' || activeTab === 'booking') {
+        loadBookings();
+      }
+
+      // Reset form
+      setBookingForm({
+        leadId: '',
+        guestName: '',
+        guestPhone: '',
+        guestEmail: '',
+        propertyId: properties.length === 1 ? properties[0].id : '',
+        villaId: '',
+        checkIn: '',
+        checkOut: '',
+        guests: '2',
+        totalAmount: '',
+        status: 'pending_payment',
+        notes: ''
+      });
+
+      setTimeout(() => {
+        setActiveTab('view-bookings');
+      }, 1500);
+
+      setTimeout(() => setSuccessMessage(''), 5000);
+
+    } catch (error) {
+      console.error('Error creating booking:', error);
+      setErrorMessage(error.message || 'Failed to create booking. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Execute update booking (after conflict check passed or user chose "Save anyway")
+  const executeUpdateBooking = async (updateData) => {
+    try {
+      setIsSavingEdit(true);
+      const { bookingId, ...updatedData } = updateData;
+
+      console.log('🔄 Updating booking:', bookingId, updatedData);
+
+      await supabaseService.updateBooking(bookingId, updatedData);
+
+      // If partial_payment → trigger n8n PDF workflow
+      if (updatedData.status === 'partial_payment') {
+        console.log('📄 Triggering PDF Booking Confirmation workflow for booking:', bookingId);
+        fetch('https://n8n-production-bb2d.up.railway.app/webhook/pdf-booking-confirmation', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ booking_id: bookingId })
+        }).catch(err => {
+          console.warn('⚠️ n8n webhook call failed (non-blocking):', err);
+        });
+      }
+
+      setSuccessMessage(`Booking updated successfully! Guest: ${updatedData.guest_name}${updatedData.status === 'partial_payment' ? ' - PDF confirmation will be sent via WhatsApp' : ''}`);
+
+      setEditingBooking(null);
+      setSearchGuest('');
+      setSearchInput('');
+      loadBookings();
+
+      setTimeout(() => setSuccessMessage(''), 5000);
+
+    } catch (error) {
+      console.error('Error updating booking:', error);
+      setErrorMessage(error.message || 'Failed to update booking. Please try again.');
+    } finally {
+      setIsSavingEdit(false);
+    }
+  };
+
   const handleSubmitBooking = async (e) => {
     e.preventDefault();
 
@@ -877,58 +1049,38 @@ const ManualDataEntry = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
         updated_at: new Date().toISOString()
       };
 
-      // Call Supabase service
-      const result = await supabaseService.createBooking(bookingData);
+      // Check for conflicts BEFORE saving (only if villa is selected)
+      if (bookingForm.villaId) {
+        setIsCheckingConflicts(true);
+        const conflictResult = await checkBookingConflicts(
+          bookingForm.villaId,
+          bookingForm.checkIn,
+          bookingForm.checkOut,
+          null // No exclude ID for new bookings
+        );
+        setIsCheckingConflicts(false);
 
-      console.log('✅ Booking created, result:', result);
-
-      // Send WhatsApp notification to guest for new manual booking (same as deposit received flow)
-      console.log('📄 Triggering PDF Booking Confirmation workflow for booking:', result.id);
-      fetch('https://n8n-production-bb2d.up.railway.app/webhook/pdf-booking-confirmation', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ booking_id: result.id })
-      }).catch(err => {
-        // Fire and forget - don't block the UI if webhook fails
-        console.warn('⚠️ n8n webhook call failed (non-blocking):', err);
-      });
-
-      // Success!
-      setSuccessMessage(`Booking created successfully! Guest: ${bookingForm.guestName}, ${nights} nights`);
-
-      // Reload bookings if we're on view-bookings tab
-      if (activeTab === 'view-bookings' || activeTab === 'booking') {
-        loadBookings();
+        if (!conflictResult.success) {
+          // Network error - warn but allow to proceed
+          console.warn("Couldn't check availability:", conflictResult.error);
+          setErrorMessage("Couldn't check availability. Proceeding with save...");
+          // Continue with save
+        } else if (conflictResult.conflicts.length > 0) {
+          // Conflicts found - show modal and stop
+          setConflictCheckResult(conflictResult.conflicts);
+          setPendingBookingData(bookingData);
+          setPendingBookingAction('create');
+          setIsSubmitting(false);
+          return; // Don't save yet
+        }
       }
 
-      // Reset form (keep propertyId if only one property)
-      setBookingForm({
-        leadId: '',
-        guestName: '',
-        guestPhone: '',
-        guestEmail: '',
-        propertyId: properties.length === 1 ? properties[0].id : '',
-        villaId: '',
-        checkIn: '',
-        checkOut: '',
-        guests: '2',
-        totalAmount: '',
-        status: 'pending_payment',
-        notes: ''
-      });
-
-      // Auto-switch to View/Edit Bookings tab to see the new booking
-      setTimeout(() => {
-        setActiveTab('view-bookings');
-      }, 1500);
-
-      // Clear success message after 5 seconds
-      setTimeout(() => setSuccessMessage(''), 5000);
+      // No conflicts - proceed with save
+      await executeCreateBooking(bookingData);
 
     } catch (error) {
       console.error('Error creating booking:', error);
       setErrorMessage(error.message || 'Failed to create booking. Please try again.');
-    } finally {
       setIsSubmitting(false);
     }
   };
@@ -954,6 +1106,7 @@ const ManualDataEntry = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
 
       // Prepare updated booking data
       const updatedData = {
+        bookingId: editingBooking.id, // Include ID for executeUpdateBooking
         guest_name: editForm.guestName,
         guest_email: editForm.guestEmail,
         guest_phone: editForm.guestPhone,
@@ -971,44 +1124,42 @@ const ManualDataEntry = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
         updated_at: new Date().toISOString()
       };
 
-      console.log('🔄 Updating booking:', editingBooking.id, updatedData);
+      // Check if villa or dates changed - only then check for conflicts
+      const villaChanged = editingBooking.villa_id !== editForm.villaId;
+      const datesChanged = editingBooking.check_in !== editForm.checkIn || editingBooking.check_out !== editForm.checkOut;
+      const villaId = editForm.villaId || editingBooking.villa_id;
 
-      // Step 1: Update booking status in Supabase
-      await supabaseService.updateBooking(editingBooking.id, updatedData);
+      if ((villaChanged || datesChanged) && villaId) {
+        setIsCheckingConflicts(true);
+        const conflictResult = await checkBookingConflicts(
+          villaId,
+          editForm.checkIn,
+          editForm.checkOut,
+          editingBooking.id // Exclude this booking from conflict check
+        );
+        setIsCheckingConflicts(false);
 
-      // Step 2: If partial_payment → trigger n8n PDF workflow (fire and forget)
-      if (editForm.status === 'partial_payment') {
-        console.log('📄 Triggering PDF Booking Confirmation workflow for booking:', editingBooking.id);
-        fetch('https://n8n-production-bb2d.up.railway.app/webhook/pdf-booking-confirmation', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ booking_id: editingBooking.id })
-        }).catch(err => {
-          // Fire and forget - don't block the UI if webhook fails
-          console.warn('⚠️ n8n webhook call failed (non-blocking):', err);
-        });
+        if (!conflictResult.success) {
+          // Network error - warn but allow to proceed
+          console.warn("Couldn't check availability:", conflictResult.error);
+          setErrorMessage("Couldn't check availability. Proceeding with save...");
+          // Continue with save
+        } else if (conflictResult.conflicts.length > 0) {
+          // Conflicts found - show modal and stop
+          setConflictCheckResult(conflictResult.conflicts);
+          setPendingBookingData(updatedData);
+          setPendingBookingAction('update');
+          setIsSavingEdit(false);
+          return; // Don't save yet
+        }
       }
 
-      // Success!
-      setSuccessMessage(`Booking updated successfully! Guest: ${editForm.guestName}${editForm.status === 'partial_payment' ? ' - PDF confirmation will be sent via WhatsApp' : ''}`);
-
-      // Close modal
-      setEditingBooking(null);
-
-      // Clear search filter before reloading to avoid CORS errors
-      setSearchGuest('');
-      setSearchInput('');
-
-      // Reload bookings without search filter
-      loadBookings();
-
-      // Clear success message after 5 seconds
-      setTimeout(() => setSuccessMessage(''), 5000);
+      // No conflicts (or no date/villa change) - proceed with save
+      await executeUpdateBooking(updatedData);
 
     } catch (error) {
       console.error('Error updating booking:', error);
       setErrorMessage(error.message || 'Failed to update booking. Please try again.');
-    } finally {
       setIsSavingEdit(false);
     }
   };
@@ -2254,57 +2405,46 @@ const ManualDataEntry = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
               </div>
 
               {/* Nights Calculator Display - Shows calculated nights for verification */}
-              {bookingForm.checkIn && bookingForm.checkOut && (() => {
-                const nights = calculateNights(bookingForm.checkIn, bookingForm.checkOut);
-                const checkInDate = parseDateISO(bookingForm.checkIn);
-                const checkOutDate = parseDateISO(bookingForm.checkOut);
-                const today = new Date();
-                today.setHours(0, 0, 0, 0);
-                const isPastCheckIn = checkInDate && checkInDate < today;
-
-                if (!nights || nights <= 0) {
-                  return (
-                    <div className="col-span-1 md:col-span-2 bg-red-500/20 border-2 border-red-500 rounded-xl p-4">
-                      <div className="flex items-start gap-3">
-                        <svg className="w-6 h-6 text-red-500 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                        </svg>
-                        <div>
-                          <h4 className="text-red-500 font-bold text-lg mb-1">Invalid Dates</h4>
-                          <p className="text-white text-sm">
-                            Check-out date must be AFTER check-in date. Please correct the dates to continue.
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                }
-
-                return (
-                  <div className={`col-span-1 md:col-span-2 ${isPastCheckIn ? 'bg-yellow-500/20 border-2 border-yellow-500' : 'bg-green-500/20 border-2 border-green-500'} rounded-xl p-4`}>
+              {nightsInfo && (
+                nightsInfo.nights && nightsInfo.nights > 0 ? (
+                  <div className={`col-span-1 md:col-span-2 ${nightsInfo.isPastCheckIn ? 'bg-yellow-500/20 border-2 border-yellow-500' : 'bg-green-500/20 border-2 border-green-500'} rounded-xl p-4`}>
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
-                        <div className={`w-12 h-12 ${isPastCheckIn ? 'bg-yellow-500' : 'bg-green-500'} rounded-full flex items-center justify-center`}>
-                          <span className="text-white font-bold text-xl">{nights}</span>
+                        <div className={`w-12 h-12 ${nightsInfo.isPastCheckIn ? 'bg-yellow-500' : 'bg-green-500'} rounded-full flex items-center justify-center`}>
+                          <span className="text-white font-bold text-xl">{nightsInfo.nights}</span>
                         </div>
                         <div>
-                          <p className={`${isPastCheckIn ? 'text-yellow-400' : 'text-green-400'} font-bold text-lg`}>
-                            {nights} {nights === 1 ? 'Night' : 'Nights'}
+                          <p className={`${nightsInfo.isPastCheckIn ? 'text-yellow-400' : 'text-green-400'} font-bold text-lg`}>
+                            {nightsInfo.nights} {nightsInfo.nights === 1 ? 'Night' : 'Nights'}
                           </p>
                           <p className="text-gray-300 text-sm">
-                            {checkInDate?.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })} → {checkOutDate?.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })}
+                            {nightsInfo.checkInDate?.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })} → {nightsInfo.checkOutDate?.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })}
                           </p>
                         </div>
                       </div>
-                      {isPastCheckIn && (
+                      {nightsInfo.isPastCheckIn && (
                         <div className="text-yellow-400 text-sm font-medium">
                           ⚠️ Check-in is in the past!
                         </div>
                       )}
                     </div>
                   </div>
-                );
-              })()}
+                ) : (
+                  <div className="col-span-1 md:col-span-2 bg-red-500/20 border-2 border-red-500 rounded-xl p-4">
+                    <div className="flex items-start gap-3">
+                      <svg className="w-6 h-6 text-red-500 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                      </svg>
+                      <div>
+                        <h4 className="text-red-500 font-bold text-lg mb-1">Invalid Dates</h4>
+                        <p className="text-white text-sm">
+                          Check-out date must be AFTER check-in date. Please correct the dates to continue.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )
+              )}
 
               {/* Guests */}
               <div>
@@ -3202,6 +3342,71 @@ const ManualDataEntry = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Conflict Warning Modal */}
+      {conflictCheckResult && conflictCheckResult.length > 0 && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-[70] p-4">
+          <div className="bg-[#1f2937] rounded-2xl p-6 max-w-lg w-full border-2 border-yellow-500">
+            <div className="flex items-center gap-3 mb-4">
+              <AlertTriangle className="w-8 h-8 text-yellow-400" />
+              <h3 className="text-2xl font-bold text-yellow-400">These nights are already taken</h3>
+            </div>
+
+            <div className="bg-[#2a2f3a] p-4 rounded-xl mb-4 max-h-64 overflow-y-auto space-y-3">
+              {[...conflictCheckResult].sort((a, b) => {
+                // Beds24 blocks first, then bookings
+                if (a.kind === 'beds24_block' && b.kind !== 'beds24_block') return -1;
+                if (a.kind !== 'beds24_block' && b.kind === 'beds24_block') return 1;
+                return 0;
+              }).map((conflict, index) => (
+                <div key={index} className="flex items-start gap-3 p-3 bg-[#333b47] rounded-lg">
+                  <div className="w-2 h-2 rounded-full bg-yellow-400 mt-2 flex-shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    {conflict.kind === 'beds24_block' ? (
+                      <p className="text-white font-medium">
+                        Blocked in Beds24
+                      </p>
+                    ) : (
+                      <>
+                        <p className="text-white font-medium">
+                          {conflict.code || 'Unknown'}
+                          <span className="mx-2 text-gray-400">·</span>
+                          <span className="text-orange-400">{conflict.channel_label || conflict.channel || 'Unknown'}</span>
+                        </p>
+                        {conflict.guest_name && (
+                          <p className="text-gray-300 text-sm truncate">{conflict.guest_name}</p>
+                        )}
+                      </>
+                    )}
+                    <p className="text-gray-400 text-sm mt-1">
+                      {formatConflictDate(conflict.start_date)} → {formatConflictDate(conflict.end_date)}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <p className="text-gray-300 text-sm mb-6">
+              Do you want to save this booking anyway? The system will create a date conflict alert.
+            </p>
+
+            <div className="flex gap-3">
+              <button
+                onClick={handleCancelConflict}
+                className="flex-1 px-4 py-3 bg-gray-600 hover:bg-gray-700 text-white rounded-xl font-medium transition-all"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSaveAnyway}
+                className="flex-1 px-4 py-3 bg-yellow-500 hover:bg-yellow-600 text-black rounded-xl font-bold transition-all"
+              >
+                Save anyway
+              </button>
+            </div>
           </div>
         </div>
       )}
