@@ -12,7 +12,7 @@ export const tasksService = {
       .select(`
         *,
         villa:villas!villa_id(id, name),
-        booking:bookings!booking_id(id, guest_name, check_in, check_out, confirmation_code)
+        booking:bookings!booking_id(id, guest_name, check_in, check_out, confirmation_code, channel, villa_id)
       `)
       .eq('tenant_id', tenantId)
       .order('due_date', { ascending: true, nullsFirst: false });
@@ -104,7 +104,7 @@ export const tasksService = {
       .select(`
         *,
         villa:villas!villa_id(id, name),
-        booking:bookings!booking_id(id, guest_name, check_in, check_out, confirmation_code)
+        booking:bookings!booking_id(id, guest_name, check_in, check_out, confirmation_code, channel, villa_id)
       `)
       .eq('id', taskId)
       .single();
@@ -343,7 +343,7 @@ export const tasksService = {
   async getBookingTasks(bookingId) {
     const { data, error } = await supabase
       .from('tasks')
-      .select('*, booking:bookings!booking_id(id, guest_name, check_in, check_out, confirmation_code)')
+      .select('*, booking:bookings!booking_id(id, guest_name, check_in, check_out, confirmation_code, channel, villa_id)')
       .eq('booking_id', bookingId)
       .order('due_date', { ascending: true });
 

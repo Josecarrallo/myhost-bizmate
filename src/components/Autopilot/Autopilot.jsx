@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import * as XLSX from 'xlsx';
 import MonthlyReport from './MonthlyReport';
+import LuminaSalesReport from '../LuminaSalesReport/LuminaSalesReport';
 import {
   Zap,
   Calendar,
@@ -842,6 +843,13 @@ const Autopilot = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
       name: 'Owner Control System',
       icon: ClipboardCheck,
       description: 'Needs approval',
+      badge: null
+    },
+    {
+      id: 'sales-report',
+      name: 'Sales Report (Lumina)',
+      icon: TrendingUp,
+      description: 'Revenue, occupancy & analytics',
       badge: null
     },
     {
@@ -2523,7 +2531,34 @@ const Autopilot = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
   };
 
   const renderDataEntrySection = () => {
-    return <ManualDataEntry onBack={() => setActiveSection('menu')} setSidebarCollapsed={setSidebarCollapsed} sidebarCollapsed={sidebarCollapsed} />;
+    // Handler for "Add Task" button in booking edit modal (Task 3.3)
+    const handleAddTaskForBooking = (booking) => {
+      console.log('[Add Task from Booking] Booking data:', booking);
+      console.log('[Add Task from Booking] booking.id:', booking?.id);
+      console.log('[Add Task from Booking] booking.villa_id:', booking?.villa_id);
+      // Pre-fill task with booking data
+      setSelectedTask({
+        booking_id: booking?.id || null,
+        villa_id: booking?.villa_id || null,
+        title: '',
+        description: '',
+        task_type: 'maintenance',
+        category: 'housekeeping',
+        priority: 'medium',
+        status: 'open',
+        source: 'manual'
+      });
+      // Switch to tasks section and open modal
+      setActiveSection('tasks');
+      setShowTaskModal(true);
+    };
+
+    return <ManualDataEntry
+      onBack={() => setActiveSection('menu')}
+      setSidebarCollapsed={setSidebarCollapsed}
+      sidebarCollapsed={sidebarCollapsed}
+      onAddTaskForBooking={handleAddTaskForBooking}
+    />;
   };
 
   const renderAllDataSection = () => {
@@ -4421,7 +4456,20 @@ const Autopilot = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
 
     const handleSubmit = (e) => {
       e.preventDefault();
+
+      // Task 3.7: Validate deadline year is between 2020-2100
+      if (formData.deadline) {
+        const deadlineYear = new Date(formData.deadline).getFullYear();
+        if (deadlineYear < 2020 || deadlineYear > 2100) {
+          alert('Deadline year must be between 2020 and 2100');
+          return;
+        }
+      }
+
       // Convert snake_case to camelCase for the service
+      // Task 3.8: When editing, only save deadline (not dueDate or bookingId)
+      // Note: isEditing should check for task.id, not just task (task can have pre-filled data for new tasks)
+      const isEditing = !!(task && task.id);
       const taskDataForService = {
         title: formData.title,
         description: formData.description,
@@ -4430,11 +4478,14 @@ const Autopilot = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
         priority: formData.priority,
         status: formData.status,
         assignee: formData.assignee,
-        dueDate: formData.due_date,    // Convert to camelCase
         deadline: formData.deadline,   // Maximum deadline
         villaId: formData.villaId,
         notes: formData.notes,
-        bookingId: formData.booking_id  // Include booking reference
+        // Only include dueDate and bookingId when creating new task (not editing)
+        ...(isEditing ? {} : {
+          dueDate: formData.due_date,
+          bookingId: formData.booking_id
+        })
       };
       onSave(taskDataForService);
     };
@@ -4612,25 +4663,29 @@ const Autopilot = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
               </div>
             </div>
 
-            {/* Due Date & Deadline */}
-            <div className="grid grid-cols-2 gap-4">
+            {/* Due Date & Deadline - Task 3.8: Hide Due Date when editing existing task */}
+            <div className={`grid gap-4 ${task?.id ? 'grid-cols-1' : 'grid-cols-2'}`}>
+              {/* Due Date - Only show when creating new task (not editing) */}
+              {!task?.id && (
+                <div>
+                  <label className="block text-white font-bold mb-2">Due Date (Estimated)</label>
+                  <input
+                    type="datetime-local"
+                    value={formData.due_date}
+                    onChange={(e) => setFormData({ ...formData, due_date: e.target.value })}
+                    className="w-full px-4 py-2 bg-[#2a2f3a] text-white rounded-lg border-2 border-gray-700 focus:border-orange-500 outline-none"
+                  />
+                </div>
+              )}
               <div>
-                <label className="block text-white font-bold mb-2">Due Date (Estimated)</label>
-                <input
-                  type="datetime-local"
-                  value={formData.due_date}
-                  onChange={(e) => setFormData({ ...formData, due_date: e.target.value })}
-                  className="w-full px-4 py-2 bg-[#2a2f3a] text-white rounded-lg border-2 border-gray-700 focus:border-orange-500 outline-none"
-                />
-              </div>
-              <div>
-                <label className="block text-white font-bold mb-2">Deadline (Maximum)</label>
+                <label className="block text-white font-bold mb-2">Deadline</label>
                 <input
                   type="datetime-local"
                   value={formData.deadline}
                   onChange={(e) => setFormData({ ...formData, deadline: e.target.value })}
                   className="w-full px-4 py-2 bg-[#2a2f3a] text-white rounded-lg border-2 border-red-700 focus:border-red-500 outline-none"
                 />
+                <p className="text-gray-400 text-xs mt-1">Year must be between 2020-2100</p>
               </div>
             </div>
 
@@ -5075,25 +5130,17 @@ const Autopilot = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
             <ChevronDown className={`w-5 h-5 transition-transform ${showAutoTaskInfo ? 'rotate-180' : ''}`} />
           </button>
 
+          {/* Task 3.6: Collapsible help text with spec content */}
           {showAutoTaskInfo && (
-            <>
-              <p className="text-gray-400 text-sm mb-4 mt-4">
-                Tasks are automatically generated based on the following triggers:
+            <div className="mt-4 p-4 bg-[#1f2937] rounded-lg border border-gray-700">
+              <p className="text-gray-300 text-sm leading-relaxed">
+                Tasks are created automatically for every confirmed booking: pre-arrival setup
+                (2 h before check-in) and checkout cleaning (2 h after check-out). If the booking
+                dates change, its tasks move automatically. You get a WhatsApp when tasks are
+                created and when a task is overdue. You can also add tasks manually, from here or
+                from a booking.
               </p>
-              <div className="space-y-2">
-                {[
-                  '✅ After booking confirmation → Cleaning & preparation tasks',
-                  '✅ After checkout → Deep cleaning & inspection tasks',
-                  '✅ Scheduled maintenance → Recurring tasks (pool, garden, AC)',
-                  '✅ Guest requests → Custom tasks assigned to staff',
-                  '✅ Inventory alerts → Restocking tasks'
-                ].map((trigger, i) => (
-                  <div key={i} className="bg-[#1f2937] rounded-lg p-3 border border-gray-700">
-                    <p className="text-gray-300 text-sm">{trigger}</p>
-                  </div>
-                ))}
-              </div>
-            </>
+            </div>
           )}
         </div>
 
@@ -5253,6 +5300,10 @@ const Autopilot = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
             tasks.map((task) => {
               const now = new Date();
 
+              // Format created date
+              const createdAt = task.created_at ? new Date(task.created_at) : null;
+              const createdAtStr = createdAt ? createdAt.toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : null;
+
               // Format due date (estimated)
               const dueDate = task.due_date ? new Date(task.due_date) : null;
               const dueDateStr = dueDate ? dueDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : 'No due date';
@@ -5261,17 +5312,18 @@ const Autopilot = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
               const deadline = task.deadline ? new Date(task.deadline) : null;
               const deadlineStr = deadline ? deadline.toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : null;
 
-              // Check if overdue (based on due_date)
-              const isOverdue = dueDate && dueDate < now && !['completed', 'cancelled'].includes(task.status);
+              // Task 3.5: Check if overdue based on DEADLINE (not due_date)
+              // deadline = property local time, due_date = UTC (system only)
+              const isOverdue = deadline && deadline < now && !['completed', 'cancelled'].includes(task.status);
 
-              // Check deadline status
-              const isDeadlinePassed = deadline && deadline < now && !['completed', 'cancelled'].includes(task.status);
+              // Check deadline status for card styling
+              const isDeadlinePassed = isOverdue; // Same logic, use for card border
               const isDeadlinePending = deadline && !isDeadlinePassed && !['completed', 'cancelled'].includes(task.status);
 
               return (
                 <div key={task.id} className={`bg-[#2a2f3a] rounded-lg p-4 border-2 transition-all ${
                   isDeadlinePassed ? 'border-red-500 animate-pulse shadow-lg shadow-red-500/50' :
-                  isDeadlinePending ? 'border-yellow-500 animate-pulse shadow-lg shadow-yellow-500/50' :
+                  isDeadlinePending ? 'border-yellow-500 shadow-lg shadow-yellow-500/30' :
                   'border-gray-700 hover:border-orange-500/50'
                 }`}>
                   <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
@@ -5288,20 +5340,27 @@ const Autopilot = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
                       }}
                     >
                       <h4 className="text-white font-bold hover:text-orange-400 transition-colors">{task.title}</h4>
-                      {task.booking?.confirmation_code && (
-                        <span className="inline-flex items-center px-2 py-1 bg-orange-500 rounded text-white text-xs font-bold whitespace-nowrap mt-1">
-                          {task.booking.confirmation_code}
-                        </span>
-                      )}
-                      <p className="text-gray-400 text-sm">
+                      {/* Auto/Manual label with booking code (Task 3.1) */}
+                      <span className={`inline-flex items-center px-2 py-1 rounded text-xs font-bold whitespace-nowrap mt-1 ${
+                        task.source === 'auto_booking'
+                          ? 'bg-blue-500/20 text-blue-400'
+                          : 'bg-gray-500/20 text-gray-400'
+                      }`}>
+                        {task.source === 'auto_booking'
+                          ? `Auto${task.booking?.confirmation_code ? ` · ${task.booking.confirmation_code}` : ''}`
+                          : 'Manual'}
+                      </span>
+                      <p className="text-gray-400 text-sm mt-1">
                         {task.category || task.task_type}
                         {task.assignee && ` • ${task.assignee}`}
                         {task.villa?.name && ` • ${task.villa.name}`}
                       </p>
                       <div className="flex flex-col gap-1 mt-1">
-                        <p className="text-gray-400 text-xs">
-                          📅 Due: {dueDateStr}
-                        </p>
+                        {createdAtStr && (
+                          <p className="text-xs text-gray-500">
+                            📅 Created: {createdAtStr}
+                          </p>
+                        )}
                         {deadlineStr && (
                           <p className={`text-xs font-bold ${
                             isDeadlinePassed ? 'text-red-400' :
@@ -5312,10 +5371,38 @@ const Autopilot = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
                           </p>
                         )}
                       </div>
-                      {task.source && (
-                        <p className="text-gray-500 text-xs mt-1">
-                          Source: {task.source === 'auto_booking' ? '🤖 Auto-created' : task.source === 'manual' ? '👤 Manual' : task.source}
-                        </p>
+                      {/* Booking block (Task 3.2) - Only show if task has booking_id */}
+                      {task.booking && (
+                        <div className="mt-2 p-2 bg-white/5 rounded-lg border border-white/10">
+                          <p className="text-xs text-gray-400 mb-1">Booking</p>
+                          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
+                            <span className="text-white font-medium">{task.booking.guest_name || 'Guest'}</span>
+                            <span className="text-gray-400">
+                              {task.booking.check_in && task.booking.check_out
+                                ? `${new Date(task.booking.check_in).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} → ${new Date(task.booking.check_out).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`
+                                : ''}
+                            </span>
+                            {task.villa?.name && <span className="text-gray-400">{task.villa.name}</span>}
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setActiveSection('data-entry');
+                              }}
+                              className="text-orange-400 hover:text-orange-300 font-bold underline"
+                            >
+                              {task.booking.confirmation_code}
+                            </button>
+                            {task.booking.channel && (
+                              <span className={`px-1.5 py-0.5 rounded text-xs font-medium ${
+                                task.booking.channel === 'airbnb' ? 'bg-pink-500/20 text-pink-400' :
+                                task.booking.channel === 'booking' || task.booking.channel === 'booking.com' ? 'bg-blue-500/20 text-blue-400' :
+                                'bg-green-500/20 text-green-400'
+                              }`}>
+                                {task.booking.channel === 'booking' ? 'Booking.com' : task.booking.channel}
+                              </span>
+                            )}
+                          </div>
+                        </div>
                       )}
                     </div>
                     <div className="flex items-center gap-2 flex-wrap">
@@ -5331,16 +5418,15 @@ const Autopilot = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
                         isOverdue ? 'bg-red-500/20 text-red-400' :
                         task.status === 'completed' ? 'bg-green-500/20 text-green-400' :
                         task.status === 'in_progress' ? 'bg-blue-500/20 text-blue-400' :
-                        task.status === 'assigned' ? 'bg-purple-500/20 text-purple-400' :
                         task.status === 'cancelled' ? 'bg-gray-500/20 text-gray-400' :
                         'bg-yellow-500/20 text-yellow-400'
                       }`}>
+                        {/* Task 3.4: Status mapping - open/assigned = Pending */}
                         {isOverdue ? 'OVERDUE' :
                          task.status === 'in_progress' ? 'In Progress' :
-                         task.status === 'assigned' ? 'Assigned' :
                          task.status === 'completed' ? 'Completed' :
                          task.status === 'cancelled' ? 'Cancelled' :
-                         'Open'}
+                         'Pending'}
                       </span>
                       <button
                         onClick={(e) => {
@@ -7756,22 +7842,23 @@ const Autopilot = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
                         </div>
                       </div>
                       <p className="text-gray-400 text-sm italic mb-3">{conflict.message}</p>
-                      <button
-                        onClick={async () => {
-                          const { error } = await supabase
-                            .from('autopilot_alerts')
-                            .update({ is_resolved: true })
-                            .eq('id', conflict.id);
-                          if (!error) {
-                            setDateConflicts(prev => prev.filter(c => c.id !== conflict.id));
-                            setNotification({ type: 'success', message: 'Conflict marked as resolved' });
-                          }
-                        }}
-                        className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-all"
-                      >
-                        <CheckCircle className="w-4 h-4" />
-                        Mark Resolved
-                      </button>
+                      {/* Task 1A: Open booking buttons instead of Mark Resolved */}
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => setActiveSection('data-entry')}
+                          className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg font-medium transition-all"
+                        >
+                          <ExternalLink className="w-4 h-4" />
+                          Open Booking A
+                        </button>
+                        <button
+                          onClick={() => setActiveSection('data-entry')}
+                          className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg font-medium transition-all"
+                        >
+                          <ExternalLink className="w-4 h-4" />
+                          Open Booking B
+                        </button>
+                      </div>
                     </div>
                   );
                 })}
@@ -10979,6 +11066,7 @@ const Autopilot = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
           )}
           {activeSection === 'automated-flows' && renderAutomatedFlowsSection()}
           {activeSection === 'business-reports' && renderBusinessReportsSection()}
+          {activeSection === 'sales-report' && <LuminaSalesReport onBack={() => setActiveSection('menu')} />}
           {activeSection === 'all-data' && renderAllDataSection()}
           {activeSection === 'availability' && renderAvailabilitySection()}
           {activeSection === 'master-calendar' && <MasterCalendar onBack={() => setActiveSection('menu')} setSidebarCollapsed={setSidebarCollapsed} sidebarCollapsed={sidebarCollapsed} />}
@@ -11030,8 +11118,8 @@ const Autopilot = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
                 return;
               }
 
-              if (selectedTask) {
-                // Edit existing task
+              if (selectedTask?.id) {
+                // Edit existing task (must have an id)
                 await tasksService.updateTask(selectedTask.id, taskData);
                 setNotification({ type: 'success', message: 'Task updated successfully' });
               } else {

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import {
   ClipboardList,
+  ListPlus,
   UserPlus,
   Calendar,
   DollarSign,
@@ -23,7 +24,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { supabaseService } from '../../services/supabase';
 import { supabase } from '../../lib/supabase';
 
-const ManualDataEntry = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
+const ManualDataEntry = ({ onBack, setSidebarCollapsed, sidebarCollapsed, onAddTaskForBooking }) => {
   const { user, userData } = useAuth();
   const [activeTab, setActiveTab] = useState('view-bookings'); // Start with view mode
 
@@ -3206,51 +3207,79 @@ const ManualDataEntry = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
                   />
                 </div>
 
-                {/* Check-in */}
-                <div>
-                  <label className="block text-[#FF8C42] font-medium mb-2">Check-in *</label>
-                  <input
-                    type="date"
-                    required
-                    value={editForm.checkIn}
-                    onChange={async (e) => {
-                      const newCheckIn = e.target.value;
-                      setEditForm({...editForm, checkIn: newCheckIn});
+                {/* Check-in - Task 1B: Disabled for Airbnb/Booking.com */}
+                {(() => {
+                  const channel = (editingBooking?.channel || '').toLowerCase();
+                  const isOTABooking = channel === 'airbnb' || channel === 'booking' || channel === 'booking.com';
+                  return (
+                    <div>
+                      <label className="block text-[#FF8C42] font-medium mb-2">
+                        Check-in *
+                        {isOTABooking && <span className="text-gray-400 text-xs ml-2">(managed by {editingBooking?.channel})</span>}
+                      </label>
+                      <input
+                        type="date"
+                        required
+                        disabled={isOTABooking}
+                        value={editForm.checkIn}
+                        onChange={async (e) => {
+                          const newCheckIn = e.target.value;
+                          setEditForm({...editForm, checkIn: newCheckIn});
 
-                      // Recalculate price if we have check-out and villa_id
-                      if (editForm.checkOut && editingBooking?.villa_id) {
-                        const newPrice = await recalculateEditPrice(newCheckIn, editForm.checkOut, editingBooking.villa_id);
-                        if (newPrice) {
-                          setEditForm(prev => ({...prev, checkIn: newCheckIn, totalAmount: newPrice.toString()}));
-                        }
-                      }
-                    }}
-                    className="w-full max-w-[180px] px-3 py-2 bg-[#2a2f3a] border-2 border-gray-200 rounded-xl text-[#FF8C42] text-sm focus:outline-none focus:border-orange-300"
-                  />
-                </div>
+                          // Recalculate price if we have check-out and villa_id
+                          if (editForm.checkOut && editingBooking?.villa_id) {
+                            const newPrice = await recalculateEditPrice(newCheckIn, editForm.checkOut, editingBooking.villa_id);
+                            if (newPrice) {
+                              setEditForm(prev => ({...prev, checkIn: newCheckIn, totalAmount: newPrice.toString()}));
+                            }
+                          }
+                        }}
+                        className={`w-full max-w-[180px] px-3 py-2 bg-[#2a2f3a] border-2 rounded-xl text-sm focus:outline-none ${
+                          isOTABooking
+                            ? 'border-gray-600 text-gray-500 cursor-not-allowed'
+                            : 'border-gray-200 text-[#FF8C42] focus:border-orange-300'
+                        }`}
+                      />
+                    </div>
+                  );
+                })()}
 
-                {/* Check-out */}
-                <div>
-                  <label className="block text-[#FF8C42] font-medium mb-2">Check-out *</label>
-                  <input
-                    type="date"
-                    required
-                    value={editForm.checkOut}
-                    onChange={async (e) => {
-                      const newCheckOut = e.target.value;
-                      setEditForm({...editForm, checkOut: newCheckOut});
+                {/* Check-out - Task 1B: Disabled for Airbnb/Booking.com */}
+                {(() => {
+                  const channel = (editingBooking?.channel || '').toLowerCase();
+                  const isOTABooking = channel === 'airbnb' || channel === 'booking' || channel === 'booking.com';
+                  return (
+                    <div>
+                      <label className="block text-[#FF8C42] font-medium mb-2">
+                        Check-out *
+                        {isOTABooking && <span className="text-gray-400 text-xs ml-2">(managed by {editingBooking?.channel})</span>}
+                      </label>
+                      <input
+                        type="date"
+                        required
+                        disabled={isOTABooking}
+                        value={editForm.checkOut}
+                        onChange={async (e) => {
+                          const newCheckOut = e.target.value;
+                          setEditForm({...editForm, checkOut: newCheckOut});
 
-                      // Recalculate price if we have check-in and villa_id
-                      if (editForm.checkIn && editingBooking?.villa_id) {
-                        const newPrice = await recalculateEditPrice(editForm.checkIn, newCheckOut, editingBooking.villa_id);
-                        if (newPrice) {
-                          setEditForm(prev => ({...prev, checkOut: newCheckOut, totalAmount: newPrice.toString()}));
-                        }
-                      }
-                    }}
-                    className="w-full max-w-[180px] px-3 py-2 bg-[#2a2f3a] border-2 border-gray-200 rounded-xl text-[#FF8C42] text-sm focus:outline-none focus:border-orange-300"
-                  />
-                </div>
+                          // Recalculate price if we have check-in and villa_id
+                          if (editForm.checkIn && editingBooking?.villa_id) {
+                            const newPrice = await recalculateEditPrice(editForm.checkIn, newCheckOut, editingBooking.villa_id);
+                            if (newPrice) {
+                              setEditForm(prev => ({...prev, checkOut: newCheckOut, totalAmount: newPrice.toString()}));
+                            }
+                          }
+                        }}
+                        className={`w-full max-w-[180px] px-3 py-2 bg-[#2a2f3a] border-2 rounded-xl text-sm focus:outline-none ${
+                          isOTABooking
+                            ? 'border-gray-600 text-gray-500 cursor-not-allowed'
+                            : 'border-gray-200 text-[#FF8C42] focus:border-orange-300'
+                        }`}
+                      />
+                    </div>
+                  );
+                })()}
 
                 {/* Guests */}
                 <div>
@@ -3331,6 +3360,21 @@ const ManualDataEntry = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
                 >
                   Cancel
                 </button>
+                {/* Add Task button - Task 3.3 */}
+                {onAddTaskForBooking && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onAddTaskForBooking(editingBooking);
+                      setEditingBooking(null);
+                    }}
+                    disabled={isSavingEdit}
+                    className="flex items-center justify-center gap-2 px-4 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-xl font-medium transition-all"
+                  >
+                    <ListPlus className="w-5 h-5" />
+                    Add Task
+                  </button>
+                )}
                 <button
                   type="submit"
                   disabled={isSavingEdit}
