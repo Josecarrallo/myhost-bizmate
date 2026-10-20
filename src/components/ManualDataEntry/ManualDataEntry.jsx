@@ -419,7 +419,7 @@ const ManualDataEntry = ({ onBack, setSidebarCollapsed, sidebarCollapsed, onAddT
           filters.payment_status = statusFilter;
         } else {
           // In view-bookings tab, filter by booking status
-          filters.status = statusFilter;
+          if (statusFilter === 'not_cancelled') { filters.status_neq = 'cancelled'; } else { filters.status = statusFilter; }
         }
       }
 
@@ -1677,6 +1677,7 @@ const ManualDataEntry = ({ onBack, setSidebarCollapsed, sidebarCollapsed, onAddT
                   className="px-4 py-2.5 bg-[#2a2f3a] border-2 border-gray-200 rounded-xl text-white focus:outline-none focus:border-orange-300"
                 >
                   <option value="">All Status</option>
+                  <option value="not_cancelled">All (excl. cancelled)</option>
                   <option value="confirmed">Confirmed</option>
                   <option value="pending_payment">Pending Payment</option>
                   <option value="checked_in">Checked In</option>
@@ -2951,6 +2952,7 @@ const ManualDataEntry = ({ onBack, setSidebarCollapsed, sidebarCollapsed, onAddT
                   className="px-4 py-2 bg-[#2a2f3a] border-2 border-gray-200 rounded-xl text-white focus:outline-none focus:border-orange-300"
                 >
                   <option value="">All Status</option>
+                  <option value="not_cancelled">All (excl. cancelled)</option>
                   <option value="pending">Pending</option>
                   <option value="in_progress">In Progress</option>
                   <option value="completed">Completed</option>

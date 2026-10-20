@@ -75,6 +75,9 @@ export const supabaseService = {
     if (filters.status) {
       query = query.eq('status', filters.status);
     }
+    if (filters.status_neq) {
+      query = query.neq('status', filters.status_neq);
+    }
     if (filters.payment_status) {
       query = query.eq('payment_status', filters.payment_status);
     }

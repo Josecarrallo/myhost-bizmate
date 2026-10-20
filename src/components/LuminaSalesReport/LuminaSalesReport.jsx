@@ -23,6 +23,7 @@ const LuminaSalesReport = ({ onBack }) => {
   const [error, setError] = useState(null);
   const [reportData, setReportData] = useState(null);
   const [bookings, setBookings] = useState([]); // Bookings for the period
+  const [cancelledBookings, setCancelledBookings] = useState([]); // Cancelled bookings
 
   // Period selection
   const [periodType, setPeriodType] = useState('month'); // today, week, month, custom
@@ -140,6 +141,7 @@ const LuminaSalesReport = ({ onBack }) => {
 
     setLoading(true);
     setError(null);
+    setCancelledBookings([]); // Reset to avoid flash before report loads
 
     try {
       const rpcParams = {
@@ -167,7 +169,8 @@ const LuminaSalesReport = ({ onBack }) => {
         const bookingFilters = {
           tenant_id: userData.id,
           check_in_gte: from,
-          check_in_lte: to
+          check_in_lte: to,
+          status_neq: 'cancelled'  // Exclude cancelled bookings
         };
 
         // Add villa filter if selected
@@ -182,6 +185,24 @@ const LuminaSalesReport = ({ onBack }) => {
         } catch (bookErr) {
           console.error('Error fetching bookings:', bookErr);
           setBookings([]);
+        }
+
+        // Fetch cancelled bookings separately
+        try {
+          const cancelledFilters = {
+            tenant_id: userData.id,
+            check_in_gte: from,
+            check_in_lte: to,
+            status: 'cancelled'
+          };
+          if (selectedVilla) {
+            cancelledFilters.villa_id = selectedVilla;
+          }
+          const cancelledData = await supabaseService.getBookings(cancelledFilters);
+          setCancelledBookings(cancelledData || []);
+        } catch (cancelErr) {
+          console.error('Error fetching cancelled bookings:', cancelErr);
+          setCancelledBookings([]);
         }
       }
     } catch (err) {
@@ -400,6 +421,11 @@ const LuminaSalesReport = ({ onBack }) => {
               <div className="text-2xl font-bold text-white">
                 {formatCurrency(property.totals?.revenue, property.currency)}
               </div>
+              {property.totals?.pending_payment_revenue > 0 && (
+                <div className="text-xs text-yellow-400 mt-1">
+                  Pendiente de cobro: {formatCurrency(property.totals.pending_payment_revenue, property.currency)}
+                </div>
+              )}
             </div>
 
             {/* ADR */}
@@ -475,6 +501,7 @@ const LuminaSalesReport = ({ onBack }) => {
                                 <th className="px-4 py-2">Check-in</th>
                                 <th className="px-4 py-2">Check-out</th>
                                 <th className="px-4 py-2">Channel</th>
+                                <th className="px-4 py-2">Status</th>
                                 <th className="px-4 py-2 text-right">Amount</th>
                               </tr>
                             </thead>
@@ -494,8 +521,19 @@ const LuminaSalesReport = ({ onBack }) => {
                                       {booking.channel}
                                     </span>
                                   </td>
+                                  <td className="px-4 py-2">
+                                    <span className={`px-2 py-0.5 rounded text-xs ${
+                                      booking.status === 'confirmed' ? 'bg-green-500/20 text-green-400' :
+                                      booking.status === 'checked_in' ? 'bg-blue-500/20 text-blue-400' :
+                                      booking.status === 'checked_out' ? 'bg-gray-500/20 text-gray-400' :
+                                      booking.status === 'pending' ? 'bg-yellow-500/20 text-yellow-400' :
+                                      'bg-gray-500/20 text-gray-400'
+                                    }`}>
+                                      {booking.status}
+                                    </span>
+                                  </td>
                                   <td className="px-4 py-2 text-right text-green-400">
-                                    {formatCurrency(booking.total_amount, property.currency)}
+                                    {formatCurrency(booking.total_price, property.currency)}
                                   </td>
                                 </tr>
                               ))}
@@ -546,12 +584,6 @@ const LuminaSalesReport = ({ onBack }) => {
                     <span className="text-white">
                       {property.leads.new || 0} new · {property.leads.won || 0} converted
                     </span>
-                  </div>
-                )}
-                {property.leads_scope === 'not_available_per_villa' && (
-                  <div className="flex items-center justify-between">
-                    <span className="text-gray-400">Leads</span>
-                    <span className="text-gray-500 text-sm">Only available per property</span>
                   </div>
                 )}
                 {property.cancellations && property.cancellations.count > 0 && (
@@ -623,6 +655,59 @@ const LuminaSalesReport = ({ onBack }) => {
           </div>
         </div>
       ))}
+
+      {/* Cancelled Bookings - Separate block (only show after report loads) */}
+      {reportData && cancelledBookings.length > 0 && (
+        <div className="bg-[#2a2f3a] rounded-xl border border-red-700/50 overflow-hidden mb-6">
+          <div className="px-4 py-3 bg-red-900/30 border-b border-red-700/50 flex items-center gap-3">
+            <XCircle className="w-5 h-5 text-red-400" />
+            <h3 className="text-red-300 font-bold">Cancelled Bookings</h3>
+            <span className="text-red-400 text-sm">
+              {cancelledBookings.length} bookings · Total: {formatCurrency(
+                cancelledBookings.reduce((sum, b) => sum + (b.total_price || 0), 0),
+                reportData?.properties?.[0]?.currency || 'IDR'
+              )}
+            </span>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="text-left text-gray-500 text-xs border-b border-gray-700/50">
+                  <th className="px-4 py-2">Code</th>
+                  <th className="px-4 py-2">Guest</th>
+                  <th className="px-4 py-2">Villa</th>
+                  <th className="px-4 py-2">Check-in</th>
+                  <th className="px-4 py-2">Check-out</th>
+                  <th className="px-4 py-2">Channel</th>
+                  <th className="px-4 py-2 text-right">Amount</th>
+                </tr>
+              </thead>
+              <tbody>
+                {cancelledBookings.map((booking, idx) => {
+                  const villaObj = villas.find(v => v.id === booking.villa_id);
+                  return (
+                    <tr key={idx} className="border-b border-gray-700/30 hover:bg-gray-800/30">
+                      <td className="px-4 py-2 text-red-400 font-mono text-sm">{booking.confirmation_code}</td>
+                      <td className="px-4 py-2 text-gray-400">{booking.guest_name}</td>
+                      <td className="px-4 py-2 text-gray-400">{villaObj?.name || '-'}</td>
+                      <td className="px-4 py-2 text-gray-500">{booking.check_in}</td>
+                      <td className="px-4 py-2 text-gray-500">{booking.check_out}</td>
+                      <td className="px-4 py-2">
+                        <span className="px-2 py-0.5 rounded text-xs bg-gray-500/20 text-gray-400">
+                          {booking.channel}
+                        </span>
+                      </td>
+                      <td className="px-4 py-2 text-right text-red-400 whitespace-nowrap">
+                        {formatCurrency(booking.total_price, reportData?.properties?.[0]?.currency || 'IDR')}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
 
       {/* Note */}
       {reportData?.note && (
