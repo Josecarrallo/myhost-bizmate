@@ -5251,6 +5251,7 @@ const Autopilot = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
       due_date: task?.due_date ? task.due_date.split('T')[0] + 'T' + task.due_date.split('T')[1].substring(0,5) : '',
       deadline: task?.deadline ? task.deadline.split('T')[0] + 'T' + task.deadline.split('T')[1].substring(0,5) : '',
       villaId: task?.villa_id || null,
+      propertyId: task?.property_id || null,
       notes: task?.notes || '',
       booking_id: task?.booking_id || null
     });
@@ -5258,36 +5259,41 @@ const Autopilot = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
     const [villas, setVillas] = useState([]);
     const [bookings, setBookings] = useState([]);
     const [activeStaffList, setActiveStaffList] = useState([]);
+    const [propertiesList, setPropertiesList] = useState([]);
 
     useEffect(() => {
       // Load villas, bookings and active staff for dropdowns
       const loadData = async () => {
         try {
-          // Load villas
-          const allVillas = await dataService.getVillas();
-          const userVillas = allVillas.filter(villa =>
-            villa.name.toUpperCase().includes('NISMARA') || villa.name.toUpperCase().includes('GRAHA UMA')
-          );
-          setVillas(userVillas);
-
-          // Load bookings for the user's properties
+          // Load bookings and properties for the user
           if (userData?.id) {
             const { data: properties } = await supabase
               .from('properties')
-              .select('id')
+              .select('id, name')
               .eq('owner_id', userData.id);
 
             if (properties && properties.length > 0) {
               const propertyIds = properties.map(p => p.id);
+
+              // Load villas with property_id for these properties
+              const { data: villasData } = await supabase
+                .from('villas')
+                .select('id, name, property_id')
+                .in('property_id', propertyIds)
+                .order('name', { ascending: true });
+
+              setVillas(villasData || []);
+
               const { data: bookingsData } = await supabase
                 .from('bookings')
-                .select('id, confirmation_code, guest_name, check_in, check_out, villa_id')
+                .select('id, confirmation_code, guest_name, check_in, check_out, villa_id, property_id')
                 .in('property_id', propertyIds)
                 .in('status', ['confirmed', 'checked_in', 'pending_payment'])
                 .order('check_in', { ascending: false })
                 .limit(100);
 
               setBookings(bookingsData || []);
+              setPropertiesList(properties); // Store for property selector
             }
 
             // Load active staff for assignee dropdown
@@ -5331,6 +5337,7 @@ const Autopilot = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
         assigneeStaffId: formData.assignee_staff_id || null,  // Staff ID - DB fills assignee name
         deadline: formData.deadline,   // Maximum deadline
         villaId: formData.villaId,
+        propertyId: formData.propertyId,  // CRITICAL: Required for n8n notifications
         notes: formData.notes,
         // Only include dueDate and bookingId when creating new task (not editing)
         ...(isEditing ? {} : {
@@ -5367,11 +5374,12 @@ const Autopilot = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
                 onChange={(e) => {
                   const selectedBooking = bookings.find(b => b.id === e.target.value);
                   if (selectedBooking) {
-                    // Auto-fill villa from booking
+                    // Auto-fill villa and property from booking
                     setFormData({
                       ...formData,
                       booking_id: e.target.value,
-                      villaId: selectedBooking.villa_id || formData.villaId
+                      villaId: selectedBooking.villa_id || formData.villaId,
+                      propertyId: selectedBooking.property_id || formData.propertyId
                     });
                   } else {
                     setFormData({ ...formData, booking_id: e.target.value || null });
@@ -5492,7 +5500,15 @@ const Autopilot = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
                 <label className="block text-white font-bold mb-2">Villa</label>
                 <select
                   value={formData.villaId || ''}
-                  onChange={(e) => setFormData({ ...formData, villaId: e.target.value || null })}
+                  onChange={(e) => {
+                    const selectedVilla = villas.find(v => v.id === e.target.value);
+                    setFormData({
+                      ...formData,
+                      villaId: e.target.value || null,
+                      // Auto-fill propertyId from villa if not already set from booking
+                      propertyId: selectedVilla?.property_id || formData.propertyId
+                    });
+                  }}
                   className="w-full px-4 py-2 bg-[#2a2f3a] text-white rounded-lg border-2 border-gray-700 focus:border-orange-500 outline-none"
                 >
                   <option value="">No villa (general task)</option>
@@ -5518,6 +5534,25 @@ const Autopilot = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
                 </select>
               </div>
             </div>
+
+            {/* Property selector - Only shown if no villa selected (fallback for general tasks) */}
+            {!formData.villaId && (
+              <div>
+                <label className="block text-white font-bold mb-2">Property *</label>
+                <select
+                  required
+                  value={formData.propertyId || ''}
+                  onChange={(e) => setFormData({ ...formData, propertyId: e.target.value || null })}
+                  className="w-full px-4 py-2 bg-[#2a2f3a] text-white rounded-lg border-2 border-orange-500/50 focus:border-orange-500 outline-none"
+                >
+                  <option value="">-- Select Property --</option>
+                  {propertiesList.map(property => (
+                    <option key={property.id} value={property.id}>{property.name}</option>
+                  ))}
+                </select>
+                <p className="text-gray-400 text-xs mt-1">Required for notifications when no villa selected</p>
+              </div>
+            )}
 
             {/* Due Date & Deadline - Task 3.8: Hide Due Date when editing existing task */}
             <div className={`grid gap-4 ${task?.id ? 'grid-cols-1' : 'grid-cols-2'}`}>
@@ -11981,11 +12016,11 @@ const Autopilot = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
                 await tasksService.updateTask(selectedTask.id, taskData);
                 setNotification({ type: 'success', message: 'Task updated successfully' });
               } else {
-                // Create new task - IMPORTANTE: pasar tenant_id del usuario logueado
+                // Create new task - IMPORTANTE: pasar tenant_id y property_id del usuario logueado
                 await tasksService.createTask({
                   ...taskData,
-                  tenantId: userData.id,
-                  propertyId: null // tasks can be property-agnostic
+                  tenantId: userData.id
+                  // propertyId comes from taskData (from booking, villa, or property selector)
                 }, userData);
                 setNotification({ type: 'success', message: 'Task created successfully' });
               }

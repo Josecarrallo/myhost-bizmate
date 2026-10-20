@@ -241,6 +241,7 @@ export const tasksService = {
       due_date: updates.dueDate,
       deadline: updates.deadline,
       villa_id: updates.villaId,
+      property_id: updates.propertyId,  // Required for n8n notifications
       notes: updates.notes,
       updated_at: new Date().toISOString()
     };
