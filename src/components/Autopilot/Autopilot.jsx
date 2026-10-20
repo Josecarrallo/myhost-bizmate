@@ -148,6 +148,9 @@ const Autopilot = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
   // Guest 360 state
   const [selectedGuestPhone, setSelectedGuestPhone] = useState(null);
 
+  // Open Booking from Date Conflicts (TAREA 1A)
+  const [openBookingCode, setOpenBookingCode] = useState(null);
+
   // Guest Issues data from Supabase (REAL DATA)
   const [guestIssues, setGuestIssues] = useState([]);
   const [loadingIssues, setLoadingIssues] = useState(false);
@@ -2554,10 +2557,15 @@ const Autopilot = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
     };
 
     return <ManualDataEntry
-      onBack={() => setActiveSection('menu')}
+      onBack={() => {
+        setOpenBookingCode(null); // Clear booking code when leaving
+        setActiveSection('menu');
+      }}
       setSidebarCollapsed={setSidebarCollapsed}
       sidebarCollapsed={sidebarCollapsed}
       onAddTaskForBooking={handleAddTaskForBooking}
+      initialBookingCode={openBookingCode}
+      onBookingOpened={() => setOpenBookingCode(null)} // Clear after opening
     />;
   };
 
@@ -7842,17 +7850,23 @@ const Autopilot = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
                         </div>
                       </div>
                       <p className="text-gray-400 text-sm italic mb-3">{conflict.message}</p>
-                      {/* Task 1A: Open booking buttons instead of Mark Resolved */}
+                      {/* Task 1A: Open booking buttons - navigate to data-entry with booking code */}
                       <div className="flex gap-2">
                         <button
-                          onClick={() => setActiveSection('data-entry')}
+                          onClick={() => {
+                            setOpenBookingCode(bookingA.code);
+                            setActiveSection('data-entry');
+                          }}
                           className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg font-medium transition-all"
                         >
                           <ExternalLink className="w-4 h-4" />
                           Open Booking A
                         </button>
                         <button
-                          onClick={() => setActiveSection('data-entry')}
+                          onClick={() => {
+                            setOpenBookingCode(bookingB.code);
+                            setActiveSection('data-entry');
+                          }}
                           className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg font-medium transition-all"
                         >
                           <ExternalLink className="w-4 h-4" />

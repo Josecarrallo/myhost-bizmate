@@ -24,7 +24,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { supabaseService } from '../../services/supabase';
 import { supabase } from '../../lib/supabase';
 
-const ManualDataEntry = ({ onBack, setSidebarCollapsed, sidebarCollapsed, onAddTaskForBooking }) => {
+const ManualDataEntry = ({ onBack, setSidebarCollapsed, sidebarCollapsed, onAddTaskForBooking, initialBookingCode, onBookingOpened }) => {
   const { user, userData } = useAuth();
   const [activeTab, setActiveTab] = useState('view-bookings'); // Start with view mode
 
@@ -599,6 +599,48 @@ const ManualDataEntry = ({ onBack, setSidebarCollapsed, sidebarCollapsed, onAddT
       loadLeads();
     }
   }, [activeTab, userData]);
+
+  // TAREA 1A: Open booking by code when coming from Date Conflicts
+  useEffect(() => {
+    const openBookingByCode = async () => {
+      if (!initialBookingCode || !userData?.id) return;
+
+      try {
+        console.log('[ManualDataEntry] Opening booking by code:', initialBookingCode);
+
+        // Fetch booking by confirmation_code
+        const { data: booking, error } = await supabase
+          .from('bookings')
+          .select('*')
+          .eq('tenant_id', userData.id)
+          .eq('confirmation_code', initialBookingCode)
+          .single();
+
+        if (error) {
+          console.error('[ManualDataEntry] Error fetching booking:', error);
+          setErrorMessage(`Booking not found: ${initialBookingCode}`);
+          setTimeout(() => setErrorMessage(''), 5000);
+          return;
+        }
+
+        if (booking) {
+          console.log('[ManualDataEntry] Found booking, opening edit modal:', booking);
+          // Open the edit modal with this booking
+          handleEditBooking(booking);
+          // Clear the initialBookingCode so it doesn't reopen
+          if (onBookingOpened) {
+            onBookingOpened();
+          }
+        }
+      } catch (err) {
+        console.error('[ManualDataEntry] Error opening booking:', err);
+        setErrorMessage(`Failed to open booking: ${err.message}`);
+        setTimeout(() => setErrorMessage(''), 5000);
+      }
+    };
+
+    openBookingByCode();
+  }, [initialBookingCode, userData?.id]);
 
   // Manual search trigger (not automatic)
   const handleSearch = () => {
