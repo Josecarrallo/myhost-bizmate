@@ -12,7 +12,8 @@ export const tasksService = {
       .select(`
         *,
         villa:villas!villa_id(id, name),
-        booking:bookings!booking_id(id, guest_name, check_in, check_out, confirmation_code, channel, villa_id)
+        booking:bookings!booking_id(id, guest_name, check_in, check_out, confirmation_code, channel, villa_id),
+        assigned_staff:staff!assignee_staff_id(id, name, role, whatsapp)
       `)
       .eq('tenant_id', tenantId)
       .order('due_date', { ascending: true, nullsFirst: false });
@@ -104,7 +105,8 @@ export const tasksService = {
       .select(`
         *,
         villa:villas!villa_id(id, name),
-        booking:bookings!booking_id(id, guest_name, check_in, check_out, confirmation_code, channel, villa_id)
+        booking:bookings!booking_id(id, guest_name, check_in, check_out, confirmation_code, channel, villa_id),
+        assigned_staff:staff!assignee_staff_id(id, name, role, whatsapp)
       `)
       .eq('id', taskId)
       .single();
@@ -122,6 +124,7 @@ export const tasksService = {
   // =====================================================
   async createTask(taskData, currentUser) {
     // Insert task
+    // Note: assignee_staff_id triggers DB to fill assignee name automatically
     const { data: task, error: taskError } = await supabase
       .from('tasks')
       .insert({
@@ -138,7 +141,7 @@ export const tasksService = {
         source: 'manual',
         due_date: taskData.dueDate,
         deadline: taskData.deadline || null,
-        assignee: taskData.assignee || null,
+        assignee_staff_id: taskData.assigneeStaffId || null,
         estimated_cost: taskData.estimatedCost || null,
         actual_cost: null,
         currency: taskData.currency || 'IDR',
@@ -226,6 +229,7 @@ export const tasksService = {
   // =====================================================
   async updateTask(taskId, updates) {
     // Convert camelCase to snake_case for database
+    // Note: assignee_staff_id triggers DB to fill assignee name automatically
     const dbUpdates = {
       title: updates.title,
       description: updates.description,
@@ -233,7 +237,7 @@ export const tasksService = {
       category: updates.category,
       priority: updates.priority,
       status: updates.status,
-      assignee: updates.assignee,
+      assignee_staff_id: updates.assigneeStaffId,
       due_date: updates.dueDate,
       deadline: updates.deadline,
       villa_id: updates.villaId,
@@ -324,7 +328,11 @@ export const tasksService = {
   async getVillaTasks(tenantId, villaId) {
     const { data, error } = await supabase
       .from('tasks')
-      .select('*, villa:villas!villa_id(id, name)')
+      .select(`
+        *,
+        villa:villas!villa_id(id, name),
+        assigned_staff:staff!assignee_staff_id(id, name, role, whatsapp)
+      `)
       .eq('tenant_id', tenantId)
       .eq('villa_id', villaId)
       .order('due_date', { ascending: true });
@@ -343,7 +351,11 @@ export const tasksService = {
   async getBookingTasks(bookingId) {
     const { data, error } = await supabase
       .from('tasks')
-      .select('*, booking:bookings!booking_id(id, guest_name, check_in, check_out, confirmation_code, channel, villa_id)')
+      .select(`
+        *,
+        booking:bookings!booking_id(id, guest_name, check_in, check_out, confirmation_code, channel, villa_id),
+        assigned_staff:staff!assignee_staff_id(id, name, role, whatsapp)
+      `)
       .eq('booking_id', bookingId)
       .order('due_date', { ascending: true });
 

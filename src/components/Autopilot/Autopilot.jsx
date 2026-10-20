@@ -56,7 +56,11 @@ import {
   Menu,
   PanelLeftOpen,
   Video,
-  AlertTriangle
+  AlertTriangle,
+  Building,
+  CalendarX,
+  Palette,
+  Link
 } from 'lucide-react';
 import ManualDataEntry from '../ManualDataEntry/ManualDataEntry';
 import MasterCalendar from '../MasterCalendar/MasterCalendar';
@@ -74,6 +78,7 @@ import { generateReportHTML } from '../../services/generateReportHTML';
 import { generateEnhancedReportHTML } from '../../services/enhancedReportHTML';
 import { supabaseService as dataService } from '../../services/supabase';
 import { tasksService } from '../../services/tasksService';
+import { staffService } from '../../services/staffService';
 import { ownerDecisionsService } from '../../services/ownerDecisionsService';
 import { ownerSummariesService } from '../../services/ownerSummariesService';
 
@@ -161,6 +166,14 @@ const Autopilot = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
   const [issueVillaFilter, setIssueVillaFilter] = useState('all');
   const [issueStatusFilter, setIssueStatusFilter] = useState('all'); // all, open, in_progress, resolved
   const [issuePriorityFilter, setIssuePriorityFilter] = useState('all'); // all, low, medium, high, urgent
+
+  // Staff Management states
+  const [staffList, setStaffList] = useState([]);
+  const [loadingStaff, setLoadingStaff] = useState(false);
+  const [showStaffModal, setShowStaffModal] = useState(false);
+  const [selectedStaff, setSelectedStaff] = useState(null); // null = create new, object = edit existing
+  const [staffError, setStaffError] = useState(null);
+  const [settingsView, setSettingsView] = useState('my-details'); // Business Setup tab selection
 
   // Villas data (for filters and dropdowns)
   const [villas, setVillas] = useState([]);
@@ -298,10 +311,10 @@ const Autopilot = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
     }
   };
 
-  // Load villas when entering Tasks, Decisions or Business Reports section
+  // Load villas and staff when entering Tasks, Decisions or Business Reports section
   useEffect(() => {
     if ((activeSection === 'tasks' || activeSection === 'decisions' || activeSection === 'business-reports') && userData?.id) {
-      const loadVillas = async () => {
+      const loadVillasAndStaff = async () => {
         try {
           // Get user's property dynamically from properties table
           const { data: userProperty } = await supabase
@@ -328,11 +341,21 @@ const Autopilot = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
             console.log('🔍 [AUTOPILOT] Filtered user villas:', userVillas.length, 'of', allVillas.length);
             setVillas(userVillas);
           }
+
+          // Load staff for Tasks section filters
+          if (activeSection === 'tasks') {
+            try {
+              const staffData = await staffService.getStaff(userData.id);
+              setStaffList(staffData || []);
+            } catch (staffError) {
+              console.error('Error loading staff for filters:', staffError);
+            }
+          }
         } catch (error) {
           console.error('Error loading villas:', error);
         }
       };
-      loadVillas();
+      loadVillasAndStaff();
     }
   }, [activeSection, userData]);
 
@@ -489,9 +512,9 @@ const Autopilot = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
         });
       }
 
-      // Apply assignee filter (client-side)
+      // Apply assignee filter (client-side) - filter by staff ID
       if (taskAssigneeFilter !== 'all' && tasksData.length > 0) {
-        tasksData = tasksData.filter(task => task.assignee === taskAssigneeFilter);
+        tasksData = tasksData.filter(task => task.assignee_staff_id === taskAssigneeFilter);
       }
 
       console.log('✅ Tasks loaded and filtered:', tasksData.length);
@@ -853,7 +876,7 @@ const Autopilot = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
       name: 'Sales Report (Lumina)',
       icon: TrendingUp,
       description: 'Revenue, occupancy & analytics',
-      badge: null
+      badge: 'NEW'
     },
     {
       id: 'business-reports',
@@ -888,6 +911,13 @@ const Autopilot = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
       name: 'Content Studio (AI Video) II',
       icon: Video,
       description: 'AI Video Generator - OpenAI + MuAPI + Remotion',
+      badge: 'NEW'
+    },
+    {
+      id: 'settings',
+      name: 'Business Setup',
+      icon: Settings,
+      description: 'Configure your property, staff, prices & AI agents',
       badge: 'NEW'
     }
   ];
@@ -3080,6 +3110,810 @@ const Autopilot = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
     </div>
   );
 
+  // Load staff data when entering Settings section
+  const loadStaffData = async () => {
+    if (!userData?.id) return;
+    setLoadingStaff(true);
+    setStaffError(null);
+    try {
+      const data = await staffService.getStaff(userData.id);
+      setStaffList(data || []);
+    } catch (error) {
+      console.error('Error loading staff:', error);
+      setStaffError(error.message || 'Failed to load staff');
+    } finally {
+      setLoadingStaff(false);
+    }
+  };
+
+  // Load staff when entering Settings section
+  useEffect(() => {
+    if (activeSection === 'settings' && userData?.id) {
+      loadStaffData();
+    }
+  }, [activeSection, userData?.id]);
+
+  // Staff Modal Component
+  const StaffModal = ({ staff, onClose, onSave }) => {
+    const [formData, setFormData] = useState({
+      name: staff?.name || '',
+      whatsapp: staff?.whatsapp || '',
+      language: staff?.language || 'en',
+      role: staff?.role || 'housekeeping',
+      supervisorId: staff?.supervisor_id || '',
+      propertyId: staff?.property_id || '',
+      active: staff?.active !== undefined ? staff.active : true
+    });
+    const [submitting, setSubmitting] = useState(false);
+    const [error, setError] = useState(null);
+    const [properties, setProperties] = useState([]);
+
+    useEffect(() => {
+      // Load properties for dropdown
+      const loadProperties = async () => {
+        if (userData?.id) {
+          const { data } = await supabase
+            .from('properties')
+            .select('id, name')
+            .eq('owner_id', userData.id);
+          setProperties(data || []);
+        }
+      };
+      loadProperties();
+    }, [userData?.id]);
+
+    const handleSubmit = async (e) => {
+      e.preventDefault();
+      setSubmitting(true);
+      setError(null);
+      try {
+        await onSave(formData);
+        onClose();
+      } catch (err) {
+        setError(err.message || 'Error saving staff');
+      } finally {
+        setSubmitting(false);
+      }
+    };
+
+    // Filter staff for supervisor dropdown (exclude self and inactive)
+    const supervisorOptions = staffList.filter(s =>
+      s.id !== staff?.id && s.active
+    );
+
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-2 md:p-4">
+        <div className="bg-[#1f2937] rounded-2xl w-[98%] sm:w-[90%] md:w-full max-w-xl max-h-[92vh] md:max-h-[90vh] overflow-y-auto border-2 border-orange-500/30" style={{ marginLeft: '40px' }}>
+          {/* Header */}
+          <div className="flex items-center justify-between p-4 md:p-6 border-b border-gray-700">
+            <h3 className="text-xl md:text-2xl font-bold text-[#FF8C42]">
+              {staff ? 'Edit Staff Member' : 'Add Staff Member'}
+            </h3>
+            <button onClick={onClose} className="p-2 hover:bg-gray-700 rounded-lg transition-colors">
+              <X className="w-6 h-6 text-gray-400" />
+            </button>
+          </div>
+
+          {/* Error display */}
+          {error && (
+            <div className="mx-4 mt-4 p-3 bg-red-900/50 border border-red-500 rounded-lg text-red-200 text-sm">
+              {error}
+            </div>
+          )}
+
+          {/* Form */}
+          <form onSubmit={handleSubmit} className="p-4 md:p-6 space-y-4">
+            {/* Name */}
+            <div>
+              <label className="block text-white font-bold mb-2">Name *</label>
+              <input
+                type="text"
+                required
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                className="w-full px-4 py-2 bg-[#2a2f3a] text-white rounded-lg border-2 border-gray-700 focus:border-orange-500 outline-none"
+                placeholder="Staff member name"
+              />
+            </div>
+
+            {/* WhatsApp */}
+            <div>
+              <label className="block text-white font-bold mb-2">WhatsApp (with country prefix)</label>
+              <input
+                type="text"
+                value={formData.whatsapp}
+                onChange={(e) => setFormData({ ...formData, whatsapp: e.target.value })}
+                className="w-full px-4 py-2 bg-[#2a2f3a] text-white rounded-lg border-2 border-gray-700 focus:border-orange-500 outline-none"
+                placeholder="+62812345678"
+              />
+              <p className="text-gray-400 text-xs mt-1">Include country code (e.g., +62 for Indonesia)</p>
+            </div>
+
+            {/* Row: Language, Role */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-white font-bold mb-2">Language *</label>
+                <select
+                  required
+                  value={formData.language}
+                  onChange={(e) => setFormData({ ...formData, language: e.target.value })}
+                  className="w-full px-4 py-2 bg-[#2a2f3a] text-white rounded-lg border-2 border-gray-700 focus:border-orange-500 outline-none"
+                >
+                  <option value="en">English</option>
+                  <option value="es">Spanish</option>
+                  <option value="id">Indonesian</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-white font-bold mb-2">Role *</label>
+                <select
+                  required
+                  value={formData.role}
+                  onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+                  className="w-full px-4 py-2 bg-[#2a2f3a] text-white rounded-lg border-2 border-gray-700 focus:border-orange-500 outline-none"
+                >
+                  <option value="housekeeping">Housekeeping</option>
+                  <option value="maintenance">Maintenance</option>
+                  <option value="supervisor">Supervisor</option>
+                  <option value="manager">Manager</option>
+                  <option value="other">Other</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Supervisor */}
+            <div>
+              <label className="block text-white font-bold mb-2">Supervisor (optional)</label>
+              <select
+                value={formData.supervisorId}
+                onChange={(e) => setFormData({ ...formData, supervisorId: e.target.value || null })}
+                className="w-full px-4 py-2 bg-[#2a2f3a] text-white rounded-lg border-2 border-gray-700 focus:border-orange-500 outline-none"
+              >
+                <option value="">-- No supervisor --</option>
+                {supervisorOptions.map(s => (
+                  <option key={s.id} value={s.id}>{s.name} ({s.role})</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Property */}
+            <div>
+              <label className="block text-white font-bold mb-2">Property (optional)</label>
+              <select
+                value={formData.propertyId}
+                onChange={(e) => setFormData({ ...formData, propertyId: e.target.value || null })}
+                className="w-full px-4 py-2 bg-[#2a2f3a] text-white rounded-lg border-2 border-gray-700 focus:border-orange-500 outline-none"
+              >
+                <option value="">-- All properties --</option>
+                {properties.map(p => (
+                  <option key={p.id} value={p.id}>{p.name}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Active toggle */}
+            <div className="flex items-center gap-3">
+              <input
+                type="checkbox"
+                id="staff-active"
+                checked={formData.active}
+                onChange={(e) => setFormData({ ...formData, active: e.target.checked })}
+                className="w-5 h-5 rounded border-gray-700 text-orange-500 focus:ring-orange-500"
+              />
+              <label htmlFor="staff-active" className="text-white font-bold">Active</label>
+            </div>
+
+            {/* Buttons */}
+            <div className="flex gap-3 pt-4">
+              <button
+                type="submit"
+                disabled={submitting}
+                className="flex-1 px-6 py-3 bg-orange-500 hover:bg-orange-600 disabled:bg-gray-600 text-white rounded-lg font-bold transition-all flex items-center justify-center gap-2"
+              >
+                <Save className="w-5 h-5" />
+                {submitting ? 'Saving...' : (staff ? 'Update Staff' : 'Add Staff')}
+              </button>
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-6 py-3 bg-gray-700 hover:bg-gray-600 text-white rounded-lg font-bold transition-all"
+              >
+                Cancel
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    );
+  };
+
+  // Business Setup tabs configuration
+  const businessSetupTabs = [
+    { id: 'my-details', name: 'My Details', icon: User },
+    { id: 'property', name: 'Property', icon: Home },
+    { id: 'villas', name: 'Villas', icon: Building },
+    { id: 'prices', name: 'Prices & Seasons', icon: DollarSign },
+    { id: 'blocked', name: 'Blocked Dates', icon: CalendarX },
+    // { id: 'services', name: 'Services', icon: Briefcase }, // PENDING - wait for DB changes
+    { id: 'policies', name: 'Policies', icon: FileText },
+    { id: 'payments', name: 'Payments', icon: CreditCard },
+    { id: 'staff', name: 'Staff', icon: Users },
+    // { id: 'area', name: 'Area & Recs', icon: MapPin }, // PENDING - wait for DB changes
+    { id: 'culture', name: 'Culture & Events', icon: Globe },
+    { id: 'channels', name: 'Channels', icon: Link },
+    { id: 'branding', name: 'Branding', icon: Palette },
+    { id: 'reports', name: 'Reports', icon: BarChart3 }
+  ];
+
+  const renderSettingsSection = () => (
+    <div className="flex-1 h-full bg-gradient-to-br from-gray-800 via-gray-900 to-black p-4 overflow-auto">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center gap-4">
+          <button
+            onClick={() => setActiveSection('menu')}
+            className="p-2 hover:bg-white/10 rounded-lg transition-colors"
+          >
+            <ArrowLeft className="w-6 h-6 text-white" />
+          </button>
+          <div>
+            <h1 className="text-2xl font-bold text-white">Business Setup</h1>
+            <p className="text-gray-400">Configure your property, staff, prices & AI agents</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Business Setup Tabs - Scrollable horizontally */}
+      <div className="flex gap-2 mb-6 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-gray-600">
+        {businessSetupTabs.map(tab => (
+          <button
+            key={tab.id}
+            onClick={() => setSettingsView(tab.id)}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all whitespace-nowrap ${
+              settingsView === tab.id
+                ? 'bg-orange-500 text-white'
+                : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+            }`}
+          >
+            <tab.icon className="w-4 h-4" />
+            {tab.name}
+          </button>
+        ))}
+      </div>
+
+      {/* My Details Tab */}
+      {settingsView === 'my-details' && (
+        <div className="bg-[#1f2937] rounded-2xl p-6 border border-gray-700">
+          <h2 className="text-xl font-bold text-white mb-4">My Details</h2>
+          <p className="text-gray-400 mb-6">Manage your account information and business profile.</p>
+
+          <div className="grid gap-6 md:grid-cols-2">
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold text-white">Account Information</h3>
+              <div className="bg-gray-800 rounded-lg p-4 space-y-3">
+                <div>
+                  <label className="text-gray-400 text-sm">Name</label>
+                  <p className="text-white">{userData?.full_name || userData?.name || 'Not set'}</p>
+                </div>
+                <div>
+                  <label className="text-gray-400 text-sm">Email</label>
+                  <p className="text-white">{userData?.email || 'Not set'}</p>
+                </div>
+                <div>
+                  <label className="text-gray-400 text-sm">Phone</label>
+                  <p className="text-white">{userData?.phone || 'Not set'}</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold text-white">Business Profile</h3>
+              <div className="bg-gray-800 rounded-lg p-4 space-y-3">
+                <div>
+                  <label className="text-gray-400 text-sm">Business Name</label>
+                  <p className="text-white">{ownerProperty?.name || 'Not set'}</p>
+                </div>
+                <div>
+                  <label className="text-gray-400 text-sm">Location</label>
+                  <p className="text-white">{ownerProperty?.location || 'Not set'}</p>
+                </div>
+                <div>
+                  <label className="text-gray-400 text-sm">Currency</label>
+                  <p className="text-white">{ownerProperty?.currency || 'IDR'}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Property Tab */}
+      {settingsView === 'property' && (
+        <div className="bg-[#1f2937] rounded-2xl p-6 border border-gray-700">
+          <h2 className="text-xl font-bold text-white mb-4">Property Settings</h2>
+          <p className="text-gray-400 mb-6">Configure your property details and amenities.</p>
+
+          <div className="bg-gray-800 rounded-lg p-6 space-y-4">
+            <div className="grid gap-4 md:grid-cols-2">
+              <div>
+                <label className="text-gray-400 text-sm block mb-1">Property Name</label>
+                <p className="text-white bg-gray-700 rounded-lg px-4 py-2">{ownerProperty?.name || 'Not configured'}</p>
+              </div>
+              <div>
+                <label className="text-gray-400 text-sm block mb-1">Property Type</label>
+                <p className="text-white bg-gray-700 rounded-lg px-4 py-2">Villa Complex</p>
+              </div>
+              <div>
+                <label className="text-gray-400 text-sm block mb-1">Address</label>
+                <p className="text-white bg-gray-700 rounded-lg px-4 py-2">{ownerProperty?.location || 'Not configured'}</p>
+              </div>
+              <div>
+                <label className="text-gray-400 text-sm block mb-1">Total Villas</label>
+                <p className="text-white bg-gray-700 rounded-lg px-4 py-2">{villas.length} villas</p>
+              </div>
+            </div>
+            <div className="pt-4 border-t border-gray-700">
+              <p className="text-gray-500 text-sm">Property settings can be edited in the main Properties module.</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Villas Tab */}
+      {settingsView === 'villas' && (
+        <div className="bg-[#1f2937] rounded-2xl p-6 border border-gray-700">
+          <h2 className="text-xl font-bold text-white mb-4">Villas</h2>
+          <p className="text-gray-400 mb-6">View and manage your villa inventory.</p>
+
+          {villas.length === 0 ? (
+            <div className="text-center py-8">
+              <Building className="w-12 h-12 text-gray-600 mx-auto mb-2" />
+              <p className="text-gray-400">No villas found</p>
+            </div>
+          ) : (
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {villas.map(villa => (
+                <div key={villa.id} className="bg-gray-800 rounded-lg p-4 border border-gray-700">
+                  <h3 className="text-white font-semibold mb-2">{villa.name}</h3>
+                  <div className="space-y-1 text-sm">
+                    <p className="text-gray-400">Bedrooms: <span className="text-gray-300">{villa.bedrooms || 'N/A'}</span></p>
+                    <p className="text-gray-400">Max Guests: <span className="text-gray-300">{villa.max_guests || 'N/A'}</span></p>
+                    <p className="text-gray-400">Base Price: <span className="text-orange-400">{villa.base_price ? `${villa.currency || 'IDR'} ${villa.base_price.toLocaleString()}` : 'Not set'}</span></p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Prices & Seasons Tab */}
+      {settingsView === 'prices' && (
+        <div className="bg-[#1f2937] rounded-2xl p-6 border border-gray-700">
+          <h2 className="text-xl font-bold text-white mb-4">Prices & Seasons</h2>
+          <p className="text-gray-400 mb-6">Configure seasonal pricing and rate adjustments.</p>
+
+          <div className="space-y-6">
+            <div className="bg-gray-800 rounded-lg p-4">
+              <h3 className="text-white font-semibold mb-3">Base Prices by Villa</h3>
+              <div className="space-y-2">
+                {villas.map(villa => (
+                  <div key={villa.id} className="flex items-center justify-between py-2 border-b border-gray-700 last:border-0">
+                    <span className="text-gray-300">{villa.name}</span>
+                    <span className="text-orange-400 font-medium">
+                      {villa.base_price ? `${villa.currency || 'IDR'} ${villa.base_price.toLocaleString()}` : 'Not set'}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="bg-gray-800 rounded-lg p-4">
+              <h3 className="text-white font-semibold mb-3">Season Definitions</h3>
+              <p className="text-gray-500 text-sm">Season pricing configuration coming soon. Currently using base prices.</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Blocked Dates Tab */}
+      {settingsView === 'blocked' && (
+        <div className="bg-[#1f2937] rounded-2xl p-6 border border-gray-700">
+          <h2 className="text-xl font-bold text-white mb-4">Blocked Dates</h2>
+          <p className="text-gray-400 mb-6">Manage dates when villas are unavailable for booking.</p>
+
+          <div className="bg-gray-800 rounded-lg p-6 text-center">
+            <CalendarX className="w-12 h-12 text-gray-600 mx-auto mb-3" />
+            <p className="text-gray-400 mb-2">Blocked dates management</p>
+            <p className="text-gray-500 text-sm">Use the Master Calendar to block dates for maintenance, owner use, or other reasons.</p>
+          </div>
+        </div>
+      )}
+
+      {/* Policies Tab */}
+      {settingsView === 'policies' && (
+        <div className="bg-[#1f2937] rounded-2xl p-6 border border-gray-700">
+          <h2 className="text-xl font-bold text-white mb-4">Policies</h2>
+          <p className="text-gray-400 mb-6">Define your property policies for guests.</p>
+
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="bg-gray-800 rounded-lg p-4">
+              <h3 className="text-white font-semibold mb-2">Check-in / Check-out</h3>
+              <div className="space-y-2 text-sm">
+                <p className="text-gray-400">Check-in: <span className="text-gray-300">3:00 PM</span></p>
+                <p className="text-gray-400">Check-out: <span className="text-gray-300">11:00 AM</span></p>
+              </div>
+            </div>
+
+            <div className="bg-gray-800 rounded-lg p-4">
+              <h3 className="text-white font-semibold mb-2">Cancellation Policy</h3>
+              <p className="text-gray-400 text-sm">Free cancellation up to 7 days before check-in. 50% refund for cancellations 3-7 days before.</p>
+            </div>
+
+            <div className="bg-gray-800 rounded-lg p-4">
+              <h3 className="text-white font-semibold mb-2">House Rules</h3>
+              <p className="text-gray-400 text-sm">No smoking, no parties, quiet hours 10PM-8AM, pets allowed with prior approval.</p>
+            </div>
+
+            <div className="bg-gray-800 rounded-lg p-4">
+              <h3 className="text-white font-semibold mb-2">Security Deposit</h3>
+              <p className="text-gray-400 text-sm">$200 USD refundable security deposit required at check-in.</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Payments Tab */}
+      {settingsView === 'payments' && (
+        <div className="bg-[#1f2937] rounded-2xl p-6 border border-gray-700">
+          <h2 className="text-xl font-bold text-white mb-4">Payments</h2>
+          <p className="text-gray-400 mb-6">Configure payment methods and processing.</p>
+
+          <div className="space-y-4">
+            <div className="bg-gray-800 rounded-lg p-4">
+              <h3 className="text-white font-semibold mb-3">Payment Methods</h3>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between py-2 border-b border-gray-700">
+                  <span className="text-gray-300">Bank Transfer</span>
+                  <span className="px-2 py-1 bg-green-900/50 text-green-300 text-xs rounded">Active</span>
+                </div>
+                <div className="flex items-center justify-between py-2 border-b border-gray-700">
+                  <span className="text-gray-300">Credit Card</span>
+                  <span className="px-2 py-1 bg-green-900/50 text-green-300 text-xs rounded">Active</span>
+                </div>
+                <div className="flex items-center justify-between py-2">
+                  <span className="text-gray-300">PayPal</span>
+                  <span className="px-2 py-1 bg-gray-700 text-gray-400 text-xs rounded">Inactive</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-gray-800 rounded-lg p-4">
+              <h3 className="text-white font-semibold mb-3">Payment Terms</h3>
+              <div className="space-y-2 text-sm">
+                <p className="text-gray-400">Deposit: <span className="text-gray-300">30% at booking</span></p>
+                <p className="text-gray-400">Balance: <span className="text-gray-300">70% at check-in</span></p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Staff Management Section */}
+      {settingsView === 'staff' && (
+        <div className="bg-[#1f2937] rounded-2xl p-6 border border-gray-700">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-bold text-white">Staff Members</h2>
+            <button
+              onClick={() => {
+                setSelectedStaff(null);
+                setShowStaffModal(true);
+              }}
+              className="flex items-center gap-2 px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg font-medium transition-all"
+            >
+              <Plus className="w-5 h-5" />
+              Add Staff
+            </button>
+          </div>
+
+          {/* Error display */}
+          {staffError && (
+            <div className="mb-4 p-3 bg-red-900/50 border border-red-500 rounded-lg text-red-200">
+              {staffError}
+            </div>
+          )}
+
+          {/* Loading */}
+          {loadingStaff ? (
+            <div className="text-center py-8">
+              <div className="animate-spin w-8 h-8 border-2 border-orange-500 border-t-transparent rounded-full mx-auto mb-2"></div>
+              <p className="text-gray-400">Loading staff...</p>
+            </div>
+          ) : staffList.length === 0 ? (
+            <div className="text-center py-8">
+              <Users className="w-12 h-12 text-gray-600 mx-auto mb-2" />
+              <p className="text-gray-400">No staff members yet</p>
+              <p className="text-gray-500 text-sm">Click "Add Staff" to add your first team member</p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-gray-700">
+                    <th className="text-left py-3 px-4 text-gray-400 font-medium">Name</th>
+                    <th className="text-left py-3 px-4 text-gray-400 font-medium">WhatsApp</th>
+                    <th className="text-left py-3 px-4 text-gray-400 font-medium">Language</th>
+                    <th className="text-left py-3 px-4 text-gray-400 font-medium">Role</th>
+                    <th className="text-left py-3 px-4 text-gray-400 font-medium">Supervisor</th>
+                    <th className="text-left py-3 px-4 text-gray-400 font-medium">Status</th>
+                    <th className="text-right py-3 px-4 text-gray-400 font-medium">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {staffList.map(staff => (
+                    <tr key={staff.id} className="border-b border-gray-800 hover:bg-gray-800/50">
+                      <td className="py-3 px-4 text-white font-medium">{staff.name}</td>
+                      <td className="py-3 px-4 text-gray-300">{staff.whatsapp || '-'}</td>
+                      <td className="py-3 px-4 text-gray-300">{staff.language || 'EN'}</td>
+                      <td className="py-3 px-4">
+                        <span className={`px-2 py-1 rounded text-xs font-medium ${
+                          staff.role === 'manager' ? 'bg-purple-900/50 text-purple-300' :
+                          staff.role === 'supervisor' ? 'bg-blue-900/50 text-blue-300' :
+                          staff.role === 'maintenance' ? 'bg-yellow-900/50 text-yellow-300' :
+                          'bg-green-900/50 text-green-300'
+                        }`}>
+                          {staff.role}
+                        </span>
+                      </td>
+                      <td className="py-3 px-4 text-gray-300">{staff.supervisor?.name || '-'}</td>
+                      <td className="py-3 px-4">
+                        <span className={`px-2 py-1 rounded text-xs font-medium ${
+                          staff.active ? 'bg-green-900/50 text-green-300' : 'bg-red-900/50 text-red-300'
+                        }`}>
+                          {staff.active ? 'Active' : 'Inactive'}
+                        </span>
+                      </td>
+                      <td className="py-3 px-4 text-right">
+                        <button
+                          onClick={() => {
+                            setSelectedStaff(staff);
+                            setShowStaffModal(true);
+                          }}
+                          className="p-2 hover:bg-gray-700 rounded-lg transition-colors mr-1"
+                          title="Edit"
+                        >
+                          <Edit3 className="w-4 h-4 text-orange-400" />
+                        </button>
+                        <button
+                          onClick={async () => {
+                            try {
+                              await staffService.toggleStaffActive(staff.id, !staff.active);
+                              loadStaffData();
+                            } catch (err) {
+                              setStaffError(err.message || 'Error toggling status');
+                            }
+                          }}
+                          className="p-2 hover:bg-gray-700 rounded-lg transition-colors"
+                          title={staff.active ? 'Deactivate' : 'Activate'}
+                        >
+                          {staff.active ? (
+                            <X className="w-4 h-4 text-red-400" />
+                          ) : (
+                            <CheckCircle className="w-4 h-4 text-green-400" />
+                          )}
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Culture & Events Tab */}
+      {settingsView === 'culture' && (
+        <div className="bg-[#1f2937] rounded-2xl p-6 border border-gray-700">
+          <h2 className="text-xl font-bold text-white mb-4">Culture & Events</h2>
+          <p className="text-gray-400 mb-6">Configure cultural information and local events for guests.</p>
+
+          <div className="space-y-6">
+            <div className="bg-gray-800 rounded-lg p-4">
+              <h3 className="text-white font-semibold mb-3">Balinese Cultural Calendar</h3>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between py-2 border-b border-gray-700">
+                  <span className="text-gray-300">Nyepi (Day of Silence)</span>
+                  <span className="text-orange-400 text-sm">March 2026</span>
+                </div>
+                <div className="flex items-center justify-between py-2 border-b border-gray-700">
+                  <span className="text-gray-300">Galungan & Kuningan</span>
+                  <span className="text-orange-400 text-sm">Multiple dates</span>
+                </div>
+                <div className="flex items-center justify-between py-2">
+                  <span className="text-gray-300">Temple Ceremonies</span>
+                  <span className="text-orange-400 text-sm">Ongoing</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-gray-800 rounded-lg p-4">
+              <h3 className="text-white font-semibold mb-3">Local Recommendations</h3>
+              <p className="text-gray-500 text-sm">Configure restaurant, activity, and service recommendations for your area. This helps BANYU provide personalized suggestions to guests.</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Channels Tab */}
+      {settingsView === 'channels' && (
+        <div className="bg-[#1f2937] rounded-2xl p-6 border border-gray-700">
+          <h2 className="text-xl font-bold text-white mb-4">Channel Integration</h2>
+          <p className="text-gray-400 mb-6">Manage your OTA and direct booking channels.</p>
+
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="bg-gray-800 rounded-lg p-4 border border-gray-700">
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="text-white font-semibold">Airbnb</h3>
+                <span className="px-2 py-1 bg-green-900/50 text-green-300 text-xs rounded">Connected</span>
+              </div>
+              <p className="text-gray-500 text-sm">iCal sync every hour</p>
+            </div>
+
+            <div className="bg-gray-800 rounded-lg p-4 border border-gray-700">
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="text-white font-semibold">Booking.com</h3>
+                <span className="px-2 py-1 bg-green-900/50 text-green-300 text-xs rounded">Connected</span>
+              </div>
+              <p className="text-gray-500 text-sm">iCal sync every hour</p>
+            </div>
+
+            <div className="bg-gray-800 rounded-lg p-4 border border-gray-700">
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="text-white font-semibold">Agoda</h3>
+                <span className="px-2 py-1 bg-gray-700 text-gray-400 text-xs rounded">Not connected</span>
+              </div>
+              <p className="text-gray-500 text-sm">Click to configure</p>
+            </div>
+
+            <div className="bg-gray-800 rounded-lg p-4 border border-gray-700">
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="text-white font-semibold">Direct Bookings</h3>
+                <span className="px-2 py-1 bg-green-900/50 text-green-300 text-xs rounded">Active</span>
+              </div>
+              <p className="text-gray-500 text-sm">WhatsApp + Website</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Branding Tab */}
+      {settingsView === 'branding' && (
+        <div className="bg-[#1f2937] rounded-2xl p-6 border border-gray-700">
+          <h2 className="text-xl font-bold text-white mb-4">Branding</h2>
+          <p className="text-gray-400 mb-6">Customize your brand appearance across all guest touchpoints.</p>
+
+          <div className="grid gap-6 md:grid-cols-2">
+            <div className="space-y-4">
+              <div className="bg-gray-800 rounded-lg p-4">
+                <h3 className="text-white font-semibold mb-3">Brand Colors</h3>
+                <div className="flex gap-2">
+                  <div className="w-10 h-10 rounded-lg bg-orange-500" title="Primary"></div>
+                  <div className="w-10 h-10 rounded-lg bg-gray-800 border border-gray-600" title="Secondary"></div>
+                  <div className="w-10 h-10 rounded-lg bg-white" title="Accent"></div>
+                </div>
+              </div>
+
+              <div className="bg-gray-800 rounded-lg p-4">
+                <h3 className="text-white font-semibold mb-3">Logo</h3>
+                <div className="border-2 border-dashed border-gray-600 rounded-lg p-6 text-center">
+                  <Palette className="w-8 h-8 text-gray-500 mx-auto mb-2" />
+                  <p className="text-gray-500 text-sm">Upload your logo</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <div className="bg-gray-800 rounded-lg p-4">
+                <h3 className="text-white font-semibold mb-3">Email Templates</h3>
+                <p className="text-gray-500 text-sm">Customize booking confirmation, pre-arrival, and post-stay emails with your branding.</p>
+              </div>
+
+              <div className="bg-gray-800 rounded-lg p-4">
+                <h3 className="text-white font-semibold mb-3">WhatsApp Style</h3>
+                <p className="text-gray-500 text-sm">Configure BANYU's greeting style and signature for your property.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Reports Tab */}
+      {settingsView === 'reports' && (
+        <div className="bg-[#1f2937] rounded-2xl p-6 border border-gray-700">
+          <h2 className="text-xl font-bold text-white mb-4">Reports Configuration</h2>
+          <p className="text-gray-400 mb-6">Configure automated reports and analytics preferences.</p>
+
+          <div className="space-y-4">
+            <div className="bg-gray-800 rounded-lg p-4">
+              <h3 className="text-white font-semibold mb-3">Scheduled Reports</h3>
+              <div className="space-y-3">
+                <div className="flex items-center justify-between py-2 border-b border-gray-700">
+                  <div>
+                    <p className="text-gray-300">Daily Summary</p>
+                    <p className="text-gray-500 text-sm">Sent every day at 8:00 AM</p>
+                  </div>
+                  <span className="px-2 py-1 bg-green-900/50 text-green-300 text-xs rounded">Active</span>
+                </div>
+                <div className="flex items-center justify-between py-2 border-b border-gray-700">
+                  <div>
+                    <p className="text-gray-300">Weekly Performance</p>
+                    <p className="text-gray-500 text-sm">Sent every Monday at 9:00 AM</p>
+                  </div>
+                  <span className="px-2 py-1 bg-green-900/50 text-green-300 text-xs rounded">Active</span>
+                </div>
+                <div className="flex items-center justify-between py-2">
+                  <div>
+                    <p className="text-gray-300">Monthly Revenue Report</p>
+                    <p className="text-gray-500 text-sm">Sent on the 1st of each month</p>
+                  </div>
+                  <span className="px-2 py-1 bg-green-900/50 text-green-300 text-xs rounded">Active</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-gray-800 rounded-lg p-4">
+              <h3 className="text-white font-semibold mb-3">Report Recipients</h3>
+              <p className="text-gray-300">{userData?.email || 'owner@example.com'}</p>
+              <p className="text-gray-500 text-sm mt-2">Reports are sent to your registered email address.</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Staff Modal */}
+      {showStaffModal && (
+        <StaffModal
+          staff={selectedStaff}
+          onClose={() => {
+            setShowStaffModal(false);
+            setSelectedStaff(null);
+          }}
+          onSave={async (formData) => {
+            // Verify session before saving
+            const { data: { session } } = await supabase.auth.getSession();
+            console.log('🔐 Session check:', session ? `Logged in as ${session.user.id}` : 'NO SESSION');
+
+            if (!session) {
+              throw new Error('No active session. Please log in again.');
+            }
+
+            const tenantId = session.user.id;
+            console.log('📝 Saving staff with formData:', formData);
+            console.log('📝 tenantId from session:', tenantId);
+
+            if (selectedStaff) {
+              // Update existing
+              console.log('📝 Updating staff:', selectedStaff.id);
+              const result = await staffService.updateStaff(selectedStaff.id, formData);
+              console.log('✅ Update result:', result);
+            } else {
+              // Create new
+              console.log('📝 Creating new staff...');
+              const result = await staffService.createStaff({
+                tenantId: tenantId,
+                ...formData
+              });
+              console.log('✅ Create result:', result);
+            }
+            loadStaffData();
+          }}
+        />
+      )}
+    </div>
+  );
+
   const renderAutomatedFlowsSection = () => {
     const automatedFlows = [
       // Capture & Bookings
@@ -4413,7 +5247,7 @@ const Autopilot = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
       category: task?.category || 'housekeeping',
       priority: task?.priority || 'medium',
       status: task?.status || 'open',
-      assignee: task?.assignee || '',
+      assignee_staff_id: task?.assignee_staff_id || '',
       due_date: task?.due_date ? task.due_date.split('T')[0] + 'T' + task.due_date.split('T')[1].substring(0,5) : '',
       deadline: task?.deadline ? task.deadline.split('T')[0] + 'T' + task.deadline.split('T')[1].substring(0,5) : '',
       villaId: task?.villa_id || null,
@@ -4423,9 +5257,10 @@ const Autopilot = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
 
     const [villas, setVillas] = useState([]);
     const [bookings, setBookings] = useState([]);
+    const [activeStaffList, setActiveStaffList] = useState([]);
 
     useEffect(() => {
-      // Load villas and bookings for dropdowns
+      // Load villas, bookings and active staff for dropdowns
       const loadData = async () => {
         try {
           // Load villas
@@ -4453,6 +5288,14 @@ const Autopilot = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
                 .limit(100);
 
               setBookings(bookingsData || []);
+            }
+
+            // Load active staff for assignee dropdown
+            try {
+              const staffData = await staffService.getActiveStaff(userData.id);
+              setActiveStaffList(staffData || []);
+            } catch (staffError) {
+              console.error('Error loading staff:', staffError);
             }
           }
         } catch (error) {
@@ -4485,7 +5328,7 @@ const Autopilot = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
         category: formData.category,
         priority: formData.priority,
         status: formData.status,
-        assignee: formData.assignee,
+        assigneeStaffId: formData.assignee_staff_id || null,  // Staff ID - DB fills assignee name
         deadline: formData.deadline,   // Maximum deadline
         villaId: formData.villaId,
         notes: formData.notes,
@@ -4660,14 +5503,19 @@ const Autopilot = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
               </div>
 
               <div>
-                <label className="block text-white font-bold mb-2">Assignee</label>
-                <input
-                  type="text"
-                  value={formData.assignee}
-                  onChange={(e) => setFormData({ ...formData, assignee: e.target.value })}
+                <label className="block text-white font-bold mb-2">Assign to...</label>
+                <select
+                  value={formData.assignee_staff_id || ''}
+                  onChange={(e) => setFormData({ ...formData, assignee_staff_id: e.target.value || null })}
                   className="w-full px-4 py-2 bg-[#2a2f3a] text-white rounded-lg border-2 border-gray-700 focus:border-orange-500 outline-none"
-                  placeholder="Staff name"
-                />
+                >
+                  <option value="">-- Not assigned --</option>
+                  {activeStaffList.map(staff => (
+                    <option key={staff.id} value={staff.id}>
+                      {staff.name} ({staff.role})
+                    </option>
+                  ))}
+                </select>
               </div>
             </div>
 
@@ -5234,21 +6082,16 @@ const Autopilot = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
                 <option value="urgent">Urgent</option>
               </select>
 
-              {/* Assignee Filter (Staff) - Predefined list */}
+              {/* Assignee Filter (Staff) - Dynamic from database */}
               <select
                 value={taskAssigneeFilter}
                 onChange={(e) => setTaskAssigneeFilter(e.target.value)}
                 className="px-3 py-2.5 bg-[#2a2f3a] text-white rounded-xl text-sm border border-orange-500/30 focus:border-orange-500 outline-none min-w-[120px]"
               >
                 <option value="all">All Staff</option>
-                <option value="Kadek">Kadek</option>
-                <option value="Wayan">Wayan</option>
-                <option value="Made">Made</option>
-                <option value="Nyoman">Nyoman</option>
-                <option value="Ketut">Ketut</option>
-                <option value="Putu">Putu</option>
-                <option value="Gede">Gede</option>
-                <option value="Komang">Komang</option>
+                {staffList.filter(s => s.active).map(staff => (
+                  <option key={staff.id} value={staff.id}>{staff.name}</option>
+                ))}
               </select>
             </div>
 
@@ -5360,7 +6203,7 @@ const Autopilot = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
                       </span>
                       <p className="text-gray-400 text-sm mt-1">
                         {task.category || task.task_type}
-                        {task.assignee && ` • ${task.assignee}`}
+                        {task.assigned_staff?.name && ` • ${task.assigned_staff.name}`}
                         {task.villa?.name && ` • ${task.villa.name}`}
                       </p>
                       <div className="flex flex-col gap-1 mt-1">
@@ -11114,6 +11957,7 @@ const Autopilot = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
           )}
           {activeSection === 'data-export' && renderDataExportSection()}
           {activeSection === 'content-studio-v2' && <ContentStudioV2 onBack={() => setActiveSection('menu')} setSidebarCollapsed={setSidebarCollapsed} sidebarCollapsed={sidebarCollapsed} />}
+          {activeSection === 'settings' && renderSettingsSection()}
         </div>
       </div>
 
