@@ -28,7 +28,7 @@ const OwnerExecutiveSummary = ({ userName = 'Owner', onNavigate }) => {
 
   // Data state
   const [stats, setStats] = useState(null);
-  const [currency, setCurrency] = useState('USD');
+  const [currency, setCurrency] = useState('IDR'); // Default to IDR
   const [loading, setLoading] = useState(true);
 
   // Villa filter state
@@ -40,7 +40,7 @@ const OwnerExecutiveSummary = ({ userName = 'Owner', onNavigate }) => {
     if (!tenantId) {
       // User logged out or changed - reset all state
       setStats(null);
-      setCurrency('USD');
+      setCurrency('IDR'); // Default to IDR
       setLoading(true);
       setVillas([]);
       setSelectedVilla('all');
@@ -67,11 +67,13 @@ const OwnerExecutiveSummary = ({ userName = 'Owner', onNavigate }) => {
   const loadOverviewData = async () => {
     setLoading(true);
     try {
-      // Get property currency
+      // Get property currency - try owner_id first, then tenant_id
       const properties = await dataService.getProperties();
-      const userProperty = properties.find(p => p.owner_id === tenantId);
-      if (userProperty?.currency) {
+      const userProperty = properties.find(p => p.owner_id === tenantId || p.tenant_id === tenantId);
+      if (userProperty?.currency && userProperty.currency.trim() !== '') {
         setCurrency(userProperty.currency);
+      } else {
+        setCurrency('IDR'); // Default to IDR if empty or not found
       }
 
       // Get overview stats (with optional villa filter)
@@ -92,17 +94,64 @@ const OwnerExecutiveSummary = ({ userName = 'Owner', onNavigate }) => {
   };
 
   const formatCurrency = (amount) => {
-    if (!amount) return '0';
+    if (!amount && amount !== 0) return 'Rp 0';
 
-    switch (currency) {
-      case 'IDR':
-        return `Rp ${Math.round(amount).toLocaleString('id-ID')}`;
+    // Use IDR as default if currency is empty or not set
+    const curr = currency && currency.trim() !== '' ? currency : 'IDR';
+
+    switch (curr) {
       case 'EUR':
-        return `€${Math.round(amount).toLocaleString('de-DE')}`;
+        return new Intl.NumberFormat('de-DE', {
+          style: 'currency',
+          currency: 'EUR',
+          maximumFractionDigits: 0
+        }).format(amount);
       case 'USD':
+        return new Intl.NumberFormat('en-US', {
+          style: 'currency',
+          currency: 'USD',
+          maximumFractionDigits: 0
+        }).format(amount);
+      case 'IDR':
       default:
-        return `$${Math.round(amount).toLocaleString('en-US')}`;
+        return new Intl.NumberFormat('id-ID', {
+          style: 'currency',
+          currency: 'IDR',
+          maximumFractionDigits: 0
+        }).format(amount);
     }
+  };
+
+  // Format Y-axis with abbreviations (25 M, 50 M, etc.)
+  const formatYAxis = (value) => {
+    if (value >= 1000000000) {
+      return `${(value / 1000000000).toFixed(0)} B`;
+    }
+    if (value >= 1000000) {
+      return `${(value / 1000000).toFixed(0)} M`;
+    }
+    if (value >= 1000) {
+      return `${(value / 1000).toFixed(0)} K`;
+    }
+    return value;
+  };
+
+  // Format source names for display
+  const formatSourceName = (source) => {
+    if (!source) return 'Unknown';
+    const sourceMap = {
+      'domus': 'Direct (Domus)',
+      'ical_sync': 'Airbnb (iCal)',
+      'beds24_api': 'Beds24',
+      'autopilot': 'MY HOST Autopilot',
+      'voice_ai': 'KORA (voice)',
+      'airbnb': 'Airbnb',
+      'booking': 'Booking.com',
+      'booking.com': 'Booking.com',
+      'direct': 'Direct',
+      'manual': 'Manual'
+    };
+    return sourceMap[source.toLowerCase()] || (source.charAt(0).toUpperCase() + source.slice(1));
   };
 
   const getShortPropertyName = (fullName) => {
@@ -185,19 +234,19 @@ const OwnerExecutiveSummary = ({ userName = 'Owner', onNavigate }) => {
               </div>
               <div class="stat-card">
                 <div class="stat-value">${formatCurrency(stats?.revenue_paid || 0)}</div>
-                <div class="stat-label">Revenue Paid<br>${stats?.total_revenue > 0 ? ((stats?.revenue_paid / stats?.total_revenue) * 100).toFixed(1) : 0}% collected</div>
+                <div class="stat-label">Collected<br>${stats?.total_revenue > 0 ? ((stats?.revenue_paid / stats?.total_revenue) * 100).toFixed(1) : 0}%</div>
               </div>
               <div class="stat-card">
                 <div class="stat-value">${formatCurrency(stats?.revenue_pending || 0)}</div>
-                <div class="stat-label">Revenue Pending<br>${stats?.total_revenue > 0 ? ((stats?.revenue_pending / stats?.total_revenue) * 100).toFixed(1) : 0}% to collect</div>
+                <div class="stat-label">To collect<br>${stats?.total_revenue > 0 ? ((stats?.revenue_pending / stats?.total_revenue) * 100).toFixed(1) : 0}%</div>
               </div>
               <div class="stat-card">
                 <div class="stat-value">${stats?.total_nights || 0}</div>
-                <div class="stat-label">Total Nights<br>Booked nights</div>
+                <div class="stat-label">Total Nights<br>Occupied nights</div>
               </div>
               <div class="stat-card">
                 <div class="stat-value">${stats?.total_bookings || 0}</div>
-                <div class="stat-label">Total Bookings<br>Confirmed reservations</div>
+                <div class="stat-label">Total Bookings<br>Stays in this period</div>
               </div>
               <div class="stat-card">
                 <div class="stat-value">${stats?.occupancy_rate || 0}%</div>
@@ -222,12 +271,12 @@ const OwnerExecutiveSummary = ({ userName = 'Owner', onNavigate }) => {
             <h2>💳 Payment Status</h2>
             <div class="stats-grid-2">
               <div class="stat-card">
-                <div class="stat-value">${stats?.payment_status_data?.paid?.bookings || 0} bookings</div>
-                <div class="stat-label">✅ Paid<br>${formatCurrency(stats?.payment_status_data?.paid?.revenue || 0)}</div>
+                <div class="stat-value">${stats?.payment_status_data?.paid?.bookings || 0} (bookings with price)</div>
+                <div class="stat-label">✅ Collected<br>${formatCurrency(stats?.payment_status_data?.paid?.revenue || 0)}</div>
               </div>
               <div class="stat-card">
-                <div class="stat-value">${stats?.payment_status_data?.pending?.bookings || 0} bookings</div>
-                <div class="stat-label">⏳ Pending<br>${formatCurrency(stats?.payment_status_data?.pending?.revenue || 0)}</div>
+                <div class="stat-value">${stats?.payment_status_data?.pending?.bookings || 0} (bookings with price)</div>
+                <div class="stat-label">⏳ To collect<br>${formatCurrency(stats?.payment_status_data?.pending?.revenue || 0)}</div>
               </div>
             </div>
 
@@ -236,7 +285,7 @@ const OwnerExecutiveSummary = ({ userName = 'Owner', onNavigate }) => {
                 <p style="color: #856404; font-weight: bold; margin-bottom: 5px;">📌 Action Items:</p>
                 <ul style="color: #856404; margin: 5px 0; padding-left: 20px;">
                   <li>${stats.payment_status_data.pending.bookings} bookings pending payment follow-up</li>
-                  <li>Expected revenue to collect: ${formatCurrency(stats.payment_status_data.pending.revenue)}</li>
+                  <li>To collect: ${formatCurrency(stats.payment_status_data.pending.revenue)}</li>
                 </ul>
               </div>
             ` : ''}
@@ -394,36 +443,44 @@ const OwnerExecutiveSummary = ({ userName = 'Owner', onNavigate }) => {
           <p className="text-orange-200 text-xs mt-0.5">{dateRange.label}</p>
         </div>
 
-        {/* Revenue Paid */}
-        <div className="bg-gradient-to-br from-orange-500/10 to-orange-600/10 rounded-xl p-3 border-2 border-orange-500/30">
+        {/* Collected */}
+        <div className="bg-gradient-to-br from-orange-500/10 to-orange-600/10 rounded-xl p-3 border-2 border-orange-500/30 group relative">
           <div className="flex items-center justify-between mb-1">
             <DollarSign className="w-6 h-6 text-orange-400" />
           </div>
           <p className="text-xl font-black text-white mb-0.5">
             {formatCurrency(stats?.revenue_paid || 0)}
           </p>
-          <p className="text-orange-300 text-xs">Revenue Paid</p>
+          <p className="text-orange-300 text-xs">Collected</p>
           <p className="text-orange-200 text-xs mt-0.5">
             {stats?.total_revenue > 0
-              ? `${((stats?.revenue_paid / stats?.total_revenue) * 100).toFixed(1)}% collected`
-              : '0% collected'}
+              ? `${((stats?.revenue_paid / stats?.total_revenue) * 100).toFixed(1)}%`
+              : '0%'}
           </p>
+          {/* Tooltip */}
+          <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-50 pointer-events-none">
+            Paid, collected by Airbnb/Booking.com, or stay already finished
+          </div>
         </div>
 
-        {/* Revenue Pending */}
-        <div className="bg-gradient-to-br from-orange-500/10 to-orange-600/10 rounded-xl p-3 border-2 border-orange-500/30">
+        {/* To collect */}
+        <div className="bg-gradient-to-br from-orange-500/10 to-orange-600/10 rounded-xl p-3 border-2 border-orange-500/30 group relative">
           <div className="flex items-center justify-between mb-1">
             <DollarSign className="w-6 h-6 text-orange-400" />
           </div>
           <p className="text-xl font-black text-white mb-0.5">
             {formatCurrency(stats?.revenue_pending || 0)}
           </p>
-          <p className="text-orange-300 text-xs">Revenue Pending</p>
+          <p className="text-orange-300 text-xs">To collect</p>
           <p className="text-orange-200 text-xs mt-0.5">
             {stats?.total_revenue > 0
-              ? `${((stats?.revenue_pending / stats?.total_revenue) * 100).toFixed(1)}% to collect`
-              : '0% to collect'}
+              ? `${((stats?.revenue_pending / stats?.total_revenue) * 100).toFixed(1)}%`
+              : '0%'}
           </p>
+          {/* Tooltip */}
+          <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-50 pointer-events-none">
+            Direct bookings not yet paid
+          </div>
         </div>
 
         {/* Total Nights */}
@@ -433,7 +490,7 @@ const OwnerExecutiveSummary = ({ userName = 'Owner', onNavigate }) => {
           </div>
           <p className="text-xl font-black text-white mb-0.5">{stats?.total_nights || 0}</p>
           <p className="text-orange-300 text-xs">Total Nights</p>
-          <p className="text-orange-200 text-xs mt-0.5">Booked nights</p>
+          <p className="text-orange-200 text-xs mt-0.5">Occupied nights</p>
         </div>
 
         {/* Total Bookings */}
@@ -443,7 +500,7 @@ const OwnerExecutiveSummary = ({ userName = 'Owner', onNavigate }) => {
           </div>
           <p className="text-xl font-black text-white mb-0.5">{stats?.total_bookings || 0}</p>
           <p className="text-orange-300 text-xs">Total Bookings</p>
-          <p className="text-orange-200 text-xs mt-0.5">Confirmed reservations</p>
+          <p className="text-orange-200 text-xs mt-0.5">Stays in this period</p>
         </div>
 
         {/* Occupancy Rate */}
@@ -476,6 +533,7 @@ const OwnerExecutiveSummary = ({ userName = 'Owner', onNavigate }) => {
             <YAxis
               yAxisId="left"
               tick={{ fill: '#666', fontSize: 12 }}
+              tickFormatter={formatYAxis}
               label={{ value: 'Revenue', angle: -90, position: 'insideLeft', offset: -5, style: { fill: '#666', textAnchor: 'middle' } }}
             />
             <YAxis
@@ -591,7 +649,7 @@ const OwnerExecutiveSummary = ({ userName = 'Owner', onNavigate }) => {
           {stats?.sources_data && stats.sources_data.map((source, idx) => (
             <div key={idx}>
               <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium text-white">{source.source}</span>
+                <span className="text-sm font-medium text-white">{formatSourceName(source.source)}</span>
                 <span className="text-sm text-gray-300">
                   {source.bookings} bookings • {formatCurrency(source.revenue)}
                 </span>
@@ -616,30 +674,38 @@ const OwnerExecutiveSummary = ({ userName = 'Owner', onNavigate }) => {
       <div className="bg-[#1f2937]/95 backdrop-blur-sm rounded-xl p-4 md:p-6 shadow-2xl border-2 border-[#d85a2a]/20">
         <h2 className="text-lg md:text-xl font-black text-[#FF8C42] mb-3 md:mb-4">Payment Status</h2>
         <div className="grid grid-cols-2 gap-2 md:gap-3 mb-4">
-          <div className="bg-gradient-to-br from-orange-500/10 to-orange-600/10 rounded-xl p-2 md:p-3 border-2 border-orange-500/30">
+          <div className="bg-gradient-to-br from-orange-500/10 to-orange-600/10 rounded-xl p-2 md:p-3 border-2 border-orange-500/30 group relative">
             <div className="flex items-center justify-between mb-1">
               <DollarSign className="w-4 h-4 md:w-6 md:h-6 text-orange-400" />
             </div>
             <p className="text-sm md:text-xl font-black text-white mb-0.5">
-              {stats?.payment_status_data?.paid?.bookings || 0}<span className="text-xs md:text-base"> bookings</span>
+              {stats?.payment_status_data?.paid?.bookings || 0}<span className="text-xs md:text-base"> (bookings with price)</span>
             </p>
-            <p className="text-orange-300 text-[10px] md:text-xs">✅ Paid</p>
+            <p className="text-orange-300 text-[10px] md:text-xs">✅ Collected</p>
             <p className="text-orange-200 text-[10px] md:text-xs mt-0.5 break-all">
               {formatCurrency(stats?.payment_status_data?.paid?.revenue || 0)}
             </p>
+            {/* Tooltip */}
+            <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-50 pointer-events-none">
+              Paid, collected by Airbnb/Booking.com, or stay already finished
+            </div>
           </div>
 
-          <div className="bg-gradient-to-br from-orange-500/10 to-orange-600/10 rounded-xl p-2 md:p-3 border-2 border-orange-500/30">
+          <div className="bg-gradient-to-br from-orange-500/10 to-orange-600/10 rounded-xl p-2 md:p-3 border-2 border-orange-500/30 group relative">
             <div className="flex items-center justify-between mb-1">
               <DollarSign className="w-4 h-4 md:w-6 md:h-6 text-orange-400" />
             </div>
             <p className="text-sm md:text-xl font-black text-white mb-0.5">
-              {stats?.payment_status_data?.pending?.bookings || 0}<span className="text-xs md:text-base"> bookings</span>
+              {stats?.payment_status_data?.pending?.bookings || 0}<span className="text-xs md:text-base"> (bookings with price)</span>
             </p>
-            <p className="text-orange-300 text-[10px] md:text-xs">⏳ Pending</p>
+            <p className="text-orange-300 text-[10px] md:text-xs">⏳ To collect</p>
             <p className="text-orange-200 text-[10px] md:text-xs mt-0.5 break-all">
               {formatCurrency(stats?.payment_status_data?.pending?.revenue || 0)}
             </p>
+            {/* Tooltip */}
+            <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-50 pointer-events-none">
+              Direct bookings not yet paid
+            </div>
           </div>
         </div>
 
@@ -648,7 +714,7 @@ const OwnerExecutiveSummary = ({ userName = 'Owner', onNavigate }) => {
             <p className="text-orange-400 font-medium mb-1">📌 Action Items:</p>
             <ul className="text-white text-sm space-y-1">
               <li>• {stats.payment_status_data.pending.bookings} bookings pending payment follow-up</li>
-              <li className="whitespace-nowrap overflow-x-auto">• Revenue to collect: {formatCurrency(stats.payment_status_data.pending.revenue)}</li>
+              <li className="whitespace-nowrap overflow-x-auto">• To collect: {formatCurrency(stats.payment_status_data.pending.revenue)}</li>
             </ul>
           </div>
         )}
