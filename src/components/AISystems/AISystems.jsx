@@ -63,6 +63,12 @@ const AISystems = ({ onBack }) => {
   // All OSIRIS questions organized by category
   // IMPORTANT: Always include date ranges and specify "all villas" for accurate results
   const allOsirisQuestions = {
+    "Power Questions": [
+      "Full business health check for all villas in 2026 so far",
+      "Analyze 2025 vs 2026 performance and propose a concrete action plan",
+      "What should I focus on today to maximize revenue?",
+      "Give me an honest assessment of our business health from 2026-01-01 to today"
+    ],
     "A. Daily Operations Monitoring": [
       "Are all villas ready for today's arrivals?",
       "Which villas have back-to-back bookings today or tomorrow?",
@@ -147,12 +153,6 @@ const AISystems = ({ onBack }) => {
       "Compare high season (Jun-Sep 2025) vs low season (Jan-Mar 2025) for all villas",
       "What are our top 3 business priorities right now based on current data?",
       "Summarize the last 30 days of performance across all villas"
-    ],
-    "Power Questions": [
-      "Full business health check for all villas in 2026 so far",
-      "Analyze 2025 vs 2026 performance and propose a concrete action plan",
-      "What should I focus on today to maximize revenue?",
-      "Give me an honest assessment of our business health from 2026-01-01 to today"
     ]
   };
 
@@ -200,16 +200,16 @@ const AISystems = ({ onBack }) => {
       gradient: 'from-[#d85a2a] via-[#e67e50] to-[#f5a524]',
       glowColor: 'shadow-[#d85a2a]/50',
       quickQuestions: [
-        // A. Daily Operations Monitoring (Critical - First Priority)
+        // Power Questions (Featured - First Priority)
+        "Full business health check for all villas in 2026 so far",
+        "Analyze 2025 vs 2026 performance and propose a concrete action plan",
+        "What should I focus on today to maximize revenue?",
+        "Give me an honest assessment of our business health from 2026-01-01 to today",
+        // A. Daily Operations Monitoring
         "Are all villas ready for today's arrivals?",
         "Which villas have back-to-back bookings today or tomorrow?",
         "Are there any risks of overbooking or double allocation?",
-        "Which villas require cleaning or maintenance?",
-        "Are there any unresolved guest complaints?",
-        "Which arriving guests have special requests or notes?",
-        // B. Occupancy & Inventory Control
-        "Are any villas idle within the next 7 days?",
-        "Which dates in the next 30 days show low demand and require promotion?"
+        "Which villas require cleaning or maintenance?"
       ]
     },
     nusantara: {
@@ -330,10 +330,18 @@ const AISystems = ({ onBack }) => {
       if (selectedAgent === 'osiris') {
         // ✅ OSIRIS V3.4: Using /webhook/ai/chat-v4 (Updated 07-Sep-2026) (17 tools, 73% question coverage)
         // ✅ Using authenticated user's ID (tenant_id)
-        const response = await fetch('https://n8n-production-bb2d.up.railway.app/webhook/ai/chat-v4', {
+        // ✅ Security: Authorization header with Supabase session token
+        const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+        if (sessionError || !sessionData?.session?.access_token) {
+          throw new Error('No active session. Please log in again.');
+        }
+
+        const osirisUrl = import.meta.env.VITE_OSIRIS_WEBHOOK_URL || 'https://n8n-production-bb2d.up.railway.app/webhook/ai/chat-v4';
+        const response = await fetch(osirisUrl, {
           method: 'POST',
           headers: {
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${sessionData.session.access_token}`
           },
           body: JSON.stringify({
             tenant_id: userData?.id || 'c24393db-d318-4d75-8bbf-0fa240b9c1db',

@@ -6,12 +6,21 @@ const OWNER_IDS = {
 };
 
 // Call OSIRIS AI for business analysis
+// ✅ Security: Authorization header with Supabase session token
 async function callOSIRIS(tenantId, prompt) {
   try {
-    const response = await fetch('https://n8n-production-bb2d.up.railway.app/webhook/ai/chat-v4', {
+    const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+    if (sessionError || !sessionData?.session?.access_token) {
+      console.error('OSIRIS call failed: No active session');
+      return null;
+    }
+
+    const osirisUrl = import.meta.env.VITE_OSIRIS_WEBHOOK_URL || 'https://n8n-production-bb2d.up.railway.app/webhook/ai/chat-v4';
+    const response = await fetch(osirisUrl, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${sessionData.session.access_token}`
       },
       body: JSON.stringify({
         tenant_id: tenantId,
