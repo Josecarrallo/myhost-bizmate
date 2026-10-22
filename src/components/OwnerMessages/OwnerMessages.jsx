@@ -96,6 +96,10 @@ const OwnerMessages = ({ onBack, userData, setSidebarCollapsed, sidebarCollapsed
   const [takeoverError, setTakeoverError] = useState(null);
   const [countdownSeconds, setCountdownSeconds] = useState(0); // Seconds until takeover expires
 
+  // WhatsApp 24h window state
+  const [windowExpired, setWindowExpired] = useState(false); // True if >24h since last guest message
+  const [lastInboundAt, setLastInboundAt] = useState(null); // Timestamp of last inbound message
+
   // V2 Design - Guest context panel (right column)
   const [guestContext, setGuestContext] = useState({
     booking: null,
@@ -287,11 +291,45 @@ const OwnerMessages = ({ onBack, userData, setSidebarCollapsed, sidebarCollapsed
   const loadConversationThread = async (phoneNumber, channel = null) => {
     try {
       setThreadLoading(true);
+      // Reset 24h window state
+      setWindowExpired(false);
+      setLastInboundAt(null);
+
       // Admin uses selected tenant, non-admin uses their own user.id (which IS tenant_id)
       const tenantId = isAdmin ? selectedTenant : userData?.id;
       // Load all messages for this phone (WhatsApp + KORA unified)
       const data = await supabaseService.getWhatsAppConversation(phoneNumber, channel, tenantId);
       setConversationThread(data || []);
+
+      // Calculate 24h window - find last inbound message from guest
+      if (data && data.length > 0) {
+        // Messages are ordered by created_at ASC (oldest first), so we search from the END
+        // Inbound = direction 'inbound' (message from guest, not from BANYU/owner)
+        // Reverse iterate to find the most recent inbound message
+        let lastInbound = null;
+        for (let i = data.length - 1; i >= 0; i--) {
+          if (data[i].direction === 'inbound') {
+            lastInbound = data[i];
+            break;
+          }
+        }
+
+        if (lastInbound) {
+          const inboundTime = new Date(lastInbound.created_at);
+          setLastInboundAt(inboundTime);
+
+          // Check if more than 24 hours have passed
+          const now = new Date();
+          const hoursSinceInbound = (now - inboundTime) / (1000 * 60 * 60);
+          const isExpired = hoursSinceInbound > 24;
+          setWindowExpired(isExpired);
+          console.log('[24h Window] Last inbound:', lastInbound.created_at, 'Hours since:', hoursSinceInbound.toFixed(1), 'Expired:', isExpired);
+        } else {
+          // No inbound messages found - window is expired
+          setWindowExpired(true);
+          console.log('[24h Window] No inbound messages found - window expired');
+        }
+      }
 
       // Mark as read - use 'whatsapp' as default channel for read state
       if (userData?.id) {
@@ -317,6 +355,9 @@ const OwnerMessages = ({ onBack, userData, setSidebarCollapsed, sidebarCollapsed
     setCountdownSeconds(0);
     setMessageText('');
     setTakeoverError(null);
+    // Reset 24h window state
+    setWindowExpired(false);
+    setLastInboundAt(null);
     // No channel filter - load all messages (WhatsApp + KORA unified)
     loadConversationThread(conv.phone_number, null);
     // Check for active takeover (V1.5) - this is async, so we reset state first
@@ -1572,6 +1613,17 @@ const OwnerMessages = ({ onBack, userData, setSidebarCollapsed, sidebarCollapsed
                       </div>
                     </div>
 
+                    {/* 24h Window Warning */}
+                    {windowExpired && (
+                      <div className="mx-4 mb-2 px-3 py-2 bg-amber-500/20 border border-amber-500/40 rounded-lg flex items-start gap-2">
+                        <AlertTriangle className="w-4 h-4 text-amber-400 flex-shrink-0 mt-0.5" />
+                        <div className="text-xs text-amber-200">
+                          <span className="font-medium">24h window expired.</span>
+                          {' '}The guest hasn't messaged in over 24 hours. You cannot send free-form messages from here. Wait for the guest to reply, or open WhatsApp Business to send a pre-approved template.
+                        </div>
+                      </div>
+                    )}
+
                     {/* Composer */}
                     <div className="px-4 py-3 flex items-end gap-3">
                       <textarea
@@ -1580,46 +1632,74 @@ const OwnerMessages = ({ onBack, userData, setSidebarCollapsed, sidebarCollapsed
                         onKeyDown={(e) => {
                           if (e.key === 'Enter' && !e.shiftKey) {
                             e.preventDefault();
-                            handleSendMessage();
+                            if (!windowExpired) {
+                              handleSendMessage();
+                            }
                           }
                         }}
-                        placeholder="Type a message as owner..."
+                        placeholder={windowExpired ? "24h window expired - open WhatsApp Business" : "Type a message as owner..."}
                         rows={1}
-                        className="flex-1 px-4 py-3 bg-[#212E40] border border-[#93A4B8]/20 rounded-xl text-sm text-[#EAF0F7] placeholder-[#93A4B8] focus:outline-none focus:border-[#F26F21] resize-none"
+                        className={`flex-1 px-4 py-3 bg-[#212E40] border rounded-xl text-sm text-[#EAF0F7] placeholder-[#93A4B8] focus:outline-none resize-none ${
+                          windowExpired
+                            ? 'border-amber-500/40 focus:border-amber-500'
+                            : 'border-[#93A4B8]/20 focus:border-[#F26F21]'
+                        }`}
                         style={{ minHeight: '44px', maxHeight: '120px' }}
                       />
                       <button
                         onClick={handleSendMessage}
-                        disabled={!messageText.trim() || sendingMessage}
-                        className="flex-shrink-0 w-11 h-11 flex items-center justify-center bg-[#F26F21] hover:bg-[#E15E12] disabled:bg-[#212E40] disabled:cursor-not-allowed rounded-xl transition-colors"
+                        disabled={!messageText.trim() || sendingMessage || windowExpired}
+                        title={windowExpired ? "24h window expired - WhatsApp won't deliver this message" : "Send message"}
+                        className={`flex-shrink-0 w-11 h-11 flex items-center justify-center rounded-xl transition-colors ${
+                          windowExpired
+                            ? 'bg-amber-500/30 cursor-not-allowed'
+                            : 'bg-[#F26F21] hover:bg-[#E15E12] disabled:bg-[#212E40] disabled:cursor-not-allowed'
+                        }`}
                       >
                         {sendingMessage ? (
                           <RefreshCw className="w-5 h-5 text-white animate-spin" />
                         ) : (
-                          <Send className="w-5 h-5 text-white" />
+                          <Send className={`w-5 h-5 ${windowExpired ? 'text-amber-300' : 'text-white'}`} />
                         )}
                       </button>
                     </div>
                   </>
                 ) : (
                   /* BANYU has control - Show intervene button */
-                  <div className="px-4 py-3 flex items-center justify-between">
-                    <p className="text-xs text-[#93A4B8]">
-                      BANYU replies automatically · You get alerts on WhatsApp
-                    </p>
-                    <button
-                      onClick={handleIntervene}
-                      disabled={takeoverLoading}
-                      className="flex items-center gap-2 px-4 py-2 bg-[#212E40] hover:bg-[#26344A] text-[#EAF0F7] text-sm font-medium rounded-lg transition-colors disabled:opacity-50"
-                    >
-                      {takeoverLoading ? (
-                        <RefreshCw className="w-4 h-4 animate-spin" />
-                      ) : (
-                        <Hand className="w-4 h-4" />
-                      )}
-                      Intervene
-                    </button>
-                  </div>
+                  <>
+                    {/* 24h Window Warning - Show even when BANYU has control */}
+                    {windowExpired && (
+                      <div className="mx-4 mt-2 px-3 py-2 bg-amber-500/20 border border-amber-500/40 rounded-lg flex items-start gap-2">
+                        <AlertTriangle className="w-4 h-4 text-amber-400 flex-shrink-0 mt-0.5" />
+                        <div className="text-xs text-amber-200">
+                          <span className="font-medium">24h window expired.</span>
+                          {' '}The guest hasn't messaged in over 24 hours. You cannot send free-form messages from here. Wait for the guest to reply, or open WhatsApp Business to send a pre-approved template.
+                        </div>
+                      </div>
+                    )}
+                    <div className="px-4 py-3 flex items-center justify-between">
+                      <p className="text-xs text-[#93A4B8]">
+                        BANYU replies automatically · You get alerts on WhatsApp
+                      </p>
+                      <button
+                        onClick={handleIntervene}
+                        disabled={takeoverLoading || windowExpired}
+                        title={windowExpired ? "24h window expired - cannot intervene" : "Take control from BANYU"}
+                        className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-colors disabled:opacity-50 ${
+                          windowExpired
+                            ? 'bg-amber-500/30 text-amber-300 cursor-not-allowed'
+                            : 'bg-[#212E40] hover:bg-[#26344A] text-[#EAF0F7]'
+                        }`}
+                      >
+                        {takeoverLoading ? (
+                          <RefreshCw className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <Hand className="w-4 h-4" />
+                        )}
+                        {windowExpired ? '24h Expired' : 'Intervene'}
+                      </button>
+                    </div>
+                  </>
                 )}
               </div>
             </>

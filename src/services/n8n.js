@@ -6,8 +6,8 @@
  * Uses n8n REST API for workflow execution
  */
 
-const N8N_URL = 'https://n8n-production-bb2d.up.railway.app';
-const N8N_API_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMmNkZWVjOC0xM2U0LTQzYTQtODAzYS0zOTU2NmIzYzRiNDAiLCJpc3MiOiJuOG4iLCJhdWQiOiJwdWJsaWMtYXBpIiwiaWF0IjoxNzY2MjA5ODE0LCJleHAiOjE3Njg3OTg4MDB9.tEOyZs1H0W4hw9jTiCuE5uAhmcDgn3fZKfSZZOITPlM';
+const N8N_URL = import.meta.env.VITE_N8N_BASE_URL;
+const N8N_API_KEY = import.meta.env.VITE_N8N_API_KEY;
 
 // Workflow IDs from n8n instance
 export const WORKFLOWS = {
