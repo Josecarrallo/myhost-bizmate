@@ -16,7 +16,7 @@
  * - Rendering: Remotion Lambda
  */
 
-import { supabase } from '../lib/supabase';
+import { supabase, supabaseAdmin } from '../lib/supabase';
 
 // =====================================================
 // CONFIGURATION
@@ -206,8 +206,8 @@ export async function uploadBase64ToPublicUrl(base64Data, tenantId = 'temp') {
   // Generate unique filename
   const fileName = `muapi-temp/${tenantId}/${Date.now()}-${Math.random().toString(36).substr(2, 9)}.${extension}`;
 
-  // Upload to Supabase Storage using user session (respects RLS)
-  const { data, error } = await supabase.storage
+  // Upload to Supabase Storage using ADMIN client (bypasses RLS)
+  const { data, error } = await supabaseAdmin.storage
     .from(STORAGE_BUCKET)
     .upload(fileName, blob, {
       contentType: mimeType,
@@ -221,7 +221,7 @@ export async function uploadBase64ToPublicUrl(base64Data, tenantId = 'temp') {
   }
 
   // Get public URL
-  const { data: urlData } = supabase.storage
+  const { data: urlData } = supabaseAdmin.storage
     .from(STORAGE_BUCKET)
     .getPublicUrl(fileName);
 
