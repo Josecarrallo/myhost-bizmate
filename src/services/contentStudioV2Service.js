@@ -178,7 +178,11 @@ export async function uploadPhoto(tenantId, projectId, file) {
  * Upload base64 image to Supabase Storage and get public URL
  * This is needed because MuAPI requires a public URL, not base64
  */
-export async function uploadBase64ToPublicUrl(base64Data, tenantId = 'temp') {
+export async function uploadBase64ToPublicUrl(base64Data, userId) {
+  // Validate userId is provided - never use fallback 'temp'
+  if (!userId || userId === 'temp') {
+    throw new Error('uploadBase64ToPublicUrl requires a valid userId. User must be authenticated.');
+  }
   // Check if already a public URL (https://)
   if (base64Data.startsWith('http://') || base64Data.startsWith('https://')) {
     return base64Data;
@@ -204,9 +208,9 @@ export async function uploadBase64ToPublicUrl(base64Data, tenantId = 'temp') {
   const blob = new Blob([byteArray], { type: mimeType });
 
   // Generate unique filename
-  const fileName = `muapi-temp/${tenantId}/${Date.now()}-${Math.random().toString(36).substr(2, 9)}.${extension}`;
+  const fileName = `muapi-temp/${userId}/${Date.now()}-${Math.random().toString(36).substr(2, 9)}.${extension}`;
 
-  // Upload to Supabase Storage using user session (respects RLS)
+  // Upload to Supabase Storage using user session (RLS policy allows muapi-temp/<user.id>/)
   const { data, error } = await supabase.storage
     .from(STORAGE_BUCKET)
     .upload(fileName, blob, {
@@ -656,7 +660,7 @@ export async function generateVideoClip(imageUrl, prompt, apiKey, options = {}) 
   const {
     resolution = '1080p', // 720p, 1080p, 4k
     aspectRatio = '16:9', // 16:9 or 9:16
-    tenantId = 'temp'
+    userId
   } = options;
 
   try {
@@ -665,7 +669,7 @@ export async function generateVideoClip(imageUrl, prompt, apiKey, options = {}) 
     let publicImageUrl = imageUrl;
 
     if (imageUrl.startsWith('data:')) {
-      publicImageUrl = await uploadBase64ToPublicUrl(imageUrl, tenantId);
+      publicImageUrl = await uploadBase64ToPublicUrl(imageUrl, userId);
     }
 
     // Use backend proxy to avoid CORS issues

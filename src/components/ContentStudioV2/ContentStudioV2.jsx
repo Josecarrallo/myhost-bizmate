@@ -456,7 +456,7 @@ const ContentStudioV2 = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
               reader.onloadend = () => resolve(reader.result);
               reader.readAsDataURL(blob);
             });
-            publicUrl = await uploadBase64ToPublicUrl(base64, userData.tenant_id || 'temp');
+            publicUrl = await uploadBase64ToPublicUrl(base64, userData.id);
             console.log(`📤 Uploaded image ${i + 1}:`, publicUrl);
           }
 
@@ -464,7 +464,7 @@ const ContentStudioV2 = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
           const result = await generateVideoClip(publicUrl, finalPrompt, muapiKey, {
             resolution: '1080p',
             aspectRatio,
-            tenantId: userData.tenant_id || 'temp'
+            userId: userData.id
           });
 
           pendingClips.push({
@@ -1128,7 +1128,7 @@ const ContentStudioV2 = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
       </div>
 
       <p className="text-sm text-gray-500">
-        This usually takes 30-60 seconds
+        Video processing... This usually takes 1-3 minutes
       </p>
     </div>
   );
