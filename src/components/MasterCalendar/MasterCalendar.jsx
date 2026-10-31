@@ -1549,10 +1549,10 @@ const MasterCalendar = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
                                 </div>
                                 <div>
                                   <span className="text-white/60">Total:</span>
-                                  {booking.source === 'ical_sync' ? (
-                                    <span className="text-white/50 italic text-sm ml-2">N/A</span>
-                                  ) : (
+                                  {booking.total_price ? (
                                     <span className="text-white ml-2">${booking.total_price}</span>
+                                  ) : (
+                                    <span className="text-white/50 italic text-sm ml-2">N/A</span>
                                   )}
                                 </div>
                                 <div>
