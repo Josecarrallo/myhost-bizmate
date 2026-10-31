@@ -1128,7 +1128,7 @@ const ContentStudioV2 = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
       </div>
 
       <p className="text-sm text-gray-500">
-        This usually takes 30-60 seconds
+        Video processing... This usually takes 1-3 minutes
       </p>
     </div>
   );

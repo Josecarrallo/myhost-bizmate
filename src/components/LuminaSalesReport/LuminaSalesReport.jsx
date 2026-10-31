@@ -234,6 +234,46 @@ const LuminaSalesReport = ({ onBack }) => {
     return `${Math.round(pct)}%`;
   };
 
+  // Calculate nights of a booking that fall within the selected period
+  const calculateNightsInPeriod = (checkIn, checkOut, periodFrom, periodTo) => {
+    const bookingStart = new Date(checkIn);
+    const bookingEnd = new Date(checkOut);
+    const periodStart = new Date(periodFrom);
+    const periodEnd = new Date(periodTo);
+
+    // Add 1 day to periodEnd because it's inclusive
+    periodEnd.setDate(periodEnd.getDate() + 1);
+
+    // Find overlap
+    const overlapStart = bookingStart > periodStart ? bookingStart : periodStart;
+    const overlapEnd = bookingEnd < periodEnd ? bookingEnd : periodEnd;
+
+    // Calculate nights (difference in days)
+    const diffTime = overlapEnd - overlapStart;
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+    return Math.max(0, diffDays);
+  };
+
+  // Calculate total nights of a booking
+  const calculateTotalNights = (checkIn, checkOut) => {
+    const start = new Date(checkIn);
+    const end = new Date(checkOut);
+    const diffTime = end - start;
+    return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  };
+
+  // Calculate the amount that falls within the period
+  const calculateAmountInPeriod = (booking, periodFrom, periodTo) => {
+    const totalNights = calculateTotalNights(booking.check_in, booking.check_out);
+    if (totalNights <= 0) return 0;
+
+    const nightsInPeriod = calculateNightsInPeriod(booking.check_in, booking.check_out, periodFrom, periodTo);
+    const pricePerNight = (booking.total_price || 0) / totalNights;
+
+    return Math.round(pricePerNight * nightsInPeriod);
+  };
+
   return (
     <div className="flex-1 h-screen bg-gradient-to-br from-[#1a1f2e] via-[#1f2937] to-[#111827] p-4 md:p-6 overflow-auto">
       {/* Header */}
@@ -503,6 +543,7 @@ const LuminaSalesReport = ({ onBack }) => {
                                 <th className="px-4 py-2">Channel</th>
                                 <th className="px-4 py-2">Status</th>
                                 <th className="px-4 py-2 text-right">Amount</th>
+                                <th className="px-4 py-2 text-right">In Period</th>
                               </tr>
                             </thead>
                             <tbody>
@@ -534,6 +575,9 @@ const LuminaSalesReport = ({ onBack }) => {
                                   </td>
                                   <td className="px-4 py-2 text-right text-green-400">
                                     {formatCurrency(booking.total_price, property.currency)}
+                                  </td>
+                                  <td className="px-4 py-2 text-right text-cyan-400">
+                                    {formatCurrency(calculateAmountInPeriod(booking, getDateRange().from, getDateRange().to), property.currency)}
                                   </td>
                                 </tr>
                               ))}
