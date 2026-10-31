@@ -100,6 +100,9 @@ export const supabaseService = {
     if (filters.check_in_lte) {
       query = query.lte('check_in', filters.check_in_lte);
     }
+    if (filters.check_out_gt) {
+      query = query.gt('check_out', filters.check_out_gt);
+    }
 
     const { data, error } = await query;
     if (error) throw new Error('Failed to fetch bookings');

@@ -165,11 +165,12 @@ const LuminaSalesReport = ({ onBack }) => {
       } else {
         setReportData(rpcResult.data);
 
-        // Build filters for bookings query (same pattern as ManualDataEntry)
+        // Build filters for bookings query
+        // Show all bookings with ANY night in period: check_in <= to AND check_out > from
         const bookingFilters = {
           tenant_id: userData.id,
-          check_in_gte: from,
-          check_in_lte: to,
+          check_in_lte: to,      // check_in <= end of period
+          check_out_gt: from,    // check_out > start of period
           status_neq: 'cancelled'  // Exclude cancelled bookings
         };
 
@@ -187,12 +188,12 @@ const LuminaSalesReport = ({ onBack }) => {
           setBookings([]);
         }
 
-        // Fetch cancelled bookings separately
+        // Fetch cancelled bookings separately (same overlap logic)
         try {
           const cancelledFilters = {
             tenant_id: userData.id,
-            check_in_gte: from,
-            check_in_lte: to,
+            check_in_lte: to,      // check_in <= end of period
+            check_out_gt: from,    // check_out > start of period
             status: 'cancelled'
           };
           if (selectedVilla) {
