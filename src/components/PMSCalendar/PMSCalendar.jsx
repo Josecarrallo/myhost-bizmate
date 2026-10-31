@@ -408,7 +408,7 @@ const PMSCalendar = ({ onBack }) => {
                         </div>
                         <div className="text-right ml-6">
                           <div className="flex items-center gap-1 text-3xl font-black text-[#FF8C42]">
-                            {booking.source !== 'ical_sync' ? (
+                            {booking.revenue ? (
                               <>
                                 <DollarSign className="w-6 h-6" />
                                 {booking.revenue}
@@ -550,7 +550,7 @@ const PMSCalendar = ({ onBack }) => {
               <div className="bg-gradient-to-br from-orange-50 to-orange-100 border-2 border-orange-200 rounded-2xl p-6">
                 <p className="text-xs font-bold text-[#FF8C42] mb-2">Total Revenue</p>
                 <p className="text-5xl font-black text-[#FF8C42] flex items-center gap-2">
-                  {selectedBooking.source !== 'ical_sync' ? (
+                  {selectedBooking.revenue ? (
                     <>
                       <DollarSign className="w-8 h-8" />
                       {selectedBooking.revenue}

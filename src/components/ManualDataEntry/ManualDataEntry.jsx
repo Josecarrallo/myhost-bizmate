@@ -1905,10 +1905,10 @@ const ManualDataEntry = ({ onBack, setSidebarCollapsed, sidebarCollapsed, onAddT
                                 </td>
                                 <td className="px-2 py-3 text-white text-sm text-right overflow-hidden">
                                   <div className="truncate">
-                                    {booking.source === 'ical_sync' ? (
-                                      <span className="text-gray-500 italic text-xs">N/A</span>
-                                    ) : (
+                                    {booking.total_price ? (
                                       `IDR ${booking.total_price?.toLocaleString()}`
+                                    ) : (
+                                      <span className="text-gray-500 italic text-xs">N/A</span>
                                     )}
                                   </div>
                                 </td>
@@ -2715,10 +2715,10 @@ const ManualDataEntry = ({ onBack, setSidebarCollapsed, sidebarCollapsed, onAddT
                           <div className="col-span-2">
                             <p className="text-gray-500 text-xs">Total Price</p>
                             <p className="text-green-400 text-lg font-bold">
-                              {booking.source === 'ical_sync' ? (
-                                <span className="text-gray-500 italic text-sm">N/A</span>
-                              ) : (
+                              {booking.total_price ? (
                                 `IDR ${booking.total_price?.toLocaleString()}`
+                              ) : (
+                                <span className="text-gray-500 italic text-sm">N/A</span>
                               )}
                             </p>
                             {booking.payment_status !== 'paid' && booking.source !== 'ical_sync' && (
@@ -2816,10 +2816,10 @@ const ManualDataEntry = ({ onBack, setSidebarCollapsed, sidebarCollapsed, onAddT
                               <td className="px-4 py-3 text-gray-300 text-sm whitespace-nowrap">{booking.check_in}</td>
                               <td className="px-4 py-3 text-gray-300 text-sm whitespace-nowrap">{booking.check_out}</td>
                               <td className="px-4 py-3 text-white text-sm text-right whitespace-nowrap">
-                                {booking.source === 'ical_sync' ? (
-                                  <span className="text-gray-500 italic text-xs">N/A</span>
-                                ) : (
+                                {booking.total_price ? (
                                   booking.total_price?.toLocaleString()
+                                ) : (
+                                  <span className="text-gray-500 italic text-xs">N/A</span>
                                 )}
                               </td>
                               <td className="px-2 py-3">
