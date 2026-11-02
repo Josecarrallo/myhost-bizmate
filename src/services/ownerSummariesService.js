@@ -78,6 +78,7 @@ export const getTodayPendingDecisions = async (tenantId) => {
 /**
  * Get Daily Summary from n8n API v2.5
  * ⚠️ ENDPOINT CHANGED: /dailysummary-v4 → /dailysummary-v5
+ * ✅ Security: Now requires Supabase session token (31-Oct-2026)
  * @param {string} tenantId - The tenant ID
  * @param {string} propertyId - The property ID
  * @param {string} date - Date in YYYY-MM-DD format (optional, defaults to today)
@@ -85,6 +86,13 @@ export const getTodayPendingDecisions = async (tenantId) => {
  */
 export const getDailySummaryAPI = async (tenantId, propertyId, date = null) => {
   try {
+    // Get session for Authorization header
+    const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+    if (sessionError || !sessionData?.session?.access_token) {
+      console.error('❌ getDailySummaryAPI: No active session');
+      throw new Error('Session expired - please login again.');
+    }
+
     const targetDate = date || new Date().toISOString().split('T')[0];
     console.log('🔄 getDailySummaryAPI v2.5 called for:', { tenantId, propertyId, targetDate });
 
@@ -94,6 +102,7 @@ export const getDailySummaryAPI = async (tenantId, propertyId, date = null) => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${sessionData.session.access_token}`
         },
         body: JSON.stringify({
           tenant_id: tenantId,
