@@ -8813,8 +8813,12 @@ const Autopilot = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
                         )}
                       </div>
                       <div className="text-right shrink-0">
-                        {decision.financial_impact_estimate > 0 && (
-                          <p className="text-green-400 font-bold">+${decision.financial_impact_estimate?.toLocaleString()}</p>
+                        {decision.financial_impact_estimate && (
+                          <p className={`font-bold ${typeof decision.financial_impact_estimate === 'number' && decision.financial_impact_estimate > 0 ? 'text-green-400' : 'text-orange-400'}`}>
+                            {typeof decision.financial_impact_estimate === 'number' && !isNaN(decision.financial_impact_estimate)
+                              ? `+$${decision.financial_impact_estimate.toLocaleString()}`
+                              : decision.financial_impact_estimate}
+                          </p>
                         )}
                         <p className="text-gray-500 text-xs">
                           {new Date(decision.created_at).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
@@ -9402,8 +9406,12 @@ const Autopilot = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
                         )}
                       </div>
                       <div className="text-right shrink-0">
-                        {decision.financial_impact_estimate > 0 && (
-                          <p className="text-green-400 font-bold">+${decision.financial_impact_estimate?.toLocaleString()}</p>
+                        {decision.financial_impact_estimate && (
+                          <p className={`font-bold ${typeof decision.financial_impact_estimate === 'number' && decision.financial_impact_estimate > 0 ? 'text-green-400' : 'text-orange-400'}`}>
+                            {typeof decision.financial_impact_estimate === 'number' && !isNaN(decision.financial_impact_estimate)
+                              ? `+$${decision.financial_impact_estimate.toLocaleString()}`
+                              : decision.financial_impact_estimate}
+                          </p>
                         )}
                         <p className="text-gray-500 text-xs">
                           {new Date(decision.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })} {new Date(decision.created_at).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
@@ -10014,8 +10022,12 @@ const Autopilot = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
                         )}
                       </div>
                       <div className="text-right shrink-0">
-                        {decision.financial_impact_estimate > 0 && (
-                          <p className="text-green-400 font-bold">+${decision.financial_impact_estimate?.toLocaleString()}</p>
+                        {decision.financial_impact_estimate && (
+                          <p className={`font-bold ${typeof decision.financial_impact_estimate === 'number' && decision.financial_impact_estimate > 0 ? 'text-green-400' : 'text-orange-400'}`}>
+                            {typeof decision.financial_impact_estimate === 'number' && !isNaN(decision.financial_impact_estimate)
+                              ? `+$${decision.financial_impact_estimate.toLocaleString()}`
+                              : decision.financial_impact_estimate}
+                          </p>
                         )}
                         <p className="text-gray-500 text-xs">
                           {new Date(decision.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })} {new Date(decision.created_at).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
@@ -10591,9 +10603,17 @@ const Autopilot = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
                           🏠 {decision.villa_name}
                         </p>
                       )}
-                      {decision.financial_impact_estimate && decision.financial_impact_estimate !== 0 && (
-                        <p className={`font-bold text-lg mb-2 ${decision.financial_impact_estimate > 0 ? 'text-green-400' : 'text-red-400'}`}>
-                          💰 {decision.financial_impact_estimate > 0 ? '+' : ''}${Math.abs(decision.financial_impact_estimate).toLocaleString()}
+                      {decision.financial_impact_estimate && (
+                        <p className={`font-bold text-lg mb-2 ${
+                          typeof decision.financial_impact_estimate === 'number' && decision.financial_impact_estimate > 0
+                            ? 'text-green-400'
+                            : typeof decision.financial_impact_estimate === 'number' && decision.financial_impact_estimate < 0
+                              ? 'text-red-400'
+                              : 'text-orange-400'
+                        }`}>
+                          💰 {typeof decision.financial_impact_estimate === 'number' && !isNaN(decision.financial_impact_estimate)
+                            ? `${decision.financial_impact_estimate > 0 ? '+' : ''}$${Math.abs(decision.financial_impact_estimate).toLocaleString()}`
+                            : decision.financial_impact_estimate}
                         </p>
                       )}
                       <div className="flex items-center gap-4 text-gray-500 text-xs">

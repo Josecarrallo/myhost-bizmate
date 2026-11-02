@@ -344,7 +344,7 @@ const AISystems = ({ onBack }) => {
             'Authorization': `Bearer ${sessionData.session.access_token}`
           },
           body: JSON.stringify({
-            tenant_id: userData?.id || 'c24393db-d318-4d75-8bbf-0fa240b9c1db',
+            tenant_id: userData?.id,
             message: currentQuestion
           })
         });
@@ -370,13 +370,20 @@ const AISystems = ({ onBack }) => {
       } else if (selectedAgent === 'nusantara') {
         // ✅ NUSANTARA: Call real n8n endpoint
         // ✅ Webhook: /webhook/nusantara/chat (Cultural Intelligence)
+        // ✅ Security: Authorization header with Supabase session token
+        const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+        if (sessionError || !sessionData?.session?.access_token) {
+          throw new Error('Session expired - please login again.');
+        }
+
         const response = await fetch('https://n8n-production-bb2d.up.railway.app/webhook/nusantara/chat', {
           method: 'POST',
           headers: {
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${sessionData.session.access_token}`
           },
           body: JSON.stringify({
-            tenant_id: userData?.id || 'c24393db-d318-4d75-8bbf-0fa240b9c1db',
+            tenant_id: userData?.id,
             message: currentQuestion
           })
         });
