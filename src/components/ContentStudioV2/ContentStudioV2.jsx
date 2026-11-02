@@ -456,16 +456,25 @@ const ContentStudioV2 = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
         }
       }
 
-      // Generate ONE video with the first image (MuAPI uses prompt for scene transitions)
+      // Generate ONE video with start frame (first image) and optional end frame (second image)
+      // MuAPI Veo 3.1 uses image_url as start frame and last_image as end frame for transitions
       if (uploadedUrls.length > 0) {
         setGenerationStatus(`Starting Veo 3.1 video generation...`);
         setGenerationProgress(20);
 
         try {
+          // If 2+ photos, use first as start frame and second as end frame
+          const lastImageUrl = uploadedUrls.length >= 2 ? uploadedUrls[1].publicUrl : null;
+
+          if (lastImageUrl) {
+            console.log('📸 Two images detected: using start frame → end frame transition');
+          }
+
           const result = await generateVideoClip(uploadedUrls[0].publicUrl, finalPrompt, {
             resolution: '1080p',
             aspectRatio,
-            userId: userData.id
+            userId: userData.id,
+            lastImageUrl // NEW: Pass second image as end frame
           });
 
           pendingClips.push({
@@ -529,15 +538,16 @@ const ContentStudioV2 = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
         setGenerationStatus(`Veo 3.1: ${completed}/${pendingClips.length} clips ready...`);
       }
 
-      // Step 4: Create scenes from results
-      const newScenes = pendingClips.map((clip, i) => ({
-        id: `scene-${i}`,
-        photoId: clip.photoId,
-        photoUrl: clip.photoUrl,
-        clipUrl: clip.clipUrl || null,
-        duration: 8, // Veo 3.1 generates 8-second clips
-        status: clip.status === 'completed' ? 'ready' : 'failed'
-      }));
+      // Step 4: Create ONE scene from the single video result
+      // MuAPI generates ONE 8-second video that includes all photos via the prompt
+      const newScenes = pendingClips.length > 0 ? [{
+        id: 'scene-0',
+        photoId: pendingClips[0].photoId,
+        photoUrl: pendingClips[0].photoUrl,
+        clipUrl: pendingClips[0].clipUrl || null,
+        duration: 8, // Veo 3.1 generates one 8-second clip
+        status: pendingClips[0].status === 'completed' ? 'ready' : 'failed'
+      }] : [];
 
       setScenes(newScenes);
       setGenerationProgress(100);

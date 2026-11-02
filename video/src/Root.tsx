@@ -236,7 +236,7 @@ export const RemotionRoot: React.FC = () => {
       <Composition
         id="PropertyPromoHorizontal"
         component={PropertyPromo}
-        durationInFrames={450}
+        durationInFrames={240}
         fps={30}
         width={1920}
         height={1080}
