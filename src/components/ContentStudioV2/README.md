@@ -54,11 +54,12 @@ Content Studio V2 is a new video generation module following Gita's definitive p
 Add to `.env`:
 
 ```env
-VITE_OPENAI_API_KEY=sk-...        # OpenAI API key
-VITE_MUAPI_API_KEY=mu-...         # MuAPI API key
+VITE_OPENAI_API_KEY=sk-...        # OpenAI API key (for GPT-4o vision analysis)
 VITE_REMOTION_RENDER_URL=https://...  # Remotion Lambda endpoint
 VITE_REMOTION_STATUS_URL=https://...  # Remotion status endpoint
 ```
+
+Note: MuAPI key is handled securely by the `ai-proxy` Supabase Edge Function (no longer exposed in frontend).
 
 ## Supabase Setup
 

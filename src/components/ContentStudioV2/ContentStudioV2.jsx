@@ -158,9 +158,9 @@ const ContentStudioV2 = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
   const [showProjectsList, setShowProjectsList] = useState(false);
 
   // API Keys (from env or user settings)
+  // Note: muapiKey removed - now handled securely by ai-proxy Edge Function
   const [apiKeys, setApiKeys] = useState({
-    openaiKey: import.meta.env.VITE_OPENAI_API_KEY || '',
-    muapiKey: import.meta.env.VITE_MUAPI_API_KEY || ''
+    openaiKey: import.meta.env.VITE_OPENAI_API_KEY || ''
   });
 
   // Remotion Player ref
@@ -396,21 +396,13 @@ const ContentStudioV2 = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
     setCurrentStep('generating');
     setGenerationProgress(0);
 
-    const muapiKey = apiKeys.muapiKey;
     const openaiKey = apiKeys.openaiKey;
 
     // Debug: Log API key status
+    // Note: MuAPI key is now handled securely by ai-proxy Edge Function
     console.log('🔑 API Keys status:');
-    console.log('  - MuAPI key:', muapiKey ? `${muapiKey.substring(0, 8)}...` : 'NOT SET');
+    console.log('  - MuAPI key: handled by ai-proxy (secure)');
     console.log('  - OpenAI key:', openaiKey ? `${openaiKey.substring(0, 10)}...` : 'NOT SET');
-
-    // Check if MuAPI key is available
-    if (!muapiKey) {
-      console.log('⚠️ No MuAPI key - using demo mode');
-      await handleMockGenerate();
-      setIsGenerating(false);
-      return;
-    }
 
     try {
       console.log('🎬 Starting MuAPI Veo 3.1 generation...');
@@ -434,21 +426,20 @@ const ContentStudioV2 = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
       }
       setGenerationProgress(10);
 
-      // Step 2: Start video generation for each photo
+      // Step 2: Upload all photos and start ONE video generation request
       const pendingClips = [];
       const aspectRatio = editorSettings.format === '9:16' ? '9:16' : '16:9';
+      const uploadedUrls = [];
 
+      // Upload all photos first
       for (let i = 0; i < photos.length; i++) {
         const photo = photos[i];
-        setGenerationStatus(`Starting Veo 3.1 for image ${i + 1}/${photos.length}...`);
+        setGenerationStatus(`Uploading image ${i + 1}/${photos.length}...`);
         setGenerationProgress(10 + (i * 5));
 
         try {
-          // Upload blob URL to get public URL if needed
           let publicUrl = photo.url;
           if (photo.url.startsWith('blob:') || photo.url.startsWith('data:')) {
-            setGenerationStatus(`Uploading image ${i + 1} to cloud...`);
-            // Convert blob to base64 first
             const response = await fetch(photo.url);
             const blob = await response.blob();
             const reader = new FileReader();
@@ -457,31 +448,41 @@ const ContentStudioV2 = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
               reader.readAsDataURL(blob);
             });
             publicUrl = await uploadBase64ToPublicUrl(base64, userData.id);
-            console.log(`📤 Uploaded image ${i + 1}:`, publicUrl);
           }
+          uploadedUrls.push({ photoId: photo.id, photoUrl: photo.url, publicUrl });
+          console.log(`📤 Uploaded image ${i + 1}:`, publicUrl);
+        } catch (error) {
+          console.error(`Error uploading image ${i + 1}:`, error);
+        }
+      }
 
-          // Start MuAPI Veo 3.1 generation
-          const result = await generateVideoClip(publicUrl, finalPrompt, muapiKey, {
+      // Generate ONE video with the first image (MuAPI uses prompt for scene transitions)
+      if (uploadedUrls.length > 0) {
+        setGenerationStatus(`Starting Veo 3.1 video generation...`);
+        setGenerationProgress(20);
+
+        try {
+          const result = await generateVideoClip(uploadedUrls[0].publicUrl, finalPrompt, {
             resolution: '1080p',
             aspectRatio,
             userId: userData.id
           });
 
           pendingClips.push({
-            index: i,
-            photoId: photo.id,
-            photoUrl: photo.url,
+            index: 0,
+            photoId: uploadedUrls[0].photoId,
+            photoUrl: uploadedUrls[0].photoUrl,
             requestId: result.requestId,
             status: 'processing'
           });
 
-          console.log(`🎬 Started clip ${i + 1}, requestId: ${result.requestId}`);
+          console.log(`🎬 Started video, requestId: ${result.requestId}`);
         } catch (error) {
-          console.error(`Error starting clip ${i + 1}:`, error);
+          console.error(`Error starting video generation:`, error);
           pendingClips.push({
-            index: i,
-            photoId: photo.id,
-            photoUrl: photo.url,
+            index: 0,
+            photoId: uploadedUrls[0].photoId,
+            photoUrl: uploadedUrls[0].photoUrl,
             requestId: null,
             status: 'failed',
             error: error.message
@@ -490,7 +491,7 @@ const ContentStudioV2 = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
       }
 
       setGenerationProgress(25);
-      setGenerationStatus(`Generating ${pendingClips.length} clips with Veo 3.1... (this takes ~90 seconds per clip)`);
+      setGenerationStatus(`Generating video with Veo 3.1... (this takes ~90 seconds)`);
 
       // Step 3: Poll for completion
       const maxPollTime = 10 * 60 * 1000; // 10 minutes max
@@ -505,7 +506,7 @@ const ContentStudioV2 = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
 
         for (const clip of stillProcessing) {
           try {
-            const statusResult = await checkVideoStatus(clip.requestId, muapiKey);
+            const statusResult = await checkVideoStatus(clip.requestId);
             console.log(`📊 Clip ${clip.index + 1} status:`, statusResult.status);
 
             if (statusResult.status === 'completed' && statusResult.videoUrl) {
