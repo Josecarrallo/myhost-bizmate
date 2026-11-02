@@ -15,7 +15,34 @@ MY HOST BizMate is a vacation rental property management platform with integrate
 
 **Current Branch:** `backup-antes-de-automatizacion` (work happens here)
 **Main Branch:** `main` (protected)
-**Live URL:** https://my-host-bizmate.vercel.app
+**Live URL:** https://myhost-bizmate.vercel.app (NOTE: NO hyphen between my and host)
+
+## Current State (November 2026)
+
+**Last Session (Nov 2, 2026):**
+- Security: Added session auth headers to n8n webhooks (dailysummary-v5, nusantara/chat)
+- Security: Removed hardcoded tenant_id fallback from OSIRIS/NUSANTARA
+- Fixed: $NaN display in Owner Decisions when financial_impact_estimate is text
+- Commits: `d18433e` (working branch), `c728400` (main/Vercel)
+
+**Master Document:** `110126/MYHOST_DOCUMENTO_UNICO.md` (700KB, single source of truth)
+- Read "⭐ RESUMEN 1-NOV" section first for current priorities
+- All other documents are obsolete
+
+**Active Priorities (from document):**
+1. Gita tasks: NIS-2026-0139 price correction, confirm deleted bookings
+2. Security (after José's call): ai-proxy Edge Function for MuAPI, more webhook auth
+3. BANYU Voice: active on Zentara, Izumi, Nismara (as of Nov 1)
+4. Welcome Package with guest registration (CRITICAL before Nov 20 Airbnb changes)
+
+**n8n Credentials:**
+- Supabase: "Supabase secret oct2026" `9IS8Q2uAtMvCHRdM` (43 active workflows)
+- OpenAI: "OpenAI nov2026" `2Qvc9nX0Q5CdV5P2` (replaces old credential)
+
+**Security Status (Oct 2026):**
+- Supabase JWT rotated to ECC P-256, legacy HS256 revoked
+- Old service_role key is dead (Railway incident resolved)
+- Content Studio uses user session for uploads (no more supabaseAdmin)
 
 ## Development Commands
 
@@ -356,6 +383,36 @@ The project includes n8n workflow automation hosted on Railway:
 - SendGrid configured for emails
 - Supabase connected for data access
 - Claude API integration planned for AI features
+
+### Webhook Security Pattern (OSIRIS Recipe)
+
+When adding auth to n8n webhooks, follow this pattern from OSIRIS (`842wxPLlFFlhUtP0`):
+
+**n8n side (Claude AI does this):**
+1. `Verify Session` node: GET `https://jjpscimtxrudtepzwhag.supabase.co/auth/v1/user`
+   - Headers: `apikey: sb_publishable_…` and `Authorization` from webhook
+   - Settings: `fullResponse` + `neverError`
+2. `Normalize Input` node: owner = session id; 401 without session; 403 if tenant_id mismatch
+3. `Authorized?` switch: text comparison 'yes' (NOT boolean IF)
+4. `Respond Unauthorized` node: return 401
+
+**Frontend side (Claude Code does this):**
+```javascript
+const { data: sessionData } = await supabase.auth.getSession();
+if (!sessionData?.session?.access_token) {
+  throw new Error('Session expired - please login again.');
+}
+const response = await fetch('https://n8n-production-bb2d.up.railway.app/webhook/...', {
+  headers: {
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${sessionData.session.access_token}`
+  },
+  body: JSON.stringify({ tenant_id: userData?.id, ... })
+});
+```
+
+**Already secured:** OSIRIS `/ai/chat-v4`, Daily Summary `/dailysummary-v5`, NUSANTARA `/nusantara/chat`
+**Pending:** Decision Router, Payment Protection, PDF Booking Confirmation
 
 ### n8n MCP Server (NEW)
 
