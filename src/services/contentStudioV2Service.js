@@ -655,21 +655,45 @@ export async function generateVoiceOver(script, apiKeys = {}, options = {}) {
  *
  * IMPORTANT: imageUrl must be a public URL (https://...), NOT base64.
  * If base64 is provided, it will be uploaded to Supabase Storage first.
+ *
+ * NEW: lastImageUrl (optional) - URL for the end frame. When provided,
+ * Veo 3.1 will transition from imageUrl to lastImageUrl.
  */
 export async function generateVideoClip(imageUrl, prompt, options = {}) {
   const {
     resolution = '1080p', // 720p, 1080p, 4k
     aspectRatio = '16:9', // 16:9 or 9:16
-    userId
+    userId,
+    lastImageUrl = null // NEW: Optional end frame image
   } = options;
 
   try {
     // CRITICAL: MuAPI requires a public URL, not base64
     // If the image is base64, upload it to Supabase Storage first
     let publicImageUrl = imageUrl;
+    let publicLastImageUrl = lastImageUrl;
 
     if (imageUrl.startsWith('data:')) {
       publicImageUrl = await uploadBase64ToPublicUrl(imageUrl, userId);
+    }
+
+    // Upload last image if provided and is base64
+    if (lastImageUrl && lastImageUrl.startsWith('data:')) {
+      publicLastImageUrl = await uploadBase64ToPublicUrl(lastImageUrl, userId);
+    }
+
+    // Build request body
+    const requestBody = {
+      imageUrl: publicImageUrl,
+      prompt,
+      resolution,
+      aspectRatio
+    };
+
+    // Add last_image if provided (for start-to-end frame transition)
+    if (publicLastImageUrl) {
+      requestBody.lastImageUrl = publicLastImageUrl;
+      console.log('📸 Using two images: start frame + end frame transition');
     }
 
     // Use ai-proxy Edge Function (handles MuAPI key securely)
@@ -677,12 +701,7 @@ export async function generateVideoClip(imageUrl, prompt, options = {}) {
     const response = await fetch(`${AI_PROXY_URL}/generate-clip`, {
       method: 'POST',
       headers,
-      body: JSON.stringify({
-        imageUrl: publicImageUrl,
-        prompt,
-        resolution,
-        aspectRatio
-      })
+      body: JSON.stringify(requestBody)
     });
 
     if (!response.ok) {

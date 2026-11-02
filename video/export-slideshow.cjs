@@ -64,7 +64,7 @@ function setupExportRoutes(app) {
 
           const region = process.env.AWS_REGION || 'us-east-1';
           const s3Bucket = 'remotionlambda-useast1-1w04idkkha';
-          const functionName = 'remotion-render-4-0-423-mem3008mb-disk10240mb-300sec';
+          const functionName = 'remotion-render-4-0-424-mem3008mb-disk10240mb-300sec';
           const serveUrl = 'https://remotionlambda-useast1-1w04idkkha.s3.us-east-1.amazonaws.com/sites/myhost-bizmate-video/index.html';
 
           exportJobs.get(jobId).progress = 0.1;
@@ -125,10 +125,11 @@ function setupExportRoutes(app) {
             format
           }, null, 2));
 
-          // Calculate duration: 30fps, ~4.5 seconds per scene
+          // Calculate duration: 30fps
           const fps = 30;
           const totalDurationSeconds = uploadedScenes.reduce((sum, s) => sum + (s.duration || 4.5), 0);
           const totalFrames = Math.round(totalDurationSeconds * fps);
+          console.log(`📐 Duration calculation: ${uploadedScenes.length} scenes, ${totalDurationSeconds}s total, ${totalFrames} frames`);
 
           const { bucketName, renderId } = await renderMediaOnLambda({
             region, functionName, serveUrl,
@@ -150,7 +151,7 @@ function setupExportRoutes(app) {
               },
               format: format
             },
-            durationInFrames: totalFrames,
+            forceDurationInFrames: totalFrames,  // v4.0.424: Official way to override composition duration
             codec: "h264", audioCodec: "mp3", imageFormat: "jpeg", privacy: "public",
             framesPerLambda: 50, concurrencyPerLambda: 2, timeoutInMilliseconds: 300000, maxRetries: 1,
           });
