@@ -20,10 +20,16 @@ MY HOST BizMate is a vacation rental property management platform with integrate
 ## Current State (November 2026)
 
 **Last Session (Nov 2, 2026):**
+- Content Studio V2: Fixed two-image transitions (start frame + end frame)
+- Content Studio V2: Upgraded Remotion Lambda to v4.0.424
+- Content Studio V2: Fixed video duration with `forceDurationInFrames`
+- Security: All MuAPI calls now go through Supabase Edge Function `ai-proxy`
+- Commits: `5ae6171` (working branch), `2792f8c` (main/Vercel)
+
+**Previous Session (Nov 1, 2026):**
 - Security: Added session auth headers to n8n webhooks (dailysummary-v5, nusantara/chat)
 - Security: Removed hardcoded tenant_id fallback from OSIRIS/NUSANTARA
 - Fixed: $NaN display in Owner Decisions when financial_impact_estimate is text
-- Commits: `d18433e` (working branch), `c728400` (main/Vercel)
 
 **Master Document:** `110126/MYHOST_DOCUMENTO_UNICO.md` (700KB, single source of truth)
 - Read "⭐ RESUMEN 1-NOV" section first for current priorities
@@ -365,6 +371,80 @@ When adding new Supabase functionality:
 1. Add methods to `supabaseService` object in `src/services/supabase.js`
 2. Import and use in module components
 3. Handle loading states and errors appropriately
+
+## Content Studio V2 (Video Generation)
+
+**Documentation:** `110226/CONTENT_STUDIO_V2_TECHNICAL_DOC.md`
+
+### Architecture
+
+```
+┌─────────────────┐     ┌──────────────────┐     ┌─────────────────┐
+│  Content Studio │────▶│  Supabase Edge   │────▶│    MuAPI        │
+│  (React UI)     │     │  Function        │     │  (Veo 3.1)      │
+│                 │     │  ai-proxy        │     │                 │
+└─────────────────┘     └──────────────────┘     └─────────────────┘
+         │                                                │
+         │                                                ▼
+         │              ┌──────────────────┐     ┌─────────────────┐
+         │              │  AWS S3          │◀────│  8-sec Video    │
+         │              │  (images/videos) │     │  Clip           │
+         │              └──────────────────┘     └─────────────────┘
+         │                       │
+         ▼                       ▼
+┌─────────────────┐     ┌──────────────────┐
+│  Video Server   │────▶│  Remotion Lambda │────▶ Final MP4
+│  (Railway)      │     │  v4.0.424        │
+│  port 3001      │     │                  │
+└─────────────────┘     └──────────────────┘
+```
+
+### Current Capabilities (Working)
+
+- ✅ Upload 1-2 photos → AI generates 8-second video
+- ✅ Two-image transitions (first = start frame, second = end frame)
+- ✅ OpenAI GPT-4o Vision for prompt enhancement
+- ✅ 3 aspect ratios: 9:16 (vertical), 16:9 (horizontal), 1:1 (square)
+- ✅ 5 background music tracks (ambient, upbeat, cinematic, tropical, lofi)
+- ✅ Export to MP4 via Remotion Lambda
+- ✅ All API keys secured via Supabase Edge Functions
+
+### Key Files
+
+| File | Purpose |
+|------|---------|
+| `src/components/ContentStudioV2/ContentStudioV2.jsx` | Main UI component |
+| `src/services/contentStudioV2Service.js` | API calls (ai-proxy, OpenAI) |
+| `video/server.cjs` | Video server (Railway) |
+| `video/export-slideshow.cjs` | Remotion Lambda export |
+| `video/src/PropertyPromo.tsx` | Remotion composition |
+| `video/src/Root.tsx` | Remotion root config |
+
+### Video Duration Limitation
+
+Veo 3.1 generates **8-second clips maximum**. For longer videos:
+- Generate multiple clips with different photos
+- Remotion stitches them automatically
+
+### Commands
+
+```bash
+# Start video server (Railway runs this)
+cd video && node server.cjs
+
+# Deploy Remotion Lambda (if needed)
+cd video && npx remotion lambda functions deploy --memory=3008 --timeout=300 --disk=10240 --region=us-east-1 --yes
+
+# Deploy Remotion site
+cd video && npx remotion lambda sites create src/index.tsx --site-name=myhost-bizmate-video
+```
+
+### Roadmap (Pending)
+
+1. **Voice Over / TTS** - Using Gita's PROMPT LIST OPTION scripts
+2. **Additional music** - From Gita's Google Drive
+3. **Multi-clip workflow** - UI for longer videos
+4. **Migrate to S3** - Move video server from Railway
 
 ## n8n Automation
 
