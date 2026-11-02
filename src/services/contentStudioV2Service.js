@@ -22,15 +22,29 @@ import { supabase } from '../lib/supabase';
 // CONFIGURATION
 // =====================================================
 
-const MUAPI_BASE_URL = 'https://api.muapi.ai';
 const OPENAI_API_URL = 'https://api.openai.com/v1';
 
-// Backend proxy for MuAPI (to avoid CORS issues)
-// Uses VITE_API_URL (same as ContentStudio V1) which is configured in Vercel to point to Railway
-const VIDEO_SERVER_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+// AI Proxy Edge Function URL (replaces direct MuAPI calls)
+const AI_PROXY_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ai-proxy`;
 
 // Storage bucket name
 const STORAGE_BUCKET = 'content-studio';
+
+/**
+ * Get authentication headers for ai-proxy calls
+ * Requires active Supabase session
+ */
+async function getAIProxyHeaders() {
+  const { data: sessionData, error } = await supabase.auth.getSession();
+  if (error || !sessionData?.session?.access_token) {
+    throw new Error('Session expired - please login again to use Content Studio.');
+  }
+  return {
+    'Content-Type': 'application/json',
+    'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
+    'Authorization': `Bearer ${sessionData.session.access_token}`
+  };
+}
 
 // =====================================================
 // PROJECT CRUD (Supabase)
@@ -484,15 +498,11 @@ export async function analyzeAndImprovePrompt(imageUrls, userPrompt, apiKey) {
 }
 
 /**
- * Generate voice-over using MuAPI ElevenLabs TTS Turbo 2.5 (PRIMARY)
- * Endpoint: POST https://api.muapi.ai/api/v1/elevenlabs-tts-turbo-2-5
+ * Generate voice-over using ai-proxy -> MuAPI ElevenLabs TTS Turbo 2.5 (PRIMARY)
+ * Endpoint: POST /functions/v1/ai-proxy/tts
  * Pricing: $0.05 per 1,000 characters
  */
-export async function generateVoiceOverMuAPI(script, apiKey, options = {}) {
-  if (!apiKey) {
-    return null;
-  }
-
+export async function generateVoiceOverMuAPI(script, options = {}) {
   const {
     voiceId = '21m00Tcm4TlvDq8ikWAM', // Rachel - default ElevenLabs voice
     stability = 0.5,
@@ -502,12 +512,10 @@ export async function generateVoiceOverMuAPI(script, apiKey, options = {}) {
   } = options;
 
   try {
-    const response = await fetch(`${MUAPI_BASE_URL}/api/v1/elevenlabs-tts-turbo-2-5`, {
+    const headers = await getAIProxyHeaders();
+    const response = await fetch(`${AI_PROXY_URL}/tts`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': apiKey
-      },
+      headers,
       body: JSON.stringify({
         prompt: script,
         voice_id: voiceId,
@@ -520,7 +528,7 @@ export async function generateVoiceOverMuAPI(script, apiKey, options = {}) {
 
     if (!response.ok) {
       const error = await response.json();
-      throw new Error(error.message || 'MuAPI ElevenLabs TTS failed');
+      throw new Error(error.message || 'ai-proxy TTS failed');
     }
 
     const data = await response.json();
@@ -529,17 +537,17 @@ export async function generateVoiceOverMuAPI(script, apiKey, options = {}) {
       status: 'processing'
     };
   } catch (error) {
-    console.error('MuAPI ElevenLabs TTS error:', error);
+    console.error('ai-proxy TTS error:', error);
     return null;
   }
 }
 
 /**
- * Check TTS generation status from MuAPI
- * Endpoint: GET https://api.muapi.ai/api/v1/predictions/{request_id}/result
+ * Check TTS generation status via ai-proxy
+ * Endpoint: GET /functions/v1/ai-proxy/status/{request_id}
  */
-export async function checkTTSStatus(requestId, apiKey) {
-  if (!apiKey || requestId.startsWith('mock-')) {
+export async function checkTTSStatus(requestId) {
+  if (requestId.startsWith('mock-')) {
     return {
       status: 'completed',
       audioUrl: null,
@@ -548,10 +556,9 @@ export async function checkTTSStatus(requestId, apiKey) {
   }
 
   try {
-    const response = await fetch(`${MUAPI_BASE_URL}/api/v1/predictions/${requestId}/result`, {
-      headers: {
-        'x-api-key': apiKey
-      }
+    const headers = await getAIProxyHeaders();
+    const response = await fetch(`${AI_PROXY_URL}/status/${requestId}`, {
+      headers
     });
 
     if (!response.ok) {
@@ -608,17 +615,19 @@ export async function generateVoiceOverOpenAI(script, voice = 'alloy', apiKey) {
 
 /**
  * Generate voice-over with automatic fallback
- * Tries MuAPI ElevenLabs first, falls back to OpenAI TTS
+ * Tries ai-proxy (MuAPI ElevenLabs) first, falls back to OpenAI TTS
  */
 export async function generateVoiceOver(script, apiKeys = {}, options = {}) {
-  const { muapiKey, openaiKey } = apiKeys;
+  const { openaiKey } = apiKeys;
 
-  // Try MuAPI ElevenLabs first (primary)
-  if (muapiKey) {
-    const result = await generateVoiceOverMuAPI(script, muapiKey, options);
+  // Try ai-proxy (MuAPI ElevenLabs) first (primary)
+  try {
+    const result = await generateVoiceOverMuAPI(script, options);
     if (result) {
       return { provider: 'muapi', ...result };
     }
+  } catch (error) {
+    console.warn('ai-proxy TTS failed, trying OpenAI fallback:', error.message);
   }
 
   // Fallback to OpenAI TTS
@@ -637,8 +646,8 @@ export async function generateVoiceOver(script, apiKeys = {}, options = {}) {
 // =====================================================
 
 /**
- * Generate video clip from image using MuAPI Veo 3.1 Fast
- * Endpoint: POST https://api.muapi.ai/api/v1/veo3.1-fast-image-to-video
+ * Generate video clip from image using ai-proxy -> MuAPI Veo 3.1 Fast
+ * Endpoint: POST /functions/v1/ai-proxy/generate-clip
  * Pricing: $0.60 (720p), $0.78 (1080p), $1.80 (4K) per 8-second clip
  *
  * Veo 3.1 Fast produces better fluid/water animations than Seedance 2.5
@@ -647,16 +656,7 @@ export async function generateVoiceOver(script, apiKeys = {}, options = {}) {
  * IMPORTANT: imageUrl must be a public URL (https://...), NOT base64.
  * If base64 is provided, it will be uploaded to Supabase Storage first.
  */
-export async function generateVideoClip(imageUrl, prompt, apiKey, options = {}) {
-  if (!apiKey) {
-    // Return mock response
-    return {
-      requestId: `mock-${Date.now()}`,
-      status: 'pending',
-      estimatedTime: 30
-    };
-  }
-
+export async function generateVideoClip(imageUrl, prompt, options = {}) {
   const {
     resolution = '1080p', // 720p, 1080p, 4k
     aspectRatio = '16:9', // 16:9 or 9:16
@@ -672,16 +672,14 @@ export async function generateVideoClip(imageUrl, prompt, apiKey, options = {}) 
       publicImageUrl = await uploadBase64ToPublicUrl(imageUrl, userId);
     }
 
-    // Use backend proxy to avoid CORS issues
-    const response = await fetch(`${VIDEO_SERVER_URL}/api/muapi/generate-clip`, {
+    // Use ai-proxy Edge Function (handles MuAPI key securely)
+    const headers = await getAIProxyHeaders();
+    const response = await fetch(`${AI_PROXY_URL}/generate-clip`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
+      headers,
       body: JSON.stringify({
         imageUrl: publicImageUrl,
         prompt,
-        apiKey,
         resolution,
         aspectRatio
       })
@@ -689,7 +687,7 @@ export async function generateVideoClip(imageUrl, prompt, apiKey, options = {}) 
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.error || `MuAPI proxy failed with status ${response.status}`);
+      throw new Error(errorData.error || errorData.message || `ai-proxy generate-clip failed with status ${response.status}`);
     }
 
     const data = await response.json();
@@ -700,18 +698,18 @@ export async function generateVideoClip(imageUrl, prompt, apiKey, options = {}) 
       estimatedTime: 90 // Veo 3.1 Fast takes ~90 seconds
     };
   } catch (error) {
-    console.error('MuAPI Veo 3.1 Fast error:', error);
+    console.error('ai-proxy generate-clip error:', error);
     throw error;
   }
 }
 
 /**
- * Check video generation status from MuAPI
- * Endpoint: GET https://api.muapi.ai/api/v1/predictions/{request_id}/result
+ * Check video generation status via ai-proxy
+ * Endpoint: GET /functions/v1/ai-proxy/status/{request_id}
  * Response: { status: "completed", outputs: { video: "url" } }
  */
-export async function checkVideoStatus(requestId, apiKey) {
-  if (!apiKey || requestId.startsWith('mock-')) {
+export async function checkVideoStatus(requestId) {
+  if (requestId.startsWith('mock-')) {
     // Mock completed response
     return {
       status: 'completed',
@@ -721,15 +719,14 @@ export async function checkVideoStatus(requestId, apiKey) {
   }
 
   try {
-    // Use backend proxy to avoid CORS issues
-    const response = await fetch(`${VIDEO_SERVER_URL}/api/muapi/status/${requestId}`, {
-      headers: {
-        'x-api-key': apiKey
-      }
+    // Use ai-proxy Edge Function
+    const headers = await getAIProxyHeaders();
+    const response = await fetch(`${AI_PROXY_URL}/status/${requestId}`, {
+      headers
     });
 
     if (!response.ok) {
-      throw new Error('Status check failed');
+      throw new Error('Video status check failed');
     }
 
     const data = await response.json();
@@ -758,7 +755,7 @@ export async function checkVideoStatus(requestId, apiKey) {
       progress: data.progress || (data.status === 'completed' ? 100 : 50)
     };
   } catch (error) {
-    console.error('Status check error:', error);
+    console.error('Video status check error:', error);
     throw error;
   }
 }
@@ -863,7 +860,7 @@ export async function generateVideo(
   apiKeys = {},
   onProgress = () => {}
 ) {
-  const { openaiKey, muapiKey } = apiKeys;
+  const { openaiKey } = apiKeys;
 
   try {
     // Step 1: Create project
@@ -901,7 +898,7 @@ export async function generateVideo(
       improved_prompt: analysis.veoPrompt
     });
 
-    // Step 4: Generate clips with MuAPI
+    // Step 4: Generate clips with ai-proxy (MuAPI)
     onProgress({ step: 'generating', progress: 45, message: 'Generating video clips...' });
     const scenes = [];
     for (let i = 0; i < uploadedPhotos.length; i++) {
@@ -916,7 +913,6 @@ export async function generateVideo(
       const clipResult = await generateVideoClip(
         photo.url,
         analysis.veoPrompt,
-        muapiKey,
         {
           aspectRatio: settings.format,
           duration: 5
