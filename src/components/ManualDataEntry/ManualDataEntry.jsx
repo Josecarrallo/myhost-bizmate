@@ -48,6 +48,7 @@ const ManualDataEntry = ({ onBack, setSidebarCollapsed, sidebarCollapsed, onAddT
   // Data from Supabase
   const [properties, setProperties] = useState([]);
   const [villas, setVillas] = useState([]);
+  const [allVillas, setAllVillas] = useState([]); // All villas including inactive, for name lookup
   const [isLoadingProperties, setIsLoadingProperties] = useState(true);
 
   // Bookings table data
@@ -248,6 +249,15 @@ const ManualDataEntry = ({ onBack, setSidebarCollapsed, sidebarCollapsed, onAddT
         console.log(`[ManualDataEntry] ✅ Loaded ${villasData?.length || 0} villas:`, villasData);
 
         setVillas(villasData || []);
+
+        // 3. Get ALL villas (including inactive) for name lookup in bookings display
+        const { data: allVillasData } = await supabase
+          .from('villas')
+          .select('id, name, property_id')
+          .in('property_id', propertyIds);
+
+        setAllVillas(allVillasData || []);
+        console.log(`[ManualDataEntry] ✅ Loaded ${allVillasData?.length || 0} villas (all statuses) for name lookup`);
 
         // Auto-select first property_id in form
         if (propertyIds.length > 0) {
@@ -1858,7 +1868,7 @@ const ManualDataEntry = ({ onBack, setSidebarCollapsed, sidebarCollapsed, onAddT
                                   <div className="truncate">{booking.guest_name}</div>
                                 </td>
                                 <td className="px-2 py-3 text-gray-300 text-sm overflow-hidden">
-                                  <div className="truncate">{villas.find(v => v.id === booking.villa_id)?.name || properties.find(p => p.id === booking.property_id)?.name || 'N/A'}</div>
+                                  <div className="truncate">{allVillas.find(v => v.id === booking.villa_id)?.name || properties.find(p => p.id === booking.property_id)?.name || 'N/A'}</div>
                                 </td>
                                 <td className="px-1 py-3 text-gray-300 text-xs text-center whitespace-nowrap">
                                   {booking.check_in ? new Date(booking.check_in).toLocaleDateString('en-GB', {day:'2-digit', month:'short', year:'2-digit'}).replace(/ /g, '/') : 'N/A'}
@@ -1936,10 +1946,17 @@ const ManualDataEntry = ({ onBack, setSidebarCollapsed, sidebarCollapsed, onAddT
                     <div>
                       Showing <span className="text-orange-400 font-bold">{bookings.length}</span> bookings
                     </div>
-                    <div>
-                      Total Revenue: <span className="text-green-400 font-bold">
-                        {bookings.reduce((sum, b) => sum + (b.total_price || 0), 0).toLocaleString()}
-                      </span>
+                    <div className="text-right">
+                      <div>
+                        Total Revenue: <span className="text-green-400 font-bold">
+                          {bookings.filter(b => b.status !== 'cancelled').reduce((sum, b) => sum + (b.total_price || 0), 0).toLocaleString()}
+                        </span>
+                      </div>
+                      {bookings.some(b => b.status === 'cancelled') && (
+                        <div className="text-xs text-gray-500 mt-1">
+                          Cancelled: {bookings.filter(b => b.status === 'cancelled').reduce((sum, b) => sum + (b.total_price || 0), 0).toLocaleString()} (not included)
+                        </div>
+                      )}
                     </div>
                   </div>
                 </>
@@ -2692,7 +2709,7 @@ const ManualDataEntry = ({ onBack, setSidebarCollapsed, sidebarCollapsed, onAddT
                               </span>
                             )}
                             <p className="text-gray-400 text-sm mt-1">
-                              {villas.find(v => v.id === booking.villa_id)?.name || properties.find(p => p.id === booking.property_id)?.name || 'N/A'}
+                              {allVillas.find(v => v.id === booking.villa_id)?.name || properties.find(p => p.id === booking.property_id)?.name || 'N/A'}
                             </p>
                           </div>
                           <span className={`px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap ${
@@ -2811,7 +2828,7 @@ const ManualDataEntry = ({ onBack, setSidebarCollapsed, sidebarCollapsed, onAddT
                                 )}
                               </td>
                               <td className="px-4 py-3 text-gray-300 text-sm overflow-hidden">
-                                <div className="truncate">{villas.find(v => v.id === booking.villa_id)?.name || properties.find(p => p.id === booking.property_id)?.name || 'N/A'}</div>
+                                <div className="truncate">{allVillas.find(v => v.id === booking.villa_id)?.name || properties.find(p => p.id === booking.property_id)?.name || 'N/A'}</div>
                               </td>
                               <td className="px-4 py-3 text-gray-300 text-sm whitespace-nowrap">{booking.check_in}</td>
                               <td className="px-4 py-3 text-gray-300 text-sm whitespace-nowrap">{booking.check_out}</td>
