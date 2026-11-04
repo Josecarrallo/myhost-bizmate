@@ -12,7 +12,7 @@ const AiAgentsWidget = ({ onOpenAgentCenter }) => {
     { id: 'kora', name: 'KORA', operation: 'Voice Assistant', status: 'Active' },
     { id: 'nusantara', name: 'NUSANTARA', operation: 'Cultural Intelligence', status: 'Active' },
     { id: 'iris', name: 'IRIS', operation: 'Marketing', status: 'Active' },
-    { id: 'aura', name: 'AURA', operation: 'Proactive Context', status: 'Active' }
+    { id: 'surya', name: 'SURYA', operation: 'Business Analyst', status: 'Active' }
   ];
 
   const activeCount = agents.filter(a => a.status === 'Active').length;

@@ -7,7 +7,7 @@ import {
   Palette,
   MessageSquare,
   PhoneCall,
-  Lightbulb,
+  Sun,
   BarChart3,
   Users,
   DollarSign,
@@ -24,6 +24,10 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
+import SuryaInsights from '../Surya/SuryaInsights';
+
+// Format date as YYYY-MM-DD in LOCAL timezone (avoids UTC shift)
+const ymd = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
 const AISystems = ({ onBack }) => {
   const { userData } = useAuth();
@@ -36,28 +40,54 @@ const AISystems = ({ onBack }) => {
   const [showAllQuestions, setShowAllQuestions] = useState(false); // State for all questions modal
   const chatEndRef = useRef(null);
 
-  // Fetch user's property_id on mount
+  // SURYA-specific state
+  const [properties, setProperties] = useState([]);
+  const [suryaPropertyId, setSuryaPropertyId] = useState(null);
+  const [suryaPeriod, setSuryaPeriod] = useState('this'); // 'this' or 'last'
+
+  // Calculate date range for SURYA based on period
+  const getSuryaDates = () => {
+    const today = new Date();
+    let from, to;
+
+    if (suryaPeriod === 'this') {
+      // This month: 1st of current month to today
+      from = new Date(today.getFullYear(), today.getMonth(), 1);
+      to = today;
+    } else {
+      // Last month: 1st of last month to last day of last month
+      from = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+      to = new Date(today.getFullYear(), today.getMonth(), 0);
+    }
+
+    return { from: ymd(from), to: ymd(to) };
+  };
+
+  // Fetch user's properties on mount
   useEffect(() => {
-    const fetchPropertyId = async () => {
+    const fetchProperties = async () => {
       if (!userData?.id) return;
 
       try {
         const { data, error } = await supabase
           .from('properties')
-          .select('id')
-          .eq('owner_id', userData.id)
-          .limit(1)
-          .single();
+          .select('id, name')
+          .eq('owner_id', userData.id);
 
         if (!error && data) {
-          setPropertyId(data.id);
+          setProperties(data);
+          // Auto-select first property for both propertyId and suryaPropertyId
+          if (data.length > 0) {
+            setPropertyId(data[0].id);
+            setSuryaPropertyId(data[0].id);
+          }
         }
       } catch (error) {
-        console.error('Error fetching property_id:', error);
+        console.error('Error fetching properties:', error);
       }
     };
 
-    fetchPropertyId();
+    fetchProperties();
   }, [userData]);
 
   // All OSIRIS questions organized by category
@@ -274,27 +304,21 @@ const AISystems = ({ onBack }) => {
         "Create a content strategy for peak season"
       ]
     },
-    aura: {
-      id: 'aura',
-      name: 'AURA',
-      fullName: 'AURA.AI',
-      description: 'Insights & Predictions',
-      icon: Lightbulb,
+    surya: {
+      id: 'surya',
+      name: 'SURYA',
+      fullName: 'SURYA.AI',
+      description: 'Business Analyst & Market Insights',
+      icon: Sun,
       gradient: 'from-amber-400 via-yellow-500 to-orange-400',
       glowColor: 'shadow-amber-500/50',
-      quickQuestions: [
-        "Predict my revenue for next quarter with 90% confidence",
-        "What pricing changes would maximize my annual profit?",
-        "Should I invest in villa renovations? Calculate expected ROI",
-        "Which market segments should I target for growth?",
-        "Forecast impact of adding 2 more properties to my portfolio"
-      ]
+      quickQuestions: [] // SURYA doesn't use quick questions - it shows SuryaInsights component
     }
   };
 
-  // Welcome message when agent changes
+  // Welcome message when agent changes (skip for SURYA - it shows SuryaInsights)
   useEffect(() => {
-    if (!selectedAgent) return;
+    if (!selectedAgent || selectedAgent === 'surya') return;
 
     const agent = agents[selectedAgent];
     const welcomeMessage = {
@@ -439,9 +463,8 @@ const AISystems = ({ onBack }) => {
       lumina: "Here's your sales summary:\n\n🎯 **Hot Leads:** 5 leads with high engagement\n\n📧 **Pending Follow-ups:** 8 leads need contact\n\n📈 **Conversion Rate:** 23% (last 30 days)\n\nShall I draft follow-up messages for the hot leads?",
       iris: "Marketing insights:\n\n✨ **Content Ideas:** Beach sunset posts, villa tours, guest testimonials\n\n⭐ **Review Performance:** 4.8 avg rating (last month)\n\n📱 **Best Time to Post:** 6-8 PM local time\n\nWant me to create a content calendar?",
       banyu: "WhatsApp status:\n\n💬 **Active Conversations:** 12 guests\n\n📨 **Messages Today:** 47 messages\n\n⚡ **Avg Response Time:** 3.2 minutes\n\nNeed help with any specific conversation?",
-      kora: "Voice activity:\n\n📞 **Calls Today:** 8 calls\n\n⏱️ **Avg Duration:** 4m 32s\n\n😊 **Sentiment:** 85% positive\n\nAny call you'd like to review?",
-      nusantara: "Cultural insights:\n\n🎭 **March Events:**\n• Nyepi Day (Mar 19) - Silent Day, no activities\n• Melasti Ceremony (Mar 16-18) - Beach purification\n• Bali Spirit Festival (Mar 15-19) - Yoga & wellness\n\n🏖️ **Canggu Recommendations:**\n• Finns Beach Club - Best sunset views\n• La Brisa - Beachfront dining\n• Deus Ex Machina - Surf culture café\n\n🙏 **Temple Etiquette:**\n• Wear sarong and sash (required)\n• No photos during ceremonies\n• Remove shoes before entering\n\nNeed specific cultural guidance?",
-      aura: "Market intelligence:\n\n📈 **Revenue Forecast:** +15% next month\n\n🌴 **Bali Trends:** High season starting\n\n💡 **Recommendation:** Increase rates 10-15%\n\nWant detailed analysis?"
+      kora: "Voice activity:\n\n📞 **Calls Today:** 8 calls\n\n⏱️ **Avg Duration:** 4m 32s\n\n😊 **Sentiment:** 85% positive\n\nAny call you'd like to review?"
+      // Note: nusantara uses real endpoint, surya uses SuryaInsights component
     };
 
     return responses[agent] || "I'm here to help! Ask me anything.";
@@ -709,10 +732,113 @@ const AISystems = ({ onBack }) => {
     );
   };
 
-  // Agent is selected - show chat interface
+  // Agent is selected - show chat interface or SURYA special view
   // Get current agent data
   const currentAgent = agents[selectedAgent];
   const AgentIcon = currentAgent.icon;
+
+  // SURYA: Show SuryaInsights instead of chat
+  if (selectedAgent === 'surya') {
+    const suryaDates = getSuryaDates();
+    return (
+      <div className="flex-1 h-screen bg-gradient-to-br from-[#1a1f2e] via-[#2a2f3a] to-[#1a1f2e] flex flex-col overflow-hidden">
+        {/* Header */}
+        <div className="bg-gradient-to-r from-white/10 via-white/5 to-white/10 backdrop-blur-xl border-b border-orange-500/20 px-4 py-3 shadow-xl">
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => setSelectedAgent(null)}
+              className="p-2 bg-white/10 hover:bg-white/20 text-white rounded-lg transition-all duration-300 text-lg"
+              title="Back to agents"
+            >
+              <span>←</span>
+            </button>
+            <div className="flex items-center gap-2 flex-1">
+              <div className={`w-8 h-8 rounded-lg bg-gradient-to-br ${currentAgent.gradient} flex items-center justify-center shadow-lg`}>
+                <AgentIcon className="w-4 h-4 text-white" />
+              </div>
+              <div>
+                <h2 className="text-sm font-bold text-white">{currentAgent.fullName}</h2>
+                <p className="text-xs text-white/60">{currentAgent.description}</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-1.5 px-2 py-1 bg-green-500/20 rounded-full">
+              <div className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse" />
+              <span className="text-xs text-green-300">Online</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Controls: Period Toggle + Property Selector */}
+        <div className="px-4 py-3 bg-[#1f2329] border-b border-white/10">
+          <div className="flex flex-wrap items-center gap-4">
+            {/* Period Toggle */}
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-gray-400">Period:</span>
+              <div className="flex bg-white/5 rounded-lg p-1 border border-white/10">
+                <button
+                  onClick={() => setSuryaPeriod('this')}
+                  className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${
+                    suryaPeriod === 'this'
+                      ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-lg'
+                      : 'text-gray-400 hover:text-white'
+                  }`}
+                >
+                  This Month
+                </button>
+                <button
+                  onClick={() => setSuryaPeriod('last')}
+                  className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${
+                    suryaPeriod === 'last'
+                      ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-lg'
+                      : 'text-gray-400 hover:text-white'
+                  }`}
+                >
+                  Last Month
+                </button>
+              </div>
+            </div>
+
+            {/* Property Selector (only if multiple properties) */}
+            {properties.length > 1 && (
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-gray-400">Property:</span>
+                <select
+                  value={suryaPropertyId || ''}
+                  onChange={(e) => setSuryaPropertyId(e.target.value)}
+                  className="bg-white/5 border border-white/10 text-white text-xs rounded-lg px-3 py-1.5 focus:outline-none focus:border-orange-500"
+                >
+                  {properties.map((prop) => (
+                    <option key={prop.id} value={prop.id} className="bg-[#1f2329]">
+                      {prop.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* SURYA Insights Content */}
+        <div className="flex-1 overflow-y-auto p-4">
+          <div className="max-w-3xl mx-auto">
+            {suryaPropertyId ? (
+              <SuryaInsights
+                propertyId={suryaPropertyId}
+                from={suryaDates.from}
+                to={suryaDates.to}
+                key={`${suryaPropertyId}-${suryaDates.from}-${suryaDates.to}`}
+              />
+            ) : (
+              <div className="bg-[#2a2f3a] rounded-xl p-6 border border-gray-700 text-center">
+                <Sun className="w-12 h-12 text-amber-400 mx-auto mb-3" />
+                <p className="text-gray-400">No property found. Please add a property first.</p>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex-1 h-screen bg-gradient-to-br from-[#1a1f2e] via-[#2a2f3a] to-[#1a1f2e] flex flex-col overflow-hidden relative">
