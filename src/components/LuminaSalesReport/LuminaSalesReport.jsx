@@ -17,6 +17,9 @@ import { supabase } from '../../lib/supabase';
 import { supabaseService } from '../../services/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 
+// Format date as YYYY-MM-DD in LOCAL timezone (avoids UTC shift)
+const ymd = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
 const LuminaSalesReport = ({ onBack }) => {
   const { userData } = useAuth();
   const [loading, setLoading] = useState(false);
@@ -38,6 +41,10 @@ const LuminaSalesReport = ({ onBack }) => {
   const [villas, setVillas] = useState([]);
   const [selectedVilla, setSelectedVilla] = useState(null); // null = all
 
+  // SURYA AI Insights
+  const [suryaData, setSuryaData] = useState(null);
+  const [suryaLoading, setSuryaLoading] = useState(false);
+
   // Load user's properties and villas
   useEffect(() => {
     const loadPropertiesAndVillas = async () => {
@@ -52,6 +59,11 @@ const LuminaSalesReport = ({ onBack }) => {
 
         if (!propsError && propsData) {
           setProperties(propsData);
+
+          // Auto-select if user has only one property (enables SURYA)
+          if (propsData.length === 1) {
+            setSelectedProperty(propsData[0].id);
+          }
 
           // Load villas for these properties
           if (propsData.length > 0) {
@@ -79,14 +91,14 @@ const LuminaSalesReport = ({ onBack }) => {
     ? villas.filter(v => v.property_id === selectedProperty)
     : villas;
 
-  // Calculate date range based on period type
+  // Calculate date range based on period type (using local timezone)
   const getDateRange = () => {
     const today = new Date();
     let from, to;
 
     switch (periodType) {
       case 'today':
-        from = today.toISOString().split('T')[0];
+        from = ymd(today);
         to = from;
         break;
       case 'week':
@@ -96,19 +108,19 @@ const LuminaSalesReport = ({ onBack }) => {
         monday.setDate(today.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1));
         const sunday = new Date(monday);
         sunday.setDate(monday.getDate() + 6);
-        from = monday.toISOString().split('T')[0];
-        to = sunday.toISOString().split('T')[0];
+        from = ymd(monday);
+        to = ymd(sunday);
         break;
       case 'month':
-        from = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().split('T')[0];
-        to = new Date(today.getFullYear(), today.getMonth() + 1, 0).toISOString().split('T')[0];
+        from = ymd(new Date(today.getFullYear(), today.getMonth(), 1));
+        to = ymd(new Date(today.getFullYear(), today.getMonth() + 1, 0));
         break;
       case 'custom':
         from = customFrom;
         to = customTo;
         break;
       default:
-        from = today.toISOString().split('T')[0];
+        from = ymd(today);
         to = from;
     }
 
@@ -222,6 +234,62 @@ const LuminaSalesReport = ({ onBack }) => {
       fetchReport();
     }
   }, [userData?.id, periodType, selectedProperty, selectedVilla, customFrom, customTo]);
+
+  // Fetch SURYA AI insights (only when a single property is selected)
+  useEffect(() => {
+    const fetchSurya = async () => {
+      // Only when ONE property is selected (not "All Properties")
+      if (!selectedProperty || !reportData) {
+        setSuryaData(null);
+        return;
+      }
+
+      const { from, to } = getDateRange();
+      if (!from || !to) return;
+
+      setSuryaLoading(true);
+      setSuryaData(null);
+
+      try {
+        const { data: sessionData } = await supabase.auth.getSession();
+        if (!sessionData?.session?.access_token) {
+          console.error('[SURYA] No session');
+          setSuryaLoading(false);
+          return;
+        }
+
+        const response = await fetch('https://n8n-production-bb2d.up.railway.app/webhook/lumina/lectura-v1', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${sessionData.session.access_token}`
+          },
+          body: JSON.stringify({
+            property_id: selectedProperty,
+            from,
+            to
+          })
+        });
+
+        if (!response.ok) {
+          console.error('[SURYA] HTTP error:', response.status);
+          setSuryaLoading(false);
+          return;
+        }
+
+        const data = await response.json();
+        if (data.ok || data.market) {
+          setSuryaData(data);
+        }
+      } catch (err) {
+        console.error('[SURYA] Error:', err);
+      } finally {
+        setSuryaLoading(false);
+      }
+    };
+
+    fetchSurya();
+  }, [selectedProperty, reportData, periodType, customFrom, customTo]);
 
   // Format currency
   const formatCurrency = (amount, currency = 'IDR') => {
@@ -495,6 +563,69 @@ const LuminaSalesReport = ({ onBack }) => {
               </div>
             </div>
           </div>
+
+          {/* SURYA AI Insights Card - Only when single property selected */}
+          {selectedProperty && (suryaLoading || suryaData) && (
+            <div className="bg-[#2a2f3a] rounded-xl p-4 border border-gray-700 mb-6">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-lg">☀️</span>
+                <h3 className="text-white font-bold">SURYA · AI Insights</h3>
+                {suryaData?.period && suryaData?.previous && (
+                  <span className="text-gray-500 text-sm ml-2">
+                    {suryaData.period} vs {suryaData.previous}
+                  </span>
+                )}
+              </div>
+
+              {suryaLoading ? (
+                <div className="flex items-center gap-2 text-gray-400">
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>Generating AI insights...</span>
+                </div>
+              ) : suryaData && (
+                <>
+                  {suryaData.ok && suryaData.text && (
+                    <p className="text-gray-300 mb-4 whitespace-pre-line">{suryaData.text}</p>
+                  )}
+
+                  {suryaData.market && (
+                    <div className="mt-4 pt-4 border-t border-gray-700">
+                      <div className="flex items-center gap-2 mb-2">
+                        <span>🌍</span>
+                        <span className="text-white font-medium">Market</span>
+                        {suryaData.market.date && (
+                          <span className="text-gray-500 text-sm">{suryaData.market.date}</span>
+                        )}
+                      </div>
+                      <p className="text-gray-300 mb-3 whitespace-pre-line">{suryaData.market.text}</p>
+                      {suryaData.market.sources && suryaData.market.sources.length > 0 && (
+                        <div className="text-sm">
+                          <span className="text-gray-500">Sources: </span>
+                          {suryaData.market.sources.map((source, idx) => (
+                            <span key={idx}>
+                              {idx > 0 && <span className="text-gray-600"> · </span>}
+                              <a
+                                href={source.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-blue-400 hover:text-blue-300 hover:underline"
+                              >
+                                {source.title}
+                              </a>
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  <p className="text-gray-500 text-xs mt-4 italic">
+                    SURYA, your AI business analyst: reads your sales data and recent market news. Figures come from this report.
+                  </p>
+                </>
+              )}
+            </div>
+          )}
 
           {/* Villas with Bookings - Each villa shows its bookings with code and dates */}
           {property.villas && property.villas.length > 0 && (
