@@ -514,13 +514,15 @@ const LuminaSalesReport = ({ onBack }) => {
                         <div className="flex items-center gap-3">
                           <Home className="w-5 h-5 text-purple-400" />
                           <h3 className="text-white font-bold">{villa.villa}</h3>
-                          {villa.available_nights === 0 && (
+                          {villa.inactive ? (
+                            <span className="px-2 py-0.5 rounded text-xs bg-gray-500/20 text-gray-400">Inactive</span>
+                          ) : villa.available_nights === 0 && (
                             <span className="px-2 py-0.5 rounded text-xs bg-yellow-500/20 text-yellow-400">Blocked</span>
                           )}
                         </div>
                         <div className="flex items-center gap-4 text-sm">
                           <span className="text-gray-400">
-                            {villa.sold_nights} / {villa.available_nights} nights
+                            {villa.inactive ? `${villa.sold_nights} nights` : `${villa.sold_nights} / ${villa.available_nights} nights`}
                           </span>
                           <span className="text-white font-medium">
                             {villa.available_nights > 0 ? formatPct(villa.occupancy_pct) : '-'}
