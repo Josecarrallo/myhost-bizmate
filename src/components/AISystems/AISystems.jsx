@@ -20,7 +20,8 @@ import {
   CheckCircle,
   List,
   X,
-  Compass
+  Compass,
+  Trash2
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
@@ -48,6 +49,12 @@ const AISystems = ({ onBack }) => {
   const [suryaInput, setSuryaInput] = useState('');
   const [suryaLoading, setSuryaLoading] = useState(false);
   const suryaChatEndRef = useRef(null);
+
+  // Clear SURYA conversation when property changes
+  useEffect(() => {
+    setSuryaMessages([]);
+    setSuryaInput('');
+  }, [suryaPropertyId]);
 
   // Calculate date range for SURYA based on period
   const getSuryaDates = () => {
@@ -915,6 +922,18 @@ const AISystems = ({ onBack }) => {
             {/* SURYA Chat Messages */}
             {(suryaMessages.length > 0 || suryaLoading) && (
               <div className="mt-4 space-y-3">
+                {/* Clear chat button */}
+                {suryaMessages.length > 0 && (
+                  <div className="flex justify-end">
+                    <button
+                      onClick={() => setSuryaMessages([])}
+                      className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-gray-400 hover:text-white bg-white/5 hover:bg-white/10 rounded-lg border border-white/10 transition-all"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                      <span>Clear chat</span>
+                    </button>
+                  </div>
+                )}
                 {suryaMessages.map((message, index) => (
                   <div
                     key={index}
@@ -1125,6 +1144,27 @@ const AISystems = ({ onBack }) => {
 
       {/* Chat Area - MAXIMIZED for better interaction visibility */}
       <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-gradient-to-b from-transparent to-black/20">
+        {/* Clear chat button - mr-14 to avoid overlapping with Strategic Insights floating button */}
+        {messages.length > 1 && (
+          <div className="flex justify-end mr-14">
+            <button
+              onClick={() => {
+                const agent = agents[selectedAgent];
+                const welcomeMessage = {
+                  type: 'assistant',
+                  agent: selectedAgent,
+                  content: `Hello! I'm ${agent.fullName}, your ${agent.description} assistant. How can I help you today?`,
+                  timestamp: new Date()
+                };
+                setMessages([welcomeMessage]);
+              }}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-gray-400 hover:text-white bg-white/5 hover:bg-white/10 rounded-lg border border-white/10 transition-all"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              <span>Clear chat</span>
+            </button>
+          </div>
+        )}
         {messages.map((message, index) => (
           <div
             key={index}
