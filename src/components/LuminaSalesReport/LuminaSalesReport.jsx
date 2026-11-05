@@ -16,6 +16,10 @@ import {
 import { supabase } from '../../lib/supabase';
 import { supabaseService } from '../../services/supabase';
 import { useAuth } from '../../contexts/AuthContext';
+import SuryaInsights from '../Surya/SuryaInsights';
+
+// Format date as YYYY-MM-DD in LOCAL timezone (avoids UTC shift)
+const ymd = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
 const LuminaSalesReport = ({ onBack }) => {
   const { userData } = useAuth();
@@ -53,6 +57,11 @@ const LuminaSalesReport = ({ onBack }) => {
         if (!propsError && propsData) {
           setProperties(propsData);
 
+          // Auto-select if user has only one property (enables SURYA)
+          if (propsData.length === 1) {
+            setSelectedProperty(propsData[0].id);
+          }
+
           // Load villas for these properties
           if (propsData.length > 0) {
             const propIds = propsData.map(p => p.id);
@@ -79,14 +88,14 @@ const LuminaSalesReport = ({ onBack }) => {
     ? villas.filter(v => v.property_id === selectedProperty)
     : villas;
 
-  // Calculate date range based on period type
+  // Calculate date range based on period type (using local timezone)
   const getDateRange = () => {
     const today = new Date();
     let from, to;
 
     switch (periodType) {
       case 'today':
-        from = today.toISOString().split('T')[0];
+        from = ymd(today);
         to = from;
         break;
       case 'week':
@@ -96,19 +105,19 @@ const LuminaSalesReport = ({ onBack }) => {
         monday.setDate(today.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1));
         const sunday = new Date(monday);
         sunday.setDate(monday.getDate() + 6);
-        from = monday.toISOString().split('T')[0];
-        to = sunday.toISOString().split('T')[0];
+        from = ymd(monday);
+        to = ymd(sunday);
         break;
       case 'month':
-        from = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().split('T')[0];
-        to = new Date(today.getFullYear(), today.getMonth() + 1, 0).toISOString().split('T')[0];
+        from = ymd(new Date(today.getFullYear(), today.getMonth(), 1));
+        to = ymd(new Date(today.getFullYear(), today.getMonth() + 1, 0));
         break;
       case 'custom':
         from = customFrom;
         to = customTo;
         break;
       default:
-        from = today.toISOString().split('T')[0];
+        from = ymd(today);
         to = from;
     }
 
@@ -496,6 +505,17 @@ const LuminaSalesReport = ({ onBack }) => {
             </div>
           </div>
 
+          {/* SURYA AI Insights Card - Only when single property selected */}
+          {selectedProperty && (
+            <div className="mb-6">
+              <SuryaInsights
+                propertyId={selectedProperty}
+                from={getDateRange().from}
+                to={getDateRange().to}
+              />
+            </div>
+          )}
+
           {/* Villas with Bookings - Each villa shows its bookings with code and dates */}
           {property.villas && property.villas.length > 0 && (
             <div className="space-y-4 mb-6">
@@ -514,13 +534,15 @@ const LuminaSalesReport = ({ onBack }) => {
                         <div className="flex items-center gap-3">
                           <Home className="w-5 h-5 text-purple-400" />
                           <h3 className="text-white font-bold">{villa.villa}</h3>
-                          {villa.available_nights === 0 && (
+                          {villa.inactive ? (
+                            <span className="px-2 py-0.5 rounded text-xs bg-gray-500/20 text-gray-400">Inactive</span>
+                          ) : villa.available_nights === 0 && (
                             <span className="px-2 py-0.5 rounded text-xs bg-yellow-500/20 text-yellow-400">Blocked</span>
                           )}
                         </div>
                         <div className="flex items-center gap-4 text-sm">
                           <span className="text-gray-400">
-                            {villa.sold_nights} / {villa.available_nights} nights
+                            {villa.inactive ? `${villa.sold_nights} nights` : `${villa.sold_nights} / ${villa.available_nights} nights`}
                           </span>
                           <span className="text-white font-medium">
                             {villa.available_nights > 0 ? formatPct(villa.occupancy_pct) : '-'}

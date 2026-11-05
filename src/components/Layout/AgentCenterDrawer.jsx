@@ -114,55 +114,21 @@ const AgentCenterDrawer = ({ isOpen, onClose }) => {
       ]
     },
     {
-      id: 'aura',
-      name: 'AURA',
-      fullName: 'Proactive Context',
+      id: 'surya',
+      name: 'SURYA',
+      fullName: 'Business Analyst & Market Insights',
       icon: Zap,
       status: 'Active',
-      color: 'purple',
+      color: 'orange',
       stats: {
-        signalsMonitored: 247,
-        actionsTriggered: 12,
-        contextAgents: 4
+        reportsGenerated: 42,
+        marketUpdates: 18,
+        insightsDelivered: 156
       },
       recentActivity: [
-        { time: '10 min ago', action: 'Weather monitoring - Clear conditions detected' },
-        { time: '1 hour ago', action: 'Local event detected - Beach festival, pricing adjusted' },
-        { time: '2 hours ago', action: 'Traffic monitoring - Normal flow, no delays' }
-      ],
-      subAgents: [
-        {
-          id: 'weather',
-          name: 'Weather Context',
-          description: 'Monitors weather impact on operations',
-          status: 'Monitoring',
-          signals: 'Clear skies, No alerts',
-          lastAction: '30 min ago - No action required'
-        },
-        {
-          id: 'traffic',
-          name: 'Traffic & Access',
-          description: 'Tracks access routes and delays',
-          status: 'Monitoring',
-          signals: 'Normal traffic flow',
-          lastAction: '15 min ago - No disruptions detected'
-        },
-        {
-          id: 'events',
-          name: 'Local Events & Demand',
-          description: 'Detects events affecting demand',
-          status: 'Monitoring',
-          signals: 'Beach festival this weekend',
-          lastAction: '1 hour ago - Pricing suggestion sent to LUMINA'
-        },
-        {
-          id: 'disruption',
-          name: 'Disruption & Risk',
-          description: 'Monitors critical disruptions',
-          status: 'Monitoring',
-          signals: 'All systems normal',
-          lastAction: '45 min ago - No risks detected'
-        }
+        { time: '5 min ago', action: 'Generated monthly sales analysis' },
+        { time: '30 min ago', action: 'Market trends update - Bali tourism +12%' },
+        { time: '2 hours ago', action: 'Revenue forecast updated for November' }
       ]
     }
   ];
