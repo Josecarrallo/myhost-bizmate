@@ -319,7 +319,7 @@ const AISystems = ({ onBack, defaultAgent = null }) => {
       id: 'surya',
       name: 'SURYA',
       fullName: 'SURYA.AI',
-      description: 'Business Analyst & Market Insights',
+      description: 'AI Insights: your numbers + Bali market news',
       icon: Sun,
       gradient: 'from-amber-400 via-yellow-500 to-orange-400',
       glowColor: 'shadow-amber-500/50',
