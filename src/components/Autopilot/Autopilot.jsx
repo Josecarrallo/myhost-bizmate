@@ -909,9 +909,9 @@ const Autopilot = ({ onBack, setSidebarCollapsed, sidebarCollapsed, initialSecti
     },
     {
       id: 'surya',
-      name: 'SURYA (Business Analyst)',
+      name: 'SURYA (AI Insights)',
       icon: Sun,
-      description: 'AI Business Analyst - Sales insights & analytics',
+      description: 'Your numbers + Bali market news → what to do',
       badge: 'TEST',
       highlight: true
     },
