@@ -30,9 +30,9 @@ import SuryaInsights from '../Surya/SuryaInsights';
 // Format date as YYYY-MM-DD in LOCAL timezone (avoids UTC shift)
 const ymd = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
-const AISystems = ({ onBack }) => {
+const AISystems = ({ onBack, defaultAgent = null }) => {
   const { userData } = useAuth();
-  const [selectedAgent, setSelectedAgent] = useState(null); // Start with no agent selected
+  const [selectedAgent, setSelectedAgent] = useState(defaultAgent); // Start with defaultAgent or null
   const [messages, setMessages] = useState([]);
   const [inputMessage, setInputMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -372,6 +372,8 @@ const AISystems = ({ onBack }) => {
         }
 
         const osirisUrl = import.meta.env.VITE_OSIRIS_WEBHOOK_URL || 'https://n8n-production-bb2d.up.railway.app/webhook/ai/chat-v4';
+        // Build history from messages BEFORE adding the new user message (last 6)
+        const history = buildHistory(messages, 6);
         const response = await fetch(osirisUrl, {
           method: 'POST',
           headers: {
@@ -380,7 +382,8 @@ const AISystems = ({ onBack }) => {
           },
           body: JSON.stringify({
             tenant_id: userData?.id,
-            message: currentQuestion
+            message: currentQuestion,
+            history: history
           })
         });
 
@@ -468,6 +471,26 @@ const AISystems = ({ onBack }) => {
     setInputMessage(question);
   };
 
+  // Build conversation history for follow-up questions (last 6 messages, excluding welcome)
+  const buildHistory = (msgs, maxMessages = 6) => {
+    // Filter out welcome messages and system messages
+    const conversationMessages = msgs.filter(m => {
+      // Skip welcome messages (assistant messages that start with "Hello! I'm")
+      if (m.type === 'assistant' && m.content?.startsWith("Hello! I'm")) return false;
+      // Only include user and assistant messages with content
+      return (m.type === 'user' || m.type === 'assistant') && m.content;
+    });
+
+    // Take the last N messages
+    const recentMessages = conversationMessages.slice(-maxMessages);
+
+    // Convert to the format expected by the API
+    return recentMessages.map(m => ({
+      role: m.type === 'user' ? 'user' : 'assistant',
+      content: m.content
+    }));
+  };
+
   // SURYA: Send question to OSIRIS endpoint with property_id
   const handleSuryaSendMessage = async () => {
     if (!suryaInput.trim() || suryaLoading) return;
@@ -495,6 +518,8 @@ const AISystems = ({ onBack }) => {
       }
 
       const osirisUrl = import.meta.env.VITE_OSIRIS_WEBHOOK_URL || 'https://n8n-production-bb2d.up.railway.app/webhook/ai/chat-v4';
+      // Build history from suryaMessages BEFORE adding the new user message (last 6)
+      const history = buildHistory(suryaMessages, 6);
       const response = await fetch(osirisUrl, {
         method: 'POST',
         headers: {
@@ -504,7 +529,8 @@ const AISystems = ({ onBack }) => {
         body: JSON.stringify({
           tenant_id: userData?.id,
           property_id: suryaPropertyId,
-          message: currentQuestion
+          message: currentQuestion,
+          history: history
         })
       });
 
