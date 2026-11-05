@@ -907,13 +907,8 @@ export default function App() {
         return <Autopilot key="autopilot" onBack={() => setCurrentView('overview')} setSidebarCollapsed={setSidebarCollapsed} sidebarCollapsed={sidebarCollapsed} />;
 
       case 'settings':
-        // Placeholder for settings
-        return (
-          <div className="flex-1 bg-[#2a2f3a] p-6">
-            <h2 className="text-2xl font-bold text-white mb-4">Settings</h2>
-            <p className="text-white/80">Settings page coming soon...</p>
-          </div>
-        );
+        // Route to Autopilot's Business Setup (settings) section
+        return <Autopilot key="autopilot-settings" onBack={() => setCurrentView('overview')} setSidebarCollapsed={setSidebarCollapsed} sidebarCollapsed={sidebarCollapsed} initialSection="settings" />;
 
       case 'demo-v2':
         // New V2 Design Demo - Phase 1

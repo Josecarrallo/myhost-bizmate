@@ -83,36 +83,14 @@ const Sidebar = ({ currentView, onNavigate, isOpen, onClose, userData, collapsed
       isDirectLink: true,
       items: []
     },
-    // 2. OPERATIONS
+    // 2. OPERATIONS - Direct link to Autopilot menu
     {
-      sectionId: 'operations',
+      sectionId: 'autopilot',
       sectionLabel: 'OPERATIONS',
       sectionIcon: LayoutDashboard,
-      collapsible: true,
-      items: [
-        // Autopilot sub-section
-        { id: 'autopilot-header', label: 'Autopilot', isSubHeader: true, icon: Zap },
-        { id: 'autopilot', label: 'Dashboard', icon: Zap, indent: true },
-
-        // Guest & Properties sub-section
-        { id: 'guest-properties-header', label: 'Guest & Properties', isSubHeader: true, icon: Building2 },
-        { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, indent: true },
-        { id: 'properties', label: 'Properties', icon: Building2, indent: true },
-        { id: 'bookings', label: 'Bookings', icon: Calendar, indent: true },
-        { id: 'calendar', label: 'Calendar', icon: Calendar, indent: true },
-        { id: 'guests', label: 'Guests', icon: Users, indent: true },
-        { id: 'checkin-checkout', label: 'Check-in / Check-out', icon: CheckCircle, indent: true },
-        { id: 'daily-operations', label: 'Daily Operations', icon: Clock, indent: true },
-        { id: 'issues-tasks', label: 'Issues & Tasks', icon: AlertCircle, indent: true },
-        { id: 'messages', label: 'Messages', icon: MessageSquare, indent: true },
-
-        // Revenue & Pricing sub-section (MOVED from main menu)
-        { id: 'revenue-pricing-header', label: 'Revenue & Pricing', isSubHeader: true, icon: DollarSign },
-        { id: 'payments', label: 'Payments', icon: CreditCard, indent: true },
-        { id: 'smartPricing', label: 'Smart Pricing', icon: DollarSign, indent: true },
-        { id: 'reports', label: 'Reports', icon: BarChart3, indent: true },
-        { id: 'channelIntegration', label: 'Channel Integration', icon: Repeat, indent: true }
-      ]
+      collapsible: false,
+      isDirectLink: true,
+      items: []
     },
     // 3. SALES AND LEADS
     {
@@ -271,6 +249,7 @@ const Sidebar = ({ currentView, onNavigate, isOpen, onClose, userData, collapsed
                 >
                   <SectionIcon className="w-5 h-5 flex-shrink-0" />
                   <span className="flex-1 text-left">{section.sectionLabel}</span>
+                  <ChevronRight className="w-5 h-5" />
                 </button>
               ) : (
                 <div className="px-4 py-2.5">

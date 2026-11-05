@@ -60,7 +60,10 @@ import {
   Building,
   CalendarX,
   Palette,
-  Link
+  Link,
+  Bot,
+  Compass,
+  Sun
 } from 'lucide-react';
 import ManualDataEntry from '../ManualDataEntry/ManualDataEntry';
 import MasterCalendar from '../MasterCalendar/MasterCalendar';
@@ -72,6 +75,7 @@ import Guest360 from '../Guest360';
 import OwnerMessages from '../OwnerMessages/OwnerMessages';
 import Properties from '../Properties/Properties';
 import ContentStudioV2 from '../ContentStudioV2/ContentStudioV2';
+import AISystems from '../AISystems/AISystems';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
 import { generateReportHTML } from '../../services/generateReportHTML';
@@ -82,7 +86,7 @@ import { staffService } from '../../services/staffService';
 import { ownerDecisionsService } from '../../services/ownerDecisionsService';
 import { ownerSummariesService } from '../../services/ownerSummariesService';
 
-const Autopilot = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
+const Autopilot = ({ onBack, setSidebarCollapsed, sidebarCollapsed, initialSection = 'menu' }) => {
   const { userData } = useAuth();
 
   // Helper function to extract refund % from description and append to title
@@ -100,7 +104,7 @@ const Autopilot = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
   };
 
   // Navigation between 9 sections
-  const [activeSection, setActiveSection] = useState('menu'); // Start with menu visible
+  const [activeSection, setActiveSection] = useState(initialSection); // Start with initialSection or menu
   const [activeView, setActiveView] = useState('daily'); // for Overview section
 
   // Auto-collapse sidebar when entering any section (except menu)
@@ -876,7 +880,40 @@ const Autopilot = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
       name: 'Sales Report (Lumina)',
       icon: TrendingUp,
       description: 'Revenue, occupancy & analytics',
-      badge: 'NEW'
+      badge: 'NEW',
+      highlight: true
+    },
+    {
+      id: 'banyu',
+      name: 'BANYU (Text & Voice)',
+      icon: MessageSquare,
+      description: 'WhatsApp AI Assistant + Voice conversations',
+      badge: 'TEST',
+      highlight: true
+    },
+    {
+      id: 'osiris',
+      name: 'OSIRIS (Operations AI)',
+      icon: Bot,
+      description: 'AI Operations Assistant - Ask questions about your business',
+      badge: 'TEST',
+      highlight: true
+    },
+    {
+      id: 'nusantara',
+      name: 'NUSANTARA (Cultural AI)',
+      icon: Compass,
+      description: 'Cultural Intelligence - Local insights & recommendations',
+      badge: 'TEST',
+      highlight: true
+    },
+    {
+      id: 'surya',
+      name: 'SURYA (Business Analyst)',
+      icon: Sun,
+      description: 'AI Business Analyst - Sales insights & analytics',
+      badge: 'TEST',
+      highlight: true
     },
     {
       id: 'business-reports',
@@ -911,7 +948,8 @@ const Autopilot = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
       name: 'Content Studio (AI Video) II',
       icon: Video,
       description: 'AI Video Generator - OpenAI + MuAPI + Remotion',
-      badge: 'NEW'
+      badge: 'NEW',
+      highlight: true
     },
     {
       id: 'settings',
@@ -11937,6 +11975,7 @@ const Autopilot = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
                       ? 'bg-orange-500 text-white shadow-lg'
                       : 'bg-[#2a2f3a] text-gray-300 hover:bg-[#374151] hover:text-white'
                     }
+                    ${section.highlight && !isActive ? 'border-2 border-cyan-400 shadow-cyan-400/20 shadow-md' : ''}
                   `}
                 >
                   <Icon className="w-5 h-5 flex-shrink-0" />
@@ -11979,6 +12018,10 @@ const Autopilot = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
           {activeSection === 'automated-flows' && renderAutomatedFlowsSection()}
           {activeSection === 'business-reports' && renderBusinessReportsSection()}
           {activeSection === 'sales-report' && <LuminaSalesReport onBack={() => setActiveSection('menu')} />}
+          {activeSection === 'banyu' && <AISystems onBack={() => setActiveSection('menu')} defaultAgent="banyu" />}
+          {activeSection === 'osiris' && <AISystems onBack={() => setActiveSection('menu')} defaultAgent="osiris" />}
+          {activeSection === 'nusantara' && <AISystems onBack={() => setActiveSection('menu')} defaultAgent="nusantara" />}
+          {activeSection === 'surya' && <AISystems onBack={() => setActiveSection('menu')} defaultAgent="surya" />}
           {activeSection === 'all-data' && renderAllDataSection()}
           {activeSection === 'availability' && renderAvailabilitySection()}
           {activeSection === 'master-calendar' && <MasterCalendar onBack={() => setActiveSection('menu')} setSidebarCollapsed={setSidebarCollapsed} sidebarCollapsed={sidebarCollapsed} />}
