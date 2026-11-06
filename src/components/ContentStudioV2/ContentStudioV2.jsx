@@ -34,6 +34,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import {
   contentStudioV2Service,
   generateVideoClip,
+  generateVideoClipKling,
   checkVideoStatus,
   analyzeAndImprovePrompt,
   uploadBase64ToPublicUrl
@@ -157,11 +158,8 @@ const ContentStudioV2 = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
   const [loadingProjects, setLoadingProjects] = useState(true); // Start loading
   const [showProjectsList, setShowProjectsList] = useState(false);
 
-  // API Keys (from env or user settings)
-  // Note: muapiKey removed - now handled securely by ai-proxy Edge Function
-  const [apiKeys, setApiKeys] = useState({
-    openaiKey: import.meta.env.VITE_OPENAI_API_KEY || ''
-  });
+  // Note: All API keys (MuAPI, OpenAI) now handled securely by ai-proxy Edge Function
+  // No API keys stored in frontend
 
   // Remotion Player ref
   const playerRef = useRef(null);
@@ -396,13 +394,7 @@ const ContentStudioV2 = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
     setCurrentStep('generating');
     setGenerationProgress(0);
 
-    const openaiKey = apiKeys.openaiKey;
-
-    // Debug: Log API key status
-    // Note: MuAPI key is now handled securely by ai-proxy Edge Function
-    console.log('🔑 API Keys status:');
-    console.log('  - MuAPI key: handled by ai-proxy (secure)');
-    console.log('  - OpenAI key:', openaiKey ? `${openaiKey.substring(0, 10)}...` : 'NOT SET');
+    // All API calls now go through ai-proxy Edge Function (secure)
 
     try {
       console.log('🎬 Starting MuAPI Veo 3.1 generation...');
@@ -482,7 +474,9 @@ const ContentStudioV2 = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
             photoId: uploadedUrls[0].photoId,
             photoUrl: uploadedUrls[0].publicUrl,  // Use Supabase URL (persists, small size)
             requestId: result.requestId,
-            status: 'processing'
+            status: 'processing',
+            photoCount: lastImageUrl ? 2 : 1,  // Track for Kling fallback (1-photo only)
+            model: 'veo'  // Current model
           });
 
           console.log(`🎬 Started video, requestId: ${result.requestId}`);
@@ -494,7 +488,9 @@ const ContentStudioV2 = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
             photoUrl: uploadedUrls[0].publicUrl,  // Use Supabase URL (persists, small size)
             requestId: null,
             status: 'failed',
-            error: error.message
+            error: error.message,
+            photoCount: lastImageUrl ? 2 : 1,
+            model: 'veo'
           });
         }
       }
@@ -503,9 +499,11 @@ const ContentStudioV2 = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
       setGenerationStatus(`Generating video with Veo 3.1... (this takes ~90 seconds)`);
 
       // Step 3: Poll for completion
-      const maxPollTime = 10 * 60 * 1000; // 10 minutes max
+      const maxPollTime = 6 * 60 * 1000; // 6 minutes max per clip
       const pollInterval = 5000; // 5 seconds
       const startTime = Date.now();
+      const maxConsecutiveErrors = 3;
+      let consecutiveErrors = 0;
 
       while (Date.now() - startTime < maxPollTime) {
         const stillProcessing = pendingClips.filter(c => c.status === 'processing');
@@ -517,43 +515,97 @@ const ContentStudioV2 = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
           try {
             const statusResult = await checkVideoStatus(clip.requestId);
             console.log(`📊 Clip ${clip.index + 1} status:`, statusResult.status);
+            consecutiveErrors = 0; // Reset on successful response
 
             if (statusResult.status === 'completed' && statusResult.videoUrl) {
               clip.status = 'completed';
               clip.clipUrl = statusResult.videoUrl;
               console.log(`✅ Clip ${clip.index + 1} ready:`, statusResult.videoUrl);
             } else if (statusResult.status === 'failed') {
-              clip.status = 'failed';
-              console.error(`❌ Clip ${clip.index + 1} failed`);
+              // Try Kling fallback for 1-photo clips only (Kling doesn't support transitions)
+              if (clip.model === 'veo' && clip.photoCount === 1) {
+                console.log(`⚠️ Veo failed, trying Kling fallback...`);
+                setGenerationStatus('Veo failed - trying backup model (Kling)...');
+                try {
+                  const klingResult = await generateVideoClipKling(clip.photoUrl, finalPrompt, {
+                    aspectRatio,
+                    userId: userData.id
+                  });
+                  clip.requestId = klingResult.requestId;
+                  clip.model = 'kling';
+                  clip.status = 'processing';
+                  console.log(`🔄 Kling started, requestId: ${klingResult.requestId}`);
+                } catch (klingError) {
+                  clip.status = 'failed';
+                  clip.error = `Veo failed, Kling also failed: ${klingError.message}`;
+                  console.error(`❌ Kling fallback failed:`, klingError);
+                }
+              } else {
+                clip.status = 'failed';
+                clip.error = statusResult.error || 'Video generation failed';
+                console.error(`❌ Clip ${clip.index + 1} failed:`, clip.error);
+              }
             }
           } catch (e) {
-            console.log(`Status check error for clip ${clip.index + 1}:`, e.message);
+            consecutiveErrors++;
+            console.log(`Status check error for clip ${clip.index + 1} (${consecutiveErrors}/${maxConsecutiveErrors}):`, e.message);
+
+            if (consecutiveErrors >= maxConsecutiveErrors) {
+              clip.status = 'failed';
+              clip.error = 'Too many errors checking video status. Press Retry.';
+              console.error(`❌ Clip ${clip.index + 1} failed after ${maxConsecutiveErrors} consecutive errors`);
+            }
           }
         }
 
         // Update progress
         const completed = pendingClips.filter(c => c.status === 'completed').length;
-        const progress = 25 + Math.round((completed / pendingClips.length) * 65);
+        const failed = pendingClips.filter(c => c.status === 'failed').length;
+        const progress = 25 + Math.round(((completed + failed) / pendingClips.length) * 65);
         setGenerationProgress(progress);
-        setGenerationStatus(`Veo 3.1: ${completed}/${pendingClips.length} clips ready...`);
+
+        if (failed > 0) {
+          setGenerationStatus(`Veo 3.1: ${completed}/${pendingClips.length} ready, ${failed} failed`);
+        } else {
+          setGenerationStatus(`Veo 3.1: ${completed}/${pendingClips.length} clips ready...`);
+        }
+      }
+
+      // Check for timeout
+      const timedOut = pendingClips.filter(c => c.status === 'processing');
+      if (timedOut.length > 0) {
+        timedOut.forEach(clip => {
+          clip.status = 'failed';
+          clip.error = 'Video generation timed out (6 min). Press Retry.';
+        });
       }
 
       // Step 4: Create ONE scene from the single video result
       // MuAPI generates ONE 8-second video that includes all photos via the prompt
+      // Kling generates 5-second clips
       const newScenes = pendingClips.length > 0 ? [{
         id: 'scene-0',
         photoId: pendingClips[0].photoId,
         photoUrl: pendingClips[0].photoUrl,
         clipUrl: pendingClips[0].clipUrl || null,
-        duration: 8, // Veo 3.1 generates one 8-second clip
-        status: pendingClips[0].status === 'completed' ? 'ready' : 'failed'
+        duration: pendingClips[0].model === 'kling' ? 5 : 8,  // Kling=5s, Veo=8s
+        status: pendingClips[0].status === 'completed' ? 'ready' : 'failed',
+        error: pendingClips[0].error || null,
+        model: pendingClips[0].model || 'veo'
       }] : [];
 
       setScenes(newScenes);
       setGenerationProgress(100);
 
       const successCount = newScenes.filter(s => s.status === 'ready').length;
-      setGenerationStatus(`Done! ${successCount}/${newScenes.length} clips generated`);
+      const failedCount = newScenes.filter(s => s.status === 'failed').length;
+
+      if (failedCount > 0) {
+        const errorMsg = pendingClips[0].error || 'Video generation failed';
+        setGenerationStatus(`Failed: ${errorMsg}`);
+      } else {
+        setGenerationStatus(`Done! ${successCount}/${newScenes.length} clips generated`);
+      }
 
       await mockDelay(500);
       setCurrentStep('editor');
@@ -1081,17 +1133,17 @@ const ContentStudioV2 = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
 
         <button
           onClick={handleGenerate}
-          disabled={!prompt.trim()}
+          disabled={!prompt.trim() || isGenerating}
           className={`
             flex items-center gap-2 px-6 py-3 rounded-xl font-bold transition-all
-            ${prompt.trim()
+            ${prompt.trim() && !isGenerating
               ? 'bg-gradient-to-r from-orange-500 to-pink-500 text-white hover:from-orange-600 hover:to-pink-600'
               : 'bg-gray-700 text-gray-500 cursor-not-allowed'
             }
           `}
         >
           <Wand2 className="w-5 h-5" />
-          Generate Video
+          {isGenerating ? 'Generating...' : 'Generate Video'}
         </button>
       </div>
     </div>
@@ -1267,6 +1319,17 @@ const ContentStudioV2 = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
                 {scene.status === 'generating' && (
                   <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
                     <Loader2 className="w-5 h-5 text-orange-500 animate-spin" />
+                  </div>
+                )}
+                {scene.status === 'failed' && (
+                  <div className="absolute inset-0 bg-red-900/80 flex flex-col items-center justify-center gap-1">
+                    <span className="text-[10px] text-red-200 text-center px-1">Failed</span>
+                    <button
+                      onClick={() => regenerateClip(scene.id)}
+                      className="px-2 py-0.5 bg-orange-500 text-white text-[10px] rounded font-medium"
+                    >
+                      Retry
+                    </button>
                   </div>
                 )}
               </div>

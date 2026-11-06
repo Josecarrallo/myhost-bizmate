@@ -22,9 +22,7 @@ import { supabase } from '../lib/supabase';
 // CONFIGURATION
 // =====================================================
 
-const OPENAI_API_URL = 'https://api.openai.com/v1';
-
-// AI Proxy Edge Function URL (replaces direct MuAPI calls)
+// AI Proxy Edge Function URL (handles all external API calls securely)
 const AI_PROXY_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ai-proxy`;
 
 // Storage bucket name
@@ -589,31 +587,28 @@ export async function checkTTSStatus(requestId) {
 }
 
 /**
- * Generate voice-over audio using OpenAI TTS (FALLBACK)
+ * Generate voice-over audio using OpenAI TTS via ai-proxy (FALLBACK)
  * Use this if MuAPI ElevenLabs fails
  */
-export async function generateVoiceOverOpenAI(script, voice = 'alloy', apiKey) {
-  if (!apiKey) {
-    return null; // No voice without API key
-  }
-
+export async function generateVoiceOverOpenAI(script, voice = 'alloy') {
+  // Uses session auth via ai-proxy (no API key needed)
   try {
-    const response = await fetch(`${OPENAI_API_URL}/audio/speech`, {
+    const headers = await getAIProxyHeaders();
+    const response = await fetch(`${AI_PROXY_URL}/openai/speech`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`
-      },
+      headers,
       body: JSON.stringify({
         model: 'tts-1',
-        input: script,
+        input: script.slice(0, 4096), // OpenAI TTS limit
         voice: voice, // alloy, echo, fable, onyx, nova, shimmer
         response_format: 'mp3'
       })
     });
 
     if (!response.ok) {
-      throw new Error('OpenAI TTS generation failed');
+      const errorData = await response.json().catch(() => ({}));
+      console.error('ai-proxy OpenAI TTS error:', errorData);
+      throw new Error(errorData.error || 'OpenAI TTS generation failed');
     }
 
     const audioBlob = await response.blob();
@@ -626,10 +621,10 @@ export async function generateVoiceOverOpenAI(script, voice = 'alloy', apiKey) {
 
 /**
  * Generate voice-over with automatic fallback
- * Tries ai-proxy (MuAPI ElevenLabs) first, falls back to OpenAI TTS
+ * Tries ai-proxy (MuAPI ElevenLabs) first, falls back to OpenAI TTS via ai-proxy
  */
 export async function generateVoiceOver(script, apiKeys = {}, options = {}) {
-  const { openaiKey } = apiKeys;
+  // apiKeys param kept for backward compatibility but no longer needed
 
   // Try ai-proxy (MuAPI ElevenLabs) first (primary)
   try {
@@ -641,12 +636,14 @@ export async function generateVoiceOver(script, apiKeys = {}, options = {}) {
     console.warn('ai-proxy TTS failed, trying OpenAI fallback:', error.message);
   }
 
-  // Fallback to OpenAI TTS
-  if (openaiKey) {
-    const blob = await generateVoiceOverOpenAI(script, options.voice || 'alloy', openaiKey);
+  // Fallback to OpenAI TTS via ai-proxy
+  try {
+    const blob = await generateVoiceOverOpenAI(script, options.voice || 'alloy');
     if (blob) {
       return { provider: 'openai', audioBlob: blob, status: 'completed' };
     }
+  } catch (error) {
+    console.warn('OpenAI TTS fallback also failed:', error.message);
   }
 
   return null;
@@ -734,6 +731,60 @@ export async function generateVideoClip(imageUrl, prompt, options = {}) {
 }
 
 /**
+ * Generate video clip using Kling (FALLBACK when Veo fails)
+ * Endpoint: POST /functions/v1/ai-proxy/generate-clip-kling
+ * Only for single-image clips (no start→end transitions)
+ * Duration: 5 seconds, No audio generation
+ */
+export async function generateVideoClipKling(imageUrl, prompt, options = {}) {
+  const {
+    aspectRatio = '16:9',
+    userId
+  } = options;
+
+  try {
+    // Upload base64 if needed
+    let publicImageUrl = imageUrl;
+    if (imageUrl.startsWith('data:')) {
+      publicImageUrl = await uploadBase64ToPublicUrl(imageUrl, userId);
+    }
+
+    const requestBody = {
+      imageUrl: publicImageUrl,
+      prompt,
+      aspectRatio,
+      duration: 5,        // Kling uses 5 seconds
+      generateAudio: false // No audio - voice-over won't work with Kling
+    };
+
+    const headers = await getAIProxyHeaders();
+    const response = await fetch(`${AI_PROXY_URL}/generate-clip-kling`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(requestBody)
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || errorData.message || 'Kling generation failed');
+    }
+
+    const data = await response.json();
+    console.log('🎬 Kling fallback started, requestId:', data.request_id);
+
+    return {
+      requestId: data.request_id,
+      status: 'processing',
+      estimatedTime: 60, // Kling is usually faster
+      model: 'kling'
+    };
+  } catch (error) {
+    console.error('ai-proxy generate-clip-kling error:', error);
+    throw error;
+  }
+}
+
+/**
  * Check video generation status via ai-proxy
  * Endpoint: GET /functions/v1/ai-proxy/status/{request_id}
  * Response: { status: "completed", outputs: { video: "url" } }
@@ -755,11 +806,20 @@ export async function checkVideoStatus(requestId) {
       headers
     });
 
-    if (!response.ok) {
-      throw new Error('Video status check failed');
-    }
+    // Read body even on 4xx to detect status: "failed"
+    const data = await response.json().catch(() => ({}));
 
-    const data = await response.json();
+    if (!response.ok) {
+      // If MuAPI says "failed", return that instead of throwing
+      if (data.status === 'failed' || data.detail?.status === 'failed') {
+        return {
+          status: 'failed',
+          videoUrl: null,
+          error: data.error || data.message || 'Video generation failed'
+        };
+      }
+      throw new Error(data.error || data.message || 'Video status check failed');
+    }
 
     // MuAPI returns video URL in different formats depending on version:
     // - outputs: ["https://..."] (array with URL)
@@ -890,7 +950,7 @@ export async function generateVideo(
   apiKeys = {},
   onProgress = () => {}
 ) {
-  const { openaiKey } = apiKeys;
+  // apiKeys param is deprecated - all API calls now use ai-proxy with session auth
 
   try {
     // Step 1: Create project
@@ -921,7 +981,7 @@ export async function generateVideo(
     // Step 3: Analyze with OpenAI
     onProgress({ step: 'analyzing', progress: 35, message: 'Analyzing images with AI...' });
     const imageUrls = uploadedPhotos.map(p => p.url);
-    const analysis = await analyzeAndImprovePrompt(imageUrls, prompt, openaiKey);
+    const analysis = await analyzeAndImprovePrompt(imageUrls, prompt);
 
     // Update project with improved prompt
     await updateProject(project.id, {
@@ -1009,6 +1069,7 @@ export const contentStudioV2Service = {
 
   // MuAPI (Veo 3.1 Fast Image-to-Video)
   generateVideoClip,
+  generateVideoClipKling, // Kling fallback
   checkVideoStatus,
 
   // Remotion
