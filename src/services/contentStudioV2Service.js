@@ -382,62 +382,76 @@ OUTPUT FORMAT
 Return ONLY valid JSON with this exact structure:
 
 {
-  "veoPrompt": "The complete prompt for Veo 3.1 - visual instructions only",
+  "veoPrompt": "The complete prompt for Veo 3.1",
   "durationSeconds": 5,
   "aspectRatio": "16:9",
-  "musicPrompt": "Description for background music, or empty string",
-  "voiceScript": "Voice-over script if requested, or empty string"
+  "musicPrompt": "Description for background music, or empty string"
 }
 
 RULES:
-- veoPrompt = ONLY visual/motion instructions for Veo 3.1
+- veoPrompt = visual/motion instructions for Veo 3.1, plus any voice-over/audio the user requested at the end
 - durationSeconds = extract from user request, default 5
 - aspectRatio = extract from user request, default "16:9"
 - musicPrompt = separate music instructions for Remotion (NOT for Veo)
-- voiceScript = only if user requests voice-over
 
-Do NOT include music instructions inside veoPrompt.
 Do NOT include duration/format inside veoPrompt.
+
+==================================================
+VOICE-OVER AND AUDIO PRESERVATION
+==================================================
+
+If the user's text includes a voice-over, narration, dialogue, spoken line or audio/music description, include it exactly as
+written (same words, same language, same voice description) at the END of veoPrompt, after the visual description. Do NOT put
+it in any other field - put it directly in veoPrompt so Veo receives it. Never remove, translate or rewrite the spoken words. If
+the user does not ask for voice, do not add any voice-over, narration or dialogue.
 
 ==================================================
 EXAMPLE
 ==================================================
 
 USER REQUEST:
-"Create a short horizontal luxury-villa promotional video from the uploaded swimming pool image. Keep the original composition. The main movement is the swimming pool water. Animate the water with gentle ripples. Use a slow camera push-in. Add soft tropical background music. Duration: 5 seconds. Format: 16:9."
+"Create a short horizontal luxury-villa promotional video from the uploaded swimming pool image. Keep the original composition.
+ The main movement is the swimming pool water. Animate the water with gentle ripples. Use a slow camera push-in. Add soft
+tropical background music. Duration: 5 seconds. Format: 16:9."
 
 YOUR OUTPUT:
 {
-  "veoPrompt": "Preserve the uploaded villa composition exactly, maintaining pool geometry, blue tiles, architecture, glass doors, roof, furniture and vegetation unchanged. Animate the swimming pool as primary motion with continuous gentle natural ripples and small calm waves, creating realistic moving sunlight reflections across the water surface and mosaic tiles. Add extremely subtle movement to visible tropical leaves from a light breeze. Use a very slow stabilized cinematic push-in toward the pool with minimal perspective change. Maintain realistic warm natural daylight. Keep all architectural elements completely stable. No people, animals, new objects, text, logos, warping, morphing or structural changes.",
+  "veoPrompt": "Preserve the uploaded villa composition exactly, maintaining pool geometry, blue tiles, architecture, glass
+doors, roof, furniture and vegetation unchanged. Animate the swimming pool as primary motion with continuous gentle natural
+ripples and small calm waves, creating realistic moving sunlight reflections across the water surface and mosaic tiles. Add
+extremely subtle movement to visible tropical leaves from a light breeze. Use a very slow stabilized cinematic push-in toward
+the pool with minimal perspective change. Maintain realistic warm natural daylight. Keep all architectural elements completely
+stable. No people, animals, new objects, text, logos, warping, morphing or structural changes.",
   "durationSeconds": 5,
   "aspectRatio": "16:9",
-  "musicPrompt": "Soft relaxing cinematic tropical instrumental for luxury Bali villa, elegant, calm, warm, no vocals",
-  "voiceScript": ""
+  "musicPrompt": "Soft relaxing cinematic tropical instrumental for luxury Bali villa, elegant, calm, warm, no vocals"
+}
+
+
+EXAMPLE WITH VOICE-OVER
+
+USER REQUEST:
+"Slow push-in toward the villa. Voice-over: a warm female narrator in English says: 'Your private escape in Bali.'"
+
+YOUR OUTPUT:
+{
+  "veoPrompt": "Preserve the uploaded villa composition exactly, keeping architecture, pool and vegetation unchanged. Use a very slow stabilized cinematic push-in toward the villa. Subtle movement of visible leaves and gentle reflections on the water. Keep all architectural elements completely stable. No people, animals, new objects, text, logos, warping, morphing or structural changes. Voice-over: a warm female narrator in English says: 'Your private escape in Bali.'",
+  "durationSeconds": 5,
+  "aspectRatio": "16:9",
+  "musicPrompt": ""
 }
 
 Return ONLY valid JSON. No markdown. No explanation.`;
 
 /**
- * Analyze images and generate veoPrompt using OpenAI Vision
+ * Analyze images and generate veoPrompt using OpenAI Vision via ai-proxy
  *
  * FLOW:
- * SYSTEM PROMPT + USER PROMPT + IMAGE → ChatGPT → veoPrompt → Veo 3.1
+ * SYSTEM PROMPT + USER PROMPT + IMAGE → ai-proxy → ChatGPT → veoPrompt → Veo 3.1
  *
- * Returns { veoPrompt, durationSeconds, aspectRatio, musicPrompt, voiceScript }
+ * Returns { veoPrompt, durationSeconds, aspectRatio, musicPrompt }
  */
-export async function analyzeAndImprovePrompt(imageUrls, userPrompt, apiKey) {
-  if (!apiKey) {
-    // Return mock response if no API key
-    return {
-      veoPrompt: `Preserve the uploaded villa composition exactly. Animate the swimming pool as primary motion with continuous gentle natural ripples and small calm waves, creating realistic moving sunlight reflections across the water surface. Use a very slow stabilized cinematic push-in toward the pool. Keep all architectural elements completely stable. No people, animals, new objects, warping or structural changes.`,
-      durationSeconds: 5,
-      aspectRatio: '16:9',
-      musicPrompt: '',
-      voiceScript: ''
-    };
-  }
-
-  // Send the user's prompt EXACTLY as they wrote it
+export async function analyzeAndImprovePrompt(imageUrls, userPrompt) {
   const userMessageText = userPrompt;
 
   const messages = [
@@ -452,7 +466,7 @@ export async function analyzeAndImprovePrompt(imageUrls, userPrompt, apiKey) {
           type: 'text',
           text: userMessageText
         },
-        ...imageUrls.map((url, index) => ({
+        ...imageUrls.map((url) => ({
           type: 'image_url',
           image_url: { url, detail: 'high' }
         }))
@@ -461,12 +475,10 @@ export async function analyzeAndImprovePrompt(imageUrls, userPrompt, apiKey) {
   ];
 
   try {
-    const response = await fetch(`${OPENAI_API_URL}/chat/completions`, {
+    const headers = await getAIProxyHeaders();
+    const response = await fetch(`${AI_PROXY_URL}/openai/chat`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`
-      },
+      headers,
       body: JSON.stringify({
         model: 'gpt-4o',
         messages,
@@ -477,7 +489,7 @@ export async function analyzeAndImprovePrompt(imageUrls, userPrompt, apiKey) {
 
     if (!response.ok) {
       const error = await response.json();
-      throw new Error(error.error?.message || 'OpenAI API error');
+      throw new Error(error.error || 'ai-proxy OpenAI error');
     }
 
     const data = await response.json();
@@ -485,14 +497,13 @@ export async function analyzeAndImprovePrompt(imageUrls, userPrompt, apiKey) {
 
     return result;
   } catch (error) {
-    console.error('OpenAI error:', error);
-    // Fallback - use user's prompt directly if OpenAI fails
+    console.error('OpenAI prompt enhancement error:', error);
+    // Fallback - use user's prompt directly if ai-proxy/OpenAI fails
     return {
       veoPrompt: userPrompt,
       durationSeconds: 5,
       aspectRatio: '16:9',
-      musicPrompt: '',
-      voiceScript: ''
+      musicPrompt: ''
     };
   }
 }

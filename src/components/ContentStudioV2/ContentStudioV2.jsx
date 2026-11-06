@@ -363,7 +363,7 @@ const ContentStudioV2 = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
       return {
         id: `photo-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
         file,
-        url: base64, // Use base64 instead of blob URL
+        url: base64,
         name: file.name
       };
     }));
@@ -409,12 +409,12 @@ const ContentStudioV2 = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
       setGenerationStatus('Analyzing images with AI...');
       setGenerationProgress(5);
 
-      // Step 1: Analyze and improve prompt with OpenAI (if available)
+      // Step 1: Analyze and improve prompt with OpenAI via ai-proxy
       let finalPrompt = prompt || 'Cinematic video showcasing this beautiful property with smooth camera movements';
-      if (openaiKey && photos.length > 0) {
+      if (photos.length > 0) {
         try {
           const imageUrls = photos.map(p => p.url);
-          const result = await analyzeAndImprovePrompt(imageUrls, prompt, openaiKey);
+          const result = await analyzeAndImprovePrompt(imageUrls, prompt);
           if (result?.veoPrompt) {
             finalPrompt = result.veoPrompt;
             setImprovedPrompt(finalPrompt);
@@ -480,7 +480,7 @@ const ContentStudioV2 = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
           pendingClips.push({
             index: 0,
             photoId: uploadedUrls[0].photoId,
-            photoUrl: uploadedUrls[0].photoUrl,
+            photoUrl: uploadedUrls[0].publicUrl,  // Use Supabase URL (persists, small size)
             requestId: result.requestId,
             status: 'processing'
           });
@@ -491,7 +491,7 @@ const ContentStudioV2 = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
           pendingClips.push({
             index: 0,
             photoId: uploadedUrls[0].photoId,
-            photoUrl: uploadedUrls[0].photoUrl,
+            photoUrl: uploadedUrls[0].publicUrl,  // Use Supabase URL (persists, small size)
             requestId: null,
             status: 'failed',
             error: error.message
@@ -823,19 +823,6 @@ const ContentStudioV2 = ({ onBack, setSidebarCollapsed, sidebarCollapsed }) => {
         output_url: videoUrl,
         status: videoUrl ? 'exported' : 'draft'
       };
-
-      // DEBUG: Log what we're saving
-      console.log('=== SAVE DEBUG ===');
-      console.log('projectId:', projectId);
-      console.log('scenes count:', scenes?.length);
-      console.log('scenes data:', JSON.stringify(scenes?.map(s => ({
-        id: s.id,
-        hasPhotoUrl: !!s.photoUrl,
-        photoUrlStart: s.photoUrl?.substring(0, 30),
-        clipUrl: s.clipUrl || 'NULL',
-        duration: s.duration
-      })), null, 2));
-      console.log('==================');
 
       if (projectId) {
         // Update existing project
