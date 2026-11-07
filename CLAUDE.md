@@ -17,29 +17,65 @@ MY HOST BizMate is a vacation rental property management platform with integrate
 **Main Branch:** `main` (protected)
 **Live URL:** https://myhost-bizmate.vercel.app (NOTE: NO hyphen between my and host)
 
+## 12 AI Subagents Architecture
+
+**LIVE (7 working today):**
+
+| Agent | Type | Function | Status |
+|-------|------|----------|--------|
+| LUMINA | Sales | Turns enquiries into confirmed bookings | LIVE |
+| BANYU | WhatsApp | Guest concierge by text and voice | LIVE |
+| KORA | Voice | Answers calls and takes bookings | LIVE |
+| NUSANTARA | Cultural | Local tips and Balinese culture | LIVE |
+| OSIRIS | Operations | Daily report, tasks, housekeeping, maintenance | LIVE |
+| SURYA | Insights | Numbers + Bali market news → actions | LIVE |
+| IRIS | Marketing | AI videos and content (Content Studio V2) | LIVE |
+
+**COMING NEXT (5 on the way):**
+
+| Agent | Type | Function | Status |
+|-------|------|----------|--------|
+| DANA | Payments | Collects payments and deposits | COMING |
+| ARTHA | Revenue | Optimises prices and fills free nights | COMING |
+| ECHO | Reviews | Manages guest reviews and reputation | COMING |
+| MUSE | Social Media | Publishes content on social networks | COMING |
+| TAKSU | Upsell | Sells extras and upgrades before arrival | COMING |
+
+**AI Stack:**
+```
+Guest Channels    → Automation  → AI Models      → Data & App   → Content & Social
+──────────────────────────────────────────────────────────────────────────────────
+WhatsApp/Meta       n8n           ChatGPT          Supabase       Remotion
+Chakra              Railway       ElevenLabs       Vercel         AWS Lambda
+VAPI                              Veo 3.1/Kling                   Blotato
+Beds24                            MuAPI
+```
+
+**Built and run with Claude AI / Claude Code** — Anthropic's AI designs the architecture, writes the code and operates the platform every day.
+
 ## Current State (November 2026)
 
-**Last Session (Nov 2, 2026):**
+**Last Session (Nov 6, 2026):**
+- Content Studio V2: TTS now uses ai-proxy (no exposed API keys)
+- Content Studio V2: Fixed infinite polling (6min timeout, max 3 errors)
+- Content Studio V2: Added Kling 3.0 fallback when Veo 3.1 fails (1-photo only)
+- Content Studio V2: Added visual "Failed" overlay with Retry button
+- Cleanup: Removed unused OPENAI_API_URL, apiKeys state, debug logs
+- Commits: `8d7854c` (working branch), `7f572a7` (main/Vercel)
+
+**Previous Session (Nov 2, 2026):**
 - Content Studio V2: Fixed two-image transitions (start frame + end frame)
 - Content Studio V2: Upgraded Remotion Lambda to v4.0.424
-- Content Studio V2: Fixed video duration with `forceDurationInFrames`
 - Security: All MuAPI calls now go through Supabase Edge Function `ai-proxy`
-- Commits: `5ae6171` (working branch), `2792f8c` (main/Vercel)
 
-**Previous Session (Nov 1, 2026):**
-- Security: Added session auth headers to n8n webhooks (dailysummary-v5, nusantara/chat)
-- Security: Removed hardcoded tenant_id fallback from OSIRIS/NUSANTARA
-- Fixed: $NaN display in Owner Decisions when financial_impact_estimate is text
+**Master Document:** `110626/MYHOST-BizMate-AI-Overview.pdf` (architecture reference)
+- 12 AI Subagents: 7 LIVE, 5 COMING NEXT
+- Full AI stack documentation
 
-**Master Document:** `110126/MYHOST_DOCUMENTO_UNICO.md` (700KB, single source of truth)
-- Read "⭐ RESUMEN 1-NOV" section first for current priorities
-- All other documents are obsolete
-
-**Active Priorities (from document):**
-1. Gita tasks: NIS-2026-0139 price correction, confirm deleted bookings
-2. Security (after José's call): ai-proxy Edge Function for MuAPI, more webhook auth
-3. BANYU Voice: active on Zentara, Izumi, Nismara (as of Nov 1)
-4. Welcome Package with guest registration (CRITICAL before Nov 20 Airbnb changes)
+**Active Priorities:**
+1. Content Studio V2: Voice-over integration (TTS ready via ai-proxy)
+2. IRIS (Marketing Agent): Video generation pipeline complete
+3. Welcome Package with guest registration (before Nov 20 Airbnb changes)
 
 **n8n Credentials:**
 - Supabase: "Supabase secret oct2026" `9IS8Q2uAtMvCHRdM` (43 active workflows)
